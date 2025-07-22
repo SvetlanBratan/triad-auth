@@ -11,10 +11,12 @@ export function UserSwitcher() {
   if (!currentUser) return null;
 
   return (
-    <div className="flex items-center gap-4">
-       <span className="text-sm font-medium">
-        Вы вошли как <span className="text-primary font-bold">{currentUser.name}</span>
-      </span>
+    <div className="flex items-center gap-2 md:gap-4 flex-wrap">
+       <div className="text-sm font-medium text-left">
+        <span>Вы вошли как</span>
+        <br className="sm:hidden" />
+        <span className="text-primary font-bold ml-1 sm:ml-0">{currentUser.name}</span>
+      </div>
       <Button onClick={signOutUser} variant="outline" size="sm">Выйти</Button>
     </div>
   );

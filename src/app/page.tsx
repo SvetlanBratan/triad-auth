@@ -22,12 +22,14 @@ function AppContent() {
 
   return (
     <main className="container mx-auto p-4 md:p-8">
-      <header className="flex justify-between items-center mb-6">
+      <header className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
         <div>
-          <h1 className="text-4xl font-bold font-headline text-primary">Баллы и награды</h1>
+          <h1 className="text-3xl md:text-4xl font-bold font-headline text-primary">Баллы и награды</h1>
           <p className="text-muted-foreground">Получайте баллы и обменивайте их на награды</p>
         </div>
-        <UserSwitcher />
+        <div className="self-start md:self-center">
+          <UserSwitcher />
+        </div>
       </header>
       <Dashboard />
     </main>
