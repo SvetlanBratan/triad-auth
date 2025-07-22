@@ -94,7 +94,7 @@ export default function LeaderboardTab() {
             </TableBody>
             </Table>
              {selectedUser && (
-                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-3xl h-[90vh] overflow-y-auto">
                     <UserProfileDialog user={selectedUser} />
                 </DialogContent>
             )}
