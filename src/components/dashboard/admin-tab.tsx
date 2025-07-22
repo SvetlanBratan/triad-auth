@@ -1,0 +1,386 @@
+"use client";
+
+import React, { useState, useMemo } from 'react';
+import { useUser } from '@/hooks/use-user';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import { Separator } from '../ui/separator';
+import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift } from 'lucide-react';
+import type { UserStatus, UserRole } from '@/lib/types';
+import { FAME_LEVELS_POINTS, EVENT_FAMILIARS } from '@/lib/data';
+
+export default function AdminTab() {
+  const { users, addPointsToUser, updateUserStatus, updateUserRole, giveEventFamiliarToCharacter } = useUser();
+  const [awardSelectedUserId, setAwardSelectedUserId] = useState<string>('');
+  const [statusSelectedUserId, setStatusSelectedUserId] = useState<string>('');
+  const [roleSelectedUserId, setRoleSelectedUserId] = useState<string>('');
+  const [selectedStatus, setSelectedStatus] = useState<UserStatus | ''>('');
+  const [selectedRole, setSelectedRole] = useState<UserRole | ''>('');
+  
+  // State for event familiar award
+  const [eventAwardUserId, setEventAwardUserId] = useState<string>('');
+  const [eventAwardCharacterId, setEventAwardCharacterId] = useState<string>('');
+  const [eventAwardFamiliarId, setEventAwardFamiliarId] = useState<string>('');
+
+
+  const [points, setPoints] = useState<number>(0);
+  const [reason, setReason] = useState<string>('');
+  const { toast } = useToast();
+
+  const handleAwardPoints = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!awardSelectedUserId || points === 0 || !reason) {
+      toast({
+        variant: "destructive",
+        title: "Отсутствует информация",
+        description: "Пожалуйста, выберите пользователя, введите баллы и причину.",
+      });
+      return;
+    }
+    
+    addPointsToUser(awardSelectedUserId, points, reason);
+    toast({
+      title: "Баллы начислены!",
+      description: `Начислено ${points} баллов пользователю ${users.find(u => u.id === awardSelectedUserId)?.name}.`,
+    });
+
+    setAwardSelectedUserId('');
+    setPoints(0);
+    setReason('');
+  };
+
+  const handleChangeStatus = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!statusSelectedUserId || !selectedStatus) {
+        toast({
+            variant: "destructive",
+            title: "Отсутствует информация",
+            description: "Пожалуйста, выберите пользователя и статус.",
+        });
+        return;
+    }
+    updateUserStatus(statusSelectedUserId, selectedStatus);
+    toast({
+        title: "Статус обновлен!",
+        description: `Статус пользователя ${users.find(u => u.id === statusSelectedUserId)?.name} изменен на "${selectedStatus}".`,
+    });
+    setStatusSelectedUserId('');
+    setSelectedStatus('');
+  };
+
+   const handleChangeRole = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!roleSelectedUserId || !selectedRole) {
+      toast({
+        variant: "destructive",
+        title: "Отсутствует информация",
+        description: "Пожалуйста, выберите пользователя и роль.",
+      });
+      return;
+    }
+    updateUserRole(roleSelectedUserId, selectedRole);
+    toast({
+      title: "Роль обновлена!",
+      description: `Роль пользователя ${users.find(u => u.id === roleSelectedUserId)?.name} изменена на "${selectedRole}".`,
+    });
+    setRoleSelectedUserId('');
+    setSelectedRole('');
+  };
+
+  const handleWeeklyCalculations = () => {
+    const activeUsers = users.filter(u => u.status === 'активный');
+    activeUsers.forEach(user => {
+        addPointsToUser(user.id, 800, 'Еженедельный бонус за активность');
+    });
+    toast({
+        title: "Еженедельные расчеты завершены",
+        description: `Бонусы за активность начислены ${activeUsers.length} активным пользователям.`,
+    });
+  };
+
+  const handleInactivityPenalty = () => {
+    const inactiveUsers = users.filter(u => u.status === 'неактивный');
+    inactiveUsers.forEach(user => {
+        addPointsToUser(user.id, -1000, 'Еженедельный штраф за неактивность');
+    });
+    toast({
+        title: "Применен штраф за неактивность",
+        description: `Штраф применен к ${inactiveUsers.length} неактивным пользователям.`,
+    });
+  };
+
+  const handleFameAwards = () => {
+    let usersAwardedCount = 0;
+    let totalPointsAwarded = 0;
+
+    users.forEach(user => {
+      if (user.characters && user.characters.length > 0) {
+        let pointsForUser = 0;
+        user.characters.forEach(character => {
+          const fameLevel = character.currentFameLevel as keyof typeof FAME_LEVELS_POINTS;
+          if (FAME_LEVELS_POINTS[fameLevel]) {
+            pointsForUser += FAME_LEVELS_POINTS[fameLevel];
+          }
+        });
+
+        if (pointsForUser > 0) {
+          addPointsToUser(user.id, pointsForUser, 'Награда за известность персонажей');
+          usersAwardedCount++;
+          totalPointsAwarded += pointsForUser;
+        }
+      }
+    });
+
+    if (usersAwardedCount > 0) {
+      toast({
+        title: "Награды за известность начислены",
+        description: `Начислено ${totalPointsAwarded} баллов для ${usersAwardedCount} пользователей.`,
+      });
+    } else {
+      toast({
+        title: "Награды за известность",
+        description: "Не найдено персонажей с подходящим уровнем известности.",
+      });
+    }
+  };
+
+  const handleAwardEventFamiliar = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!eventAwardUserId || !eventAwardCharacterId || !eventAwardFamiliarId) {
+      toast({
+        variant: "destructive",
+        title: "Отсутствует информация",
+        description: "Пожалуйста, выберите пользователя, персонажа и фамильяра.",
+      });
+      return;
+    }
+    
+    giveEventFamiliarToCharacter(eventAwardUserId, eventAwardCharacterId, eventAwardFamiliarId);
+
+    const userName = users.find(u => u.id === eventAwardUserId)?.name;
+    const familiarName = EVENT_FAMILIARS.find(f => f.id === eventAwardFamiliarId)?.name;
+
+    toast({
+      title: "Ивентовый фамильяр выдан!",
+      description: `Фамильяр "${familiarName}" выдан пользователю ${userName}.`,
+    });
+
+    setEventAwardUserId('');
+    setEventAwardCharacterId('');
+    setEventAwardFamiliarId('');
+  }
+
+  const charactersForSelectedUser = useMemo(() => {
+    if (!eventAwardUserId) return [];
+    return users.find(u => u.id === eventAwardUserId)?.characters || [];
+  }, [eventAwardUserId, users]);
+
+  
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><DollarSign /> Начислить баллы</CardTitle>
+          <CardDescription>Вручную начислите баллы пользователю за определенные действия.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleAwardPoints} className="space-y-4">
+            <div>
+              <Label htmlFor="user-select-award">Пользователь</Label>
+              <Select value={awardSelectedUserId} onValueChange={setAwardSelectedUserId}>
+                <SelectTrigger id="user-select-award">
+                  <SelectValue placeholder="Выберите пользователя" />
+                </SelectTrigger>
+                <SelectContent>
+                  {users.map(user => (
+                    <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="points-input">Баллы</Label>
+              <Input
+                id="points-input"
+                type="number"
+                value={points}
+                onChange={e => setPoints(parseInt(e.target.value, 10) || 0)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="reason-input">Причина</Label>
+              <Textarea
+                id="reason-input"
+                placeholder="например, Участие в мини-ивенте"
+                value={reason}
+                onChange={e => setReason(e.target.value)}
+              />
+            </div>
+            <Button type="submit">Начислить баллы</Button>
+          </form>
+        </CardContent>
+      </Card>
+      
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><ShieldAlert /> Изменить статус</CardTitle>
+            <CardDescription>Измените статус активности пользователя.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleChangeStatus} className="space-y-4">
+              <div>
+                <Label htmlFor="user-select-status">Пользователь</Label>
+                <Select value={statusSelectedUserId} onValueChange={setStatusSelectedUserId}>
+                  <SelectTrigger id="user-select-status">
+                    <SelectValue placeholder="Выберите пользователя" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.map(user => (
+                      <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="status-select">Новый статус</Label>
+                <Select value={selectedStatus} onValueChange={(value) => setSelectedStatus(value as UserStatus)}>
+                  <SelectTrigger id="status-select">
+                    <SelectValue placeholder="Выберите статус" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="активный">активный</SelectItem>
+                    <SelectItem value="неактивный">неактивный</SelectItem>
+                    <SelectItem value="отпуск">отпуск</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button type="submit">Изменить статус</Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><UserCog /> Управление ролями</CardTitle>
+            <CardDescription>Назначайте или снимайте права администратора.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleChangeRole} className="space-y-4">
+              <div>
+                <Label htmlFor="user-select-role">Пользователь</Label>
+                <Select value={roleSelectedUserId} onValueChange={setRoleSelectedUserId}>
+                  <SelectTrigger id="user-select-role">
+                    <SelectValue placeholder="Выберите пользователя" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.map(user => (
+                      <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="role-select">Новая роль</Label>
+                <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as UserRole)}>
+                  <SelectTrigger id="role-select">
+                    <SelectValue placeholder="Выберите роль" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">Администратор</SelectItem>
+                    <SelectItem value="user">Пользователь</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button type="submit">Изменить роль</Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Gift /> Выдать ивентового фамильяра</CardTitle>
+            <CardDescription>Наградите игрока эксклюзивным фамильяром.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleAwardEventFamiliar} className="space-y-4">
+              <div>
+                <Label htmlFor="user-select-event">Пользователь</Label>
+                <Select value={eventAwardUserId} onValueChange={uid => { setEventAwardUserId(uid); setEventAwardCharacterId(''); }}>
+                  <SelectTrigger id="user-select-event">
+                    <SelectValue placeholder="Выберите пользователя" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.map(user => (
+                      <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="character-select-event">Персонаж</Label>
+                <Select value={eventAwardCharacterId} onValueChange={setEventAwardCharacterId} disabled={!eventAwardUserId}>
+                  <SelectTrigger id="character-select-event">
+                    <SelectValue placeholder="Выберите персонажа" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {charactersForSelectedUser.map(character => (
+                      <SelectItem key={character.id} value={character.id}>{character.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="familiar-select-event">Фамильяр</Label>
+                <Select value={eventAwardFamiliarId} onValueChange={setEventAwardFamiliarId}>
+                  <SelectTrigger id="familiar-select-event">
+                    <SelectValue placeholder="Выберите фамильяра" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EVENT_FAMILIARS.map(familiar => (
+                      <SelectItem key={familiar.id} value={familiar.id}>{familiar.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button type="submit">Выдать фамильяра</Button>
+            </form>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Clock /> Автоматические действия</CardTitle>
+            <CardDescription>Симулируйте автоматические расчеты баллов.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+              <div>
+                  <h3 className="font-semibold mb-2 flex items-center gap-2"><Users /> Еженедельный бонус за активность</h3>
+                  <p className="text-sm text-muted-foreground mb-3">Начисляет 800 баллов всем 'активным' игрокам.</p>
+                  <Button onClick={handleWeeklyCalculations} variant="outline">Запустить еженедельный расчет</Button>
+              </div>
+              <Separator />
+              <div>
+                  <h3 className="font-semibold mb-2 flex items-center gap-2"><Trophy /> Награда за известность</h3>
+                  <p className="text-sm text-muted-foreground mb-3">Начисляет баллы всем игрокам в зависимости от известности их персонажей.</p>
+                  <Button onClick={handleFameAwards} variant="outline">Начислить награды</Button>
+              </div>
+              <Separator />
+              <div>
+                  <h3 className="font-semibold mb-2 flex items-center gap-2"><Users /> Еженедельный штраф за неактивность</h3>
+                  <p className="text-sm text-muted-foreground mb-3">Списывает 1000 баллов со всех 'неактивных' игроков.</p>
+                  <Button onClick={handleInactivityPenalty} variant="destructive">Применить штраф</Button>
+              </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
