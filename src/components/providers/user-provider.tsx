@@ -264,6 +264,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (currentUser?.role === 'admin') {
             fetchGameSettings();
         } else {
+             // Reset to default if user is not admin or logs out
             setGameSettings(DEFAULT_GAME_SETTINGS);
         }
     }, [currentUser, fetchGameSettings]);
@@ -293,10 +294,20 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return requests;
     } catch (error) {
         console.error("Error fetching reward requests with collectionGroup. This might be a Firestore rules issue.", error);
-        // Rethrow the error to be caught by the calling component
+        // Fallback for local testing or rules issue: Fetch for current user only if admin
+        if(currentUser?.role === 'admin') {
+            try {
+                const userRequestsRef = collection(db, `users/${currentUser.id}/reward_requests`);
+                const userRequestsSnap = await getDocs(userRequestsRef);
+                return userRequestsSnap.docs.map(doc => doc.data() as RewardRequest);
+            } catch (fallbackError) {
+                 console.error("Fallback fetch failed too:", fallbackError);
+                 throw error; // re-throw original error
+            }
+        }
         throw error;
     }
-  }, []);
+  }, [currentUser]);
 
 
   const updateUser = useCallback(async (userId: string, updates: Partial<User>) => {
