@@ -30,7 +30,8 @@ interface UserContextType {
   fetchAllUsers: () => Promise<User[]>;
   fetchAllRewardRequests: () => Promise<RewardRequest[]>;
   addPointsToUser: (userId: string, amount: number, reason: string, characterName?: string) => Promise<User | null>;
-  addCharacterToUser: (userId: string, character: Omit<Character, 'id'>) => Promise<void>;
+  addCharacterToUser: (userId: string, character: Omit<Character, 'id' | 'familiarCards'>) => Promise<void>;
+  updateCharacterInUser: (userId: string, character: Character) => Promise<void>;
   deleteCharacterFromUser: (userId: string, characterId: string) => Promise<void>;
   updateUserStatus: (userId: string, status: UserStatus) => Promise<void>;
   updateUserRole: (userId: string, role: UserRole) => Promise<void>;
@@ -230,19 +231,31 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     return await updateUserInStateAndFirestore(userId, { points: newPoints, pointHistory: newHistory });
   }, [fetchUserById, updateUserInStateAndFirestore]);
 
-  const addCharacterToUser = useCallback(async (userId: string, characterData: Omit<Character, 'id'>) => {
+  const addCharacterToUser = useCallback(async (userId: string, characterData: Omit<Character, 'id' | 'familiarCards'>) => {
     const user = await fetchUserById(userId);
     if (!user) return;
     
     const newCharacter: Character = {
         id: `c-${Date.now()}`,
         ...characterData,
-        familiarCards: characterData.familiarCards || []
+        familiarCards: []
     };
 
     const updatedCharacters = [...user.characters, newCharacter];
     await updateUserInStateAndFirestore(userId, { characters: updatedCharacters });
   }, [fetchUserById, updateUserInStateAndFirestore]);
+
+  const updateCharacterInUser = useCallback(async (userId: string, characterToUpdate: Character) => {
+    const user = await fetchUserById(userId);
+    if (!user) return;
+    
+    const updatedCharacters = user.characters.map(char => 
+        char.id === characterToUpdate.id ? characterToUpdate : char
+    );
+    
+    await updateUserInStateAndFirestore(userId, { characters: updatedCharacters });
+  }, [fetchUserById, updateUserInStateAndFirestore]);
+
 
   const deleteCharacterFromUser = useCallback(async (userId: string, characterId: string) => {
     const user = await fetchUserById(userId);
@@ -468,6 +481,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       fetchAllRewardRequests,
       addPointsToUser,
       addCharacterToUser,
+      updateCharacterInUser,
       deleteCharacterFromUser,
       updateUserStatus,
       updateUserRole,
@@ -478,7 +492,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       pullGachaForCharacter,
       giveEventFamiliarToCharacter,
     }),
-    [currentUser, fetchAllUsers, fetchAllRewardRequests, addPointsToUser, addCharacterToUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter]
+    [currentUser, fetchAllUsers, fetchAllRewardRequests, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter]
   );
 
   return (
@@ -489,3 +503,5 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     </AuthContext.Provider>
   );
 }
+
+    

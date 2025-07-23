@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser } from '@/hooks/use-user';
@@ -6,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Star, Trash2, Sparkles, Anchor, KeyRound } from 'lucide-react';
+import { PlusCircle, Star, Trash2, Sparkles, Anchor, KeyRound, Pencil } from 'lucide-react';
 import type { PointLog, UserStatus, Character } from '@/lib/types';
 import {
   Dialog,
@@ -15,7 +16,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogClose,
 } from "@/components/ui/dialog"
 import {
   AlertDialog,
@@ -28,18 +28,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
 import React from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { cn, formatTimeLeft } from '@/lib/utils';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { SKILL_LEVELS, FAME_LEVELS, ACHIEVEMENTS_BY_ID } from '@/lib/data';
+import { ACHIEVEMENTS_BY_ID } from '@/lib/data';
 import FamiliarCardDisplay from './familiar-card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import * as LucideIcons from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import CharacterForm from './character-form';
 
 
 type IconName = keyof typeof LucideIcons;
@@ -55,74 +53,7 @@ const DynamicIcon = ({ name, className }: { name: string, className?: string }) 
 };
 
 
-const AddCharacterForm = ({ onAddCharacter, closeDialog }: { onAddCharacter: (character: any) => void, closeDialog: () => void }) => {
-    const [name, setName] = React.useState('');
-    const [activity, setActivity] = React.useState('');
-    const [skillLevel, setSkillLevel] = React.useState('');
-    const [currentFameLevel, setCurrentFameLevel] = React.useState('');
-    const [workLocation, setWorkLocation] = React.useState('');
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!name || !activity || !skillLevel || !currentFameLevel) {
-          // Optional: Add a toast notification for missing fields
-          return;
-        }
-        onAddCharacter({ name, activity, skillLevel, currentFameLevel, workLocation, familiarCards: [] });
-        closeDialog();
-    };
-
-    return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-                <Label htmlFor="char-name">Имя персонажа</Label>
-                <Input id="char-name" value={name} onChange={e => setName(e.target.value)} placeholder="например, Гидеон" required />
-            </div>
-            <div>
-                <Label htmlFor="char-activity">Деятельность/профессия</Label>
-                <Input id="char-activity" value={activity} onChange={e => setActivity(e.target.value)} placeholder="например, Кузнец" required />
-            </div>
-            <div>
-                <Label htmlFor="char-skill">Уровень навыка</Label>
-                 <Select onValueChange={setSkillLevel} value={skillLevel}>
-                    <SelectTrigger id="char-skill">
-                        <SelectValue placeholder="Выберите уровень навыка" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {SKILL_LEVELS.map(level => (
-                            <SelectItem key={level} value={level}>{level}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
-            <div>
-                <Label htmlFor="char-fame">Текущая известность</Label>
-                 <Select onValueChange={setCurrentFameLevel} value={currentFameLevel}>
-                    <SelectTrigger id="char-fame">
-                        <SelectValue placeholder="Выберите уровень известности" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {FAME_LEVELS.map(level => (
-                            <SelectItem key={level} value={level}>{level}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
-            <div>
-                <Label htmlFor="char-location">Место работы (необязательно)</Label>
-                <Input id="char-location" value={workLocation} onChange={e => setWorkLocation(e.target.value)} placeholder="например, Железная кузница" />
-            </div>
-            <div className="flex justify-end gap-2">
-              <DialogClose asChild>
-                <Button type="button" variant="ghost">Отмена</Button>
-              </DialogClose>
-              <Button type="submit">Добавить персонажа</Button>
-            </div>
-        </form>
-    );
-};
-
-const CharacterDisplay = ({ character, onDelete }: { character: Character, onDelete: (characterId: string) => void }) => {
+const CharacterDisplay = ({ character, onEdit, onDelete }: { character: Character, onEdit: (character: Character) => void, onDelete: (characterId: string) => void }) => {
     const familiarCards = character.familiarCards || [];
     const isBlessed = character.blessingExpires && new Date(character.blessingExpires) > new Date();
 
@@ -156,29 +87,34 @@ const CharacterDisplay = ({ character, onDelete }: { character: Character, onDel
                         <p className="text-sm text-muted-foreground">({character.activity})</p>
                     </div>
                 </AccordionTrigger>
-                <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="mr-2 hover:bg-destructive/10 shrink-0" onClick={(e) => e.stopPropagation()}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                        <AlertDialogTitle>Вы уверены?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Это действие невозможно отменить. Это навсегда удалит вашего персонажа
-                            <span className="font-bold"> {character.name} </span>
-                            и все его данные, включая фамильяров.
-                        </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                        <AlertDialogCancel>Отмена</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => onDelete(character.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                            Да, удалить
-                        </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
+                <div className="flex items-center pr-2">
+                     <Button variant="ghost" size="icon" className="shrink-0 hover:bg-muted" onClick={() => onEdit(character)}>
+                        <Pencil className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="shrink-0 hover:bg-destructive/10" onClick={(e) => e.stopPropagation()}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>Вы уверены?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Это действие невозможно отменить. Это навсегда удалит вашего персонажа
+                                <span className="font-bold"> {character.name} </span>
+                                и все его данные, включая фамильяров.
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                            <AlertDialogCancel>Отмена</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => onDelete(character.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                Да, удалить
+                            </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </div>
             </div>
             <AccordionContent>
                 <div className="text-sm space-y-1 pl-4 pb-2">
@@ -211,21 +147,43 @@ const CharacterDisplay = ({ character, onDelete }: { character: Character, onDel
 
 
 export default function ProfileTab() {
-  const { currentUser, addCharacterToUser, deleteCharacterFromUser } = useUser();
-  const [isAddCharDialogOpen, setAddCharDialogOpen] = React.useState(false);
+  const { currentUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser } = useUser();
+  const [isFormDialogOpen, setFormDialogOpen] = React.useState(false);
+  const [editingCharacter, setEditingCharacter] = React.useState<Character | null>(null);
   const { toast } = useToast();
 
   if (!currentUser) return null;
   
-  const handleAddCharacter = (characterData: Omit<Character, 'id'>) => {
-    addCharacterToUser(currentUser.id, characterData);
-    toast({ title: "Успешно", description: "Персонаж добавлен. Теперь он может получать награды." });
+  const handleAddClick = () => {
+    setEditingCharacter(null);
+    setFormDialogOpen(true);
+  };
+
+  const handleEditClick = (character: Character) => {
+    setEditingCharacter(character);
+    setFormDialogOpen(true);
   };
 
   const handleDeleteCharacter = (characterId: string) => {
     if (!currentUser) return;
     deleteCharacterFromUser(currentUser.id, characterId);
     toast({ variant: 'destructive', title: "Персонаж удален", description: "Персонаж и все его данные были удалены." });
+  };
+
+  const handleFormSubmit = (characterData: Omit<Character, 'id' | 'familiarCards'> | Character) => {
+      if (!currentUser) return;
+
+      if ('id' in characterData) {
+        // Editing existing character
+        updateCharacterInUser(currentUser.id, characterData);
+        toast({ title: "Успешно", description: "Данные персонажа обновлены." });
+      } else {
+        // Adding new character
+        addCharacterToUser(currentUser.id, characterData);
+        toast({ title: "Успешно", description: "Персонаж добавлен. Теперь он может получать награды." });
+      }
+      setFormDialogOpen(false);
+      setEditingCharacter(null);
   };
 
   const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString();
@@ -309,29 +267,16 @@ export default function ProfileTab() {
                     <CardTitle>Персонажи</CardTitle>
                     <CardDescription>Ваш список персонажей-ремесленников</CardDescription>
                 </div>
-                <Dialog open={isAddCharDialogOpen} onOpenChange={setAddCharDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button variant="outline" size="sm">
-                            <PlusCircle className="mr-2 h-4 w-4" /> Добавить
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                        <DialogTitle>Добавить нового персонажа</DialogTitle>
-                        <DialogDescription>
-                            Заполните данные для вашего нового персонажа.
-                        </DialogDescription>
-                        </DialogHeader>
-                        <AddCharacterForm onAddCharacter={handleAddCharacter} closeDialog={() => setAddCharDialogOpen(false)} />
-                    </DialogContent>
-                </Dialog>
+                <Button variant="outline" size="sm" onClick={handleAddClick}>
+                    <PlusCircle className="mr-2 h-4 w-4" /> Добавить
+                </Button>
             </div>
           </CardHeader>
           <CardContent>
             {currentUser.characters.length > 0 ? (
                 <Accordion type="single" collapsible className="w-full">
                     {currentUser.characters.map(char => (
-                        <CharacterDisplay key={char.id} character={char} onDelete={handleDeleteCharacter} />
+                        <CharacterDisplay key={char.id} character={char} onEdit={handleEditClick} onDelete={handleDeleteCharacter} />
                     ))}
                 </Accordion>
             ) : (
@@ -379,6 +324,24 @@ export default function ProfileTab() {
           </CardContent>
         </Card>
       </div>
+
+       <Dialog open={isFormDialogOpen} onOpenChange={setFormDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                <DialogTitle>{editingCharacter ? 'Редактировать персонажа' : 'Добавить нового персонажа'}</DialogTitle>
+                <DialogDescription>
+                    {editingCharacter ? 'Измените данные вашего персонажа.' : 'Заполните данные для вашего нового персонажа.'}
+                </DialogDescription>
+                </DialogHeader>
+                <CharacterForm 
+                    onSubmit={handleFormSubmit}
+                    character={editingCharacter}
+                    closeDialog={() => setFormDialogOpen(false)} 
+                />
+            </DialogContent>
+        </Dialog>
     </div>
   );
 }
+
+    
