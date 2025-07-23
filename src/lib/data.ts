@@ -87,6 +87,10 @@ const ALL_FAMILIAR_CARDS_RAW: Omit<FamiliarCard, 'data-ai-hint'>[] = [
     { id: 'fam-c-4', name: 'Золотце', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199420/%D0%97%D0%BE%D0%BB%D0%BE%D1%82%D1%86%D0%B5_kgu8ni.png'},
     { id: 'fam-c-lynx', name: 'Ледяная рысь', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199430/%D0%9B%D0%B5%D0%B4%D1%8F%D0%BD%D0%B0%D1%8F_%D1%80%D1%8B%D1%81%D1%8C_ziosz3.png' },
     { id: 'fam-c-ognemur', name: 'Огнемур', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199457/%D0%9E%D0%B3%D0%BD%D0%B5%D0%BC%D1%83%D1%80_dwnqqi.png' },
+    { id: 'fam-c-pchelokot', name: 'Пчелокот', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199460/%D0%9F%D1%87%D0%B5%D0%BB%D0%BE%D0%BA%D0%BE%D1%82_hd1kqs.png' },
+    { id: 'fam-c-sofil', name: 'Софил', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199463/%D0%A1%D0%BE%D1%84%D0%B8%D0%BB_yvixpo.png' },
+    { id: 'fam-c-shvepsel', name: 'Швепсель', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199468/%D0%A8%D0%B2%D0%B5%D0%BF%D1%81%D0%B5%D0%BB%D1%8C_a33agc.png' },
+    { id: 'fam-c-shorek', name: 'Шорёк', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199469/%D0%A8%D0%BE%D1%80%D1%91%D0%BA_j0t14o.png' },
 
     { id: 'fam-r-1', name: 'Артерианская гончая', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753197216/%D0%90%D1%80%D1%82%D0%B5%D1%80%D0%B8%D0%B0%D0%BD%D1%81%D0%BA%D0%B0%D1%8F_%D0%B3%D0%BE%D0%BD%D1%87%D0%B0%D1%8F_jjjx11.png' },
     { id: 'fam-r-2', name: 'Баргест', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753197217/%D0%91%D0%B0%D1%80%D0%B3%D0%B5%D1%81%D1%82_nrlebe.png' },
@@ -97,6 +101,10 @@ const ALL_FAMILIAR_CARDS_RAW: Omit<FamiliarCard, 'data-ai-hint'>[] = [
     { id: 'fam-r-wolves', name: 'Лёдинова и Огнова', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199428/%D0%9B%D1%91%D0%B4%D0%B8%D0%BD%D0%BE%D0%B2%D0%B0_%D0%B8_%D0%9E%D0%B3%D0%BD%D0%BE%D0%B2%D0%B0_ncfytg.png' },
     { id: 'fam-r-foxsquirrel', name: 'Лисобелка', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199430/%D0%9B%D0%B8%D1%81%D0%BE%D0%B1%D0%B5%D0%BB%D0%BA%D0%B0_xd2wz5.png' },
     { id: 'fam-r-firehound', name: 'Огнеславская гончая', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199458/%D0%9E%D0%B3%D0%BD%D0%B5%D1%81%D0%BB%D0%B0%D0%B2%D1%81%D0%BA%D0%B0%D1%8F_%D0%B3%D0%BE%D0%BD%D1%87%D0%B0%D1%8F_deofmm.png' },
+    { id: 'fam-r-remoh', name: 'Ремох', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199461/%D0%A0%D0%B5%D0%BC%D0%BE%D1%85_fk06lc.png' },
+    { id: 'fam-r-savokl', name: 'Савокль', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199462/%D0%A1%D0%B0%D0%B2%D0%BE%D0%BA%D0%BB%D1%8C_jaqcy9.png' },
+    { id: 'fam-r-tykvohodka', name: 'Тыквоходка', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199464/%D0%A2%D1%8B%D0%BA%D0%B2%D0%BE%D1%85%D0%BE%D0%B4%D0%BA%D0%B0_bopaqu.png' },
+    { id: 'fam-r-eikthyrnir', name: 'Эйктюрнир', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199470/%D1%8D%D0%B9%D0%BA%D1%82%D1%8E%D1%80%D0%BD%D0%B8%D1%80_n9hfrv.png' },
 
 
     { id: 'fam-l-1', name: 'Альви', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753194638/%D0%90%D0%BB%D1%8C%D0%B2%D0%B8_ggcs5g.png' },
@@ -113,6 +121,11 @@ const ALL_FAMILIAR_CARDS_RAW: Omit<FamiliarCard, 'data-ai-hint'>[] = [
     { id: 'fam-l-ognekus', name: 'Огнекус', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199456/%D0%9E%D0%B3%D0%BD%D0%B5%D0%BA%D1%83%D1%81_uwn6tt.png' },
     { id: 'fam-l-panzerflot', name: 'Панцефлот', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199459/%D0%9F%D0%B0%D0%BD%D1%86%D0%B5%D1%84%D0%BB%D0%BE%D1%82_x9yat1.png' },
     { id: 'fam-l-pegasus', name: 'Пегас', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199460/%D0%9F%D0%B5%D0%B3%D0%B0%D1%81_rp9fje.png' },
+    { id: 'fam-l-serpopard', name: 'Серпопард', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199463/%D0%A1%D0%B5%D1%80%D0%BF%D0%BE%D0%BF%D0%B0%D1%80%D0%B4_ohokso.png' },
+    { id: 'fam-l-faifi', name: 'Файфи', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199465/%D0%A4%D0%B0%D0%B9%D1%84%D0%B8_bdh1ww.png' },
+    { id: 'fam-l-crystal-alicorn', name: 'Хрустальный Аликорн', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199467/%D1%85%D1%80%D1%83%D1%81%D1%82%D0%B0%D0%BB%D1%8C%D0%BD%D1%8B%D0%B9_%D0%B0%D0%BB%D0%B8%D0%BA%D0%BE%D1%80%D0%BD_e8p30d.png' },
+    { id: 'fam-l-chupacabra', name: 'Чупакабра', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199468/%D0%A7%D1%83%D0%BF%D0%B0%D0%BA%D0%B0%D0%B1%D1%80%D0%B0_cxkyus.png' },
+    { id: 'fam-l-dark-elemental', name: 'Элементаль тьмы', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199471/%D0%AD%D0%BB%D0%B5%D0%BC%D0%B5%D0%BD%D1%82%D0%B0%D0%BB%D1%8C_%D1%82%D1%8C%D0%BC%D1%8B_wvqmoe.png' },
 
 
     { id: 'fam-m-1', name: 'Кирин', rank: 'мифический', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199422/%D0%9A%D0%B8%D1%80%D0%B8%D0%BD_qpmqz5.png'},
@@ -133,6 +146,7 @@ export const EVENT_FAMILIARS_RAW: Omit<FamiliarCard, 'data-ai-hint'>[] = [
     { id: 'fam-e-bone-cat', name: 'Костяной кот', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199425/%D0%9A%D0%BE%D1%81%D1%82%D1%8F%D0%BD%D0%BE%D0%B9_%D0%BA%D0%BE%D1%82_hr2gmk.png'},
     { id: 'fam-e-leviathan', name: 'Левиафан', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199426/%D0%BB%D0%B5%D0%B2%D0%B8%D0%B0%D1%84%D0%B0%D0%BD_hr6tat.png' },
     { id: 'fam-e-ariana', name: 'Леди Ариана', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199427/%D0%9B%D0%B5%D0%B4%D0%B8_%D0%90%D1%80%D0%B8%D0%B0%D0%BD%D0%B0_w15swi.png' },
+    { id: 'fam-e-cerberus', name: 'Цербер', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199467/%D0%A6%D0%B5%D1%80%D0%B1%D0%B5%D1%80_rznwpc.png' },
 ];
 
 const addHint = (card: Omit<FamiliarCard, 'data-ai-hint'>): FamiliarCard => {
@@ -183,6 +197,20 @@ const addHint = (card: Omit<FamiliarCard, 'data-ai-hint'>): FamiliarCard => {
     else if (lowerCaseName.includes('огнеславская гончая')) hint = 'fire hound';
     else if (lowerCaseName.includes('панцефлот')) hint = 'armored fleet';
     else if (lowerCaseName.includes('пегас')) hint = 'pegasus';
+    else if (lowerCaseName.includes('пчелокот')) hint = 'bee cat';
+    else if (lowerCaseName.includes('ремох')) hint = 'remoh monster';
+    else if (lowerCaseName.includes('савокль')) hint = 'owl creature';
+    else if (lowerCaseName.includes('серпопард')) hint = 'sickle leopard';
+    else if (lowerCaseName.includes('софил')) hint = 'sofil creature';
+    else if (lowerCaseName.includes('тыквоходка')) hint = 'pumpkin walker';
+    else if (lowerCaseName.includes('файфи')) hint = 'faifi creature';
+    else if (lowerCaseName.includes('цербер')) hint = 'cerberus hound';
+    else if (lowerCaseName.includes('хрустальный аликорн')) hint = 'crystal alicorn';
+    else if (lowerCaseName.includes('чупакабра')) hint = 'chupacabra';
+    else if (lowerCaseName.includes('швепсель')) hint = 'shvepsel creature';
+    else if (lowerCaseName.includes('шорёк')) hint = 'shorek creature';
+    else if (lowerCaseName.includes('эйктюрнир')) hint = 'eikthyrnir deer';
+    else if (lowerCaseName.includes('элементаль тьмы')) hint = 'dark elemental';
     return { ...card, 'data-ai-hint': hint };
 };
 
