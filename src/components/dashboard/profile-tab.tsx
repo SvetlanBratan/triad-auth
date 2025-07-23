@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Star, Trash2, Pencil, UserSquare } from 'lucide-react';
-import type { PointLog, UserStatus, Character } from '@/lib/types';
+import type { PointLog, UserStatus, Character, User } from '@/lib/types';
 import Link from 'next/link';
 import {
   Dialog,
@@ -28,7 +28,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { ACHIEVEMENTS_BY_ID } from '@/lib/data';
@@ -94,10 +94,17 @@ const CharacterDisplay = ({ character, onEdit, onDelete }: { character: Characte
 
 
 export default function ProfileTab() {
-  const { currentUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser } = useUser();
+  const { currentUser, updateCharacterInUser, deleteCharacterFromUser, fetchAllUsers } = useUser();
   const [isFormDialogOpen, setFormDialogOpen] = React.useState(false);
   const [editingCharacter, setEditingCharacter] = React.useState<Character | null>(null);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (isFormDialogOpen) {
+      fetchAllUsers().then(setAllUsers);
+    }
+  }, [isFormDialogOpen, fetchAllUsers]);
 
   if (!currentUser) return null;
   
@@ -282,6 +289,7 @@ export default function ProfileTab() {
                 <CharacterForm 
                     onSubmit={handleFormSubmit as (data: Character) => void}
                     character={editingCharacter}
+                    allUsers={allUsers}
                     closeDialog={() => setFormDialogOpen(false)} 
                 />
             </DialogContent>

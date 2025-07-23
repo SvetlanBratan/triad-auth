@@ -1,8 +1,8 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import type { Character } from '@/lib/types';
+import React, { useState, useEffect, useMemo } from 'react';
+import type { Character, User } from '@/lib/types';
 import { SKILL_LEVELS, FAME_LEVELS, TRAINING_OPTIONS } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { DialogClose } from '@/components/ui/dialog';
@@ -11,9 +11,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '../ui/textarea';
 import { ScrollArea } from '../ui/scroll-area';
 import { MultiSelect, OptionType } from '../ui/multi-select';
+import { useUser } from '@/hooks/use-user';
 
 interface CharacterFormProps {
     character: Character | null;
+    allUsers: User[];
     onSubmit: (data: Character) => void;
     closeDialog: () => void;
 }
@@ -34,6 +36,7 @@ const initialFormData: Character = {
     diary: '',
     training: [],
     relationships: '',
+    marriedTo: [],
     abilities: '',
     weaknesses: '',
     lifeGoal: '',
@@ -57,8 +60,9 @@ const fameLevelOptions: OptionType[] = FAME_LEVELS.map(level => ({ value: level,
 const skillLevelOptions: OptionType[] = SKILL_LEVELS.map(level => ({ value: level, label: level }));
 
 
-const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps) => {
+const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: CharacterFormProps) => {
     const [formData, setFormData] = useState<Character>(initialFormData);
+    const { currentUser } = useUser();
 
      useEffect(() => {
         if (character) {
@@ -69,6 +73,7 @@ const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps)
                 currentFameLevel: Array.isArray(character.currentFameLevel) ? character.currentFameLevel : (character.currentFameLevel ? [character.currentFameLevel] : []),
                 skillLevel: Array.isArray(character.skillLevel) ? character.skillLevel : (character.skillLevel ? [character.skillLevel] : []),
                 training: Array.isArray(character.training) ? character.training : [],
+                marriedTo: Array.isArray(character.marriedTo) ? character.marriedTo : [],
             };
             setFormData(initializedCharacter);
         } else {
@@ -76,6 +81,20 @@ const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps)
              setFormData(newCharacterWithId);
         }
     }, [character]);
+
+    const characterOptions = useMemo(() => {
+        if (!allUsers) return [];
+        return allUsers.flatMap(user =>
+            user.characters
+                // Exclude the current character from their own spouse list
+                .filter(c => c.id !== formData.id)
+                .map(c => ({
+                    value: c.id,
+                    label: `${c.name} (${user.name})`
+                }))
+        );
+    }, [allUsers, formData.id]);
+
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { id, value } = e.target;
@@ -168,6 +187,15 @@ const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps)
                     </div>
                     
                     {/* Additional Section */}
+                     <div>
+                        <Label htmlFor="marriedTo">В браке с</Label>
+                        <MultiSelect
+                            options={characterOptions}
+                            selected={formData.marriedTo ?? []}
+                            onChange={(selectedValues) => handleMultiSelectChange('marriedTo', selectedValues)}
+                            placeholder="Выберите персонажей..."
+                        />
+                    </div>
                      <div>
                         <Label htmlFor="training">Обучение</Label>
                         <MultiSelect

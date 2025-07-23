@@ -77,6 +77,7 @@ export interface Character {
   diary: string; // "Личный дневник"
   training: string[]; // "Обучение" - Changed to array of strings
   relationships: string; // Placeholder for now
+  marriedTo?: string[]; // IDs of other characters
   inventory: Inventory;
   // Old fields that are now part of inventory or deprecated at top level
   familiarCards: OwnedFamiliarCard[]; // Kept for backwards compatibility, should be migrated to inventory

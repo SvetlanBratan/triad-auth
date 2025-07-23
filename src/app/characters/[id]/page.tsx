@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, notFound } from 'next/navigation';
 import { useUser } from '@/hooks/use-user';
 import { User, Character, FamiliarCard, FamiliarRank, Moodlet } from '@/lib/types';
@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FAMILIARS_BY_ID, MOODLETS_DATA, TRAINING_OPTIONS } from '@/lib/data';
 import FamiliarCardDisplay from '@/components/dashboard/familiar-card';
-import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound } from 'lucide-react';
+import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users } from 'lucide-react';
 import Link from 'next/link';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -92,19 +92,23 @@ export default function CharacterPage() {
     const { currentUser, fetchAllUsers, updateCharacterInUser, gameDate } = useUser();
     const [character, setCharacter] = useState<Character | null>(null);
     const [owner, setOwner] = useState<User | null>(null);
+    const [allUsers, setAllUsers] = useState<User[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const { toast } = useToast();
 
     useEffect(() => {
-        const findCharacter = async () => {
+        const findCharacterAndUsers = async () => {
             setIsLoading(true);
-            const allUsers = await fetchAllUsers();
-            for (const user of allUsers) {
+            const fetchedUsers = await fetchAllUsers();
+            setAllUsers(fetchedUsers);
+            let found = false;
+            for (const user of fetchedUsers) {
                 const foundChar = user.characters.find(c => c.id === id);
                 if (foundChar) {
                     setCharacter(foundChar);
                     setOwner(user);
+                    found = true;
                     break;
                 }
             }
@@ -112,7 +116,7 @@ export default function CharacterPage() {
         };
 
         if(id) {
-          findCharacter();
+          findCharacterAndUsers();
         }
     }, [id, fetchAllUsers, currentUser]); // Added currentUser to dependencies to refetch if user data changes (e.g. after an edit)
 
@@ -123,6 +127,21 @@ export default function CharacterPage() {
         toast({ title: "Анкета обновлена", description: "Данные персонажа успешно сохранены." });
         setIsFormOpen(false);
     };
+
+    const spouses = useMemo(() => {
+        if (!character?.marriedTo || allUsers.length === 0) return [];
+        const spouseChars: {id: string, name: string}[] = [];
+        for (const spouseId of character.marriedTo) {
+            for (const user of allUsers) {
+                const foundSpouse = user.characters.find(c => c.id === spouseId);
+                if (foundSpouse) {
+                    spouseChars.push({ id: foundSpouse.id, name: foundSpouse.name });
+                    break;
+                }
+            }
+        }
+        return spouseChars;
+    }, [character, allUsers]);
 
     if (isLoading) {
         return <div className="container mx-auto p-8"><p>Загрузка данных персонажа...</p></div>;
@@ -253,6 +272,25 @@ export default function CharacterPage() {
                              {character.weaknesses && <div className="flex justify-between"><span>Слабости:</span> <span className="text-right">{character.weaknesses}</span></div>}
                         </CardContent>
                     </Card>
+
+                    {spouses.length > 0 && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2"><Users /> Семейное положение</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-1">
+                                    <span className="text-sm">В браке с:</span>
+                                    {spouses.map(spouse => (
+                                        <Link key={spouse.id} href={`/characters/${spouse.id}`} className="block text-sm font-semibold text-primary hover:underline">
+                                            {spouse.name}
+                                        </Link>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+
 
                      {activeMoodlets.length > 0 && (
                         <Card>
@@ -416,6 +454,7 @@ export default function CharacterPage() {
                     </DialogHeader>
                     <CharacterForm
                         character={character}
+                        allUsers={allUsers}
                         onSubmit={handleFormSubmit}
                         closeDialog={() => setIsFormOpen(false)}
                     />
