@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FAMILIARS_BY_ID } from '@/lib/data';
 import FamiliarCardDisplay from '@/components/dashboard/familiar-card';
-import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices } from 'lucide-react';
+import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront } from 'lucide-react';
 import Link from 'next/link';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -116,7 +116,7 @@ export default function CharacterPage() {
     }
 
     const canEdit = currentUser?.id === owner.id || currentUser?.role === 'admin';
-    const inventory = character.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], familiarCards: [] };
+    const inventory = character.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: [] };
 
     return (
         <div className="container mx-auto p-4 md:p-8 space-y-6">
@@ -226,6 +226,18 @@ export default function CharacterPage() {
                                     <AccordionTrigger><Dices className="mr-2 w-4 h-4"/>Подарки ({inventory.подарки.length})</AccordionTrigger>
                                     <AccordionContent>
                                         <p className="text-muted-foreground text-sm">Здесь будет список подарков.</p>
+                                    </AccordionContent>
+                                </AccordionItem>
+                                <AccordionItem value="real-estate">
+                                    <AccordionTrigger><Home className="mr-2 w-4 h-4"/>Недвижимость ({inventory.недвижимость.length})</AccordionTrigger>
+                                    <AccordionContent>
+                                        <p className="text-muted-foreground text-sm">Здесь будет список недвижимости.</p>
+                                    </AccordionContent>
+                                </AccordionItem>
+                                <AccordionItem value="transport">
+                                    <AccordionTrigger><CarFront className="mr-2 w-4 h-4"/>Транспорт ({inventory.транспорт.length})</AccordionTrigger>
+                                    <AccordionContent>
+                                        <p className="text-muted-foreground text-sm">Здесь будет список транспорта.</p>
                                     </AccordionContent>
                                 </AccordionItem>
                              </Accordion>

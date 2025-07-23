@@ -152,7 +152,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
            userData.characters = userData.characters?.map(char => ({
                 familiarCards: [],
                 ...char,
-                inventory: char.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], familiarCards: char.familiarCards || [] },
+                inventory: char.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: char.familiarCards || [] },
                 moodlets: char.moodlets || [],
             })) || [];
            userData.achievementIds = userData.achievementIds || [];
@@ -196,7 +196,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         userData.characters = userData.characters?.map(char => ({
             familiarCards: [],
             ...char,
-            inventory: char.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], familiarCards: char.familiarCards || [] },
+            inventory: char.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: char.familiarCards || [] },
             moodlets: char.moodlets || [],
         })) || [];
         userData.achievementIds = userData.achievementIds || [];
@@ -293,6 +293,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             подарки: [],
             артефакты: [],
             зелья: [],
+            недвижимость: [],
+            транспорт: [],
             familiarCards: []
         }
     };
@@ -440,7 +442,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         if (characterToUpdateIndex !== -1) {
             let characterToUpdate = { ...updatedUser.characters[characterToUpdateIndex] };
-            let inventory = characterToUpdate.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], familiarCards: [] };
+            let inventory = characterToUpdate.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: [] };
 
             if (request.rewardId === PUMPKIN_WIFE_REWARD_ID) {
                  const currentCards = inventory.familiarCards || [];
@@ -548,7 +550,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         reason = `Рулетка: дубликат ${newCard.name}, возврат ${DUPLICATE_REFUND} баллов`;
     } else {
         const updatedCharacter = { ...character };
-        const inventory = updatedCharacter.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], familiarCards: [] };
+        const inventory = updatedCharacter.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: [] };
         inventory.familiarCards = [...(inventory.familiarCards || []), { id: newCard.id }];
         updatedCharacter.inventory = inventory;
         
@@ -613,7 +615,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (!familiar) return;
 
     const character = { ...user.characters[characterIndex] };
-    const inventory = character.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], familiarCards: [] };
+    const inventory = character.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: [] };
     
     if ((inventory.familiarCards || []).some(card => card.id === familiarId)) {
       console.warn(`Character ${character.name} already owns familiar ${familiar.name}`);
@@ -711,7 +713,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (characterIndex === -1) throw new Error("Character not found");
 
     const character = { ...user.characters[characterIndex] };
-    const inventory = character.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], familiarCards: [] };
+    const inventory = character.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: [] };
     const ownedCards = inventory.familiarCards || [];
 
     // Find the first instance of the card and remove it

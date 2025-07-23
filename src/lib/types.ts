@@ -1,8 +1,9 @@
+
 export type UserRole = 'admin' | 'user';
 export type UserStatus = 'активный' | 'неактивный' | 'отпуск';
 export type RewardRequestStatus = 'в ожидании' | 'одобрено' | 'отклонено';
 export type FamiliarRank = 'обычный' | 'редкий' | 'легендарный' | 'мифический' | 'ивентовый';
-export type InventoryCategory = 'оружие' | 'гардероб' | 'еда' | 'подарки' | 'артефакты' | 'зелья';
+export type InventoryCategory = 'оружие' | 'гардероб' | 'еда' | 'подарки' | 'артефакты' | 'зелья' | 'недвижимость' | 'транспорт';
 
 export interface Achievement {
   id: string;
@@ -45,6 +46,8 @@ export interface Inventory {
     подарки: InventoryItem[];
     артефакты: InventoryItem[];
     зелья: InventoryItem[];
+    недвижимость: InventoryItem[];
+    транспорт: InventoryItem[];
     familiarCards: OwnedFamiliarCard[];
 }
 
