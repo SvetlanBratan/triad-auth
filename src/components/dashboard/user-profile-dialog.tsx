@@ -110,6 +110,7 @@ const CharacterDisplay = ({ character }: { character: Character }) => {
                                 <PopoverContent className="w-auto max-w-xs text-sm">
                                     <p className="font-bold">{moodlet.name}</p>
                                     <p className="text-xs mb-2">{moodlet.description}</p>
+                                    {moodlet.source && <p className="text-xs mb-2">Источник: <span className="font-semibold">{moodlet.source}</span></p>}
                                     <p className="text-xs text-muted-foreground">{formatTimeLeft(moodlet.expiresAt)}</p>
                                 </PopoverContent>
                             </Popover>

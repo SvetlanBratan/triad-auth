@@ -25,6 +25,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '../ui/command';
+import { Check, ChevronsUpDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 
 export default function AdminTab() {
@@ -58,6 +62,7 @@ export default function AdminTab() {
   const [moodletCharId, setMoodletCharId] = useState<string>('');
   const [moodletId, setMoodletId] = useState<string>('');
   const [moodletDuration, setMoodletDuration] = useState<number>(7);
+  const [moodletSource, setMoodletSource] = useState('');
 
   const { toast } = useToast();
 
@@ -319,27 +324,25 @@ export default function AdminTab() {
       toast({ variant: 'destructive', title: 'Ошибка', description: 'Пожалуйста, заполните все поля для мудлета.' });
       return;
     }
-    await addMoodletToCharacter(moodletUserId, moodletCharId, moodletId, moodletDuration);
+    await addMoodletToCharacter(moodletUserId, moodletCharId, moodletId, moodletDuration, moodletSource);
     
     const moodletName = MOODLETS_DATA[moodletId as keyof typeof MOODLETS_DATA].name;
     toast({ title: 'Мудлет добавлен!', description: `Мудлет "${moodletName}" добавлен персонажу на ${moodletDuration} дней.` });
     
-    // Optimistic update
     const updatedUsers = await fetchAllUsers();
     setUsers(updatedUsers);
     
-    // Reset form
     setMoodletUserId('');
     setMoodletCharId('');
     setMoodletId('');
     setMoodletDuration(7);
+    setMoodletSource('');
   };
 
   const handleRemoveMoodlet = async (userId: string, charId: string, moodletId: string) => {
       await removeMoodletFromCharacter(userId, charId, moodletId);
       const moodletName = MOODLETS_DATA[moodletId as keyof typeof MOODLETS_DATA].name;
       toast({ title: 'Мудлет удален!', description: `Мудлет "${moodletName}" удален у персонажа.`, variant: 'destructive' });
-      // Optimistic update
       const updatedUsers = await fetchAllUsers();
       setUsers(updatedUsers);
   };
@@ -360,6 +363,13 @@ export default function AdminTab() {
       const user = users.find(u => u.id === moodletUserId);
       return user?.characters.find(c => c.id === moodletCharId) || null;
   }, [moodletUserId, moodletCharId, users]);
+
+  const moodletSourceOptions = useMemo(() => {
+    const characterNames = users.flatMap(u => u.characters.map(c => c.name));
+    const divineBeings = ["Светлый Бог", "Тёмный Бог", "Неизвестная Богиня"];
+    return [...new Set([...divineBeings, ...characterNames])];
+  }, [users]);
+
 
   if (isLoading) {
     return <div className="flex justify-center items-center h-64"><p>Загрузка данных...</p></div>
@@ -650,19 +660,19 @@ export default function AdminTab() {
               <div>
                 <Label htmlFor="achieve-select">Ачивка</Label>
                 <Select value={achieveId} onValueChange={setAchieveId}>
-                  <SelectTrigger id="achieve-select">
-                    <SelectValue placeholder="Выберите ачивку" />
-                  </SelectTrigger>
-                  <SelectContent className="max-w-[300px]">
-                    {ALL_ACHIEVEMENTS.map(ach => (
-                      <SelectItem key={ach.id} value={ach.id} className="whitespace-normal">
-                        <div className="flex flex-col items-start">
-                          <span className="font-semibold">{ach.name}</span>
-                          <span className="text-xs text-muted-foreground">{ach.description}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
+                    <SelectTrigger id="achieve-select" className="w-full">
+                        <SelectValue placeholder="Выберите ачивку..." />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px] w-[var(--radix-select-trigger-width)]">
+                        {ALL_ACHIEVEMENTS.map((ach) => (
+                            <SelectItem key={ach.id} value={ach.id} className="whitespace-normal">
+                                <div className="flex flex-col items-start py-1">
+                                  <p className="font-semibold">{ach.name}</p>
+                                  <p className="text-xs text-muted-foreground">{ach.description}</p>
+                                </div>
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
                 </Select>
               </div>
               <Button type="submit">Выдать ачивку</Button>
@@ -746,6 +756,13 @@ export default function AdminTab() {
                         <Label htmlFor="moodlet-duration">Длительность (в днях)</Label>
                         <Input id="moodlet-duration" type="number" value={moodletDuration} onChange={(e) => setMoodletDuration(Number(e.target.value))} />
                       </div>
+                      <div>
+                        <Label htmlFor="moodlet-source">Источник эффекта (необязательно)</Label>
+                        <Input id="moodlet-source" list="moodlet-sources" value={moodletSource} onChange={e => setMoodletSource(e.target.value)} placeholder="Имя персонажа или божество..." />
+                        <datalist id="moodlet-sources">
+                            {moodletSourceOptions.map(name => <option key={name} value={name} />)}
+                        </datalist>
+                      </div>
                       <Button type="submit"><PlusCircle className="mr-2 h-4 w-4" />Добавить мудлет</Button>
                 </form>
                 {selectedCharacterForMoodlet && (selectedCharacterForMoodlet.moodlets || []).filter(m => new Date(m.expiresAt) > new Date()).length > 0 && (
@@ -754,7 +771,10 @@ export default function AdminTab() {
                         <div className="space-y-2">
                            {(selectedCharacterForMoodlet.moodlets || []).filter(m => new Date(m.expiresAt) > new Date()).map(moodlet => (
                                 <div key={moodlet.id} className="flex items-center justify-between text-sm p-2 bg-muted rounded-md">
-                                    <span>{moodlet.name}</span>
+                                    <div>
+                                      <span>{moodlet.name}</span>
+                                      {moodlet.source && <span className="text-xs text-muted-foreground italic ml-2">(от {moodlet.source})</span>}
+                                    </div>
                                     <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleRemoveMoodlet(moodletUserId, moodletCharId, moodlet.id)}>
                                         <Trash2 className="h-4 w-4" />
                                     </Button>

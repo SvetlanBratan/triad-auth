@@ -16,6 +16,7 @@ export interface Moodlet {
   description: string;
   iconName: string;
   expiresAt: string; // ISO string date
+  source?: string; // Who applied the moodlet
 }
 
 export interface FamiliarCard {

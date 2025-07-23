@@ -43,7 +43,7 @@ interface UserContextType {
   giveEventFamiliarToCharacter: (userId: string, characterId: string, familiarId: string) => Promise<void>;
   fetchAvailableMythicCardsCount: () => Promise<number>;
   clearPointHistoryForUser: (userId: string) => Promise<void>;
-  addMoodletToCharacter: (userId: string, characterId: string, moodletId: string, durationInDays: number) => Promise<void>;
+  addMoodletToCharacter: (userId: string, characterId: string, moodletId: string, durationInDays: number, source?: string) => Promise<void>;
   removeMoodletFromCharacter: (userId: string, characterId: string, moodletId: string) => Promise<void>;
   clearRewardRequestsHistory: () => Promise<void>;
 }
@@ -400,31 +400,28 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         const achievementIdToGrant = achievementMap[request.rewardId];
         if (achievementIdToGrant) {
-            // We don't need to await this as it will fetch the user again
-            // and we batch the updates later anyway.
-             const currentAchievements = updatedUser.achievementIds || [];
-             if (!currentAchievements.includes(achievementIdToGrant)) {
+            const currentAchievements = updatedUser.achievementIds || [];
+            if (!currentAchievements.includes(achievementIdToGrant)) {
                 updatedUser.achievementIds = [...currentAchievements, achievementIdToGrant];
                 updatesForUser.achievementIds = updatedUser.achievementIds;
-             }
+            }
         }
 
         if (characterToUpdateIndex !== -1) {
             let characterToUpdate = { ...updatedUser.characters[characterToUpdateIndex] };
 
-            // Specific reward logic
             if (request.rewardId === PUMPKIN_WIFE_REWARD_ID) {
                  const currentCards = characterToUpdate.familiarCards || [];
                  if (!currentCards.some(card => card.id === PUMPKIN_WIFE_CARD_ID)) {
                     characterToUpdate.familiarCards = [...currentCards, { id: PUMPKIN_WIFE_CARD_ID }];
                  }
-            } else if (request.rewardId === 'r-blessing') { // Blessing
+            } else if (request.rewardId === 'r-blessing') {
                 const expiryDate = new Date();
                 expiryDate.setDate(expiryDate.getDate() + 5);
                 characterToUpdate.blessingExpires = expiryDate.toISOString();
-            } else if (request.rewardId === 'r-leviathan') { // Leviathan
+            } else if (request.rewardId === 'r-leviathan') {
                 characterToUpdate.hasLeviathanFriendship = true;
-            } else if (request.rewardId === 'r-crime-connections') { // Crime Connections
+            } else if (request.rewardId === 'r-crime-connections') {
                 characterToUpdate.hasCrimeConnections = true;
             }
             
@@ -467,13 +464,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     if (!user) throw new Error("Пользователь не найден.");
     
-    // Simplified check for first gacha pull ever
-    const hasEverPulledGacha = user.pointHistory.some(log => log.reason.includes('Рулетка'));
+    const hasPulledGachaBefore = user.pointHistory.some(log => log.reason.includes('Рулетка'));
     const hasFirstPullAchievement = (user.achievementIds || []).includes(FIRST_PULL_ACHIEVEMENT_ID);
 
-    if (!hasEverPulledGacha && !hasFirstPullAchievement) {
+    if (!hasPulledGachaBefore && !hasFirstPullAchievement) {
         await grantAchievementToUser(userId, FIRST_PULL_ACHIEVEMENT_ID);
-        // Re-fetch user to get the updated achievement list
         user = await fetchUserById(userId);
         if (!user) throw new Error("Could not re-fetch user after granting achievement.");
     }
@@ -609,7 +604,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     await updateUserInStateAndFirestore(userId, { pointHistory: [] });
   }, [updateUserInStateAndFirestore]);
 
-  const addMoodletToCharacter = useCallback(async (userId: string, characterId: string, moodletId: string, durationInDays: number) => {
+  const addMoodletToCharacter = useCallback(async (userId: string, characterId: string, moodletId: string, durationInDays: number, source?: string) => {
     const user = await fetchUserById(userId);
     if (!user) return;
 
@@ -626,6 +621,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         id: moodletId,
         ...moodletData,
         expiresAt: expiryDate.toISOString(),
+        ...(source && { source }),
     };
 
     const character = { ...user.characters[characterIndex] };
