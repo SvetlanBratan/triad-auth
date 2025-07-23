@@ -177,7 +177,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const userRef = doc(db, "users", userId);
       const docSnap = await getDoc(userRef);
       if (docSnap.exists()) {
-          return docSnap.data() as User;
+          const userData = docSnap.data() as User;
+           userData.characters = userData.characters?.map(char => ({
+                ...char,
+                familiarCards: char.familiarCards || []
+            })) || [];
+          return userData;
       }
       return null;
   }, []);
@@ -189,9 +194,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       
       const updatedDoc = await getDoc(userRef);
       const updatedUser = updatedDoc.data() as User;
+      updatedUser.characters = updatedUser.characters?.map(char => ({
+            ...char,
+            familiarCards: char.familiarCards || []
+        })) || [];
+
 
       if (currentUser?.id === userId) {
-        setCurrentUser(updatedUser);
+        setCurrentUser(prev => ({...prev!, ...updates, characters: updatedUser.characters}));
       }
       return updatedUser;
   }, [currentUser?.id]);
@@ -274,7 +284,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     if (currentUser?.id === user.id) {
         const updatedUser = { ...user, points: updatedPoints, pointHistory: updatedHistory };
-        setCurrentUser(updatedUser);
+        setCurrentUser(prev => ({...prev!, ...updatedUser}));
     }
   }, [fetchUserById, currentUser?.id]);
   
