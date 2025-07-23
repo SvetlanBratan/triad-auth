@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useUser } from '@/hooks/use-user';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,21 +31,22 @@ export default function RequestsTab() {
     const [processingRequestId, setProcessingRequestId] = useState<string | null>(null);
     const { toast } = useToast();
 
-    useEffect(() => {
-        const loadRequests = async () => {
-            setIsLoading(true);
-            try {
-                const requests = await fetchAllRewardRequests();
-                setRewardRequests(requests);
-            } catch (error) {
-                console.error("Failed to load requests", error);
-                toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось загрузить запросы' });
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        loadRequests();
+    const loadRequests = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const requests = await fetchAllRewardRequests();
+            setRewardRequests(requests);
+        } catch (error) {
+            console.error("Failed to load requests", error);
+            toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось загрузить запросы' });
+        } finally {
+            setIsLoading(false);
+        }
     }, [fetchAllRewardRequests, toast]);
+
+    useEffect(() => {
+        loadRequests();
+    }, [loadRequests]);
 
     const handleUpdateRequest = async (request: RewardRequest, newStatus: RewardRequestStatus) => {
         setProcessingRequestId(request.id);

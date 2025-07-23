@@ -5,9 +5,8 @@ import React, { createContext, useState, useMemo, useCallback, useEffect, useCon
 import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
-import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, collectionGroup, query, where, orderBy, deleteDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc } from "firebase/firestore";
 import { ALL_FAMILIARS, FAMILIARS_BY_ID, MOODLETS_DATA, DEFAULT_GAME_SETTINGS } from '@/lib/data';
-import { parse } from 'date-fns';
 
 interface AuthContextType {
     user: FirebaseUser | null;
@@ -127,23 +126,22 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const settingsRef = doc(db, 'game_settings', 'main');
         const docSnap = await getDoc(settingsRef);
         if (docSnap.exists()) {
-            const data = docSnap.data() as { gameDateString: string };
+            const data = docSnap.data() as GameSettings;
             const dateStr = data.gameDateString;
-            const months: { [key: string]: number } = { "января":0, "февраля":1, "марта":2, "апреля":3, "мая":4, "июня":5, "июля":6, "августа":7, "сентября":8, "октября":9, "ноября":10, "декабря":11 };
-            const parts = dateStr.replace(' год', '').split(' ');
-            if (parts.length === 3) {
-              const day = parseInt(parts[0]);
-              const month = months[parts[1].toLowerCase()];
-              const year = parseInt(parts[2]);
-              const gameDate = new Date(year, month, day);
-
-              if (!isNaN(gameDate.getTime())) {
-                setGameSettings({ gameDateString: dateStr, gameDate });
-              }
+            const dateParts = dateStr.match(/(\d+)\s(\S+)\s(\d+)/);
+            if (dateParts) {
+                const months: { [key: string]: number } = { "января":0, "февраля":1, "марта":2, "апреля":3, "мая":4, "июня":5, "июля":6, "августа":7, "сентября":8, "октября":9, "ноября":10, "декабря":11 };
+                const day = parseInt(dateParts[1]);
+                const month = months[dateParts[2].toLowerCase()];
+                const year = parseInt(dateParts[3]);
+                const gameDate = new Date(year, month, day);
+                 if (!isNaN(gameDate.getTime())) {
+                    setGameSettings({ gameDateString: dateStr, gameDate });
+                }
             }
         }
     } catch (error) {
-        console.error("Error fetching game settings, likely due to permissions:", error);
+        console.error("Error fetching game settings, likely due to permissions. Using default.", error);
     }
   }, []);
 
@@ -238,8 +236,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setLoading(true);
-      setFirebaseUser(user);
       if (user) {
+        setFirebaseUser(user);
         try {
             let userData = await fetchUserById(user.uid);
             if (!userData) {
@@ -252,6 +250,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             setCurrentUser(null);
         }
       } else {
+        setFirebaseUser(null);
         setCurrentUser(null);
         setGameSettings(DEFAULT_GAME_SETTINGS); 
       }
@@ -261,9 +260,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, [createNewUser, fetchUserById]);
 
-   // Effect to fetch game settings only for admins
     useEffect(() => {
-        if (currentUser && currentUser.role === 'admin') {
+        if (currentUser?.role === 'admin') {
             fetchGameSettings();
         } else {
             setGameSettings(DEFAULT_GAME_SETTINGS);
@@ -287,10 +285,23 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, [initialFormData]);
 
   const fetchAllRewardRequests = useCallback(async (): Promise<RewardRequest[]> => {
-      const requestsQuery = query(collectionGroup(db, 'reward_requests'), orderBy('createdAt', 'desc'));
-      const requestSnapshot = await getDocs(requestsQuery);
-      return requestSnapshot.docs.map(doc => doc.data() as RewardRequest);
-  }, []);
+    const allUsers = await fetchAllUsers();
+    const allRequests: RewardRequest[] = [];
+
+    for (const user of allUsers) {
+        try {
+            const requestsCollectionRef = collection(db, `users/${user.id}/reward_requests`);
+            const requestsSnapshot = await getDocs(requestsCollectionRef);
+            requestsSnapshot.forEach(doc => {
+                allRequests.push(doc.data() as RewardRequest);
+            });
+        } catch (error) {
+            console.error(`Could not fetch reward requests for user ${user.id}. Skipping.`, error);
+        }
+    }
+
+    return allRequests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [fetchAllUsers]);
 
   const updateUser = useCallback(async (userId: string, updates: Partial<User>) => {
       const userRef = doc(db, "users", userId);
