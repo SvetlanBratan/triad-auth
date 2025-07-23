@@ -187,7 +187,7 @@ export default function CharacterPage() {
                         <CardContent>
                              <Accordion type="multiple" className="w-full">
                                 <AccordionItem value="familiars">
-                                    <AccordionTrigger>Фамильяры ({inventory.familiarCards.length})</AccordionTrigger>
+                                    <AccordionTrigger><ShieldAlert className="mr-2 w-4 h-4"/>Фамильяры ({inventory.familiarCards.length})</AccordionTrigger>
                                     <AccordionContent>
                                         <FamiliarsSection character={character} />
                                     </AccordionContent>
