@@ -139,6 +139,34 @@ export const FAME_LEVELS_POINTS = {
     'Вошедший в историю': 1000,
 };
 
+export const TRAINING_OPTIONS = [
+    { value: 'peasant_school', label: 'Крестьянская школа' },
+    { value: 'noble_guesthouse', label: 'Пансион благородных девиц' },
+    { value: 'knightly_training', label: 'Рыцарское обучение' },
+    { value: 'mentor', label: 'Наставник' },
+    { value: 'self_taught', label: 'Самообучение' },
+    { value: 'military_school', label: 'Военная школа' },
+    { value: 'navy_academy', label: 'Школа/Академия военно-морского флота' },
+    { value: 'kozhemyaka_vocational', label: 'Ремесленное училище имени Кожемяки' },
+    { value: 'trade_school', label: 'Торговое училище' },
+    { value: 'many_faces_school', label: 'Училище Многоликих' },
+    { value: 'magitech_construction_school', label: 'Училище магомеханики и строительства' },
+    { value: 'fine_arts_school', label: 'Училище художественных искусств' },
+    { value: 'culinary_school', label: 'Училище кулинарии' },
+    { value: 'tech_design_school', label: 'Училище технологий и дизайна' },
+    { value: 'medical_school', label: 'Медицинское училище' },
+    { value: 'agricultural_school', label: 'Аграрное училище' },
+    { value: 'spiritual_school', label: 'Духовное училище' },
+    { value: 'dark_dreams_bordello', label: 'Бордель "Тёмные грёзы"' },
+    { value: 'mind_management_school', label: 'Училище «Разум и управление»' },
+    { value: 'ritual_burial_school', label: 'Ритуально-погребальное училище' },
+    { value: 'geology_land_management_school', label: 'Училище геологии и землеустройства' },
+    { value: 'light_god_academy', label: 'Академия имени Светлого Бога.' },
+    { value: 'dark_god_academy', label: 'Академия имени Тёмного Бога' },
+    { value: 'central_magic_academy', label: 'Центральная академия магов, ведьм и чародеев' },
+];
+
+
 const ALL_FAMILIAR_CARDS_RAW: Omit<FamiliarCard, 'data-ai-hint'>[] = [
     { id: 'fam-c-1', name: 'Анчутка', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753197216/%D0%90%D0%BD%D1%87%D1%83%D1%82%D0%BA%D0%B0_hvas2s.png' },
     { id: 'fam-c-2', name: 'Божья тварь', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199171/%D0%91%D0%BE%D0%B6%D1%8C%D1%8F_%D1%82%D0%B2%D0%B0%D1%80%D1%8C_jbwjju.png' },

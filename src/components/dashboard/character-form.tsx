@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import type { Character } from '@/lib/types';
-import { SKILL_LEVELS, FAME_LEVELS } from '@/lib/data';
+import { SKILL_LEVELS, FAME_LEVELS, TRAINING_OPTIONS } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '../ui/textarea';
 import { ScrollArea } from '../ui/scroll-area';
+import { MultiSelect } from '../ui/multi-select';
 
 interface CharacterFormProps {
     character: Omit<Character, 'id' | 'inventory' | 'familiarCards' | 'moodlets'> | Character | null;
@@ -30,7 +31,7 @@ const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps)
         personality: '',
         biography: '',
         diary: '',
-        training: '',
+        training: [],
         relationships: '',
         abilities: '',
         weaknesses: '',
@@ -51,7 +52,7 @@ const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps)
                 personality: character.personality || '',
                 biography: character.biography || '',
                 diary: character.diary || '',
-                training: character.training || '',
+                training: character.training || [],
                 relationships: character.relationships || '',
                 abilities: character.abilities || '',
                 weaknesses: character.weaknesses || '',
@@ -61,7 +62,7 @@ const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps)
         } else {
              setFormData({
                 name: '', activity: '', skillLevel: '', skillDescription: '', currentFameLevel: '', workLocation: '',
-                appearance: '', personality: '', biography: '', diary: '', training: '', relationships: '',
+                appearance: '', personality: '', biography: '', diary: '', training: [], relationships: '',
                 abilities: '', weaknesses: '', lifeGoal: '', pets: ''
             });
         }
@@ -72,7 +73,7 @@ const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps)
         setFormData(prev => ({ ...prev, [id]: value }));
     };
 
-    const handleSelectChange = (id: string, value: string) => {
+    const handleSelectChange = (id: string, value: string | string[]) => {
         setFormData(prev => ({ ...prev, [id]: value }));
     }
 
@@ -165,7 +166,15 @@ const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps)
                     {/* Additional Section */}
                      <div>
                         <Label htmlFor="training">Обучение</Label>
-                        <Textarea id="training" value={formData.training} onChange={handleChange} placeholder="Где и чему обучался персонаж..." rows={4}/>
+                        <MultiSelect
+                            options={TRAINING_OPTIONS}
+                            selected={formData.training.map(t => TRAINING_OPTIONS.find(o => o.label === t)?.value).filter(Boolean) as string[]}
+                            onChange={(selectedValues) => {
+                                const selectedLabels = selectedValues.map(v => TRAINING_OPTIONS.find(o => o.value === v)?.label).filter(Boolean) as string[];
+                                handleSelectChange('training', selectedLabels);
+                            }}
+                            placeholder="Выберите учебные заведения..."
+                        />
                     </div>
                      <div>
                         <Label htmlFor="relationships">Отношения</Label>

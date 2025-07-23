@@ -280,7 +280,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         personality: '',
         biography: '',
         diary: '',
-        training: '',
+        training: [],
         relationships: '',
         abilities: '',
         weaknesses: '',

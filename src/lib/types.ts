@@ -68,7 +68,7 @@ export interface Character {
   personality: string;
   biography: string;
   diary: string; // "Личный дневник"
-  training: string; // "Обучение"
+  training: string[]; // "Обучение" - Changed to array of strings
   relationships: string; // Placeholder for now
   inventory: Inventory;
   // Old fields that are now part of inventory or deprecated at top level

@@ -253,7 +253,13 @@ export default function CharacterPage() {
                                 <AccordionItem value="training">
                                     <AccordionTrigger>Обучение</AccordionTrigger>
                                     <AccordionContent>
-                                        <p className="whitespace-pre-wrap">{character.training || 'Описание отсутствует.'}</p>
+                                         {character.training && character.training.length > 0 ? (
+                                            <ul className="list-disc pl-5 space-y-1">
+                                                {character.training.map(school => <li key={school}>{school}</li>)}
+                                            </ul>
+                                        ) : (
+                                            <p className="whitespace-pre-wrap">Описание отсутствует.</p>
+                                        )}
                                     </AccordionContent>
                                 </AccordionItem>
                                 <AccordionItem value="relationships">
