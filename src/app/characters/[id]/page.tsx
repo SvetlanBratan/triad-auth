@@ -89,7 +89,7 @@ const FamiliarsSection = ({ character }: { character: Character }) => {
 
 export default function CharacterPage() {
     const { id } = useParams();
-    const { currentUser, fetchAllUsers, updateCharacterInUser, gameDate } = useUser();
+    const { currentUser, fetchUsersForAdmin, updateCharacterInUser, gameDate } = useUser();
     const [character, setCharacter] = useState<Character | null>(null);
     const [owner, setOwner] = useState<User | null>(null);
     const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -100,7 +100,7 @@ export default function CharacterPage() {
     useEffect(() => {
         const findCharacterAndUsers = async () => {
             setIsLoading(true);
-            const fetchedUsers = await fetchAllUsers();
+            const fetchedUsers = await fetchUsersForAdmin();
             setAllUsers(fetchedUsers);
             let found = false;
             for (const user of fetchedUsers) {
@@ -118,7 +118,7 @@ export default function CharacterPage() {
         if(id) {
           findCharacterAndUsers();
         }
-    }, [id, fetchAllUsers, currentUser]); // Added currentUser to dependencies to refetch if user data changes (e.g. after an edit)
+    }, [id, fetchUsersForAdmin, currentUser]); // Added currentUser to dependencies to refetch if user data changes (e.g. after an edit)
 
     const handleFormSubmit = (characterData: Character) => {
         if (!owner) return;

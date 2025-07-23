@@ -94,7 +94,7 @@ const CharacterDisplay = ({ character, onEdit, onDelete }: { character: Characte
 
 
 export default function ProfileTab() {
-  const { currentUser, updateCharacterInUser, deleteCharacterFromUser, fetchAllUsers } = useUser();
+  const { currentUser, updateCharacterInUser, deleteCharacterFromUser, fetchUsersForAdmin } = useUser();
   const [isFormDialogOpen, setFormDialogOpen] = React.useState(false);
   const [editingCharacter, setEditingCharacter] = React.useState<Character | null>(null);
   const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -102,9 +102,9 @@ export default function ProfileTab() {
 
   useEffect(() => {
     if (isFormDialogOpen) {
-      fetchAllUsers().then(setAllUsers);
+      fetchUsersForAdmin().then(setAllUsers);
     }
-  }, [isFormDialogOpen, fetchAllUsers]);
+  }, [isFormDialogOpen, fetchUsersForAdmin]);
 
   if (!currentUser) return null;
   
