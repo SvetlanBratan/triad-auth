@@ -126,7 +126,9 @@ export default function CharacterPage() {
         ? character.skillLevel.join(', ')
         : character.skillLevel;
     
-    const trainingLabels = (Array.isArray(character.training) ? character.training : []).map(value => {
+    const trainingValues = Array.isArray(character.training) ? character.training : [];
+    const uniqueTrainingValues = [...new Set(trainingValues)];
+    const trainingLabels = uniqueTrainingValues.map(value => {
         const option = TRAINING_OPTIONS.find(opt => opt.value === value);
         return option ? option.label : value;
     });
