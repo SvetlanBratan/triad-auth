@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
-import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star } from 'lucide-react';
+import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle } from 'lucide-react';
 import type { UserStatus, UserRole, User } from '@/lib/types';
 import { FAME_LEVELS_POINTS, EVENT_FAMILIARS, ALL_ACHIEVEMENTS } from '@/lib/data';
 
@@ -33,9 +33,13 @@ export default function AdminTab() {
   const [achieveUserId, setAchieveUserId] = useState<string>('');
   const [achieveId, setAchieveId] = useState<string>('');
 
-
   const [points, setPoints] = useState<number>(0);
   const [reason, setReason] = useState<string>('');
+
+  const [deductSelectedUserId, setDeductSelectedUserId] = useState<string>('');
+  const [deductPoints, setDeductPoints] = useState<number>(0);
+  const [deductReason, setDeductReason] = useState<string>('');
+
   const { toast } = useToast();
 
   useEffect(() => {
@@ -77,6 +81,34 @@ export default function AdminTab() {
     setAwardSelectedUserId('');
     setPoints(0);
     setReason('');
+  };
+
+   const handleDeductPoints = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!deductSelectedUserId || deductPoints === 0 || !deductReason) {
+      toast({
+        variant: 'destructive',
+        title: 'Отсутствует информация',
+        description: 'Пожалуйста, выберите пользователя, введите баллы для списания и причину.',
+      });
+      return;
+    }
+
+    const pointsToDeduct = -Math.abs(deductPoints);
+    const updatedUser = await addPointsToUser(deductSelectedUserId, pointsToDeduct, deductReason);
+
+    if (updatedUser) {
+      setUsers((prev) => prev.map((u) => (u.id === updatedUser.id ? updatedUser : u)));
+      toast({
+        title: 'Баллы списаны!',
+        description: `Списано ${Math.abs(pointsToDeduct)} баллов с пользователя ${updatedUser.name}.`,
+        variant: 'destructive',
+      });
+    }
+
+    setDeductSelectedUserId('');
+    setDeductPoints(0);
+    setDeductReason('');
   };
 
   const handleChangeStatus = async (e: React.FormEvent) => {
@@ -302,6 +334,124 @@ export default function AdminTab() {
             </form>
           </CardContent>
         </Card>
+         <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-destructive"><MinusCircle /> Списать баллы</CardTitle>
+            <CardDescription>Вручную спишите баллы с пользователя за нарушения.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleDeductPoints} className="space-y-4">
+              <div>
+                <Label htmlFor="user-select-deduct">Пользователь</Label>
+                <Select value={deductSelectedUserId} onValueChange={setDeductSelectedUserId}>
+                  <SelectTrigger id="user-select-deduct">
+                    <SelectValue placeholder="Выберите пользователя" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.map(user => (
+                      <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="points-input-deduct">Баллы</Label>
+                <Input
+                  id="points-input-deduct"
+                  type="number"
+                  value={deductPoints}
+                  onChange={e => setDeductPoints(parseInt(e.target.value, 10) || 0)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="reason-input-deduct">Причина</Label>
+                <Textarea
+                  id="reason-input-deduct"
+                  placeholder="например, Нарушение правил"
+                  value={deductReason}
+                  onChange={e => setDeductReason(e.target.value)}
+                />
+              </div>
+              <Button type="submit" variant="destructive">Списать баллы</Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+      
+      <div className="space-y-6">
+       <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><ShieldAlert /> Изменить статус</CardTitle>
+            <CardDescription>Измените статус активности пользователя.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleChangeStatus} className="space-y-4">
+              <div>
+                <Label htmlFor="user-select-status">Пользователь</Label>
+                <Select value={statusSelectedUserId} onValueChange={setStatusSelectedUserId}>
+                  <SelectTrigger id="user-select-status">
+                    <SelectValue placeholder="Выберите пользователя" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.map(user => (
+                      <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="status-select">Новый статус</Label>
+                <Select value={selectedStatus} onValueChange={(value) => setSelectedStatus(value as UserStatus)}>
+                  <SelectTrigger id="status-select">
+                    <SelectValue placeholder="Выберите статус" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="активный">активный</SelectItem>
+                    <SelectItem value="неактивный">неактивный</SelectItem>
+                    <SelectItem value="отпуск">отпуск</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button type="submit">Изменить статус</Button>
+            </form>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><UserCog /> Управление ролями</CardTitle>
+            <CardDescription>Назначайте или снимайте права администратора.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleChangeRole} className="space-y-4">
+              <div>
+                <Label htmlFor="user-select-role">Пользователь</Label>
+                <Select value={roleSelectedUserId} onValueChange={setRoleSelectedUserId}>
+                  <SelectTrigger id="user-select-role">
+                    <SelectValue placeholder="Выберите пользователя" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.map(user => (
+                      <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="role-select">Новая роль</Label>
+                <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as UserRole)}>
+                  <SelectTrigger id="role-select">
+                    <SelectValue placeholder="Выберите роль" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">Администратор</SelectItem>
+                    <SelectItem value="user">Пользователь</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button type="submit">Изменить роль</Button>
+            </form>
+          </CardContent>
+        </Card>
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><Gift /> Выдать ивентового фамильяра</CardTitle>
@@ -353,83 +503,6 @@ export default function AdminTab() {
           </CardContent>
         </Card>
       </div>
-      
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><ShieldAlert /> Изменить статус</CardTitle>
-            <CardDescription>Измените статус активности пользователя.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleChangeStatus} className="space-y-4">
-              <div>
-                <Label htmlFor="user-select-status">Пользователь</Label>
-                <Select value={statusSelectedUserId} onValueChange={setStatusSelectedUserId}>
-                  <SelectTrigger id="user-select-status">
-                    <SelectValue placeholder="Выберите пользователя" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {users.map(user => (
-                      <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="status-select">Новый статус</Label>
-                <Select value={selectedStatus} onValueChange={(value) => setSelectedStatus(value as UserStatus)}>
-                  <SelectTrigger id="status-select">
-                    <SelectValue placeholder="Выберите статус" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="активный">активный</SelectItem>
-                    <SelectItem value="неактивный">неактивный</SelectItem>
-                    <SelectItem value="отпуск">отпуск</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button type="submit">Изменить статус</Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><UserCog /> Управление ролями</CardTitle>
-            <CardDescription>Назначайте или снимайте права администратора.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleChangeRole} className="space-y-4">
-              <div>
-                <Label htmlFor="user-select-role">Пользователь</Label>
-                <Select value={roleSelectedUserId} onValueChange={setRoleSelectedUserId}>
-                  <SelectTrigger id="user-select-role">
-                    <SelectValue placeholder="Выберите пользователя" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {users.map(user => (
-                      <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="role-select">Новая роль</Label>
-                <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as UserRole)}>
-                  <SelectTrigger id="role-select">
-                    <SelectValue placeholder="Выберите роль" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Администратор</SelectItem>
-                    <SelectItem value="user">Пользователь</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button type="submit">Изменить роль</Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
 
       <div className="space-y-6">
         <Card>
@@ -461,7 +534,10 @@ export default function AdminTab() {
                   <SelectContent>
                     {ALL_ACHIEVEMENTS.map(ach => (
                       <SelectItem key={ach.id} value={ach.id}>
-                          <p className="whitespace-normal"><span className="font-semibold">{ach.name}</span> - <span className="text-muted-foreground">{ach.description}</span></p>
+                          <div className="flex flex-col">
+                            <span className="font-semibold">{ach.name}</span>
+                            <span className="text-xs text-muted-foreground">{ach.description}</span>
+                          </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
