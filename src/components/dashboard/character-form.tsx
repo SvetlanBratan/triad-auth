@@ -11,8 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface CharacterFormProps {
-    character: Character | null;
-    onSubmit: (data: Omit<Character, 'id' | 'familiarCards' | 'moodlets'> | Character) => void;
+    character: Omit<Character, 'id' | 'inventory' | 'appearance' | 'personality' | 'biography' | 'diary' | 'training' | 'relationships' | 'familiarCards' | 'moodlets'> | null;
+    onSubmit: (data: Omit<Character, 'id' | 'inventory' | 'appearance' | 'personality' | 'biography' | 'diary' | 'training' | 'relationships' | 'familiarCards' | 'moodlets'> | Character) => void;
     closeDialog: () => void;
 }
 
@@ -47,7 +47,7 @@ const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps)
           return;
         }
 
-        if (character) {
+        if (character && 'id' in character) {
              // Editing existing character
             onSubmit({ 
                 ...character,

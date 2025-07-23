@@ -2,6 +2,7 @@ export type UserRole = 'admin' | 'user';
 export type UserStatus = 'активный' | 'неактивный' | 'отпуск';
 export type RewardRequestStatus = 'в ожидании' | 'одобрено' | 'отклонено';
 export type FamiliarRank = 'обычный' | 'редкий' | 'легендарный' | 'мифический' | 'ивентовый';
+export type InventoryCategory = 'оружие' | 'гардероб' | 'еда' | 'подарки';
 
 export interface Achievement {
   id: string;
@@ -31,6 +32,20 @@ export interface OwnedFamiliarCard {
   id: string;
 }
 
+export interface InventoryItem {
+    id: string;
+    name: string;
+    description?: string;
+}
+
+export interface Inventory {
+    оружие: InventoryItem[];
+    гардероб: InventoryItem[];
+    еда: InventoryItem[];
+    подарки: InventoryItem[];
+    familiarCards: OwnedFamiliarCard[];
+}
+
 export interface Character {
   id: string;
   name: string;
@@ -38,11 +53,20 @@ export interface Character {
   skillLevel: string;
   currentFameLevel: string;
   workLocation: string;
-  familiarCards: OwnedFamiliarCard[];
+  // New questionnaire fields
+  appearance: string;
+  personality: string;
+  biography: string;
+  diary: string; // "Личный дневник"
+  training: string; // "Обучение"
+  relationships: string; // Placeholder for now
+  inventory: Inventory;
+  // Old fields that are now part of inventory or deprecated at top level
+  familiarCards: OwnedFamiliarCard[]; // Kept for backwards compatibility, should be migrated to inventory
+  moodlets?: Moodlet[];
   blessingExpires?: string; // ISO string date
   hasLeviathanFriendship?: boolean;
   hasCrimeConnections?: boolean;
-  moodlets?: Moodlet[];
 }
 
 export interface PointLog {

@@ -7,15 +7,15 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Star, Trash2, Sparkles, Anchor, KeyRound, Pencil } from 'lucide-react';
+import { PlusCircle, Star, Trash2, Pencil, UserSquare } from 'lucide-react';
 import type { PointLog, UserStatus, Character, FamiliarCard, FamiliarRank, Moodlet } from '@/lib/types';
+import Link from 'next/link';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import {
   AlertDialog,
@@ -30,10 +30,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import React from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { cn, formatTimeLeft } from '@/lib/utils';
-import { ACHIEVEMENTS_BY_ID, FAMILIARS_BY_ID } from '@/lib/data';
-import FamiliarCardDisplay from './familiar-card';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
+import { cn } from '@/lib/utils';
+import { ACHIEVEMENTS_BY_ID } from '@/lib/data';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import * as LucideIcons from 'lucide-react';
 import CharacterForm from './character-form';
@@ -51,151 +49,46 @@ const DynamicIcon = ({ name, className }: { name: string, className?: string }) 
     return <IconComponent className={className} />;
 };
 
-const rankOrder: FamiliarRank[] = ['мифический', 'ивентовый', 'легендарный', 'редкий', 'обычный'];
-const rankNames: Record<FamiliarRank, string> = {
-    'мифический': 'Мифические',
-    'ивентовый': 'Ивентовые',
-    'легендарный': 'Легендарные',
-    'редкий': 'Редкие',
-    'обычный': 'Обычные'
-};
 
 const CharacterDisplay = ({ character, onEdit, onDelete }: { character: Character, onEdit: (character: Character) => void, onDelete: (characterId: string) => void }) => {
-    const familiarCards = character.familiarCards || [];
-    const isBlessed = character.blessingExpires && new Date(character.blessingExpires) > new Date();
-
-    const activeMoodlets = (character.moodlets || []).filter(m => new Date(m.expiresAt) > new Date());
-
-    const groupedFamiliars = familiarCards.reduce((acc, ownedCard) => {
-        const cardDetails = FAMILIARS_BY_ID[ownedCard.id];
-        if (cardDetails) {
-            const rank = cardDetails.rank;
-            if (!acc[rank]) {
-                acc[rank] = [];
-            }
-            acc[rank].push(cardDetails);
-        }
-        return acc;
-    }, {} as Record<FamiliarRank, FamiliarCard[]>);
-
     return (
-        <AccordionItem value={character.id} className="border-b">
-             <div className="flex justify-between items-center w-full hover:bg-muted/50 rounded-md">
-                <AccordionTrigger className="flex-1 py-4 px-2 hover:no-underline">
-                    <div className="text-left flex items-start gap-2 flex-wrap">
-                        <p className="font-bold text-base">{character.name}</p>
-                        <p className="text-sm text-muted-foreground">({character.activity})</p>
-                    </div>
-                </AccordionTrigger>
-                 <div className="flex items-center gap-1.5 pr-2">
-                    {isBlessed && (
-                       <Popover>
-                            <PopoverTrigger asChild><button><Sparkles className="h-4 w-4 text-yellow-500" /></button></PopoverTrigger>
-                            <PopoverContent className="w-auto text-sm"><p>{formatTimeLeft(character.blessingExpires)}. Повышен шанс в рулетке.</p></PopoverContent>
-                       </Popover>
-                    )}
-                    {character.hasLeviathanFriendship && (
-                        <Popover>
-                            <PopoverTrigger asChild><button><Anchor className="h-4 w-4 text-blue-500" /></button></PopoverTrigger>
-                            <PopoverContent className="w-auto text-sm"><p>Дружба с Левиафаном</p></PopoverContent>
-                        </Popover>
-                    )}
-                    {character.hasCrimeConnections && (
-                        <Popover>
-                            <PopoverTrigger asChild><button><KeyRound className="h-4 w-4 text-gray-500" /></button></PopoverTrigger>
-                            <PopoverContent className="w-auto text-sm"><p>Связи в преступном мире</p></PopoverContent>
-                        </Popover>
-                    )}
-                     <Button variant="ghost" size="icon" className="shrink-0 hover:bg-muted" onClick={() => onEdit(character)}>
-                        <Pencil className="h-4 w-4 text-muted-foreground" />
-                    </Button>
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="shrink-0 hover:bg-destructive/10">
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
+       <Card className="p-3 flex items-center justify-between hover:bg-muted/50 transition-colors">
+            <div className="flex items-center gap-3">
+                <UserSquare className="w-8 h-8 text-primary" />
+                <div>
+                    <Link href={`/characters/${character.id}`} className="font-bold text-base hover:underline">{character.name}</Link>
+                    <p className="text-sm text-muted-foreground">{character.activity}</p>
+                </div>
+            </div>
+            <div className="flex items-center gap-1.5">
+                <Button variant="ghost" size="icon" className="shrink-0 hover:bg-muted" onClick={() => onEdit(character)}>
+                    <Pencil className="h-4 w-4 text-muted-foreground" />
+                </Button>
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="shrink-0 hover:bg-destructive/10">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
                             <AlertDialogTitle>Вы уверены?</AlertDialogTitle>
                             <AlertDialogDescription>
                                 Это действие невозможно отменить. Это навсегда удалит вашего персонажа
                                 <span className="font-bold"> {character.name} </span>
-                                и все его данные, включая фамильяров.
+                                и все его данные, включая анкету и инвентарь.
                             </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
                             <AlertDialogCancel>Отмена</AlertDialogCancel>
                             <AlertDialogAction onClick={() => onDelete(character.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                                 Да, удалить
                             </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                </div>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
-            <AccordionContent>
-                <div className="text-sm space-y-1 pl-4 pb-2">
-                    <p><span className="font-semibold">Навык:</span> {character.skillLevel}</p>
-                    <p><span className="font-semibold">Известность:</span> {character.currentFameLevel}</p>
-                    {character.workLocation && <p><span className="font-semibold">Место работы:</span> {character.workLocation}</p>}
-                </div>
-
-                {activeMoodlets.length > 0 && (
-                    <div className="px-4 pb-2">
-                        <h4 className="text-sm font-semibold mb-2">Мудлеты:</h4>
-                        <div className="flex flex-wrap gap-2">
-                            {activeMoodlets.map(moodlet => (
-                                <Popover key={moodlet.id}>
-                                    <PopoverTrigger asChild>
-                                        <Badge variant="outline" className="cursor-pointer">
-                                            <DynamicIcon name={moodlet.iconName} className="w-3.5 h-3.5 mr-1.5" />
-                                            {moodlet.name}
-                                        </Badge>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto max-w-xs text-sm">
-                                        <p className="font-bold">{moodlet.name}</p>
-                                        <p className="text-xs mb-2">{moodlet.description}</p>
-                                        {moodlet.source && <p className="text-xs mb-2">Источник: <span className="font-semibold">{moodlet.source}</span></p>}
-                                        <p className="text-xs text-muted-foreground">{formatTimeLeft(moodlet.expiresAt)}</p>
-                                    </PopoverContent>
-                                </Popover>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-
-                <Accordion type="single" collapsible className="w-full mt-2 px-2">
-                    <AccordionItem value="item-1">
-                        <AccordionTrigger className="text-sm">Показать фамильяров ({familiarCards.length})</AccordionTrigger>
-                        <AccordionContent>
-                             {familiarCards.length > 0 ? (
-                                <div className="space-y-4 pt-2">
-                                {rankOrder.map(rank => {
-                                    if (groupedFamiliars[rank] && groupedFamiliars[rank].length > 0) {
-                                    return (
-                                        <div key={rank}>
-                                        <h4 className="font-semibold capitalize text-muted-foreground mb-2">{rankNames[rank]}</h4>
-                                        <div className="flex flex-wrap gap-2">
-                                            {groupedFamiliars[rank].map(card => (
-                                                <FamiliarCardDisplay key={card.id} cardId={card.id} />
-                                            ))}
-                                        </div>
-                                        </div>
-                                    )
-                                    }
-                                    return null;
-                                })}
-                                </div>
-                            ) : (
-                                <p className="text-sm text-muted-foreground text-center py-4">У этого персонажа нет фамильяров.</p>
-                            )}
-                        </AccordionContent>
-                    </AccordionItem>
-                </Accordion>
-            </AccordionContent>
-        </AccordionItem>
+        </Card>
     );
 };
 
@@ -224,12 +117,12 @@ export default function ProfileTab() {
     toast({ variant: 'destructive', title: "Персонаж удален", description: "Персонаж и все его данные были удалены." });
   };
 
-  const handleFormSubmit = (characterData: Omit<Character, 'id' | 'familiarCards' | 'moodlets'> | Character) => {
+  const handleFormSubmit = (characterData: Omit<Character, 'id' | 'familiarCards' | 'moodlets' | 'inventory' | 'appearance' | 'personality' | 'biography' | 'diary' | 'training' | 'relationships'> | Character) => {
       if (!currentUser) return;
 
       if ('id' in characterData) {
         // Editing existing character
-        updateCharacterInUser(currentUser.id, characterData);
+        updateCharacterInUser(currentUser.id, characterData as Character);
         toast({ title: "Успешно", description: "Данные персонажа обновлены." });
       } else {
         // Adding new character
@@ -328,11 +221,11 @@ export default function ProfileTab() {
           </CardHeader>
           <CardContent>
             {currentUser.characters.length > 0 ? (
-                <Accordion type="single" collapsible className="w-full">
+                <div className="space-y-2">
                     {currentUser.characters.map(char => (
                         <CharacterDisplay key={char.id} character={char} onEdit={handleEditClick} onDelete={handleDeleteCharacter} />
                     ))}
-                </Accordion>
+                </div>
             ) : (
                 <p className="text-sm text-muted-foreground text-center py-4">Персонажей пока нет.</p>
             )}

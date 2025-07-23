@@ -2,7 +2,7 @@
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
-import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet } from '@/lib/types';
+import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, collectionGroup, query, where, orderBy, deleteDoc } from "firebase/firestore";
@@ -30,7 +30,7 @@ interface UserContextType {
   fetchAllUsers: () => Promise<User[]>;
   fetchAllRewardRequests: () => Promise<RewardRequest[]>;
   addPointsToUser: (userId: string, amount: number, reason: string, characterName?: string) => Promise<User | null>;
-  addCharacterToUser: (userId: string, character: Omit<Character, 'id' | 'familiarCards' | 'moodlets'>) => Promise<void>;
+  addCharacterToUser: (userId: string, character: Omit<Character, 'id' | 'familiarCards' | 'moodlets' | 'inventory' | 'appearance' | 'personality' | 'biography' | 'diary' | 'training' | 'relationships'>) => Promise<void>;
   updateCharacterInUser: (userId: string, character: Character) => Promise<void>;
   deleteCharacterFromUser: (userId: string, characterId: string) => Promise<void>;
   updateUserStatus: (userId: string, status: UserStatus) => Promise<void>;
@@ -153,8 +153,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             if (userDoc.exists()) {
                 const userData = userDoc.data() as User;
                 userData.characters = userData.characters?.map(char => ({
+                    familiarCards: [],
                     ...char,
-                    familiarCards: char.familiarCards || [],
+                    inventory: char.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], familiarCards: char.familiarCards || [] },
                     moodlets: char.moodlets || [],
                 })) || [];
                 userData.achievementIds = userData.achievementIds || [];
@@ -183,8 +184,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     return userSnapshot.docs.map(doc => {
         const userData = doc.data() as User;
         userData.characters = userData.characters?.map(char => ({
+            familiarCards: [],
             ...char,
-            familiarCards: char.familiarCards || [],
+            inventory: char.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], familiarCards: char.familiarCards || [] },
             moodlets: char.moodlets || [],
         })) || [];
         userData.achievementIds = userData.achievementIds || [];
@@ -204,8 +206,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       if (docSnap.exists()) {
           const userData = docSnap.data() as User;
            userData.characters = userData.characters?.map(char => ({
+                familiarCards: [],
                 ...char,
-                familiarCards: char.familiarCards || [],
+                inventory: char.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], familiarCards: char.familiarCards || [] },
                 moodlets: char.moodlets || [],
             })) || [];
            userData.achievementIds = userData.achievementIds || [];
@@ -222,8 +225,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const updatedDoc = await getDoc(userRef);
       const updatedUser = updatedDoc.data() as User;
       updatedUser.characters = updatedUser.characters?.map(char => ({
+            familiarCards: [],
             ...char,
-            familiarCards: char.familiarCards || [],
+            inventory: char.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], familiarCards: char.familiarCards || [] },
             moodlets: char.moodlets || [],
         })) || [];
       updatedUser.achievementIds = updatedUser.achievementIds || [];
@@ -279,7 +283,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     return finalUser;
   }, [fetchUserById, updateUserInStateAndFirestore, fetchAllUsers, grantAchievementToUser]);
 
-  const addCharacterToUser = useCallback(async (userId: string, characterData: Omit<Character, 'id' | 'familiarCards' | 'moodlets'>) => {
+  const addCharacterToUser = useCallback(async (userId: string, characterData: Omit<Character, 'id' | 'familiarCards' | 'moodlets' | 'inventory' | 'appearance' | 'personality' | 'biography' | 'diary' | 'training' | 'relationships'>) => {
     const user = await fetchUserById(userId);
     if (!user) return;
     
@@ -288,6 +292,19 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         ...characterData,
         familiarCards: [],
         moodlets: [],
+        appearance: '',
+        personality: '',
+        biography: '',
+        diary: '',
+        training: '',
+        relationships: '',
+        inventory: {
+            оружие: [],
+            гардероб: [],
+            еда: [],
+            подарки: [],
+            familiarCards: []
+        }
     };
 
     const updatedCharacters = [...user.characters, newCharacter];
@@ -433,16 +450,17 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         if (characterToUpdateIndex !== -1) {
             let characterToUpdate = { ...updatedUser.characters[characterToUpdateIndex] };
+            let inventory = characterToUpdate.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], familiarCards: [] };
 
             if (request.rewardId === PUMPKIN_WIFE_REWARD_ID) {
-                 const currentCards = characterToUpdate.familiarCards || [];
+                 const currentCards = inventory.familiarCards || [];
                  if (!currentCards.some(card => card.id === PUMPKIN_WIFE_CARD_ID)) {
-                    characterToUpdate.familiarCards = [...currentCards, { id: PUMPKIN_WIFE_CARD_ID }];
+                    inventory.familiarCards = [...currentCards, { id: PUMPKIN_WIFE_CARD_ID }];
                  }
             } else if (request.rewardId === PUMPKIN_HUSBAND_REWARD_ID) {
-                const currentCards = characterToUpdate.familiarCards || [];
+                const currentCards = inventory.familiarCards || [];
                 if (!currentCards.some(card => card.id === PUMPKIN_HUSBAND_CARD_ID)) {
-                   characterToUpdate.familiarCards = [...currentCards, { id: PUMPKIN_HUSBAND_CARD_ID }];
+                   inventory.familiarCards = [...currentCards, { id: PUMPKIN_HUSBAND_CARD_ID }];
                 }
             } else if (request.rewardId === 'r-blessing') {
                 const expiryDate = new Date();
@@ -454,6 +472,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 characterToUpdate.hasCrimeConnections = true;
             }
             
+            characterToUpdate.inventory = inventory;
             updatedUser.characters[characterToUpdateIndex] = characterToUpdate;
             updatesForUser.characters = updatedUser.characters;
         }
@@ -514,7 +533,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const claimedMythicIds = new Set<string>();
     allUsers.forEach(u => {
         u.characters.forEach(c => {
-            (c.familiarCards || []).forEach(card => {
+            (c.inventory?.familiarCards || c.familiarCards || []).forEach(card => {
                 const familiar = FAMILIARS_BY_ID[card.id];
                 if (familiar && familiar.rank === 'мифический') {
                     claimedMythicIds.add(card.id);
@@ -526,7 +545,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const hasBlessing = character.blessingExpires ? new Date(character.blessingExpires) > new Date() : false;
     const newCard = drawFamiliarCard(hasBlessing, claimedMythicIds);
     
-    const ownedCardIds = new Set((character.familiarCards || []).map(c => c.id));
+    const ownedCardIds = new Set((character.inventory?.familiarCards || character.familiarCards || []).map(c => c.id));
     const isDuplicate = ownedCardIds.has(newCard.id);
     
     const batch = writeBatch(db);
@@ -538,10 +557,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         finalPointChange += DUPLICATE_REFUND;
         reason = `Рулетка: дубликат ${newCard.name}, возврат ${DUPLICATE_REFUND} баллов`;
     } else {
-        const updatedCharacter: Character = {
-            ...character,
-            familiarCards: [...(character.familiarCards || []), { id: newCard.id }],
-        };
+        const updatedCharacter = { ...character };
+        const inventory = updatedCharacter.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], familiarCards: [] };
+        inventory.familiarCards = [...(inventory.familiarCards || []), { id: newCard.id }];
+        updatedCharacter.inventory = inventory;
+        
         updatedUser.characters[characterIndex] = updatedCharacter;
         
         const hasMythicAchievement = (user.achievementIds || []).includes(MYTHIC_PULL_ACHIEVEMENT_ID);
@@ -580,7 +600,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const claimedMythicIds = new Set<string>();
       allUsers.forEach(u => {
         u.characters.forEach(c => {
-            (c.familiarCards || []).forEach(card => {
+            (c.inventory?.familiarCards || c.familiarCards || []).forEach(card => {
                 const familiar = FAMILIARS_BY_ID[card.id];
                 if (familiar && familiar.rank === 'мифический') {
                     claimedMythicIds.add(card.id);
@@ -602,20 +622,19 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const familiar = FAMILIARS_BY_ID[familiarId];
     if (!familiar) return;
 
-    const character = user.characters[characterIndex];
+    const character = { ...user.characters[characterIndex] };
+    const inventory = character.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], familiarCards: [] };
     
-    if ((character.familiarCards || []).some(card => card.id === familiarId)) {
+    if ((inventory.familiarCards || []).some(card => card.id === familiarId)) {
       console.warn(`Character ${character.name} already owns familiar ${familiar.name}`);
       return;
     }
 
-    const updatedCharacter: Character = {
-      ...character,
-      familiarCards: [...(character.familiarCards || []), { id: familiarId }],
-    };
+    inventory.familiarCards = [...(inventory.familiarCards || []), { id: familiarId }];
+    character.inventory = inventory;
 
     const updatedCharacters = [...user.characters];
-    updatedCharacters[characterIndex] = updatedCharacter;
+    updatedCharacters[characterIndex] = character;
     
     const newPointLog: PointLog = {
         id: `h-${Date.now()}-event`,
@@ -702,7 +721,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (characterIndex === -1) throw new Error("Character not found");
 
     const character = { ...user.characters[characterIndex] };
-    const ownedCards = character.familiarCards || [];
+    const inventory = character.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], familiarCards: [] };
+    const ownedCards = inventory.familiarCards || [];
 
     // Find the first instance of the card and remove it
     const cardIndexToRemove = ownedCards.findIndex(card => card.id === cardId);
@@ -710,7 +730,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     const updatedCards = [...ownedCards];
     updatedCards.splice(cardIndexToRemove, 1);
-    character.familiarCards = updatedCards;
+    inventory.familiarCards = updatedCards;
+    character.inventory = inventory;
 
     const updatedCharacters = [...user.characters];
     updatedCharacters[characterIndex] = character;
