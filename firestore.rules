@@ -1,0 +1,60 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function to check for admin role
+    function isAdmin() {
+      // Check if the user is authenticated and if their document in the 'users' collection has the role 'admin'.
+      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Rules for the 'users' collection
+    match /users/{userId} {
+      // READ: 
+      // - Admins can read any user document (for leaderboard/admin panel).
+      // - Any authenticated user can read their own document.
+      allow read: if isAdmin() || request.auth.uid == userId;
+
+      // CREATE:
+      // - An authenticated user can create their own user document.
+      allow create: if request.auth.uid == userId;
+      
+      // UPDATE:
+      // - An authenticated user can update their own document.
+      // NOTE: For production, you should add validation to prevent users from changing their points or role.
+      allow update: if request.auth.uid == userId;
+
+      // DELETE:
+      // - Deleting users is not allowed from the client for safety.
+      allow delete: if false;
+    }
+    
+    // Rules for the 'reward_requests' subcollection using a collection group query
+    match /{path=**}/reward_requests/{requestId} {
+        // READ, UPDATE, DELETE:
+        // - Admins can read, update, and delete any reward request across all users.
+        // This allows them to approve, deny, or clear requests.
+        allow read, update, delete: if isAdmin();
+    }
+
+    // Rules for creating reward requests (nested under user documents)
+    match /users/{userId}/reward_requests/{requestId} {
+        // CREATE:
+        // - An authenticated user can create a reward request for themselves.
+        allow create: if request.auth.uid == userId;
+    }
+
+    // Rules for the 'game_settings' collection
+    match /game_settings/{docId} {
+        // READ:
+        // - Any authenticated user can read the game settings to calculate character ages.
+        allow read: if request.auth != null;
+        
+        // WRITE (CREATE, UPDATE):
+        // - Only admins can change the game settings.
+        allow write: if isAdmin();
+    }
+  }
+}
