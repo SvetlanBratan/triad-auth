@@ -462,8 +462,7 @@ export default function AdminTab() {
                     {ALL_ACHIEVEMENTS.map(ach => (
                       <SelectItem key={ach.id} value={ach.id}>
                         <div className="whitespace-normal">
-                          <span className="font-semibold">{ach.name}</span>
-                          <p className="text-xs text-muted-foreground">{ach.description}</p>
+                           <span className="font-semibold">{ach.name}</span> - <span className="text-xs text-muted-foreground truncate">{ach.description}</span>
                         </div>
                       </SelectItem>
                     ))}
