@@ -54,6 +54,9 @@ const FIRST_PULL_ACHIEVEMENT_ID = 'ach-first-gacha';
 const MYTHIC_PULL_ACHIEVEMENT_ID = 'ach-mythic-pull';
 const GENEROUS_ACHIEVEMENT_ID = 'ach-generous';
 const GENEROUS_THRESHOLD = 100000;
+const PUMPKIN_WIFE_REWARD_ID = 'r-pumpkin-wife';
+const PUMPKIN_WIFE_CARD_ID = 'fam-e-pumpkin-wife';
+const PUMPKIN_SPOUSE_ACHIEVEMENT_ID = 'ach-pumpkin-spouse';
 
 
 const drawFamiliarCard = (hasBlessing: boolean, unavailableMythicIds: Set<string>): FamiliarCard => {
@@ -357,24 +360,44 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       let updatesForUser: Partial<User> = {};
 
       if (newStatus === 'одобрено') {
+        let characterToUpdateIndex = -1;
         if (request.characterId) {
-            const charIndex = updatedUser.characters.findIndex(c => c.id === request.characterId);
-            if (charIndex !== -1) {
-                let characterToUpdate = { ...updatedUser.characters[charIndex] };
-                if (request.rewardId === 'r-blessing') { // Blessing
-                    const expiryDate = new Date();
-                    expiryDate.setDate(expiryDate.getDate() + 5);
-                    characterToUpdate.blessingExpires = expiryDate.toISOString();
-                }
-                if (request.rewardId === 'r-leviathan') { // Leviathan
-                    characterToUpdate.hasLeviathanFriendship = true;
-                }
-                if (request.rewardId === 'r-crime-connections') { // Crime Connections
-                    characterToUpdate.hasCrimeConnections = true;
-                }
-                updatedUser.characters[charIndex] = characterToUpdate;
-                updatesForUser.characters = updatedUser.characters;
+            characterToUpdateIndex = updatedUser.characters.findIndex(c => c.id === request.characterId);
+        }
+
+        if (request.rewardId === PUMPKIN_WIFE_REWARD_ID) {
+            // Give the card to the first character if one exists
+            if (updatedUser.characters.length > 0) {
+                 const firstCharIndex = 0;
+                 let characterToUpdate = { ...updatedUser.characters[firstCharIndex] };
+                 const currentCards = characterToUpdate.familiarCards || [];
+                 if (!currentCards.some(card => card.id === PUMPKIN_WIFE_CARD_ID)) {
+                    characterToUpdate.familiarCards = [...currentCards, { id: PUMPKIN_WIFE_CARD_ID }];
+                    updatedUser.characters[firstCharIndex] = characterToUpdate;
+                    updatesForUser.characters = updatedUser.characters;
+                 }
             }
+            // Grant the achievement
+            const currentAchievements = updatedUser.achievementIds || [];
+            if (!currentAchievements.includes(PUMPKIN_SPOUSE_ACHIEVEMENT_ID)) {
+                updatedUser.achievementIds = [...currentAchievements, PUMPKIN_SPOUSE_ACHIEVEMENT_ID];
+                updatesForUser.achievementIds = updatedUser.achievementIds;
+            }
+        } else if (characterToUpdateIndex !== -1) {
+            let characterToUpdate = { ...updatedUser.characters[characterToUpdateIndex] };
+            if (request.rewardId === 'r-blessing') { // Blessing
+                const expiryDate = new Date();
+                expiryDate.setDate(expiryDate.getDate() + 5);
+                characterToUpdate.blessingExpires = expiryDate.toISOString();
+            }
+            if (request.rewardId === 'r-leviathan') { // Leviathan
+                characterToUpdate.hasLeviathanFriendship = true;
+            }
+            if (request.rewardId === 'r-crime-connections') { // Crime Connections
+                characterToUpdate.hasCrimeConnections = true;
+            }
+            updatedUser.characters[characterToUpdateIndex] = characterToUpdate;
+            updatesForUser.characters = updatedUser.characters;
         }
       } else if (newStatus === 'отклонено') {
           const reason = `Возврат за отклоненный запрос: ${request.rewardTitle}`;
@@ -412,6 +435,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     if (!user) throw new Error("Пользователь не найден.");
     
+    // Simplified check for first gacha pull ever
     const hasEverPulledGacha = user.pointHistory.some(log => log.reason.includes('Рулетка'));
     const hasFirstPullAchievement = (user.achievementIds || []).includes(FIRST_PULL_ACHIEVEMENT_ID);
 
@@ -426,7 +450,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (characterIndex === -1) throw new Error("Персонаж не найден.");
     const character = user.characters[characterIndex];
 
-    const isFirstPullForChar = (character.familiarCards || []).length === 0 && !user.pointHistory.some(log => log.characterName === character.name && log.reason.includes('Рулетка'));
+    const isFirstPullForChar = !user.pointHistory.some(log => log.characterName === character.name && log.reason.includes('Рулетка'));
     const cost = isFirstPullForChar ? 0 : ROULETTE_COST;
 
     if (user.points < cost) throw new Error("Недостаточно очков.");

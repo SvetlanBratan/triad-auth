@@ -43,6 +43,7 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
   { id: 'ach-beta-tester', name: 'Бета-тестер', description: 'За участие в бета-тесте системы.', iconName: 'FlaskConical' },
   { id: 'ach-bug-hunter', name: 'Охотник за ошибками', description: 'За нахождение и репорт ошибки.', iconName: 'Bug' },
   { id: 'ach-generous', name: 'Меценат', description: 'За трату более 100,000 баллов.', iconName: 'Gem' },
+  { id: 'ach-pumpkin-spouse', name: 'Тыквенный(ая) супруг(а)', description: 'За приобретение Тыкво-Жены.', iconName: 'Heart' },
 ];
 
 export const ACHIEVEMENTS_BY_ID: Record<string, Achievement> = ALL_ACHIEVEMENTS.reduce((acc, ach) => {
@@ -150,6 +151,7 @@ export const EVENT_FAMILIARS_RAW: Omit<FamiliarCard, 'data-ai-hint'>[] = [
     { id: 'fam-e-sherlas', name: 'Шерлас', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753272049/2131541243_sci3mx.jpg' },
     { id: 'fam-e-anhel', name: 'Анхель', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753272049/123123_oljkkn.jpg' },
     { id: 'fam-e-faust', name: 'Фауст', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753272049/312312412341_kl5exi.jpg' },
+    { id: 'fam-e-pumpkin-wife', name: 'Тыкво-жена', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753276855/%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B8%D0%9A%D0%9A%D0%98_sqv5if.png' },
 ];
 
 const addHint = (card: Omit<FamiliarCard, 'data-ai-hint'>): FamiliarCard => {
@@ -217,6 +219,7 @@ const addHint = (card: Omit<FamiliarCard, 'data-ai-hint'>): FamiliarCard => {
     else if (lowerCaseName.includes('шерлас')) hint = 'sherlas portrait';
     else if (lowerCaseName.includes('анхель')) hint = 'anhel portrait';
     else if (lowerCaseName.includes('фауст')) hint = 'faust portrait';
+    else if (lowerCaseName.includes('тыкво-жена')) hint = 'pumpkin wife';
     return { ...card, 'data-ai-hint': hint };
 };
 
