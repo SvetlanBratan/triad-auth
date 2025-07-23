@@ -47,6 +47,7 @@ interface UserContextType {
   removeMoodletFromCharacter: (userId: string, characterId: string, moodletId: string) => Promise<void>;
   clearRewardRequestsHistory: () => Promise<void>;
   removeFamiliarFromCharacter: (userId: string, characterId: string, cardId: string) => Promise<void>;
+  updateUser: (userId: string, updates: Partial<User>) => Promise<User>;
 }
 
 export const UserContext = createContext<UserContextType | null>(null);
@@ -95,7 +96,7 @@ const drawFamiliarCard = (hasBlessing: boolean, unavailableMythicIds: Set<string
         chosenPool = availableMythic;
     } else if (rand < mythicChance + legendaryChance && availableLegendary.length > 0) {
         chosenPool = availableLegendary;
-    } else if (rand < mythicChance + legendaryChance + rareChance && availableRare.length > 0) {
+    } else if (rand < mythicChance + legendaryChance + rareChance && availableCommon.length > 0) {
         chosenPool = availableCommon;
     } else if (availableCommon.length > 0) {
         chosenPool = availableCommon;
@@ -775,8 +776,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       removeMoodletFromCharacter,
       clearRewardRequestsHistory,
       removeFamiliarFromCharacter,
+      updateUser: updateUserInStateAndFirestore,
     }),
-    [currentUser, fetchAllUsers, fetchAllRewardRequests, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, fetchAvailableMythicCardsCount, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, grantAchievementToUser]
+    [currentUser, fetchAllUsers, fetchAllRewardRequests, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, fetchAvailableMythicCardsCount, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, grantAchievementToUser, updateUserInStateAndFirestore]
   );
 
   return (

@@ -14,6 +14,9 @@ import FamiliarCardDisplay from '@/components/dashboard/familiar-card';
 import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse } from 'lucide-react';
 import Link from 'next/link';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import CharacterForm from '@/components/dashboard/character-form';
+import { useToast } from '@/hooks/use-toast';
 
 const rankOrder: FamiliarRank[] = ['мифический', 'ивентовый', 'легендарный', 'редкий', 'обычный'];
 const rankNames: Record<FamiliarRank, string> = {
@@ -69,10 +72,12 @@ const FamiliarsSection = ({ character }: { character: Character }) => {
 
 export default function CharacterPage() {
     const { id } = useParams();
-    const { currentUser, fetchAllUsers } = useUser();
+    const { currentUser, fetchAllUsers, updateCharacterInUser } = useUser();
     const [character, setCharacter] = useState<Character | null>(null);
     const [owner, setOwner] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isFormOpen, setIsFormOpen] = useState(false);
+    const { toast } = useToast();
 
     useEffect(() => {
         const findCharacter = async () => {
@@ -89,8 +94,18 @@ export default function CharacterPage() {
             setIsLoading(false);
         };
 
-        findCharacter();
+        if(id) {
+          findCharacter();
+        }
     }, [id, fetchAllUsers]);
+
+    const handleFormSubmit = (characterData: Character) => {
+        if (!owner) return;
+        updateCharacterInUser(owner.id, characterData);
+        setCharacter(characterData); // Optimistic update
+        toast({ title: "Анкета обновлена", description: "Данные персонажа успешно сохранены." });
+        setIsFormOpen(false);
+    };
 
     if (isLoading) {
         return <div className="container mx-auto p-8"><p>Загрузка данных персонажа...</p></div>;
@@ -116,7 +131,7 @@ export default function CharacterPage() {
                     <p className="text-muted-foreground">{character.activity}</p>
                     <p className="text-sm text-muted-foreground">Владелец: {owner.name}</p>
                 </div>
-                {canEdit && <Button><Edit className="mr-2"/>Редактировать анкету</Button>}
+                {canEdit && <Button onClick={() => setIsFormOpen(true)}><Edit className="mr-2"/>Редактировать анкету</Button>}
             </header>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -215,6 +230,23 @@ export default function CharacterPage() {
 
                 </div>
             </div>
+
+            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                <DialogContent className="max-w-3xl">
+                    <DialogHeader>
+                        <DialogTitle>Редактировать анкету: {character.name}</DialogTitle>
+                        <DialogDescription>
+                            Внесите изменения в анкету персонажа. Все изменения сохраняются автоматически.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <CharacterForm
+                        character={character}
+                        onSubmit={handleFormSubmit}
+                        closeDialog={() => setIsFormOpen(false)}
+                    />
+                </DialogContent>
+            </Dialog>
+
         </div>
     );
 }
