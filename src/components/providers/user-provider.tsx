@@ -42,6 +42,7 @@ interface UserContextType {
   pullGachaForCharacter: (userId: string, characterId: string) => Promise<{newCard: FamiliarCard, isDuplicate: boolean}>;
   giveEventFamiliarToCharacter: (userId: string, characterId: string, familiarId: string) => Promise<void>;
   fetchAvailableMythicCardsCount: () => Promise<number>;
+  clearPointHistoryForUser: (userId: string) => Promise<void>;
 }
 
 export const UserContext = createContext<UserContextType | null>(null);
@@ -91,7 +92,6 @@ const drawFamiliarCard = (hasBlessing: boolean, unavailableMythicIds: Set<string
     }
     
     if (chosenPool.length === 0) {
-      // Fallback if all pools somehow end up empty, except mythics
       chosenPool = availableCards.filter(c => c.rank !== 'мифический' || (c.rank === 'мифический' && !unavailableMythicIds.has(c.id)));
     }
 
@@ -214,7 +214,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
 
       if (currentUser?.id === userId) {
-        setCurrentUser(prev => ({...prev!, ...updates, characters: updatedUser.characters, achievementIds: updatedUser.achievementIds}));
+        setCurrentUser(prev => ({...prev!, ...updates, characters: updatedUser.characters, pointHistory: updatedUser.pointHistory, achievementIds: updatedUser.achievementIds}));
       }
       return updatedUser;
   }, [currentUser?.id]);
@@ -325,17 +325,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         setCurrentUser(prev => ({...prev!, ...updatedUser}));
     }
 
-    // Check for "Generous" achievement
     const hasGenerousAchievement = (updatedUser.achievementIds || []).includes(GENEROUS_ACHIEVEMENT_ID);
     if (!hasGenerousAchievement) {
-        const requestsQuery = query(collection(db, `users/${user.id}/reward_requests`));
-        const allRequestsSnapshot = await getDocs(requestsQuery);
+        const requestsCollectionRef = collection(db, `users/${user.id}/reward_requests`);
+        const allRequestsSnapshot = await getDocs(requestsCollectionRef);
+
         let totalSpent = 0;
-        allRequestsSnapshot.docs.forEach(doc => {
+        allRequestsSnapshot.forEach((doc) => {
             const request = doc.data() as RewardRequest;
-            // Count pending and approved requests towards the total
-            if (request.status === 'одобрено' || request.status === 'в ожидании') {
-                 totalSpent += request.rewardCost;
+            if (request.status === 'одобрено' || request.id === newRequest.id) {
+                totalSpent += request.rewardCost;
             }
         });
 
@@ -409,23 +408,28 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   const pullGachaForCharacter = useCallback(async (userId: string, characterId: string): Promise<{newCard: FamiliarCard, isDuplicate: boolean}> => {
     const allUsers = await fetchAllUsers();
-    const user = allUsers.find(u => u.id === userId);
+    let user = allUsers.find(u => u.id === userId);
 
     if (!user) throw new Error("Пользователь не найден.");
+    
+    const hasEverPulledGacha = user.pointHistory.some(log => log.reason.includes('Рулетка'));
+    const hasFirstPullAchievement = (user.achievementIds || []).includes(FIRST_PULL_ACHIEVEMENT_ID);
 
+    if (!hasEverPulledGacha && !hasFirstPullAchievement) {
+        await grantAchievementToUser(userId, FIRST_PULL_ACHIEVEMENT_ID);
+        // Re-fetch user to get the updated achievement list
+        user = await fetchUserById(userId);
+        if (!user) throw new Error("Could not re-fetch user after granting achievement.");
+    }
+    
     const characterIndex = user.characters.findIndex(c => c.id === characterId);
     if (characterIndex === -1) throw new Error("Персонаж не найден.");
-
     const character = user.characters[characterIndex];
 
     const isFirstPullForChar = (character.familiarCards || []).length === 0 && !user.pointHistory.some(log => log.characterName === character.name && log.reason.includes('Рулетка'));
     const cost = isFirstPullForChar ? 0 : ROULETTE_COST;
 
     if (user.points < cost) throw new Error("Недостаточно очков.");
-    
-    // Check for "First Time?" achievement before anything else
-    const hasEverPulledGacha = user.pointHistory.some(log => log.reason.includes('Рулетка'));
-    const hasFirstPullAchievement = (user.achievementIds || []).includes(FIRST_PULL_ACHIEVEMENT_ID);
 
     const claimedMythicIds = new Set<string>();
     allUsers.forEach(u => {
@@ -449,10 +453,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const updatedUser = { ...user };
     let finalPointChange = -cost;
     let reason = `Рулетка: получена карта ${newCard.name} (${newCard.rank})`;
-    
-    if (!hasEverPulledGacha && !hasFirstPullAchievement) {
-        updatedUser.achievementIds = [...(updatedUser.achievementIds || []), FIRST_PULL_ACHIEVEMENT_ID];
-    }
     
     if (isDuplicate) {
         finalPointChange += DUPLICATE_REFUND;
@@ -490,7 +490,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
 
     return { newCard, isDuplicate };
-  }, [fetchAllUsers, currentUser?.id]);
+  }, [fetchAllUsers, currentUser?.id, grantAchievementToUser, fetchUserById]);
   
   const fetchAvailableMythicCardsCount = useCallback(async (): Promise<number> => {
       const allUsers = await fetchAllUsers();
@@ -548,6 +548,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     await updateUserInStateAndFirestore(userId, { characters: updatedCharacters, pointHistory: newHistory });
   }, [fetchUserById, updateUserInStateAndFirestore]);
+  
+  const clearPointHistoryForUser = useCallback(async (userId: string) => {
+    await updateUserInStateAndFirestore(userId, { pointHistory: [] });
+  }, [updateUserInStateAndFirestore]);
 
 
   const signOutUser = useCallback(() => {
@@ -580,8 +584,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       pullGachaForCharacter,
       giveEventFamiliarToCharacter,
       fetchAvailableMythicCardsCount,
+      clearPointHistoryForUser
     }),
-    [currentUser, fetchAllUsers, fetchAllRewardRequests, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, fetchAvailableMythicCardsCount]
+    [currentUser, fetchAllUsers, fetchAllRewardRequests, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, fetchAvailableMythicCardsCount, clearPointHistoryForUser]
   );
 
   return (
@@ -592,5 +597,3 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     </AuthContext.Provider>
   );
 }
-
-    

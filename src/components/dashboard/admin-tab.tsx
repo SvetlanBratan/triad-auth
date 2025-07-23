@@ -11,18 +11,31 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
-import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle } from 'lucide-react';
+import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2 } from 'lucide-react';
 import type { UserStatus, UserRole, User } from '@/lib/types';
 import { FAME_LEVELS_POINTS, EVENT_FAMILIARS, ALL_ACHIEVEMENTS } from '@/lib/data';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+
 
 export default function AdminTab() {
-  const { addPointsToUser, updateUserStatus, updateUserRole, giveEventFamiliarToCharacter, grantAchievementToUser, fetchAllUsers } = useUser();
+  const { addPointsToUser, updateUserStatus, updateUserRole, giveEventFamiliarToCharacter, grantAchievementToUser, fetchAllUsers, clearPointHistoryForUser } = useUser();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const [awardSelectedUserId, setAwardSelectedUserId] = useState<string>('');
   const [statusSelectedUserId, setStatusSelectedUserId] = useState<string>('');
   const [roleSelectedUserId, setRoleSelectedUserId] = useState<string>('');
+  const [clearHistoryUserId, setClearHistoryUserId] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<UserStatus | ''>('');
   const [selectedRole, setSelectedRole] = useState<UserRole | ''>('');
   
@@ -229,7 +242,6 @@ export default function AdminTab() {
       description: `Фамильяр "${familiarName}" выдан пользователю ${userName}.`,
     });
     
-    // Manually update the user in the local state to reflect the change immediately
     setUsers(prevUsers => {
         return prevUsers.map(user => {
             if (user.id === eventAwardUserId) {
@@ -279,6 +291,22 @@ export default function AdminTab() {
     setAchieveUserId('');
     setAchieveId('');
   };
+
+  const handleClearHistory = async () => {
+    if (!clearHistoryUserId) {
+      toast({ variant: 'destructive', title: 'Ошибка', description: 'Пожалуйста, выберите пользователя.' });
+      return;
+    }
+    
+    await clearPointHistoryForUser(clearHistoryUserId);
+
+    const userName = users.find(u => u.id === clearHistoryUserId)?.name;
+    toast({ title: 'История очищена!', description: `Журнал баллов для пользователя ${userName} был успешно очищен.` });
+    
+    setUsers(prev => prev.map(u => u.id === clearHistoryUserId ? { ...u, pointHistory: [] } : u));
+    setClearHistoryUserId('');
+  };
+
 
   const charactersForSelectedUser = useMemo(() => {
     if (!eventAwardUserId) return [];
@@ -518,7 +546,7 @@ export default function AdminTab() {
                   <SelectTrigger id="user-select-achieve">
                     <SelectValue placeholder="Выберите пользователя" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-[50vh]">
                     {users.map(user => (
                       <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
                     ))}
@@ -531,13 +559,13 @@ export default function AdminTab() {
                   <SelectTrigger id="achieve-select">
                     <SelectValue placeholder="Выберите ачивку" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-[50vh]">
                     {ALL_ACHIEVEMENTS.map(ach => (
                       <SelectItem key={ach.id} value={ach.id}>
-                          <div className="flex flex-col">
-                            <span className="font-semibold">{ach.name}</span>
-                            <span className="text-xs text-muted-foreground">{ach.description}</span>
-                          </div>
+                        <div className="flex items-center gap-2">
+                           <span className="font-semibold">{ach.name}</span>-
+                           <span className="text-xs text-muted-foreground">{ach.description}</span>
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -572,6 +600,52 @@ export default function AdminTab() {
                   <Button onClick={handleInactivityPenalty} variant="destructive">Применить штраф</Button>
               </div>
           </CardContent>
+        </Card>
+         <Card className="border-destructive/50">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-destructive"><ShieldAlert /> Опасная зона</CardTitle>
+                <CardDescription>Действия в этой секции необратимы.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div>
+                    <Label htmlFor="user-select-clear-history">Пользователь</Label>
+                     <Select value={clearHistoryUserId} onValueChange={setClearHistoryUserId}>
+                        <SelectTrigger id="user-select-clear-history" className="border-destructive/50 text-destructive focus:ring-destructive">
+                            <SelectValue placeholder="Выберите пользователя для очистки" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {users.map(user => (
+                            <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="destructive" disabled={!clearHistoryUserId}>
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Очистить историю баллов
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                        <AlertDialogTitle>Вы абсолютно уверены?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Это действие необратимо. Вся история начисления и списания баллов для пользователя 
+                            <span className="font-bold"> {users.find(u => u.id === clearHistoryUserId)?.name} </span>
+                            будет навсегда удалена.
+                        </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                        <AlertDialogCancel>Отмена</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleClearHistory} className="bg-destructive hover:bg-destructive/90">
+                           Да, я понимаю, очистить
+                        </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            </CardContent>
         </Card>
       </div>
     </div>
