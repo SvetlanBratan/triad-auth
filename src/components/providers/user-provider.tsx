@@ -143,10 +143,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 return;
               }
             }
+        } else {
+            // If doc doesn't exist or is invalid, use default and try to set it
+            await setDoc(doc(db, 'game_settings', 'main'), { gameDateString: DEFAULT_GAME_SETTINGS.gameDateString }, { merge: true });
+            setGameSettings(DEFAULT_GAME_SETTINGS);
         }
-        // If doc doesn't exist or is invalid, use default and try to set it
-        await setDoc(doc(db, 'game_settings', 'main'), { gameDateString: DEFAULT_GAME_SETTINGS.gameDateString }, { merge: true });
-        setGameSettings(DEFAULT_GAME_SETTINGS);
 
     } catch (error) {
         console.error("Error fetching game settings:", error);
@@ -845,5 +846,3 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     </AuthContext.Provider>
   );
 }
-
-    
