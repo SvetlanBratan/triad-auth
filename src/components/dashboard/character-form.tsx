@@ -14,7 +14,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { MultiSelect } from '../ui/multi-select';
 
 interface CharacterFormProps {
-    character: Omit<Character, 'id' | 'inventory' | 'familiarCards' | 'moodlets'> | Character | null;
+    character: Character | null;
     onSubmit: (data: Character) => void;
     closeDialog: () => void;
 }
@@ -55,13 +55,13 @@ const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps)
     const [formData, setFormData] = useState<Character>(initialFormData);
 
     useEffect(() => {
+        // This effect runs once when the component mounts or when the `character` prop changes.
+        // It correctly initializes the form state for both creating a new character (character is null)
+        // and editing an existing one.
         if (character) {
-             // Editing an existing character or new with partial data
-             setFormData({ ...initialFormData, ...character });
-        }
-        else {
-             // Resetting for a completely new character
-             setFormData(initialFormData);
+            setFormData(character);
+        } else {
+            setFormData(initialFormData);
         }
     }, [character]);
 
