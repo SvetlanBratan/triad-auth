@@ -59,12 +59,12 @@ const drawFamiliarCard = (hasBlessing: boolean, unavailableMythicIds: Set<string
     
     let rand = Math.random() * 100;
 
-    let mythicChance = 2; // Reduced from 5
+    let mythicChance = 2;
     let legendaryChance = 10;
     let rareChance = 25;
     
     if (hasBlessing) {
-        mythicChance = 5; // Reduced from 10
+        mythicChance = 5;
         legendaryChance = 20;
         rareChance = 40;
     }
@@ -83,7 +83,7 @@ const drawFamiliarCard = (hasBlessing: boolean, unavailableMythicIds: Set<string
     } else if (rand < mythicChance + legendaryChance && availableLegendary.length > 0) {
         chosenPool = availableLegendary;
     } else if (rand < mythicChance + legendaryChance + rareChance && availableRare.length > 0) {
-        chosenPool = availableRare;
+        chosenPool = availableCommon;
     } else if (availableCommon.length > 0) {
         chosenPool = availableCommon;
     } else {
@@ -330,7 +330,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (!hasGenerousAchievement) {
         const requestsQuery = query(collection(db, `users/${user.id}/reward_requests`), where('status', '==', 'одобрено'));
         const approvedRequestsSnapshot = await getDocs(requestsQuery);
-        const totalSpent = approvedRequestsSnapshot.docs.reduce((sum, doc) => sum + (doc.data() as RewardRequest).rewardCost, rewardRequestData.rewardCost);
+        let totalSpent = 0;
+        approvedRequestsSnapshot.docs.forEach(doc => {
+            totalSpent += (doc.data() as RewardRequest).rewardCost;
+        });
+
+        // Also count the current unapproved one, as it will likely be approved
+        if (newRequest.status === 'в ожидании') {
+          const allRequestsSnapshot = await getDocs(collection(db, `users/${user.id}/reward_requests`));
+          totalSpent = allRequestsSnapshot.docs.reduce((sum, doc) => sum + (doc.data() as RewardRequest).rewardCost, 0)
+        }
         
         if (totalSpent > GENEROUS_THRESHOLD) {
             await grantAchievementToUser(user.id, GENEROUS_ACHIEVEMENT_ID);
@@ -433,12 +442,19 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     
     const ownedCardIds = new Set((character.familiarCards || []).map(c => c.id));
     const isDuplicate = ownedCardIds.has(newCard.id);
-
+    
     const batch = writeBatch(db);
     const updatedUser = { ...user };
     let finalPointChange = -cost;
     let reason = `Рулетка: получена карта ${newCard.name} (${newCard.rank})`;
-
+    
+    // Check for first-ever pull achievement before altering history
+    const hasPulledBefore = user.pointHistory.some(log => log.reason.includes('Рулетка'));
+    const hasFirstPullAchievement = (user.achievementIds || []).includes(FIRST_PULL_ACHIEVEMENT_ID);
+    if (!hasPulledBefore && !hasFirstPullAchievement) {
+        updatedUser.achievementIds = [...(updatedUser.achievementIds || []), FIRST_PULL_ACHIEVEMENT_ID];
+    }
+    
     if (isDuplicate) {
         finalPointChange += DUPLICATE_REFUND;
         reason = `Рулетка: дубликат ${newCard.name}, возврат ${DUPLICATE_REFUND} баллов`;
@@ -449,7 +465,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         };
         updatedUser.characters[characterIndex] = updatedCharacter;
         
-        // Check for Mythic Pull achievement
         const hasMythicAchievement = (user.achievementIds || []).includes(MYTHIC_PULL_ACHIEVEMENT_ID);
         if (newCard.rank === 'мифический' && !hasMythicAchievement) {
             updatedUser.achievementIds = [...(updatedUser.achievementIds || []), MYTHIC_PULL_ACHIEVEMENT_ID];
@@ -466,14 +481,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         characterName: character.name,
     };
     updatedUser.pointHistory.unshift(newPointLog);
-
-    // Check for first-ever pull achievement
-    const hasPulledBefore = user.pointHistory.some(log => log.reason.includes('Рулетка'));
-    const hasFirstPullAchievement = (user.achievementIds || []).includes(FIRST_PULL_ACHIEVEMENT_ID);
-    if (!hasPulledBefore && !hasFirstPullAchievement) {
-        updatedUser.achievementIds = [...(updatedUser.achievementIds || []), FIRST_PULL_ACHIEVEMENT_ID];
-    }
-
 
     const userRef = doc(db, "users", userId);
     batch.set(userRef, updatedUser);
@@ -587,3 +594,4 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+    
