@@ -259,48 +259,100 @@ export default function AdminTab() {
   
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><DollarSign /> Начислить баллы</CardTitle>
-          <CardDescription>Вручную начислите баллы пользователю за определенные действия.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleAwardPoints} className="space-y-4">
-            <div>
-              <Label htmlFor="user-select-award">Пользователь</Label>
-              <Select value={awardSelectedUserId} onValueChange={setAwardSelectedUserId}>
-                <SelectTrigger id="user-select-award">
-                  <SelectValue placeholder="Выберите пользователя" />
-                </SelectTrigger>
-                <SelectContent>
-                  {users.map(user => (
-                    <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="points-input">Баллы</Label>
-              <Input
-                id="points-input"
-                type="number"
-                value={points}
-                onChange={e => setPoints(parseInt(e.target.value, 10) || 0)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="reason-input">Причина</Label>
-              <Textarea
-                id="reason-input"
-                placeholder="например, Участие в мини-ивенте"
-                value={reason}
-                onChange={e => setReason(e.target.value)}
-              />
-            </div>
-            <Button type="submit">Начислить баллы</Button>
-          </form>
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><DollarSign /> Начислить баллы</CardTitle>
+            <CardDescription>Вручную начислите баллы пользователю за определенные действия.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleAwardPoints} className="space-y-4">
+              <div>
+                <Label htmlFor="user-select-award">Пользователь</Label>
+                <Select value={awardSelectedUserId} onValueChange={setAwardSelectedUserId}>
+                  <SelectTrigger id="user-select-award">
+                    <SelectValue placeholder="Выберите пользователя" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.map(user => (
+                      <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="points-input">Баллы</Label>
+                <Input
+                  id="points-input"
+                  type="number"
+                  value={points}
+                  onChange={e => setPoints(parseInt(e.target.value, 10) || 0)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="reason-input">Причина</Label>
+                <Textarea
+                  id="reason-input"
+                  placeholder="например, Участие в мини-ивенте"
+                  value={reason}
+                  onChange={e => setReason(e.target.value)}
+                />
+              </div>
+              <Button type="submit">Начислить баллы</Button>
+            </form>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Gift /> Выдать ивентового фамильяра</CardTitle>
+            <CardDescription>Наградите игрока эксклюзивным фамильяром.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleAwardEventFamiliar} className="space-y-4">
+              <div>
+                <Label htmlFor="user-select-event">Пользователь</Label>
+                <Select value={eventAwardUserId} onValueChange={uid => { setEventAwardUserId(uid); setEventAwardCharacterId(''); }}>
+                  <SelectTrigger id="user-select-event">
+                    <SelectValue placeholder="Выберите пользователя" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.map(user => (
+                      <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="character-select-event">Персонаж</Label>
+                <Select value={eventAwardCharacterId} onValueChange={setEventAwardCharacterId} disabled={!eventAwardUserId}>
+                  <SelectTrigger id="character-select-event">
+                    <SelectValue placeholder="Выберите персонажа" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {charactersForSelectedUser.map(character => (
+                      <SelectItem key={character.id} value={character.id}>{character.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="familiar-select-event">Фамильяр</Label>
+                <Select value={eventAwardFamiliarId} onValueChange={setEventAwardFamiliarId}>
+                  <SelectTrigger id="familiar-select-event">
+                    <SelectValue placeholder="Выберите фамильяра" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EVENT_FAMILIARS.map(familiar => (
+                      <SelectItem key={familiar.id} value={familiar.id}>{familiar.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button type="submit">Выдать фамильяра</Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
       
       <div className="space-y-6">
         <Card>
@@ -449,56 +501,6 @@ export default function AdminTab() {
           </CardContent>
         </Card>
       </div>
-       <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Gift /> Выдать ивентового фамильяра</CardTitle>
-            <CardDescription>Наградите игрока эксклюзивным фамильяром.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleAwardEventFamiliar} className="space-y-4">
-              <div>
-                <Label htmlFor="user-select-event">Пользователь</Label>
-                <Select value={eventAwardUserId} onValueChange={uid => { setEventAwardUserId(uid); setEventAwardCharacterId(''); }}>
-                  <SelectTrigger id="user-select-event">
-                    <SelectValue placeholder="Выберите пользователя" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {users.map(user => (
-                      <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="character-select-event">Персонаж</Label>
-                <Select value={eventAwardCharacterId} onValueChange={setEventAwardCharacterId} disabled={!eventAwardUserId}>
-                  <SelectTrigger id="character-select-event">
-                    <SelectValue placeholder="Выберите персонажа" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {charactersForSelectedUser.map(character => (
-                      <SelectItem key={character.id} value={character.id}>{character.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="familiar-select-event">Фамильяр</Label>
-                <Select value={eventAwardFamiliarId} onValueChange={setEventAwardFamiliarId}>
-                  <SelectTrigger id="familiar-select-event">
-                    <SelectValue placeholder="Выберите фамильяра" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {EVENT_FAMILIARS.map(familiar => (
-                      <SelectItem key={familiar.id} value={familiar.id}>{familiar.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button type="submit">Выдать фамильяра</Button>
-            </form>
-          </CardContent>
-        </Card>
     </div>
   );
 }
