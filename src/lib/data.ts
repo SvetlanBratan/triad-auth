@@ -147,6 +147,9 @@ export const EVENT_FAMILIARS_RAW: Omit<FamiliarCard, 'data-ai-hint'>[] = [
     { id: 'fam-e-leviathan', name: 'Левиафан', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199426/%D0%BB%D0%B5%D0%B2%D0%B8%D0%B0%D1%84%D0%B0%D0%BD_hr6tat.png' },
     { id: 'fam-e-ariana', name: 'Леди Ариана', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199427/%D0%9B%D0%B5%D0%B4%D0%B8_%D0%90%D1%80%D0%B8%D0%B0%D0%BD%D0%B0_w15swi.png' },
     { id: 'fam-e-cerberus', name: 'Цербер', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199467/%D0%A6%D0%B5%D1%80%D0%B1%D0%B5%D1%80_rznwpc.png' },
+    { id: 'fam-e-sherlas', name: 'Шерлас', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753272049/2131541243_sci3mx.jpg' },
+    { id: 'fam-e-anhel', name: 'Анхель', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753272049/123123_oljkkn.jpg' },
+    { id: 'fam-e-faust', name: 'Фауст', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753272049/312312412341_kl5exi.jpg' },
 ];
 
 const addHint = (card: Omit<FamiliarCard, 'data-ai-hint'>): FamiliarCard => {
@@ -211,6 +214,9 @@ const addHint = (card: Omit<FamiliarCard, 'data-ai-hint'>): FamiliarCard => {
     else if (lowerCaseName.includes('шорёк')) hint = 'shorek creature';
     else if (lowerCaseName.includes('эйктюрнир')) hint = 'eikthyrnir deer';
     else if (lowerCaseName.includes('элементаль тьмы')) hint = 'dark elemental';
+    else if (lowerCaseName.includes('шерлас')) hint = 'sherlas portrait';
+    else if (lowerCaseName.includes('анхель')) hint = 'anhel portrait';
+    else if (lowerCaseName.includes('фауст')) hint = 'faust portrait';
     return { ...card, 'data-ai-hint': hint };
 };
 
