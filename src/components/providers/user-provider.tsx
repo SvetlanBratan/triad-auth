@@ -5,7 +5,7 @@ import React, { createContext, useState, useMemo, useCallback, useEffect, useCon
 import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
-import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, collectionGroup } from "firebase/firestore";
 import { ALL_FAMILIARS, FAMILIARS_BY_ID, MOODLETS_DATA, DEFAULT_GAME_SETTINGS } from '@/lib/data';
 
 interface AuthContextType {
@@ -141,7 +141,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             }
         }
     } catch (error) {
-        console.error("Error fetching game settings, likely due to permissions. Using default.", error);
+        console.error("Error fetching game settings. Using default.", error);
     }
   }, []);
 
@@ -285,23 +285,19 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, [initialFormData]);
 
   const fetchAllRewardRequests = useCallback(async (): Promise<RewardRequest[]> => {
-    const allUsers = await fetchAllUsers();
-    const allRequests: RewardRequest[] = [];
-
-    for (const user of allUsers) {
-        try {
-            const requestsCollectionRef = collection(db, `users/${user.id}/reward_requests`);
-            const requestsSnapshot = await getDocs(requestsCollectionRef);
-            requestsSnapshot.forEach(doc => {
-                allRequests.push(doc.data() as RewardRequest);
-            });
-        } catch (error) {
-            console.error(`Could not fetch reward requests for user ${user.id}. Skipping.`, error);
-        }
+    try {
+        const requestsQuery = collectionGroup(db, 'reward_requests');
+        const q = query(requestsQuery, orderBy('createdAt', 'desc'));
+        const querySnapshot = await getDocs(q);
+        const requests = querySnapshot.docs.map(doc => doc.data() as RewardRequest);
+        return requests;
+    } catch (error) {
+        console.error("Error fetching reward requests with collectionGroup. This might be a Firestore rules issue.", error);
+        // Rethrow the error to be caught by the calling component
+        throw error;
     }
+  }, []);
 
-    return allRequests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [fetchAllUsers]);
 
   const updateUser = useCallback(async (userId: string, updates: Partial<User>) => {
       const userRef = doc(db, "users", userId);

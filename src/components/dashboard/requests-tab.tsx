@@ -38,7 +38,11 @@ export default function RequestsTab() {
             setRewardRequests(requests);
         } catch (error) {
             console.error("Failed to load requests", error);
-            toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось загрузить запросы' });
+            if (error instanceof Error && error.message.includes('permission-denied')) {
+                 toast({ variant: 'destructive', title: 'Ошибка доступа', description: 'У вас нет прав для просмотра запросов. Возможно, требуются дополнительные настройки правил безопасности в Firestore.' });
+            } else {
+                toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось загрузить запросы' });
+            }
         } finally {
             setIsLoading(false);
         }
