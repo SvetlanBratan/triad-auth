@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Star, Trash2, Pencil, UserSquare } from 'lucide-react';
+import { PlusCircle, Star, Trash2, Pencil, UserSquare, Sparkles, Anchor, KeyRound } from 'lucide-react';
 import type { PointLog, UserStatus, Character, User } from '@/lib/types';
 import Link from 'next/link';
 import {
@@ -51,19 +51,29 @@ const DynamicIcon = ({ name, className }: { name: string, className?: string }) 
 
 
 const CharacterDisplay = ({ character, onEdit, onDelete }: { character: Character, onEdit: (character: Character) => void, onDelete: (characterId: string) => void }) => {
+    const isBlessed = character.blessingExpires && new Date(character.blessingExpires) > new Date();
+
     return (
        <Card className="p-3 flex items-center justify-between hover:bg-muted/50 transition-colors">
             <div className="flex items-center gap-3">
                 <UserSquare className="w-8 h-8 text-primary" />
                 <div>
-                    <Link href={`/characters/${character.id}`} className="font-bold text-base hover:underline">{character.name}</Link>
+                    <div className="flex items-center gap-2">
+                        <Link href={`/characters/${character.id}`} className="font-bold text-base hover:underline">{character.name}</Link>
+                         {isBlessed && (
+                           <Sparkles className="h-4 w-4 text-yellow-500" />
+                         )}
+                         {character.hasLeviathanFriendship && (
+                             <Anchor className="h-4 w-4 text-blue-500" />
+                         )}
+                         {character.hasCrimeConnections && (
+                            <KeyRound className="h-4 w-4 text-gray-500" />
+                         )}
+                    </div>
                     <p className="text-sm text-muted-foreground">{character.activity}</p>
                 </div>
             </div>
             <div className="flex items-center gap-1.5">
-                <Button variant="ghost" size="icon" className="shrink-0 hover:bg-muted" onClick={() => onEdit(character)}>
-                    <Pencil className="h-4 w-4 text-muted-foreground" />
-                </Button>
                 <AlertDialog>
                     <AlertDialogTrigger asChild>
                         <Button variant="ghost" size="icon" className="shrink-0 hover:bg-destructive/10">
