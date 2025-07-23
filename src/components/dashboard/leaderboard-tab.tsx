@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 
 
 export default function LeaderboardTab() {
-  const { fetchAllUsers } = useUser();
+  const { fetchUsersForAdmin } = useUser();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -26,18 +26,18 @@ export default function LeaderboardTab() {
       const loadUsers = async () => {
           setIsLoading(true);
           try {
-              const fetchedUsers = await fetchAllUsers();
-              const sorted = fetchedUsers.sort((a, b) => b.points - a.points);
-              setUsers(sorted);
+              // The fetchUsersForAdmin function already sorts by points descending
+              const fetchedUsers = await fetchUsersForAdmin();
+              setUsers(fetchedUsers);
           } catch (error) {
               console.error("Failed to fetch users", error);
-              toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось загрузить таблицу лидеров.' });
+              toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось загрузить таблицу лидеров. Возможно, требуется создать индекс в Firestore. Ссылка для создания должна быть в консоли браузера (F12).' });
           } finally {
               setIsLoading(false);
           }
       };
       loadUsers();
-  }, [fetchAllUsers, toast]);
+  }, [fetchUsersForAdmin, toast]);
 
   const getStatusClass = (status: UserStatus) => {
     switch (status) {

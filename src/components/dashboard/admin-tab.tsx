@@ -34,7 +34,7 @@ export default function AdminTab() {
     updateUserRole, 
     giveEventFamiliarToCharacter, 
     grantAchievementToUser, 
-    fetchAllUsers, 
+    fetchUsersForAdmin, 
     clearPointHistoryForUser, 
     addMoodletToCharacter, 
     removeMoodletFromCharacter, 
@@ -87,19 +87,19 @@ export default function AdminTab() {
 
   const refetchUsers = useCallback(async () => {
     try {
-        const fetchedUsers = await fetchAllUsers();
+        const fetchedUsers = await fetchUsersForAdmin();
         setUsers(fetchedUsers);
     } catch (error) {
         console.error("Failed to refetch users", error);
         toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось обновить список пользователей.' });
     }
-  }, [fetchAllUsers, toast]);
+  }, [fetchUsersForAdmin, toast]);
 
   useEffect(() => {
     const loadUsers = async () => {
         setIsLoading(true);
         try {
-            const fetchedUsers = await fetchAllUsers();
+            const fetchedUsers = await fetchUsersForAdmin();
             setUsers(fetchedUsers);
         } catch (error) {
             console.error("Failed to fetch users", error);
@@ -109,7 +109,7 @@ export default function AdminTab() {
         }
     };
     loadUsers();
-  }, [fetchAllUsers, toast]);
+  }, [fetchUsersForAdmin, toast]);
 
   useEffect(() => {
       setNewGameDateString(initialGameDate || '');
@@ -410,11 +410,13 @@ export default function AdminTab() {
     if (!removeFamiliarUserId || !removeFamiliarCharId) return [];
     const user = users.find(u => u.id === removeFamiliarUserId);
     const character = user?.characters.find(c => c.id === removeFamiliarCharId);
-    if (!character || !character.familiarCards) return [];
-    return character.familiarCards.map((ownedCard, index) => {
+    if (!character || !character.inventory?.familiarCards) return [];
+    return character.inventory.familiarCards.map((ownedCard, index) => {
       const cardDetails = FAMILIARS_BY_ID[ownedCard.id];
+      // Ensure we don't return undefined if cardDetails isn't found
+      if (!cardDetails) return null;
       return { ...cardDetails, ownedId: `${ownedCard.id}-${index}` }; // Create a unique ID for the list key
-    }).filter(Boolean);
+    }).filter((card): card is FamiliarCard & { ownedId: string } => card !== null);
   }, [removeFamiliarUserId, removeFamiliarCharId, users]);
 
 

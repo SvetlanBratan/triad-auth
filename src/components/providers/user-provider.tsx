@@ -29,7 +29,7 @@ interface UserContextType {
   setCurrentUser: (user: User | null) => void;
   gameDate: Date | null;
   gameDateString: string | null;
-  fetchAllUsers: () => Promise<User[]>;
+  fetchUsersForAdmin: () => Promise<User[]>;
   fetchAllRewardRequests: () => Promise<RewardRequest[]>;
   addPointsToUser: (userId: string, amount: number, reason: string, characterName?: string) => Promise<User | null>;
   addCharacterToUser: (userId: string, character: Character) => Promise<void>;
@@ -167,6 +167,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     diary: '',
     training: [],
     relationships: '',
+    marriedTo: [],
     abilities: '',
     weaknesses: '',
     lifeGoal: '',
@@ -197,6 +198,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 currentFameLevel: Array.isArray(char.currentFameLevel) ? char.currentFameLevel : (char.currentFameLevel ? [char.currentFameLevel] : []),
                 skillLevel: Array.isArray(char.skillLevel) ? char.skillLevel : (char.skillLevel ? [char.skillLevel] : []),
                 training: Array.isArray(char.training) ? char.training : [],
+                marriedTo: Array.isArray(char.marriedTo) ? char.marriedTo : [],
                 inventory: char.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: char.familiarCards || [] },
                 moodlets: char.moodlets || [],
             })) || [];
@@ -266,30 +268,39 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
     }, [currentUser, fetchGameSettings]);
 
-  const fetchAllUsers = useCallback(async (): Promise<User[]> => {
-    const usersCollection = collection(db, "users");
-    const userSnapshot = await getDocs(usersCollection);
-    return userSnapshot.docs.map(doc => {
-        const userData = doc.data() as User;
-        userData.characters = userData.characters?.map(char => ({
-            ...initialFormData,
-            ...char,
-            inventory: char.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: char.familiarCards || [] },
-            moodlets: char.moodlets || [],
-        })) || [];
-        userData.achievementIds = userData.achievementIds || [];
-        return userData;
-    });
+  const fetchUsersForAdmin = useCallback(async (): Promise<User[]> => {
+    try {
+        const usersCollection = collection(db, "users");
+        // This query requires a composite index on 'points' descending.
+        // Firestore will provide a link in the console error to create it.
+        const q = query(usersCollection, orderBy("points", "desc"));
+        const userSnapshot = await getDocs(q);
+        return userSnapshot.docs.map(doc => {
+            const userData = doc.data() as User;
+            userData.characters = userData.characters?.map(char => ({
+                ...initialFormData,
+                ...char,
+                inventory: char.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: char.familiarCards || [] },
+                moodlets: char.moodlets || [],
+            })) || [];
+            userData.achievementIds = userData.achievementIds || [];
+            return userData;
+        });
+    } catch(error) {
+        console.error("Error fetching users for admin. This likely requires a Firestore index. Check the browser console for a link to create it.", error);
+        throw error;
+    }
   }, [initialFormData]);
 
   const fetchAllRewardRequests = useCallback(async (): Promise<RewardRequest[]> => {
     try {
+        // This query requires a composite index. Firestore will provide a link to create it in the error message in the console.
         const requestsQuery = collectionGroup(db, 'reward_requests');
         const q = query(requestsQuery, orderBy('createdAt', 'desc'));
         const querySnapshot = await getDocs(q);
         return querySnapshot.docs.map(doc => doc.data() as RewardRequest);
     } catch (error) {
-        console.error("Error fetching reward requests with collectionGroup. This might be a Firestore rules issue.", error);
+        console.error("Error fetching reward requests with collectionGroup. This might be a Firestore rules or index issue. Check the browser console.", error);
         throw error;
     }
   }, []);
@@ -329,11 +340,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const newPoints = user.points + amount;
     const newHistory = [newPointLog, ...user.pointHistory].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
-    await updateUser(userId, { points: newPoints, pointHistory: newHistory });
+    const updates: Partial<User> = { points: newPoints, pointHistory: newHistory };
+    
+    const userRef = doc(db, "users", userId);
+    await updateDoc(userRef, updates);
 
-    const allUsers = await fetchAllUsers();
-    const sortedUsers = allUsers.sort((a, b) => b.points - a.points);
-    const top3Users = sortedUsers.slice(0, 3);
+    // After updating points, check for Forbes list achievement
+    const allUsers = await fetchUsersForAdmin(); // Using the safe, indexed query
+    const top3Users = allUsers.slice(0, 3);
     
     for (const topUser of top3Users) {
       if (!topUser.achievementIds?.includes(FORBES_LIST_ACHIEVEMENT_ID)) {
@@ -346,7 +360,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       setCurrentUser(finalUser);
     }
     return finalUser;
-  }, [fetchUserById, updateUser, fetchAllUsers, grantAchievementToUser, currentUser?.id]);
+  }, [fetchUserById, currentUser?.id, grantAchievementToUser, fetchUsersForAdmin]);
 
   const addCharacterToUser = useCallback(async (userId: string, characterData: Character) => {
     const user = await fetchUserById(userId);
@@ -557,7 +571,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
 
   const pullGachaForCharacter = useCallback(async (userId: string, characterId: string): Promise<{newCard: FamiliarCard, isDuplicate: boolean}> => {
-    const allUsers = await fetchAllUsers();
+    const allUsers = await fetchUsersForAdmin(); // Use the safe query
     let user = allUsers.find(u => u.id === userId);
 
     if (!user) throw new Error("Пользователь не найден.");
@@ -640,10 +654,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
 
     return { newCard, isDuplicate };
-  }, [fetchAllUsers, currentUser?.id, grantAchievementToUser, fetchUserById]);
+  }, [currentUser?.id, grantAchievementToUser, fetchUserById, fetchUsersForAdmin]);
   
   const fetchAvailableMythicCardsCount = useCallback(async (): Promise<number> => {
-      const allUsers = await fetchAllUsers();
+      const allUsers = await fetchUsersForAdmin();
       const allMythicCards = ALL_FAMILIARS.filter(c => c.rank === 'мифический');
       const totalMythicCount = allMythicCards.length;
 
@@ -660,7 +674,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     });
 
     return totalMythicCount - claimedMythicIds.size;
-  }, [fetchAllUsers]);
+  }, [fetchUsersForAdmin]);
 
   const giveEventFamiliarToCharacter = useCallback(async (userId: string, characterId: string, familiarId: string) => {
     const user = await fetchUserById(userId);
@@ -749,7 +763,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, [fetchUserById, updateUser]);
 
    const clearRewardRequestsHistory = useCallback(async () => {
-    const allUsers = await fetchAllUsers();
+    const allUsers = await fetchUsersForAdmin();
     const batch = writeBatch(db);
 
     for (const user of allUsers) {
@@ -761,7 +775,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
 
     await batch.commit();
-  }, [fetchAllUsers]);
+  }, [fetchUsersForAdmin]);
   
   const removeFamiliarFromCharacter = useCallback(async (userId: string, characterId: string, cardId: string) => {
     const user = await fetchUserById(userId);
@@ -807,7 +821,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       setCurrentUser,
       gameDate: gameSettings.gameDate,
       gameDateString: gameSettings.gameDateString,
-      fetchAllUsers,
+      fetchUsersForAdmin,
       fetchAllRewardRequests,
       addPointsToUser,
       addCharacterToUser,
@@ -830,7 +844,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       updateUser,
       updateGameDate,
     }),
-    [currentUser, gameSettings, fetchAllUsers, fetchAllRewardRequests, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, fetchAvailableMythicCardsCount, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateGameDate]
+    [currentUser, gameSettings, fetchUsersForAdmin, fetchAllRewardRequests, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, fetchAvailableMythicCardsCount, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateGameDate]
   );
 
   return (
