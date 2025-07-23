@@ -44,10 +44,15 @@ function MultiSelect({ options, selected, onChange, className, placeholder = "Se
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <div className={cn("w-full", className)}>
-          <div className="flex h-auto min-h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
-             <div className="flex-1 flex flex-wrap gap-1">
-              {selected.length === 0 && <span className="text-muted-foreground">{placeholder}</span>}
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className={cn("w-full justify-between h-auto min-h-10", className)}
+          onClick={() => setOpen(!open)}
+        >
+             <div className="flex flex-wrap gap-1">
+              {selected.length === 0 && <span className="text-muted-foreground font-normal">{placeholder}</span>}
               {selected.map((item) => {
                  const option = options.find(opt => opt.value === item);
                  return (
@@ -71,8 +76,7 @@ function MultiSelect({ options, selected, onChange, className, placeholder = "Se
               })}
              </div>
              <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
-          </div>
-        </div>
+        </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
         <Command>

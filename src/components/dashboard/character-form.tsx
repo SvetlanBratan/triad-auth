@@ -77,7 +77,6 @@ const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps)
           return;
         }
         onSubmit(formData);
-        closeDialog();
     };
     
     const selectedTrainingValues = (formData.training || [])
