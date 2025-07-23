@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Star, Trash2, Pencil, UserSquare } from 'lucide-react';
-import type { PointLog, UserStatus, Character, FamiliarCard, FamiliarRank, Moodlet } from '@/lib/types';
+import type { PointLog, UserStatus, Character } from '@/lib/types';
 import Link from 'next/link';
 import {
   Dialog,
@@ -120,17 +120,14 @@ export default function ProfileTab() {
   const handleFormSubmit = (characterData: Character) => {
       if (!currentUser) return;
 
-      if (characterData.id) {
-        // Editing existing character
-        updateCharacterInUser(currentUser.id, characterData);
+      updateCharacterInUser(currentUser.id, characterData);
+      
+      if (editingCharacter) {
         toast({ title: "Успешно", description: "Данные персонажа обновлены." });
       } else {
-        // Adding new character - this path is less likely now form is for full edits
-        // but keeping logic just in case. The form should be initialized with a partial type for new.
-        const newCharacterData = characterData as Omit<Character, 'id' | 'inventory' | 'familiarCards' | 'moodlets'>;
-        addCharacterToUser(currentUser.id, newCharacterData);
         toast({ title: "Успешно", description: "Персонаж добавлен. Теперь он может получать награды." });
       }
+
       setFormDialogOpen(false);
       setEditingCharacter(null);
   };

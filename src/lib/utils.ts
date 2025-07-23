@@ -1,6 +1,7 @@
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { intervalToDuration, isPast } from 'date-fns';
+import { intervalToDuration, isPast, differenceInYears, parse } from 'date-fns';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -28,4 +29,34 @@ export function formatTimeLeft(isoDateString?: string | null): string {
     }
 
     return `Осталось: ${parts.join(' ')}`;
+}
+
+export function calculateAge(birthDateString: string, gameDate: Date): number | null {
+  if (!birthDateString) return null;
+  
+  try {
+    // Assuming format DD.MM.YYYY
+    const birthDate = parse(birthDateString, 'dd.MM.yyyy', new Date());
+    
+    // Check if parsing was successful
+    if (isNaN(birthDate.getTime())) {
+      console.warn("Invalid birthDate format:", birthDateString);
+      return null;
+    }
+
+    let age = differenceInYears(gameDate, birthDate);
+    
+    // Adjust age if birthday hasn't occurred yet this year in game time
+    const birthDateThisYear = new Date(birthDate);
+    birthDateThisYear.setFullYear(gameDate.getFullYear());
+
+    if (gameDate < birthDateThisYear) {
+      age--;
+    }
+
+    return age;
+  } catch (error) {
+    console.error("Error calculating age:", error);
+    return null;
+  }
 }

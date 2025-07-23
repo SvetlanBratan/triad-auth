@@ -55,6 +55,8 @@ export interface Character {
   id: string;
   name: string;
   activity: string;
+  race: string;
+  birthDate: string;
   skillLevel: string[];
   skillDescription?: string;
   currentFameLevel: string[];

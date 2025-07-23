@@ -30,7 +30,7 @@ interface UserContextType {
   fetchAllUsers: () => Promise<User[]>;
   fetchAllRewardRequests: () => Promise<RewardRequest[]>;
   addPointsToUser: (userId: string, amount: number, reason: string, characterName?: string) => Promise<User | null>;
-  addCharacterToUser: (userId: string, character: Omit<Character, 'id' | 'familiarCards' | 'moodlets' | 'inventory' | 'appearance' | 'personality' | 'biography' | 'diary' | 'training' | 'relationships' | 'abilities' | 'weaknesses' | 'lifeGoal' | 'pets'>) => Promise<void>;
+  addCharacterToUser: (userId: string, character: Character) => Promise<void>;
   updateCharacterInUser: (userId: string, character: Character) => Promise<void>;
   deleteCharacterFromUser: (userId: string, characterId: string) => Promise<void>;
   updateUserStatus: (userId: string, status: UserStatus) => Promise<void>;
@@ -265,40 +265,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     return finalUser;
   }, [fetchUserById, updateUser, fetchAllUsers, grantAchievementToUser]);
 
-  const addCharacterToUser = useCallback(async (userId: string, characterData: Omit<Character, 'id' | 'familiarCards' | 'moodlets' | 'inventory' | 'appearance' | 'personality' | 'biography' | 'diary' | 'training' | 'relationships' | 'abilities' | 'weaknesses' | 'lifeGoal' | 'pets'>) => {
+  const addCharacterToUser = useCallback(async (userId: string, characterData: Character) => {
     const user = await fetchUserById(userId);
     if (!user) return;
-    
-    const newCharacter: Character = {
-        id: `c-${Date.now()}`,
-        ...characterData,
-        familiarCards: [],
-        moodlets: [],
-        skillDescription: '',
-        appearance: '',
-        personality: '',
-        biography: '',
-        abilities: '',
-        weaknesses: '',
-        diary: '',
-        training: [],
-        relationships: '',
-        lifeGoal: '',
-        pets: '',
-        inventory: {
-            оружие: [],
-            гардероб: [],
-            еда: [],
-            подарки: [],
-            артефакты: [],
-            зелья: [],
-            недвижимость: [],
-            транспорт: [],
-            familiarCards: []
-        }
-    };
 
-    const updatedCharacters = [...user.characters, newCharacter];
+    const updatedCharacters = [...user.characters, characterData];
     await updateUser(userId, { characters: updatedCharacters });
   }, [fetchUserById, updateUser]);
 
@@ -308,15 +279,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     
     const characterIndex = user.characters.findIndex(char => char.id === characterToUpdate.id);
     if (characterIndex === -1) {
-        console.error("Character not found for update");
-        return;
+        // This is a new character
+        await addCharacterToUser(userId, characterToUpdate);
+    } else {
+        // This is an existing character, update it
+        const updatedCharacters = [...user.characters];
+        updatedCharacters[characterIndex] = characterToUpdate;
+        await updateUser(userId, { characters: updatedCharacters });
     }
-
-    const updatedCharacters = [...user.characters];
-    updatedCharacters[characterIndex] = characterToUpdate;
-    
-    await updateUser(userId, { characters: updatedCharacters });
-  }, [fetchUserById, updateUser]);
+  }, [fetchUserById, updateUser, addCharacterToUser]);
 
 
   const deleteCharacterFromUser = useCallback(async (userId: string, characterId: string) => {

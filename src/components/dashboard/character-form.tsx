@@ -22,6 +22,8 @@ const initialFormData: Character = {
     id: '',
     name: '',
     activity: '',
+    race: '',
+    birthDate: '',
     skillLevel: [],
     skillDescription: '',
     currentFameLevel: [],
@@ -58,7 +60,7 @@ const skillLevelOptions: OptionType[] = SKILL_LEVELS.map(level => ({ value: leve
 const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps) => {
     const [formData, setFormData] = useState<Character>(initialFormData);
 
-    useEffect(() => {
+     useEffect(() => {
         if (character) {
             // Ensure all fields are initialized to prevent controlled/uncontrolled errors
             const initializedCharacter = {
@@ -66,10 +68,12 @@ const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps)
                 ...character,
                 currentFameLevel: Array.isArray(character.currentFameLevel) ? character.currentFameLevel : (character.currentFameLevel ? [character.currentFameLevel] : []),
                 skillLevel: Array.isArray(character.skillLevel) ? character.skillLevel : (character.skillLevel ? [character.skillLevel] : []),
+                training: Array.isArray(character.training) ? character.training : [],
             };
             setFormData(initializedCharacter);
         } else {
-            setFormData(initialFormData);
+             const newCharacterWithId = { ...initialFormData, id: `c-${Date.now()}` };
+             setFormData(newCharacterWithId);
         }
     }, [character]);
 
@@ -103,6 +107,14 @@ const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps)
                     <div>
                         <Label htmlFor="activity">Деятельность/профессия</Label>
                         <Input id="activity" value={formData.activity ?? ''} onChange={handleChange} placeholder="например, Кузнец" required />
+                    </div>
+                     <div>
+                        <Label htmlFor="race">Раса</Label>
+                        <Input id="race" value={formData.race ?? ''} onChange={handleChange} placeholder="например, Человек" required />
+                    </div>
+                     <div>
+                        <Label htmlFor="birthDate">Дата рождения</Label>
+                        <Input id="birthDate" value={formData.birthDate ?? ''} onChange={handleChange} placeholder="например, 15.06.2680" required />
                     </div>
                     <div>
                         <Label htmlFor="currentFameLevel">Текущая известность</Label>

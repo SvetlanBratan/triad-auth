@@ -8,7 +8,7 @@ import { User, Character, FamiliarCard, FamiliarRank, Moodlet } from '@/lib/type
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FAMILIARS_BY_ID, MOODLETS_DATA, TRAINING_OPTIONS } from '@/lib/data';
+import { FAMILIARS_BY_ID, MOODLETS_DATA, TRAINING_OPTIONS, CURRENT_GAME_DATE } from '@/lib/data';
 import FamiliarCardDisplay from '@/components/dashboard/familiar-card';
 import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound } from 'lucide-react';
 import Link from 'next/link';
@@ -16,7 +16,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import CharacterForm from '@/components/dashboard/character-form';
 import { useToast } from '@/hooks/use-toast';
-import { cn, formatTimeLeft } from '@/lib/utils';
+import { cn, formatTimeLeft, calculateAge } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import * as LucideIcons from 'lucide-react';
 
@@ -151,6 +151,7 @@ export default function CharacterPage() {
     
     const isBlessed = character.blessingExpires && new Date(character.blessingExpires) > new Date();
     const activeMoodlets = (character.moodlets || []).filter(m => new Date(m.expiresAt) > new Date());
+    const age = calculateAge(character.birthDate, CURRENT_GAME_DATE);
 
 
     return (
@@ -224,6 +225,14 @@ export default function CharacterPage() {
                             <CardTitle>Основная информация</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-2 text-sm">
+                            <div className="flex justify-between"><span>Раса:</span> <span className="text-right">{character.race || 'N/A'}</span></div>
+                             <div className="flex justify-between">
+                                <span>Дата рождения:</span> 
+                                <span className="text-right">
+                                    {character.birthDate || 'N/A'}
+                                    {age !== null && <span className="text-muted-foreground ml-1">({age} лет)</span>}
+                                </span>
+                            </div>
                             <div className="flex justify-between"><span>Известность:</span> <Badge variant="secondary">{fameLevelText || 'N/A'}</Badge></div>
                              <div className="flex justify-between items-start">
                                 <span>Уровень навыка:</span> 
