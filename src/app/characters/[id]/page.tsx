@@ -40,34 +40,29 @@ const FamiliarsSection = ({ character }: { character: Character }) => {
     }, {} as Record<FamiliarRank, FamiliarCard[]>);
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Фамильяры</CardTitle>
-            </CardHeader>
-            <CardContent>
-                {familiarCards.length > 0 ? (
-                    <div className="space-y-4 pt-2">
-                        {rankOrder.map(rank => {
-                            if (groupedFamiliars[rank] && groupedFamiliars[rank].length > 0) {
-                                return (
-                                    <div key={rank}>
-                                        <h4 className="font-semibold capitalize text-muted-foreground mb-2">{rankNames[rank]}</h4>
-                                        <div className="flex flex-wrap gap-2">
-                                            {groupedFamiliars[rank].map(card => (
-                                                <FamiliarCardDisplay key={card.id} cardId={card.id} />
-                                            ))}
-                                        </div>
+        <div className="pt-2">
+            {familiarCards.length > 0 ? (
+                <div className="space-y-4">
+                    {rankOrder.map(rank => {
+                        if (groupedFamiliars[rank] && groupedFamiliars[rank].length > 0) {
+                            return (
+                                <div key={rank}>
+                                    <h4 className="font-semibold capitalize text-muted-foreground mb-2">{rankNames[rank]}</h4>
+                                    <div className="flex flex-wrap gap-2">
+                                        {groupedFamiliars[rank].map(card => (
+                                            <FamiliarCardDisplay key={card.id} cardId={card.id} />
+                                        ))}
                                     </div>
-                                )
-                            }
-                            return null;
-                        })}
-                    </div>
-                ) : (
-                    <p className="text-sm text-muted-foreground text-center py-4">У этого персонажа нет фамильяров.</p>
-                )}
-            </CardContent>
-        </Card>
+                                </div>
+                            )
+                        }
+                        return null;
+                    })}
+                </div>
+            ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">У этого персонажа нет фамильяров.</p>
+            )}
+        </div>
     );
 };
 
@@ -223,4 +218,3 @@ export default function CharacterPage() {
         </div>
     );
 }
-
