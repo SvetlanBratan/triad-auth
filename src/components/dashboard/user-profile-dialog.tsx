@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Anchor, Sparkles, Star } from 'lucide-react';
+import { Anchor, KeyRound, Sparkles, Star } from 'lucide-react';
 import { cn, formatTimeLeft } from '@/lib/utils';
 import FamiliarCardDisplay from './familiar-card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
@@ -48,6 +48,12 @@ const CharacterDisplay = ({ character }: { character: Character }) => {
                              <Tooltip>
                                 <TooltipTrigger asChild><Anchor className="h-4 w-4 text-blue-500" /></TooltipTrigger>
                                 <TooltipContent><p>Дружба с Левиафаном</p></TooltipContent>
+                           </Tooltip>
+                        )}
+                        {character.hasCrimeConnections && (
+                             <Tooltip>
+                                <TooltipTrigger asChild><KeyRound className="h-4 w-4 text-gray-500" /></TooltipTrigger>
+                                <TooltipContent><p>Связи в преступном мире</p></TooltipContent>
                            </Tooltip>
                         )}
                         <p className="text-sm text-muted-foreground ml-2 truncate">({character.activity})</p>
@@ -188,37 +194,39 @@ export default function UserProfileDialog({ user }: { user: User }) {
             <CardTitle>История баллов</CardTitle>
             <CardDescription>Журнал заработанных и потраченных баллов.</CardDescription>
           </CardHeader>
-          <CardContent className="flex-grow overflow-y-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Дата</TableHead>
-                  <TableHead>Причина</TableHead>
-                  <TableHead className="text-right">Сумма</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedPointHistory.length > 0 ? sortedPointHistory.map((log: PointLog) => (
-                  <TableRow key={log.id}>
-                    <TableCell className="text-muted-foreground">{formatDate(log.date)}</TableCell>
-                    <TableCell>
-                      <p>{log.reason}</p>
-                      {log.characterName && <p className="text-xs text-muted-foreground">Персонаж: {log.characterName}</p>}
-                    </TableCell>
-                    <TableCell className={`text-right font-semibold ${log.amount > 0 ? 'text-green-600' : 'text-destructive'}`}>
-                      {log.amount > 0 ? '+' : ''}{log.amount.toLocaleString()}
-                    </TableCell>
-                  </TableRow>
-                )) : (
+          <div className="flex-grow overflow-y-auto">
+            <CardContent>
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
-                      Истории баллов пока нет.
-                    </TableCell>
+                    <TableHead>Дата</TableHead>
+                    <TableHead>Причина</TableHead>
+                    <TableHead className="text-right">Сумма</TableHead>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
+                </TableHeader>
+                <TableBody>
+                  {sortedPointHistory.length > 0 ? sortedPointHistory.map((log: PointLog) => (
+                    <TableRow key={log.id}>
+                      <TableCell className="text-muted-foreground">{formatDate(log.date)}</TableCell>
+                      <TableCell>
+                        <p>{log.reason}</p>
+                        {log.characterName && <p className="text-xs text-muted-foreground">Персонаж: {log.characterName}</p>}
+                      </TableCell>
+                      <TableCell className={`text-right font-semibold ${log.amount > 0 ? 'text-green-600' : 'text-destructive'}`}>
+                        {log.amount > 0 ? '+' : ''}{log.amount.toLocaleString()}
+                      </TableCell>
+                    </TableRow>
+                  )) : (
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                        Истории баллов пока нет.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </div>
         </Card>
       </div>
     </div>

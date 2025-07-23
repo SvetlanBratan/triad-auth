@@ -32,6 +32,7 @@ export interface Character {
   familiarCards: OwnedFamiliarCard[];
   blessingExpires?: string; // ISO string date
   hasLeviathanFriendship?: boolean;
+  hasCrimeConnections?: boolean;
 }
 
 export interface PointLog {

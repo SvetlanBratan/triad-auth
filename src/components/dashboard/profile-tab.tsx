@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Star, Trash2, Sparkles, Anchor } from 'lucide-react';
+import { PlusCircle, Star, Trash2, Sparkles, Anchor, KeyRound } from 'lucide-react';
 import type { PointLog, UserStatus, Character } from '@/lib/types';
 import {
   Dialog,
@@ -141,6 +141,12 @@ const CharacterDisplay = ({ character, onDelete }: { character: Character, onDel
                              <Tooltip>
                                 <TooltipTrigger asChild><Anchor className="h-4 w-4 text-blue-500" /></TooltipTrigger>
                                 <TooltipContent><p>Дружба с Левиафаном</p></TooltipContent>
+                           </Tooltip>
+                        )}
+                        {character.hasCrimeConnections && (
+                             <Tooltip>
+                                <TooltipTrigger asChild><KeyRound className="h-4 w-4 text-gray-500" /></TooltipTrigger>
+                                <TooltipContent><p>Связи в преступном мире</p></TooltipContent>
                            </Tooltip>
                         )}
                         <p className="text-sm text-muted-foreground ml-2 truncate">({character.activity})</p>

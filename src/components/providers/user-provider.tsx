@@ -329,6 +329,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 if (request.rewardId === 'r-leviathan') { // Leviathan
                     characterToUpdate.hasLeviathanFriendship = true;
                 }
+                if (request.rewardId === 'r-crime-connections') { // Crime Connections
+                    characterToUpdate.hasCrimeConnections = true;
+                }
                 updatedUser.characters[charIndex] = characterToUpdate;
                 updatesForUser.characters = updatedUser.characters;
             }
