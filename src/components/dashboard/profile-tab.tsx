@@ -109,45 +109,45 @@ const CharacterDisplay = ({ character, onDelete }: { character: Character, onDel
     const familiarCards = character.familiarCards || [];
     return (
         <AccordionItem value={character.id} className="border-b">
-            <AccordionTrigger className="hover:no-underline">
-                <div className="flex justify-between items-center w-full">
+             <div className="flex justify-between items-center w-full hover:bg-muted/50 rounded-md">
+                <AccordionTrigger className="flex-1 py-4 px-2 hover:no-underline">
                     <div className="text-left">
                         <p className="font-bold text-base">{character.name}</p>
                         <p className="text-sm text-muted-foreground">{character.activity}</p>
                     </div>
-                     <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                             <Button variant="ghost" size="icon" className="mr-2 hover:bg-destructive/10" onClick={(e) => e.stopPropagation()}>
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                            <AlertDialogTitle>Вы уверены?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                Это действие невозможно отменить. Это навсегда удалит вашего персонажа
-                                <span className="font-bold"> {character.name} </span>
-                                и все его данные, включая фамильяров.
-                            </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                            <AlertDialogCancel>Отмена</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => onDelete(character.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                Да, удалить
-                            </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                </div>
-            </AccordionTrigger>
+                </AccordionTrigger>
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="mr-2 hover:bg-destructive/10 shrink-0" onClick={(e) => e.stopPropagation()}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                        <AlertDialogTitle>Вы уверены?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Это действие невозможно отменить. Это навсегда удалит вашего персонажа
+                            <span className="font-bold"> {character.name} </span>
+                            и все его данные, включая фамильяров.
+                        </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                        <AlertDialogCancel>Отмена</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => onDelete(character.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            Да, удалить
+                        </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            </div>
             <AccordionContent>
-                <div className="text-sm space-y-1 pl-2 pb-2">
+                <div className="text-sm space-y-1 pl-4 pb-2">
                     <p><span className="font-semibold">Навык:</span> {character.skillLevel}</p>
                     <p><span className="font-semibold">Известность:</span> {character.currentFameLevel}</p>
                     {character.workLocation && <p><span className="font-semibold">Место работы:</span> {character.workLocation}</p>}
                 </div>
 
-                <Accordion type="single" collapsible className="w-full mt-2">
+                <Accordion type="single" collapsible className="w-full mt-2 px-2">
                     <AccordionItem value="item-1">
                         <AccordionTrigger className="text-sm">Показать фамильяров ({familiarCards.length})</AccordionTrigger>
                         <AccordionContent>
