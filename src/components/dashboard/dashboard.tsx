@@ -35,21 +35,21 @@ export function Dashboard() {
   const gridColsClass = isAdmin ? "grid-cols-6" : "grid-cols-5";
   
   const tabs = [
-    { value: 'profile', label: 'Мой профиль', icon: User },
-    { value: 'leaderboard', label: 'Таблица лидеров', icon: Trophy },
+    { value: 'profile', label: 'Профиль', icon: User },
+    { value: 'leaderboard', label: 'Лидеры', icon: Trophy },
     { value: 'roulette', label: 'Рулетка', icon: Dices },
     { value: 'rewards', label: 'Награды', icon: Award },
     ...(isAdmin ? [{ value: 'requests', label: 'Запросы', icon: GitPullRequest }] : []),
-    ...(isAdmin ? [{ value: 'admin', label: 'Админ-панель', icon: Shield }] : []),
+    ...(isAdmin ? [{ value: 'admin', label: 'Админ', icon: Shield }] : []),
   ];
 
   return (
       <Tabs defaultValue="profile" className="w-full">
         <TabsList className={`grid w-full ${gridColsClass}`}>
           {tabs.map(({ value, label, icon: Icon }) => (
-            <TabsTrigger key={value} value={value} className="flex-1 w-full flex items-center gap-2">
-              <Icon className="w-4 h-4" />
-              <span className="hidden md:inline">{label}</span>
+            <TabsTrigger key={value} value={value} className="flex-col sm:flex-row h-auto sm:h-10 p-2 sm:p-3 gap-1 sm:gap-2">
+              <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-xs sm:text-sm">{label}</span>
             </TabsTrigger>
           ))}
         </TabsList>

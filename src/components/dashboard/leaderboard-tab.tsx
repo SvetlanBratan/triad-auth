@@ -89,9 +89,9 @@ export default function LeaderboardTab() {
             <Table>
             <TableHeader>
                 <TableRow>
-                <TableHead className="w-[80px]">Ранг</TableHead>
+                <TableHead className="w-[60px] sm:w-[80px]">Ранг</TableHead>
                 <TableHead>Игрок</TableHead>
-                <TableHead>Статус</TableHead>
+                <TableHead className="hidden sm:table-cell">Статус</TableHead>
                 <TableHead className="text-right">Баллы</TableHead>
                 </TableRow>
             </TableHeader>
@@ -113,12 +113,12 @@ export default function LeaderboardTab() {
                           </Avatar>
                           <div>
                           <p className="font-medium">{user.name}</p>
-                          <p className="text-sm text-muted-foreground">{user.email}</p>
+                          <p className="text-xs text-muted-foreground sm:hidden capitalize">{user.status}</p>
                           </div>
                       </div>
                       </DialogTrigger>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                     <Badge variant={'outline'} className={cn("capitalize", getStatusClass(user.status))}>
                         {user.status}
                     </Badge>

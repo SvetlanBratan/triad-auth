@@ -144,7 +144,7 @@ export default function CharacterPage() {
     }, [character, allUsers]);
 
     if (isLoading) {
-        return <div className="container mx-auto p-8"><p>Загрузка данных персонажа...</p></div>;
+        return <div className="container mx-auto p-4 md:p-8"><p>Загрузка данных персонажа...</p></div>;
     }
 
     if (!character || !owner) {
