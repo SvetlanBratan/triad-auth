@@ -147,7 +147,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   const updateGameDate = useCallback(async (newDateString: string) => {
     const settingsRef = doc(db, 'game_settings', 'main');
-    await updateDoc(settingsRef, { gameDateString: newDateString });
+    await setDoc(settingsRef, { gameDateString: newDateString }, { merge: true });
     await fetchGameSettings();
   }, [fetchGameSettings]);
 
@@ -263,9 +263,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         if (currentUser?.role === 'admin') {
             fetchGameSettings();
-        } else {
-             // Reset to default if user is not admin or logs out
-            setGameSettings(DEFAULT_GAME_SETTINGS);
         }
     }, [currentUser, fetchGameSettings]);
 
@@ -290,24 +287,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const requestsQuery = collectionGroup(db, 'reward_requests');
         const q = query(requestsQuery, orderBy('createdAt', 'desc'));
         const querySnapshot = await getDocs(q);
-        const requests = querySnapshot.docs.map(doc => doc.data() as RewardRequest);
-        return requests;
+        return querySnapshot.docs.map(doc => doc.data() as RewardRequest);
     } catch (error) {
         console.error("Error fetching reward requests with collectionGroup. This might be a Firestore rules issue.", error);
-        // Fallback for local testing or rules issue: Fetch for current user only if admin
-        if(currentUser?.role === 'admin') {
-            try {
-                const userRequestsRef = collection(db, `users/${currentUser.id}/reward_requests`);
-                const userRequestsSnap = await getDocs(userRequestsRef);
-                return userRequestsSnap.docs.map(doc => doc.data() as RewardRequest);
-            } catch (fallbackError) {
-                 console.error("Fallback fetch failed too:", fallbackError);
-                 throw error; // re-throw original error
-            }
-        }
         throw error;
     }
-  }, [currentUser]);
+  }, []);
 
 
   const updateUser = useCallback(async (userId: string, updates: Partial<User>) => {
@@ -568,7 +553,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
       }
       return {...request, status: newStatus};
-  }, [fetchUserById, currentUser?.id]);
+  }, [fetchUserById, currentUser?.id, grantAchievementToUser]);
 
 
   const pullGachaForCharacter = useCallback(async (userId: string, characterId: string): Promise<{newCard: FamiliarCard, isDuplicate: boolean}> => {
