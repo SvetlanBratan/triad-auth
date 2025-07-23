@@ -39,20 +39,16 @@ interface UserContextType {
   createNewUser: (uid: string, nickname: string) => Promise<User>;
   createRewardRequest: (rewardRequest: Omit<RewardRequest, 'id' | 'status' | 'createdAt'>) => Promise<void>;
   updateRewardRequestStatus: (request: RewardRequest, newStatus: RewardRequestStatus) => Promise<RewardRequest | null>;
-  pullGachaForCharacter: (userId: string, characterId: string, cost: number) => Promise<FamiliarCard>;
+  pullGachaForCharacter: (userId: string, characterId: string, cost: number) => Promise<{newCard: FamiliarCard, isDuplicate: boolean}>;
   giveEventFamiliarToCharacter: (userId: string, characterId: string, familiarId: string) => Promise<void>;
 }
 
 export const UserContext = createContext<UserContextType | null>(null);
 
 const ADMIN_UIDS = ['Td5P02zpyaMR3IxCY9eCf7gcYky1', 'yawuIwXKVbNhsBQSqWfGZyAzZ3A3'];
+const DUPLICATE_REFUND = 1000;
 
-const drawFamiliarCard = (ownedCardIds: Set<string>, hasBlessing: boolean): FamiliarCard => {
-    const availableCards = ALL_FAMILIARS.filter(c => !ownedCardIds.has(c.id));
-
-    if (availableCards.length === 0) {
-        throw new Error("Поздравляем! Вы собрали все доступные карты фамильяров.");
-    }
+const drawFamiliarCard = (hasBlessing: boolean): FamiliarCard => {
     
     let rand = Math.random() * 100;
 
@@ -65,6 +61,8 @@ const drawFamiliarCard = (ownedCardIds: Set<string>, hasBlessing: boolean): Fami
         legendaryChance = 20;
         rareChance = 40;
     }
+    
+    const availableCards = ALL_FAMILIARS;
 
     const availableMythic = availableCards.filter(c => c.rank === 'мифический');
     const availableLegendary = availableCards.filter(c => c.rank === 'легендарный');
@@ -379,7 +377,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, [fetchUserById, currentUser?.id]);
 
 
-  const pullGachaForCharacter = useCallback(async (userId: string, characterId: string, cost: number): Promise<FamiliarCard> => {
+  const pullGachaForCharacter = useCallback(async (userId: string, characterId: string, cost: number): Promise<{newCard: FamiliarCard, isDuplicate: boolean}> => {
     const user = await fetchUserById(userId);
     if (!user) throw new Error("Пользователь не найден.");
 
@@ -389,27 +387,35 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (user.points < cost) throw new Error("Недостаточно очков.");
 
     const character = user.characters[characterIndex];
-    const ownedCardIds = new Set((character.familiarCards || []).map(c => c.id));
-
     const hasBlessing = character.blessingExpires ? new Date(character.blessingExpires) > new Date() : false;
-    const newCard = drawFamiliarCard(ownedCardIds, hasBlessing);
+    const newCard = drawFamiliarCard(hasBlessing);
+    
+    const ownedCardIds = new Set((character.familiarCards || []).map(c => c.id));
+    const isDuplicate = ownedCardIds.has(newCard.id);
 
     const batch = writeBatch(db);
-
-    const updatedCharacter: Character = {
-        ...character,
-        familiarCards: [...(character.familiarCards || []), { id: newCard.id }],
-    };
-    
     const updatedUser = { ...user };
-    updatedUser.characters[characterIndex] = updatedCharacter;
-    
-    updatedUser.points -= cost;
+    let finalPointChange = -cost;
+    let reason = `Рулетка: получена карта ${newCard.name} (${newCard.rank})`;
+
+    if (isDuplicate) {
+        finalPointChange += DUPLICATE_REFUND;
+        reason = `Рулетка: дубликат ${newCard.name}, возврат ${DUPLICATE_REFUND} баллов`;
+    } else {
+        const updatedCharacter: Character = {
+            ...character,
+            familiarCards: [...(character.familiarCards || []), { id: newCard.id }],
+        };
+        updatedUser.characters[characterIndex] = updatedCharacter;
+    }
+
+    updatedUser.points += finalPointChange;
+
     const newPointLog: PointLog = {
         id: `h-${Date.now()}-gacha`,
         date: new Date().toISOString(),
-        amount: -cost,
-        reason: `Рулетка: получена карта ${newCard.name} (${newCard.rank})`,
+        amount: finalPointChange,
+        reason: reason,
         characterName: character.name,
     };
     updatedUser.pointHistory.unshift(newPointLog);
@@ -421,7 +427,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (currentUser?.id === userId) {
         setCurrentUser(updatedUser);
     }
-    return newCard;
+
+    return { newCard, isDuplicate };
   }, [fetchUserById, currentUser?.id]);
 
   const giveEventFamiliarToCharacter = useCallback(async (userId: string, characterId: string, familiarId: string) => {

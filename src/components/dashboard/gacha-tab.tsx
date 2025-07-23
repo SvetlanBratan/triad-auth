@@ -24,9 +24,9 @@ import type { FamiliarCard } from '@/lib/types';
 import FamiliarCardDisplay from './familiar-card';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
-import { ALL_FAMILIARS } from '@/lib/data';
 
 const ROULETTE_COST = 5000;
+const DUPLICATE_REFUND = 1000;
 
 export default function RouletteTab() {
   const { currentUser, pullGachaForCharacter } = useUser();
@@ -55,19 +55,6 @@ export default function RouletteTab() {
       return;
     }
 
-    const character = currentUser.characters.find(c => c.id === selectedCharacterId);
-    const ownedCardIds = new Set((character?.familiarCards || []).map(c => c.id));
-    const availableCards = ALL_FAMILIARS.filter(c => !ownedCardIds.has(c.id));
-
-    if (availableCards.length === 0) {
-        toast({
-            variant: "destructive",
-            title: "Все карты собраны!",
-            description: "Поздравляем! Этот персонаж уже собрал всех доступных фамильяров.",
-        });
-        return;
-    }
-
     setIsLoading(true);
     setRevealedCard(null);
 
@@ -75,7 +62,7 @@ export default function RouletteTab() {
     setIsFlipping(true);
 
     try {
-      const newCard = await pullGachaForCharacter(
+      const { newCard, isDuplicate } = await pullGachaForCharacter(
         currentUser.id,
         selectedCharacterId,
         ROULETTE_COST
@@ -86,10 +73,17 @@ export default function RouletteTab() {
         setRevealedCard(newCard);
       }, 300); // half of the animation duration
 
-      toast({
-        title: 'Успех!',
-        description: `Вы получили карту: ${newCard.name}!`,
-      });
+      if (isDuplicate) {
+        toast({
+          title: 'Дубликат!',
+          description: `У вас уже есть карта "${newCard.name}". Вам возвращено ${DUPLICATE_REFUND.toLocaleString()} баллов.`,
+        });
+      } else {
+        toast({
+          title: 'Успех!',
+          description: `Вы получили новую карту: ${newCard.name}!`,
+        });
+      }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Произошла неизвестная ошибка.';
@@ -121,7 +115,7 @@ export default function RouletteTab() {
           </CardTitle>
           <CardDescription>
             Испытайте свою удачу! Получите случайную карту фамильяра для одного
-            из ваших персонажей.
+            из ваших персонажей. Дубликат вернет вам 1000 баллов.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
