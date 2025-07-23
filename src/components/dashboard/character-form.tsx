@@ -55,12 +55,9 @@ const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps)
     const [formData, setFormData] = useState<Character>(initialFormData);
 
     useEffect(() => {
-        if (character && 'id' in character) {
-            // Editing an existing character
-            setFormData(character);
-        } else if (character) {
-             // Adding a new character (with partial data)
-             setFormData(prev => ({ ...prev, ...character }));
+        if (character) {
+             // Editing an existing character or new with partial data
+             setFormData({ ...initialFormData, ...character });
         }
         else {
              // Resetting for a completely new character
