@@ -183,12 +183,12 @@ export default function UserProfileDialog({ user }: { user: User }) {
         </Card>
       </div>
       <div className="md:col-span-1">
-        <Card>
+        <Card className="flex flex-col h-full">
           <CardHeader>
             <CardTitle>История баллов</CardTitle>
             <CardDescription>Журнал заработанных и потраченных баллов.</CardDescription>
           </CardHeader>
-          <CardContent className="max-h-[60vh] overflow-y-auto">
+          <CardContent className="flex-grow overflow-y-auto">
             <Table>
               <TableHeader>
                 <TableRow>
