@@ -39,6 +39,8 @@ import FamiliarCardDisplay from './familiar-card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import * as LucideIcons from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+
 
 type IconName = keyof typeof LucideIcons;
 
@@ -281,23 +283,21 @@ export default function ProfileTab() {
              {userAchievements.length > 0 && (
                 <div className="pt-4">
                     <h4 className="text-sm font-semibold text-muted-foreground mb-2">Достижения</h4>
-                    <TooltipProvider>
-                        <div className="flex flex-wrap gap-2">
-                            {userAchievements.map(ach => (
-                                <Tooltip key={ach.id}>
-                                    <TooltipTrigger>
-                                        <div className="p-2 bg-muted rounded-md hover:bg-primary/10">
-                                            <DynamicIcon name={ach.iconName} className="w-5 h-5 text-primary" />
-                                        </div>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p className="font-bold">{ach.name}</p>
-                                        <p className="text-xs">{ach.description}</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            ))}
-                        </div>
-                    </TooltipProvider>
+                    <div className="flex flex-wrap gap-2">
+                        {userAchievements.map(ach => (
+                            <Popover key={ach.id}>
+                                <PopoverTrigger asChild>
+                                    <Button variant="outline" size="icon" className="w-10 h-10 p-2 bg-muted hover:bg-primary/10">
+                                        <DynamicIcon name={ach.iconName} className="w-5 h-5 text-primary" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto max-w-xs">
+                                    <p className="font-bold">{ach.name}</p>
+                                    <p className="text-xs">{ach.description}</p>
+                                </PopoverContent>
+                            </Popover>
+                        ))}
+                    </div>
                 </div>
             )}
           </CardContent>
