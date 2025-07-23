@@ -12,13 +12,10 @@ import RouletteTab from "./gacha-tab";
 import { User, Trophy, Award, Shield, GitPullRequest, Dices } from "lucide-react";
 import AuthPage from "../auth/auth-page";
 import { useAuth } from "../providers/user-provider";
-import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "../ui/tooltip";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 export function Dashboard() {
   const { currentUser } = useUser();
   const { loading } = useAuth();
-  const isMobile = useIsMobile();
 
   if (loading) {
     return (
@@ -35,7 +32,7 @@ export function Dashboard() {
   }
 
   const isAdmin = currentUser.role === 'admin';
-  const gridColsClass = isAdmin ? "grid-cols-6" : "grid-cols-4";
+  const gridColsClass = isAdmin ? "grid-cols-6" : "grid-cols-5";
   
   const tabs = [
     { value: 'profile', label: 'Мой профиль', icon: User },
@@ -47,28 +44,14 @@ export function Dashboard() {
   ];
 
   return (
-    <TooltipProvider delayDuration={0}>
       <Tabs defaultValue="profile" className="w-full">
         <TabsList className={`grid w-full ${gridColsClass}`}>
-          {tabs.map(({ value, label, icon: Icon }) => {
-            const trigger = (
-                <TabsTrigger value={value} className="flex-1 w-full">
-                  <Icon className={isMobile ? "h-5 w-5" : "w-4 h-4 mr-2"} />
-                  {!isMobile && label}
-                </TabsTrigger>
-            );
-
-            if (isMobile) {
-              return trigger;
-            }
-
-            return (
-              <Tooltip key={value}>
-                <TooltipTrigger asChild>{trigger}</TooltipTrigger>
-                <TooltipContent><p>{label}</p></TooltipContent>
-              </Tooltip>
-            );
-          })}
+          {tabs.map(({ value, label, icon: Icon }) => (
+            <TabsTrigger key={value} value={value} className="flex-1 w-full flex items-center gap-2">
+              <Icon className="w-4 h-4" />
+              <span className="hidden md:inline">{label}</span>
+            </TabsTrigger>
+          ))}
         </TabsList>
 
         <TabsContent value="profile" className="mt-4">
@@ -94,6 +77,5 @@ export function Dashboard() {
           </TabsContent>
         )}
       </Tabs>
-    </TooltipProvider>
   );
 }
