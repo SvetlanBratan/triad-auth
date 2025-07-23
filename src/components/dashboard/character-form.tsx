@@ -92,6 +92,13 @@ const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps)
         onSubmit(fullCharacterData);
         closeDialog();
     };
+    
+    // Derived state for the MultiSelect component's `selected` prop.
+    // This avoids running complex logic inside the render method or a useEffect with deep dependencies.
+    const selectedTrainingValues = formData.training
+        .map(label => TRAINING_OPTIONS.find(option => option.label === label)?.value)
+        .filter(Boolean) as string[];
+
 
     return (
         <form onSubmit={handleSubmit}>
@@ -168,7 +175,7 @@ const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps)
                         <Label htmlFor="training">Обучение</Label>
                         <MultiSelect
                             options={TRAINING_OPTIONS}
-                            selected={formData.training.map(t => TRAINING_OPTIONS.find(o => o.label === t)?.value).filter(Boolean) as string[]}
+                            selected={selectedTrainingValues}
                             onChange={(selectedValues) => {
                                 const selectedLabels = selectedValues.map(v => TRAINING_OPTIONS.find(o => o.value === v)?.label).filter(Boolean) as string[];
                                 handleSelectChange('training', selectedLabels);
