@@ -177,35 +177,33 @@ export default function UserProfileDialog({ user }: { user: User }) {
               )}
               </CardContent>
           </Card>
-          <Card>
+          <Card className="flex flex-col h-[400px]">
               <CardHeader>
               <CardTitle>Персонажи</CardTitle>
               <CardDescription>Список персонажей игрока</CardDescription>
               </CardHeader>
-              <CardContent>
-                  <ScrollArea className="pr-3" style={{ maxHeight: 'calc(80vh - 350px)' }}>
-                  {user.characters.length > 0 ? (
-                      <Accordion type="single" collapsible className="w-full">
-                          {user.characters.map(char => (
-                              <CharacterDisplay key={char.id} character={char} />
-                          ))}
-                      </Accordion>
-                  ) : (
-                      <p className="text-sm text-muted-foreground text-center py-4">У этого игрока нет персонажей.</p>
-                  )}
-                  </ScrollArea>
-              </CardContent>
+              <ScrollArea className="flex-grow px-6 pb-6">
+                {user.characters.length > 0 ? (
+                    <Accordion type="single" collapsible className="w-full">
+                        {user.characters.map(char => (
+                            <CharacterDisplay key={char.id} character={char} />
+                        ))}
+                    </Accordion>
+                ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">У этого игрока нет персонажей.</p>
+                )}
+              </ScrollArea>
           </Card>
           </div>
 
           {/* Right Column */}
-          <Card className="flex flex-col h-full max-h-[80vh]">
+          <Card className="flex flex-col max-h-[calc(400px+400px+1.5rem)]">
               <CardHeader>
                   <CardTitle>История баллов</CardTitle>
                   <CardDescription>Журнал заработанных и потраченных баллов.</CardDescription>
               </CardHeader>
-              <ScrollArea className="pr-2 flex-grow">
-                <CardContent>
+              <CardContent className="flex-grow overflow-hidden">
+                <ScrollArea className="h-full pr-2">
                     <Table>
                         <TableHeader>
                         <TableRow>
@@ -235,11 +233,10 @@ export default function UserProfileDialog({ user }: { user: User }) {
                         )}
                         </TableBody>
                     </Table>
-                </CardContent>
-            </ScrollArea>
+                </ScrollArea>
+            </CardContent>
           </Card>
       </div>
     </>
   );
 }
-
