@@ -97,7 +97,7 @@ export default function CharacterPage() {
         if(id) {
           findCharacter();
         }
-    }, [id, fetchAllUsers]);
+    }, [id, fetchAllUsers, currentUser]); // Added currentUser to dependencies to refetch if user data changes (e.g. after an edit)
 
     const handleFormSubmit = (characterData: Character) => {
         if (!owner) return;
@@ -269,7 +269,7 @@ export default function CharacterPage() {
                                     <AccordionContent>
                                          {trainingLabels.length > 0 ? (
                                             <ul className="list-disc pl-5 space-y-1">
-                                                {trainingLabels.map(label => <li key={label}>{label}</li>)}
+                                                {trainingLabels.map((label, index) => <li key={`${label}-${index}`}>{label}</li>)}
                                             </ul>
                                         ) : (
                                             <p className="whitespace-pre-wrap">Описание отсутствует.</p>
