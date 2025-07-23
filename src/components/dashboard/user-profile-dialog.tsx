@@ -177,22 +177,24 @@ export default function UserProfileDialog({ user }: { user: User }) {
               )}
               </CardContent>
           </Card>
-          <Card>
+          <Card className="flex flex-col">
               <CardHeader>
               <CardTitle>Персонажи</CardTitle>
               <CardDescription>Список персонажей игрока</CardDescription>
               </CardHeader>
-              <CardContent>
-              {user.characters.length > 0 ? (
-                  <Accordion type="single" collapsible className="w-full">
-                      {user.characters.map(char => (
-                          <CharacterDisplay key={char.id} character={char} />
-                      ))}
-                  </Accordion>
-              ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">У этого игрока нет персонажей.</p>
-              )}
-              </CardContent>
+                <ScrollArea className="flex-grow pr-3" style={{ maxHeight: 'calc(80vh - 350px)' }}>
+                  <CardContent>
+                  {user.characters.length > 0 ? (
+                      <Accordion type="single" collapsible className="w-full">
+                          {user.characters.map(char => (
+                              <CharacterDisplay key={char.id} character={char} />
+                          ))}
+                      </Accordion>
+                  ) : (
+                      <p className="text-sm text-muted-foreground text-center py-4">У этого игрока нет персонажей.</p>
+                  )}
+                  </CardContent>
+                </ScrollArea>
           </Card>
           </div>
 
