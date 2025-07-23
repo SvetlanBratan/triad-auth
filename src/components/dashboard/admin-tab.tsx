@@ -410,7 +410,7 @@ export default function AdminTab() {
             </form>
           </CardContent>
         </Card>
-         <Card>
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-destructive"><MinusCircle /> Списать баллы</CardTitle>
             <CardDescription>Вручную спишите баллы с пользователя за нарушения.</CardDescription>
@@ -451,6 +451,52 @@ export default function AdminTab() {
               <Button type="submit" variant="destructive">Списать баллы</Button>
             </form>
           </CardContent>
+        </Card>
+        <Card className="border-destructive/50">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-destructive"><ShieldAlert /> Опасная зона</CardTitle>
+                <CardDescription>Действия в этой секции необратимы.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div>
+                    <Label htmlFor="user-select-clear-history">Пользователь</Label>
+                     <Select value={clearHistoryUserId} onValueChange={setClearHistoryUserId}>
+                        <SelectTrigger id="user-select-clear-history" className="border-destructive/50 text-destructive focus:ring-destructive">
+                            <SelectValue placeholder="Выберите пользователя для очистки" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {users.map(user => (
+                            <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="destructive" disabled={!clearHistoryUserId}>
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Очистить историю баллов
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                        <AlertDialogTitle>Вы абсолютно уверены?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Это действие необратимо. Вся история начисления и списания баллов для пользователя 
+                            <span className="font-bold"> {users.find(u => u.id === clearHistoryUserId)?.name} </span>
+                            будет навсегда удалена.
+                        </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                        <AlertDialogCancel>Отмена</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleClearHistory} className="bg-destructive hover:bg-destructive/90">
+                           Да, я понимаю, очистить
+                        </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            </CardContent>
         </Card>
       </div>
       
@@ -717,53 +763,6 @@ export default function AdminTab() {
                         </div>
                     </div>
                 )}
-            </CardContent>
-        </Card>
-
-         <Card className="border-destructive/50">
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-destructive"><ShieldAlert /> Опасная зона</CardTitle>
-                <CardDescription>Действия в этой секции необратимы.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div>
-                    <Label htmlFor="user-select-clear-history">Пользователь</Label>
-                     <Select value={clearHistoryUserId} onValueChange={setClearHistoryUserId}>
-                        <SelectTrigger id="user-select-clear-history" className="border-destructive/50 text-destructive focus:ring-destructive">
-                            <SelectValue placeholder="Выберите пользователя для очистки" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {users.map(user => (
-                            <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-
-                <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                        <Button variant="destructive" disabled={!clearHistoryUserId}>
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Очистить историю баллов
-                        </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                        <AlertDialogTitle>Вы абсолютно уверены?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Это действие необратимо. Вся история начисления и списания баллов для пользователя 
-                            <span className="font-bold"> {users.find(u => u.id === clearHistoryUserId)?.name} </span>
-                            будет навсегда удалена.
-                        </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                        <AlertDialogCancel>Отмена</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleClearHistory} className="bg-destructive hover:bg-destructive/90">
-                           Да, я понимаю, очистить
-                        </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
             </CardContent>
         </Card>
       </div>
