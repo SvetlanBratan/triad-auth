@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Anchor, Sparkles, Star } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, formatTimeLeft } from '@/lib/utils';
 import FamiliarCardDisplay from './familiar-card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { DialogHeader, DialogTitle } from '../ui/dialog';
@@ -26,7 +26,7 @@ const CharacterDisplay = ({ character }: { character: Character }) => {
                         {isBlessed && (
                            <Tooltip>
                                 <TooltipTrigger asChild><Sparkles className="h-4 w-4 text-yellow-500" /></TooltipTrigger>
-                                <TooltipContent><p>Действует благословение. Повышен шанс гачи.</p></TooltipContent>
+                                <TooltipContent><p>{formatTimeLeft(character.blessingExpires)}. Повышен шанс гачи.</p></TooltipContent>
                            </Tooltip>
                         )}
                         {character.hasLeviathanFriendship && (

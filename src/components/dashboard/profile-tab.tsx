@@ -32,7 +32,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import React from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import { cn, formatTimeLeft } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { SKILL_LEVELS, FAME_LEVELS } from '@/lib/data';
 import FamiliarCardDisplay from './familiar-card';
@@ -120,7 +120,7 @@ const CharacterDisplay = ({ character, onDelete }: { character: Character, onDel
                         {isBlessed && (
                            <Tooltip>
                                 <TooltipTrigger asChild><Sparkles className="h-4 w-4 text-yellow-500" /></TooltipTrigger>
-                                <TooltipContent><p>Действует благословение. Повышен шанс гачи.</p></TooltipContent>
+                                <TooltipContent><p>{formatTimeLeft(character.blessingExpires)}. Повышен шанс гачи.</p></TooltipContent>
                            </Tooltip>
                         )}
                         {character.hasLeviathanFriendship && (
