@@ -36,16 +36,16 @@ export const rewards: Reward[] = [
 ];
 
 export const ALL_ACHIEVEMENTS: Achievement[] = [
-  { id: 'ach-first-gacha', name: 'Первый раз?', description: 'Впервые испытать удачу в гаче фамильяров.', iconName: 'Dices' },
-  { id: 'ach-all-common', name: 'Коллекционер обыденности', description: 'Собрать всех обычных фамильяров одним персонажем.', iconName: 'Archive' },
-  { id: 'ach-legendary-pull', name: 'Легендарная удача', description: 'Вытащить легендарного фамильяра из гачи.', iconName: 'Star' },
-  { id: 'ach-mythic-pull', name: 'Мифическое везение', description: 'Вытащить мифического фамильяра из гачи.', iconName: 'Sparkles' },
-  { id: 'ach-event-participant', name: 'Участник события', description: 'Принять участие в глобальном ивенте.', iconName: 'PartyPopper' },
-  { id: 'ach-master-crafter', name: 'Мастер своего дела', description: 'Достичь уровня "Мастер" или выше в ремесле.', iconName: 'Hammer' },
-  { id: 'ach-famous', name: 'Знаменитость', description: 'Достичь уровня известности "Знаменитый на весь мир".', iconName: 'Award' },
-  { id: 'ach-beta-tester', name: 'Бета-тестер', description: 'За участие в тестировании системы баллов.', iconName: 'FlaskConical' },
-  { id: 'ach-bug-hunter', name: 'Охотник за ошибками', description: 'За помощь в поиске и исправлении ошибок.', iconName: 'Bug' },
-  { id: 'ach-generous', name: 'Меценат', description: 'Потратить более 100,000 баллов на награды.', iconName: 'Gem' },
+  { id: 'ach-first-gacha', name: 'Первый раз?', description: 'Выдается игроку, который впервые воспользовался гачей фамильяров.', iconName: 'Dices' },
+  { id: 'ach-all-common', name: 'Коллекционер обыденности', description: 'Выдается, когда один из персонажей игрока собирает всех фамильяров "обычного" ранга.', iconName: 'Archive' },
+  { id: 'ach-legendary-pull', name: 'Легендарная удача', description: 'Награда за получение первого "легендарного" фамильяра из гачи.', iconName: 'Star' },
+  { id: 'ach-mythic-pull', name: 'Мифическое везение', description: 'Награда за получение первого "мифического" фамильяра из гачи.', iconName: 'Sparkles' },
+  { id: 'ach-event-participant', name: 'Участник события', description: 'За активное участие в крупных серверных или ролевых ивентах.', iconName: 'PartyPopper' },
+  { id: 'ach-master-crafter', name: 'Мастер своего дела', description: 'Выдается персонажу, достигшему уровня навыка "Мастер" или выше в своей профессии.', iconName: 'Hammer' },
+  { id: 'ach-famous', name: 'Знаменитость', description: 'Выдается персонажу, достигшему уровня известности "Знаменитый на весь мир" или выше.', iconName: 'Award' },
+  { id: 'ach-beta-tester', name: 'Бета-тестер', description: 'Выдается первым игрокам, которые участвовали в тестировании и настройке системы баллов.', iconName: 'FlaskConical' },
+  { id: 'ach-bug-hunter', name: 'Охотник за ошибками', description: 'Для игрока, который нашел и сообщил о важной ошибке или уязвимости в системе.', iconName: 'Bug' },
+  { id: 'ach-generous', name: 'Меценат', description: 'Выдается игроку, который потратил более 100,000 баллов на различные награды.', iconName: 'Gem' },
 ];
 
 export const ACHIEVEMENTS_BY_ID: Record<string, Achievement> = ALL_ACHIEVEMENTS.reduce((acc, ach) => {
