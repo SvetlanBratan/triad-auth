@@ -40,7 +40,7 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
   { id: 'ach-first-gacha', name: 'Первый раз?', description: 'Первое использование рулетки.', iconName: 'Dices' },
   { id: 'ach-mythic-pull', name: 'Мифическое везение', description: 'Получение первого мифического фамильяра.', iconName: 'Sparkles' },
   { id: 'ach-generous', name: 'Меценат', description: 'Трата более 100,000 баллов.', iconName: 'Gem' },
-  { id: 'ach-pumpkin-spouse', name: 'Тыквенный(ая) супруг(а)', description: 'Обладатель самой прекрасной супруги в мире Триады.', iconName: 'Heart' },
+  { id: 'ach-pumpkin-spouse', name: 'Тыкво-Жена', description: 'Обладатель самой прекрасной супруги в мире Триады.', iconName: 'Heart' },
   { id: 'ach-unique-character', name: 'Владелец уникального персонажа', description: 'Покупка закрытой расы.', iconName: 'VenetianMask' },
   { id: 'ach-multi-hand', name: 'Многоручка', description: 'Покупка дополнительного персонажа.', iconName: 'Users' },
   { id: 'ach-tamer', name: 'Укротитель', description: 'Сумел завести неприручаемое животное в качестве питомца.', iconName: 'Cat' },
