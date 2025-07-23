@@ -120,89 +120,89 @@ export default function UserProfileDialog({ user }: { user: User }) {
       <DialogHeader>
           <DialogTitle className="text-2xl">Профиль игрока: {user.name}</DialogTitle>
       </DialogHeader>
-      <ScrollArea className="pr-4 -mr-4 max-h-[80vh]">
-        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-            {/* Left Column */}
-            <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                <div className="flex items-center gap-4">
-                    <Avatar className="h-16 w-16">
-                    <AvatarImage src={user.avatar} alt={user.name} />
-                    <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                    <CardTitle className="text-2xl font-headline">{user.name}</CardTitle>
-                    <CardDescription>{user.email}</CardDescription>
-                    </div>
-                </div>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Баллы</span>
-                    <span className="font-bold text-lg text-primary flex items-center gap-1">
-                    <Star className="w-4 h-4" /> {user.points.toLocaleString()}
-                    </span>
-                </div>
-                <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Статус</span>
-                    <Badge variant={'outline'} className={cn("capitalize", getStatusClass(user.status))}>
-                    {user.status}
-                    </Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Роль</span>
-                    <Badge variant="outline">{user.role}</Badge>
-                </div>
-                {userAchievements.length > 0 && (
-                    <div className="pt-4">
-                        <h4 className="text-sm font-semibold text-muted-foreground mb-2">Достижения</h4>
-                        <TooltipProvider>
-                            <div className="flex flex-wrap gap-2">
-                                {userAchievements.map(ach => (
-                                    <Tooltip key={ach.id}>
-                                        <TooltipTrigger>
-                                            <div className="p-2 bg-muted rounded-md hover:bg-primary/10">
-                                                <DynamicIcon name={ach.iconName} className="w-5 h-5 text-primary" />
-                                            </div>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p className="font-bold">{ach.name}</p>
-                                            <p className="text-xs">{ach.description}</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                ))}
-                            </div>
-                        </TooltipProvider>
-                    </div>
-                )}
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader>
-                <CardTitle>Персонажи</CardTitle>
-                <CardDescription>Список персонажей игрока</CardDescription>
-                </CardHeader>
-                <CardContent>
-                {user.characters.length > 0 ? (
-                    <Accordion type="single" collapsible className="w-full">
-                        {user.characters.map(char => (
-                            <CharacterDisplay key={char.id} character={char} />
-                        ))}
-                    </Accordion>
-                ) : (
-                    <p className="text-sm text-muted-foreground text-center py-4">У этого игрока нет персонажей.</p>
-                )}
-                </CardContent>
-            </Card>
-            </div>
+      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+          {/* Left Column */}
+          <div className="space-y-6">
+          <Card>
+              <CardHeader>
+              <div className="flex items-center gap-4">
+                  <Avatar className="h-16 w-16">
+                  <AvatarImage src={user.avatar} alt={user.name} />
+                  <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                  <CardTitle className="text-2xl font-headline">{user.name}</CardTitle>
+                  <CardDescription>{user.email}</CardDescription>
+                  </div>
+              </div>
+              </CardHeader>
+              <CardContent className="space-y-2">
+              <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Баллы</span>
+                  <span className="font-bold text-lg text-primary flex items-center gap-1">
+                  <Star className="w-4 h-4" /> {user.points.toLocaleString()}
+                  </span>
+              </div>
+              <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Статус</span>
+                  <Badge variant={'outline'} className={cn("capitalize", getStatusClass(user.status))}>
+                  {user.status}
+                  </Badge>
+              </div>
+              <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Роль</span>
+                  <Badge variant="outline">{user.role}</Badge>
+              </div>
+              {userAchievements.length > 0 && (
+                  <div className="pt-4">
+                      <h4 className="text-sm font-semibold text-muted-foreground mb-2">Достижения</h4>
+                      <TooltipProvider>
+                          <div className="flex flex-wrap gap-2">
+                              {userAchievements.map(ach => (
+                                  <Tooltip key={ach.id}>
+                                      <TooltipTrigger>
+                                          <div className="p-2 bg-muted rounded-md hover:bg-primary/10">
+                                              <DynamicIcon name={ach.iconName} className="w-5 h-5 text-primary" />
+                                          </div>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                          <p className="font-bold">{ach.name}</p>
+                                          <p className="text-xs">{ach.description}</p>
+                                      </TooltipContent>
+                                  </Tooltip>
+                              ))}
+                          </div>
+                      </TooltipProvider>
+                  </div>
+              )}
+              </CardContent>
+          </Card>
+          <Card>
+              <CardHeader>
+              <CardTitle>Персонажи</CardTitle>
+              <CardDescription>Список персонажей игрока</CardDescription>
+              </CardHeader>
+              <CardContent>
+              {user.characters.length > 0 ? (
+                  <Accordion type="single" collapsible className="w-full">
+                      {user.characters.map(char => (
+                          <CharacterDisplay key={char.id} character={char} />
+                      ))}
+                  </Accordion>
+              ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">У этого игрока нет персонажей.</p>
+              )}
+              </CardContent>
+          </Card>
+          </div>
 
-            {/* Right Column */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>История баллов</CardTitle>
-                    <CardDescription>Журнал заработанных и потраченных баллов.</CardDescription>
-                </CardHeader>
+          {/* Right Column */}
+          <Card className="flex flex-col h-full max-h-[80vh]">
+              <CardHeader>
+                  <CardTitle>История баллов</CardTitle>
+                  <CardDescription>Журнал заработанных и потраченных баллов.</CardDescription>
+              </CardHeader>
+              <ScrollArea className="pr-2">
                 <CardContent>
                     <Table>
                         <TableHeader>
@@ -234,9 +234,9 @@ export default function UserProfileDialog({ user }: { user: User }) {
                         </TableBody>
                     </Table>
                 </CardContent>
-            </Card>
-        </div>
-      </ScrollArea>
+            </ScrollArea>
+          </Card>
+      </div>
     </>
   );
 }
