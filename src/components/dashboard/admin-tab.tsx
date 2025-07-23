@@ -258,7 +258,7 @@ export default function AdminTab() {
   }
   
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><DollarSign /> Начислить баллы</CardTitle>
@@ -409,9 +409,9 @@ export default function AdminTab() {
                   <SelectContent>
                     {ALL_ACHIEVEMENTS.map(ach => (
                       <SelectItem key={ach.id} value={ach.id}>
-                        <div>
+                        <div className="whitespace-normal">
                           <span className="font-semibold">{ach.name}</span>
-                          <p className="text-xs text-muted-foreground whitespace-normal">{ach.description}</p>
+                          <p className="text-xs text-muted-foreground">{ach.description}</p>
                         </div>
                       </SelectItem>
                     ))}
