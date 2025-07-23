@@ -129,7 +129,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (docSnap.exists()) {
             const data = docSnap.data() as { gameDateString: string };
             const dateStr = data.gameDateString;
-            // A simple parser for "21 марта 2709 год"
             const months: { [key: string]: number } = { "января":0, "февраля":1, "марта":2, "апреля":3, "мая":4, "июня":5, "июля":6, "августа":7, "сентября":8, "октября":9, "ноября":10, "декабря":11 };
             const parts = dateStr.replace(' год', '').split(' ');
             if (parts.length === 3) {
@@ -143,24 +142,74 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 return;
               }
             }
-        } else {
-            // If doc doesn't exist or is invalid, use default and try to set it
-            await setDoc(doc(db, 'game_settings', 'main'), { gameDateString: DEFAULT_GAME_SETTINGS.gameDateString }, { merge: true });
-            setGameSettings(DEFAULT_GAME_SETTINGS);
         }
-
     } catch (error) {
-        console.error("Error fetching game settings:", error);
-        // On error (like permission denied), fall back to default for the current session.
-        setGameSettings(DEFAULT_GAME_SETTINGS);
+        console.error("Error fetching game settings (may be due to permissions for non-admins):", error);
     }
+    // Fallback if doc doesn't exist or there's an error.
+    setGameSettings(DEFAULT_GAME_SETTINGS);
   }, []);
 
   const updateGameDate = useCallback(async (newDateString: string) => {
     const settingsRef = doc(db, 'game_settings', 'main');
     await updateDoc(settingsRef, { gameDateString: newDateString });
-    await fetchGameSettings(); // Refetch to update state everywhere
+    await fetchGameSettings();
   }, [fetchGameSettings]);
+
+  const initialFormData: Character = useMemo(() => ({
+    id: '',
+    name: '',
+    activity: '',
+    race: '',
+    birthDate: '',
+    skillLevel: [],
+    skillDescription: '',
+    currentFameLevel: [],
+    workLocation: '',
+    appearance: '',
+    personality: '',
+    biography: '',
+    diary: '',
+    training: [],
+    relationships: '',
+    abilities: '',
+    weaknesses: '',
+    lifeGoal: '',
+    pets: '',
+    familiarCards: [],
+    moodlets: [],
+    inventory: {
+        оружие: [],
+        гардероб: [],
+        еда: [],
+        подарки: [],
+        артефакты: [],
+        зелья: [],
+        недвижимость: [],
+        транспорт: [],
+        familiarCards: [],
+    }
+  }), []);
+
+  const fetchUserById = useCallback(async (userId: string): Promise<User | null> => {
+      const userRef = doc(db, "users", userId);
+      const docSnap = await getDoc(userRef);
+      if (docSnap.exists()) {
+          const userData = docSnap.data() as User;
+           userData.characters = userData.characters?.map(char => ({
+                ...initialFormData,
+                ...char,
+                currentFameLevel: Array.isArray(char.currentFameLevel) ? char.currentFameLevel : (char.currentFameLevel ? [char.currentFameLevel] : []),
+                skillLevel: Array.isArray(char.skillLevel) ? char.skillLevel : (char.skillLevel ? [char.skillLevel] : []),
+                training: Array.isArray(char.training) ? char.training : [],
+                inventory: char.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: char.familiarCards || [] },
+                moodlets: char.moodlets || [],
+            })) || [];
+           userData.achievementIds = userData.achievementIds || [];
+          return userData;
+      }
+      return null;
+  }, [initialFormData]);
 
   const createNewUser = useCallback(async (uid: string, nickname: string): Promise<User> => {
     const newUser: User = {
@@ -189,50 +238,39 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const fetchUserById = useCallback(async (userId: string): Promise<User | null> => {
-      const userRef = doc(db, "users", userId);
-      const docSnap = await getDoc(userRef);
-      if (docSnap.exists()) {
-          const userData = docSnap.data() as User;
-           userData.characters = userData.characters?.map(char => ({
-                ...initialFormData, // Ensure all keys are present
-                ...char,
-                currentFameLevel: Array.isArray(char.currentFameLevel) ? char.currentFameLevel : (char.currentFameLevel ? [char.currentFameLevel] : []),
-                skillLevel: Array.isArray(char.skillLevel) ? char.skillLevel : (char.skillLevel ? [char.skillLevel] : []),
-                training: Array.isArray(char.training) ? char.training : [],
-                inventory: char.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: char.familiarCards || [] },
-                moodlets: char.moodlets || [],
-            })) || [];
-           userData.achievementIds = userData.achievementIds || [];
-          return userData;
-      }
-      return null;
-  }, []);
-
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setLoading(true);
       setFirebaseUser(user);
       if (user) {
-        // Fetch game settings as soon as a user is authenticated
-        await fetchGameSettings();
         try {
             const userData = await fetchUserById(user.uid);
             if (userData) {
                 setCurrentUser(userData);
+                // CRITICAL FIX: Only fetch game settings IF the user is an admin.
+                if (userData.role === 'admin') {
+                    await fetchGameSettings();
+                } else {
+                    setGameSettings(DEFAULT_GAME_SETTINGS); // Ensure non-admins have the default
+                }
             } else {
                 const nickname = user.displayName || user.email?.split('@')[0] || 'Пользователь';
                 const newUser = await createNewUser(user.uid, nickname);
                 setCurrentUser(newUser);
+                // Also check role for newly created user
+                if (newUser.role === 'admin') {
+                     await fetchGameSettings();
+                } else {
+                    setGameSettings(DEFAULT_GAME_SETTINGS);
+                }
             }
         } catch (error) {
             console.error("Error fetching user data:", error);
             setCurrentUser(null);
         }
       } else {
-        // No user, reset to default date and clear current user
         setCurrentUser(null);
-        setGameSettings(DEFAULT_GAME_SETTINGS);
+        setGameSettings(DEFAULT_GAME_SETTINGS); // Reset to default on logout
       }
       setLoading(false);
     });
@@ -254,7 +292,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         userData.achievementIds = userData.achievementIds || [];
         return userData;
     });
-  }, []);
+  }, [initialFormData]);
 
   const fetchAllRewardRequests = useCallback(async (): Promise<RewardRequest[]> => {
       const requestsQuery = query(collectionGroup(db, 'reward_requests'), orderBy('createdAt', 'desc'));
@@ -266,7 +304,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const userRef = doc(db, "users", userId);
       await updateDoc(userRef, updates);
       
-      // Instead of re-fetching, optimistically update local state for speed.
       if (currentUser?.id === userId) {
         setCurrentUser(prev => prev ? { ...prev, ...updates } : null);
       }
@@ -299,7 +336,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     
     await updateUser(userId, { points: newPoints, pointHistory: newHistory });
 
-    // After updating points, check leaderboard for top 3 achievement
     const allUsers = await fetchAllUsers();
     const sortedUsers = allUsers.sort((a, b) => b.points - a.points);
     const top3Users = sortedUsers.slice(0, 3);
@@ -310,7 +346,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       }
     }
     
-    // Return the locally constructed user object for UI updates
     const finalUser = { ...user, points: newPoints, pointHistory: newHistory };
     if(currentUser?.id === userId) {
       setCurrentUser(finalUser);
@@ -764,41 +799,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     signOut(auth);
   }, []);
   
-  const initialFormData: Character = {
-    id: '',
-    name: '',
-    activity: '',
-    race: '',
-    birthDate: '',
-    skillLevel: [],
-    skillDescription: '',
-    currentFameLevel: [],
-    workLocation: '',
-    appearance: '',
-    personality: '',
-    biography: '',
-    diary: '',
-    training: [],
-    relationships: '',
-    abilities: '',
-    weaknesses: '',
-    lifeGoal: '',
-    pets: '',
-    familiarCards: [],
-    moodlets: [],
-    inventory: {
-        оружие: [],
-        гардероб: [],
-        еда: [],
-        подарки: [],
-        артефакты: [],
-        зелья: [],
-        недвижимость: [],
-        транспорт: [],
-        familiarCards: [],
-    }
-};
-
   const authValue = useMemo(() => ({
     user: firebaseUser,
     loading,
