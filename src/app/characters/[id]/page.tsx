@@ -184,7 +184,7 @@ export default function CharacterPage() {
             <header className="flex flex-col md:flex-row justify-between md:items-start mb-6 gap-4">
                 <div className="flex-1">
                     <div className="flex items-center gap-3 flex-wrap">
-                        <h1 className="text-3xl md:text-4xl font-bold font-headline text-primary">{character.name}</h1>
+                        <h1 className="text-2xl md:text-3xl font-bold font-headline text-primary">{character.name}</h1>
                         <div className="flex items-center gap-1.5">
                             {isBlessed && (
                                 <Popover>
