@@ -23,6 +23,8 @@ export interface Character {
   currentFameLevel: string;
   workLocation: string;
   familiarCards: OwnedFamiliarCard[];
+  blessingExpires?: string; // ISO string date
+  hasLeviathanFriendship?: boolean;
 }
 
 export interface PointLog {

@@ -6,49 +6,64 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Star } from 'lucide-react';
+import { Anchor, Sparkles, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import FamiliarCardDisplay from './familiar-card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { DialogHeader, DialogTitle } from '../ui/dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 const CharacterDisplay = ({ character }: { character: Character }) => {
     const familiarCards = character.familiarCards || [];
-    return (
-        <AccordionItem value={character.id} className="border-b">
-            <AccordionTrigger className="hover:no-underline">
-                <div className="flex justify-between items-center w-full">
-                    <div className="text-left">
-                        <p className="font-bold text-base">{character.name}</p>
-                        <p className="text-sm text-muted-foreground">{character.activity}</p>
-                    </div>
-                </div>
-            </AccordionTrigger>
-            <AccordionContent>
-                <div className="text-sm space-y-1 pl-2 pb-2">
-                    <p><span className="font-semibold">Навык:</span> {character.skillLevel}</p>
-                    <p><span className="font-semibold">Известность:</span> {character.currentFameLevel}</p>
-                    {character.workLocation && <p><span className="font-semibold">Место работы:</span> {character.workLocation}</p>}
-                </div>
+    const isBlessed = character.blessingExpires && new Date(character.blessingExpires) > new Date();
 
-                 <Accordion type="single" collapsible className="w-full mt-2">
-                    <AccordionItem value="item-1">
-                        <AccordionTrigger className="text-sm">Показать фамильяров ({familiarCards.length})</AccordionTrigger>
-                        <AccordionContent>
-                             {familiarCards.length > 0 ? (
-                                <div className="flex flex-wrap gap-2 pt-2">
-                                    {familiarCards.map(card => (
-                                        <FamiliarCardDisplay key={card.id} cardId={card.id} />
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="text-sm text-muted-foreground text-center py-4">У этого персонажа нет фамильяров.</p>
-                            )}
-                        </AccordionContent>
-                    </AccordionItem>
-                </Accordion>
-            </AccordionContent>
-        </AccordionItem>
+    return (
+        <TooltipProvider>
+            <AccordionItem value={character.id} className="border-b">
+                <AccordionTrigger className="hover:no-underline">
+                     <div className="text-left flex items-center gap-2">
+                        <p className="font-bold text-base">{character.name}</p>
+                        {isBlessed && (
+                           <Tooltip>
+                                <TooltipTrigger asChild><Sparkles className="h-4 w-4 text-yellow-500" /></TooltipTrigger>
+                                <TooltipContent><p>Действует благословение. Повышен шанс гачи.</p></TooltipContent>
+                           </Tooltip>
+                        )}
+                        {character.hasLeviathanFriendship && (
+                             <Tooltip>
+                                <TooltipTrigger asChild><Anchor className="h-4 w-4 text-blue-500" /></TooltipTrigger>
+                                <TooltipContent><p>Дружба с Левиафаном</p></TooltipContent>
+                           </Tooltip>
+                        )}
+                        <p className="text-sm text-muted-foreground ml-2 truncate">({character.activity})</p>
+                    </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                    <div className="text-sm space-y-1 pl-2 pb-2">
+                        <p><span className="font-semibold">Навык:</span> {character.skillLevel}</p>
+                        <p><span className="font-semibold">Известность:</span> {character.currentFameLevel}</p>
+                        {character.workLocation && <p><span className="font-semibold">Место работы:</span> {character.workLocation}</p>}
+                    </div>
+
+                    <Accordion type="single" collapsible className="w-full mt-2">
+                        <AccordionItem value="item-1">
+                            <AccordionTrigger className="text-sm">Показать фамильяров ({familiarCards.length})</AccordionTrigger>
+                            <AccordionContent>
+                                {familiarCards.length > 0 ? (
+                                    <div className="flex flex-wrap gap-2 pt-2">
+                                        {familiarCards.map(card => (
+                                            <FamiliarCardDisplay key={card.id} cardId={card.id} />
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground text-center py-4">У этого персонажа нет фамильяров.</p>
+                                )}
+                            </AccordionContent>
+                        </AccordionItem>
+                    </Accordion>
+                </AccordionContent>
+            </AccordionItem>
+        </TooltipProvider>
     );
 };
 

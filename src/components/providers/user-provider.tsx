@@ -5,7 +5,7 @@ import React, { createContext, useState, useMemo, useCallback, useEffect, useCon
 import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, OwnedFamiliarCard } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
-import { doc, getDoc, setDoc, collection, getDocs, writeBatch, collectionGroup, query, orderBy } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, getDocs, writeBatch, collectionGroup, query, orderBy, updateDoc } from "firebase/firestore";
 import { ALL_FAMILIARS, EVENT_FAMILIARS, FAMILIARS_BY_ID } from '@/lib/data';
 
 interface AuthContextType {
@@ -46,14 +46,26 @@ export const UserContext = createContext<UserContextType | null>(null);
 
 const ADMIN_UIDS = ['Td5P02zpyaMR3IxCY9eCf7gcYky1', 'yawuIwXKVbNhsBQSqWfGZyAzZ3A3'];
 
-const drawFamiliarCard = (ownedCardIds: Set<string>): FamiliarCard => {
+const drawFamiliarCard = (ownedCardIds: Set<string>, hasBlessing: boolean): FamiliarCard => {
     const availableCards = ALL_FAMILIARS.filter(c => !ownedCardIds.has(c.id));
 
     if (availableCards.length === 0) {
         throw new Error("Поздравляем! Вы собрали все доступные карты фамильяров.");
     }
     
-    const rand = Math.random() * 100;
+    let rand = Math.random() * 100;
+
+    // Base chances
+    let mythicChance = 5;
+    let legendaryChance = 10;
+    let rareChance = 25;
+    
+    // Boost chances if blessed
+    if (hasBlessing) {
+        mythicChance = 10; // Doubled
+        legendaryChance = 20; // Doubled
+        rareChance = 40; // Increased
+    }
 
     // Filter available cards by rank
     const availableMythic = availableCards.filter(c => c.rank === 'мифический');
@@ -63,13 +75,13 @@ const drawFamiliarCard = (ownedCardIds: Set<string>): FamiliarCard => {
 
     let chosenPool: FamiliarCard[] = [];
 
-    if (rand < 5 && availableMythic.length > 0) { // 5% chance for mythic
+    if (rand < mythicChance && availableMythic.length > 0) {
         chosenPool = availableMythic;
-    } else if (rand < 15 && availableLegendary.length > 0) { // 10% chance for legendary
+    } else if (rand < mythicChance + legendaryChance && availableLegendary.length > 0) {
         chosenPool = availableLegendary;
-    } else if (rand < 40 && availableRare.length > 0) { // 25% chance for rare
+    } else if (rand < mythicChance + legendaryChance + rareChance && availableRare.length > 0) {
         chosenPool = availableRare;
-    } else if (availableCommon.length > 0) { // Common or fallback
+    } else if (availableCommon.length > 0) {
         chosenPool = availableCommon;
     } else {
       // Fallback to any available card if preferred ranks are all owned
@@ -193,19 +205,28 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, [users, createNewUser, isInitialDataLoaded]);
 
 
-  const updateUserInStateAndFirestore = async (updatedUser: User) => {
-     try {
-        await setDoc(doc(db, "users", updatedUser.id), updatedUser, { merge: true });
+  const updateUserInStateAndFirestore = useCallback(async (userId: string, updates: Partial<User>) => {
+    const userToUpdate = users.find(u => u.id === userId);
+    if (!userToUpdate) return;
+    
+    const updatedUser = { ...userToUpdate, ...updates };
+
+    try {
+        const userRef = doc(db, "users", userId);
+        await updateDoc(userRef, updates);
+        
         setUsers(prevUsers =>
-          prevUsers.map(u => (u.id === updatedUser.id ? updatedUser : u))
+          prevUsers.map(u => (u.id === userId ? updatedUser : u))
         );
-        if (currentUser?.id === updatedUser.id) {
+        if (currentUser?.id === userId) {
           setCurrentUser(updatedUser);
         }
       } catch (error) {
         console.error("Error updating user:", error);
+        throw error;
       }
-  };
+  }, [users, currentUser?.id]);
+
 
   const addPointsToUser = useCallback((userId: string, amount: number, reason: string, characterName?: string) => {
     const user = users.find(u => u.id === userId);
@@ -218,14 +239,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       reason,
       ...(characterName && { characterName }),
     };
-    const updatedUser = {
-      ...user,
-      points: user.points + amount,
-      pointHistory: [newPointLog, ...user.pointHistory].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
-    };
+    const newPoints = user.points + amount;
+    const newHistory = [newPointLog, ...user.pointHistory].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
-    updateUserInStateAndFirestore(updatedUser);
-  }, [users]);
+    updateUserInStateAndFirestore(userId, { points: newPoints, pointHistory: newHistory });
+  }, [users, updateUserInStateAndFirestore]);
 
   const addCharacterToUser = useCallback((userId: string, characterData: Omit<Character, 'id'>) => {
     const user = users.find(u => u.id === userId);
@@ -237,40 +255,25 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         familiarCards: characterData.familiarCards || [] // Ensure it's initialized
     };
 
-    const updatedUser = {
-        ...user,
-        characters: [...user.characters, newCharacter],
-    };
-    updateUserInStateAndFirestore(updatedUser);
-  }, [users]);
+    const updatedCharacters = [...user.characters, newCharacter];
+    updateUserInStateAndFirestore(userId, { characters: updatedCharacters });
+  }, [users, updateUserInStateAndFirestore]);
 
   const deleteCharacterFromUser = useCallback((userId: string, characterId: string) => {
     const user = users.find(u => u.id === userId);
     if (!user) return;
 
-    const updatedUser = {
-        ...user,
-        characters: user.characters.filter(char => char.id !== characterId),
-    };
-
-    updateUserInStateAndFirestore(updatedUser);
-  }, [users]);
+    const updatedCharacters = user.characters.filter(char => char.id !== characterId);
+    updateUserInStateAndFirestore(userId, { characters: updatedCharacters });
+  }, [users, updateUserInStateAndFirestore]);
 
   const updateUserStatus = useCallback((userId: string, status: UserStatus) => {
-    const user = users.find(u => u.id === userId);
-    if (!user) return;
-    
-    const updatedUser = { ...user, status };
-    updateUserInStateAndFirestore(updatedUser);
-  }, [users]);
+    updateUserInStateAndFirestore(userId, { status });
+  }, [updateUserInStateAndFirestore]);
 
   const updateUserRole = useCallback((userId: string, role: UserRole) => {
-    const user = users.find(u => u.id === userId);
-    if (!user) return;
-    
-    const updatedUser = { ...user, role };
-    updateUserInStateAndFirestore(updatedUser);
-  }, [users]);
+    updateUserInStateAndFirestore(userId, { role });
+  }, [updateUserInStateAndFirestore]);
   
   const createRewardRequest = useCallback(async (rewardRequestData: Omit<RewardRequest, 'id' | 'status' | 'createdAt'>) => {
     const user = users.find(u => u.id === rewardRequestData.userId);
@@ -296,18 +299,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       amount: -rewardRequestData.rewardCost,
       reason: `Запрос награды: ${rewardRequestData.rewardTitle}`,
     };
-    const updatedUser = {
-      ...user,
-      points: user.points - rewardRequestData.rewardCost,
-      pointHistory: [newPointLog, ...user.pointHistory].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
-    };
+    const updatedPoints = user.points - rewardRequestData.rewardCost;
+    const updatedHistory = [newPointLog, ...user.pointHistory].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     const userRef = doc(db, "users", user.id);
-    batch.set(userRef, updatedUser);
+    batch.update(userRef, { points: updatedPoints, pointHistory: updatedHistory });
 
     await batch.commit();
 
     // Update state locally
     setRewardRequests(prev => [newRequest, ...prev].sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+    const updatedUser = { ...user, points: updatedPoints, pointHistory: updatedHistory };
     setUsers(prevUsers => prevUsers.map(u => (u.id === updatedUser.id ? updatedUser : u)));
     if (currentUser?.id === updatedUser.id) {
         setCurrentUser(updatedUser);
@@ -327,9 +328,27 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       batch.update(requestRef, { status });
       
       let updatedUser = { ...user };
+      let updatesForUser: Partial<User> = {};
 
-      // Gacha logic was here, now moved to its own function.
-      if (status === 'отклонено') {
+      if (status === 'одобрено') {
+        if (request.characterId) {
+            const charIndex = updatedUser.characters.findIndex(c => c.id === request.characterId);
+            if (charIndex !== -1) {
+                let characterToUpdate = { ...updatedUser.characters[charIndex] };
+                // Logic for specific rewards
+                if (request.rewardId === 'r2') { // Благословение Богов
+                    const expiryDate = new Date();
+                    expiryDate.setDate(expiryDate.getDate() + 5);
+                    characterToUpdate.blessingExpires = expiryDate.toISOString();
+                }
+                if (request.rewardId === 'r9') { // Дружба с Левиафаном
+                    characterToUpdate.hasLeviathanFriendship = true;
+                }
+                updatedUser.characters[charIndex] = characterToUpdate;
+                updatesForUser.characters = updatedUser.characters;
+            }
+        }
+      } else if (status === 'отклонено') {
           // Refund points
           const reason = `Возврат за отклоненный запрос: ${request.rewardTitle}`;
           const newPointLog: PointLog = {
@@ -340,17 +359,23 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           };
           updatedUser.points += request.rewardCost;
           updatedUser.pointHistory.unshift(newPointLog);
+          updatesForUser.points = updatedUser.points;
+          updatesForUser.pointHistory = updatedUser.pointHistory;
       }
 
       const userRef = doc(db, "users", user.id);
-      batch.set(userRef, updatedUser, { merge: true });
+      if (Object.keys(updatesForUser).length > 0) {
+        batch.update(userRef, updatesForUser);
+      }
 
       await batch.commit();
 
       // Optimistically update user state
-      setUsers(prevUsers => prevUsers.map(u => u.id === updatedUser.id ? updatedUser : u));
-      if (currentUser?.id === updatedUser.id) {
-          setCurrentUser(updatedUser);
+      if (Object.keys(updatesForUser).length > 0) {
+        setUsers(prevUsers => prevUsers.map(u => u.id === updatedUser.id ? updatedUser : u));
+        if (currentUser?.id === updatedUser.id) {
+            setCurrentUser(updatedUser);
+        }
       }
 
       // Optimistically update request state
@@ -371,7 +396,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const character = user.characters[characterIndex];
     const ownedCardIds = new Set((character.familiarCards || []).map(c => c.id));
 
-    const newCard = drawFamiliarCard(ownedCardIds);
+    // Check for blessing
+    const hasBlessing = character.blessingExpires ? new Date(character.blessingExpires) > new Date() : false;
+
+    const newCard = drawFamiliarCard(ownedCardIds, hasBlessing);
 
     const batch = writeBatch(db);
 
@@ -433,8 +461,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       familiarCards: [...(character.familiarCards || []), { id: familiarId }],
     };
 
-    const updatedUser = { ...user };
-    updatedUser.characters[characterIndex] = updatedCharacter;
+    const updatedCharacters = [...user.characters];
+    updatedCharacters[characterIndex] = updatedCharacter;
     
     const newPointLog: PointLog = {
         id: `h-${Date.now()}-event`,
@@ -443,10 +471,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         reason: `Ивентовая награда: получен фамильяр "${familiar.name}"`,
         characterName: character.name,
     };
-    updatedUser.pointHistory.unshift(newPointLog);
+    const newHistory = [newPointLog, ...user.pointHistory];
 
-    updateUserInStateAndFirestore(updatedUser);
-  }, [users]);
+    updateUserInStateAndFirestore(userId, { characters: updatedCharacters, pointHistory: newHistory });
+  }, [users, updateUserInStateAndFirestore]);
 
 
   const signOutUser = useCallback(() => {

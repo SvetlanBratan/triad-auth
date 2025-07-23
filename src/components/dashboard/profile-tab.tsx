@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Star, Trash2 } from 'lucide-react';
+import { PlusCircle, Star, Trash2, Sparkles, Anchor, ShieldCheck } from 'lucide-react';
 import type { PointLog, UserStatus, Character } from '@/lib/types';
 import {
   Dialog,
@@ -37,6 +37,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { SKILL_LEVELS, FAME_LEVELS } from '@/lib/data';
 import FamiliarCardDisplay from './familiar-card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 const AddCharacterForm = ({ onAddCharacter, closeDialog }: { onAddCharacter: (character: any) => void, closeDialog: () => void }) => {
     const [name, setName] = React.useState('');
@@ -107,13 +108,28 @@ const AddCharacterForm = ({ onAddCharacter, closeDialog }: { onAddCharacter: (ch
 
 const CharacterDisplay = ({ character, onDelete }: { character: Character, onDelete: (characterId: string) => void }) => {
     const familiarCards = character.familiarCards || [];
+    const isBlessed = character.blessingExpires && new Date(character.blessingExpires) > new Date();
+
     return (
+      <TooltipProvider>
         <AccordionItem value={character.id} className="border-b">
              <div className="flex justify-between items-center w-full hover:bg-muted/50 rounded-md">
                 <AccordionTrigger className="flex-1 py-4 px-2 hover:no-underline">
-                    <div className="text-left">
+                    <div className="text-left flex items-center gap-2">
                         <p className="font-bold text-base">{character.name}</p>
-                        <p className="text-sm text-muted-foreground">{character.activity}</p>
+                        {isBlessed && (
+                           <Tooltip>
+                                <TooltipTrigger asChild><Sparkles className="h-4 w-4 text-yellow-500" /></TooltipTrigger>
+                                <TooltipContent><p>Действует благословение. Повышен шанс гачи.</p></TooltipContent>
+                           </Tooltip>
+                        )}
+                        {character.hasLeviathanFriendship && (
+                             <Tooltip>
+                                <TooltipTrigger asChild><Anchor className="h-4 w-4 text-blue-500" /></TooltipTrigger>
+                                <TooltipContent><p>Дружба с Левиафаном</p></TooltipContent>
+                           </Tooltip>
+                        )}
+                        <p className="text-sm text-muted-foreground ml-2 truncate">({character.activity})</p>
                     </div>
                 </AccordionTrigger>
                 <AlertDialog>
@@ -165,6 +181,7 @@ const CharacterDisplay = ({ character, onDelete }: { character: Character, onDel
                 </Accordion>
             </AccordionContent>
         </AccordionItem>
+    </TooltipProvider>
     );
 };
 
