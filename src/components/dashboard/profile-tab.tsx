@@ -62,36 +62,34 @@ const CharacterDisplay = ({ character, onEdit, onDelete }: { character: Characte
                 <AccordionTrigger className="flex-1 py-4 px-2 hover:no-underline">
                     <div className="text-left flex items-start gap-2 flex-wrap">
                         <p className="font-bold text-base">{character.name}</p>
-                         <div className="flex items-center gap-1.5">
-                            {isBlessed && (
-                               <Popover>
-                                    <PopoverTrigger asChild><button><Sparkles className="h-4 w-4 text-yellow-500" /></button></PopoverTrigger>
-                                    <PopoverContent className="w-auto text-sm"><p>{formatTimeLeft(character.blessingExpires)}. Повышен шанс в рулетке.</p></PopoverContent>
-                               </Popover>
-                            )}
-                            {character.hasLeviathanFriendship && (
-                                <Popover>
-                                    <PopoverTrigger asChild><button><Anchor className="h-4 w-4 text-blue-500" /></button></PopoverTrigger>
-                                    <PopoverContent className="w-auto text-sm"><p>Дружба с Левиафаном</p></PopoverContent>
-                               </Popover>
-                            )}
-                            {character.hasCrimeConnections && (
-                                <Popover>
-                                    <PopoverTrigger asChild><button><KeyRound className="h-4 w-4 text-gray-500" /></button></PopoverTrigger>
-                                    <PopoverContent className="w-auto text-sm"><p>Связи в преступном мире</p></PopoverContent>
-                               </Popover>
-                            )}
-                        </div>
                         <p className="text-sm text-muted-foreground">({character.activity})</p>
                     </div>
                 </AccordionTrigger>
-                <div className="flex items-center pr-2">
+                 <div className="flex items-center gap-1.5 pr-2">
+                    {isBlessed && (
+                       <Popover>
+                            <PopoverTrigger asChild><button><Sparkles className="h-4 w-4 text-yellow-500" /></button></PopoverTrigger>
+                            <PopoverContent className="w-auto text-sm"><p>{formatTimeLeft(character.blessingExpires)}. Повышен шанс в рулетке.</p></PopoverContent>
+                       </Popover>
+                    )}
+                    {character.hasLeviathanFriendship && (
+                        <Popover>
+                            <PopoverTrigger asChild><button><Anchor className="h-4 w-4 text-blue-500" /></button></PopoverTrigger>
+                            <PopoverContent className="w-auto text-sm"><p>Дружба с Левиафаном</p></PopoverContent>
+                        </Popover>
+                    )}
+                    {character.hasCrimeConnections && (
+                        <Popover>
+                            <PopoverTrigger asChild><button><KeyRound className="h-4 w-4 text-gray-500" /></button></PopoverTrigger>
+                            <PopoverContent className="w-auto text-sm"><p>Связи в преступном мире</p></PopoverContent>
+                        </Popover>
+                    )}
                      <Button variant="ghost" size="icon" className="shrink-0 hover:bg-muted" onClick={() => onEdit(character)}>
                         <Pencil className="h-4 w-4 text-muted-foreground" />
                     </Button>
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="shrink-0 hover:bg-destructive/10" onClick={(e) => e.stopPropagation()}>
+                            <Button variant="ghost" size="icon" className="shrink-0 hover:bg-destructive/10">
                                 <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                         </AlertDialogTrigger>

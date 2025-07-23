@@ -11,7 +11,7 @@ import { Anchor, KeyRound, Sparkles, Star, X } from 'lucide-react';
 import { cn, formatTimeLeft } from '@/lib/utils';
 import FamiliarCardDisplay from './familiar-card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
-import { DialogClose, DialogHeader, DialogTitle } from '../ui/dialog';
+import { DialogHeader, DialogTitle } from '../ui/dialog';
 import { ACHIEVEMENTS_BY_ID } from '@/lib/data';
 import * as LucideIcons from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
@@ -41,29 +41,29 @@ const CharacterDisplay = ({ character }: { character: Character }) => {
             <AccordionTrigger className="flex-1 py-4 px-2 hover:no-underline">
                 <div className="text-left flex items-start gap-2 flex-wrap">
                     <p className="font-bold text-base">{character.name}</p>
-                    <div className="flex items-center gap-1.5">
-                        {isBlessed && (
-                        <Popover>
-                            <PopoverTrigger asChild><button><Sparkles className="h-4 w-4 text-yellow-500 cursor-pointer" /></button></PopoverTrigger>
-                            <PopoverContent className="w-auto text-sm"><p>{formatTimeLeft(character.blessingExpires)}. Повышен шанс в рулетке.</p></PopoverContent>
-                        </Popover>
-                        )}
-                        {character.hasLeviathanFriendship && (
-                            <Popover>
-                                <PopoverTrigger asChild><button><Anchor className="h-4 w-4 text-blue-500 cursor-pointer" /></button></PopoverTrigger>
-                                <PopoverContent className="w-auto text-sm"><p>Дружба с Левиафаном</p></PopoverContent>
-                            </Popover>
-                        )}
-                        {character.hasCrimeConnections && (
-                            <Popover>
-                                <PopoverTrigger asChild><button><KeyRound className="h-4 w-4 text-gray-500 cursor-pointer" /></button></PopoverTrigger>
-                                <PopoverContent className="w-auto text-sm"><p>Связи в преступном мире</p></PopoverContent>
-                            </Popover>
-                        )}
-                    </div>
                     <p className="text-sm text-muted-foreground">({character.activity})</p>
                 </div>
             </AccordionTrigger>
+             <div className="flex items-center gap-1.5 pr-4">
+                    {isBlessed && (
+                    <Popover>
+                        <PopoverTrigger asChild><button><Sparkles className="h-4 w-4 text-yellow-500 cursor-pointer" /></button></PopoverTrigger>
+                        <PopoverContent className="w-auto text-sm"><p>{formatTimeLeft(character.blessingExpires)}. Повышен шанс в рулетке.</p></PopoverContent>
+                    </Popover>
+                    )}
+                    {character.hasLeviathanFriendship && (
+                        <Popover>
+                            <PopoverTrigger asChild><button><Anchor className="h-4 w-4 text-blue-500 cursor-pointer" /></button></PopoverTrigger>
+                            <PopoverContent className="w-auto text-sm"><p>Дружба с Левиафаном</p></PopoverContent>
+                        </Popover>
+                    )}
+                    {character.hasCrimeConnections && (
+                        <Popover>
+                            <PopoverTrigger asChild><button><KeyRound className="h-4 w-4 text-gray-500 cursor-pointer" /></button></PopoverTrigger>
+                            <PopoverContent className="w-auto text-sm"><p>Связи в преступном мире</p></PopoverContent>
+                        </Popover>
+                    )}
+                </div>
             </div>
             <AccordionContent>
             <div className="text-sm space-y-1 pl-2 pb-2">
