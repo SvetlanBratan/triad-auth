@@ -92,15 +92,15 @@ const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps)
                     {/* Basic Info */}
                     <div>
                         <Label htmlFor="name">Имя персонажа</Label>
-                        <Input id="name" value={formData.name} onChange={handleChange} placeholder="например, Гидеон" required />
+                        <Input id="name" value={formData.name ?? ''} onChange={handleChange} placeholder="например, Гидеон" required />
                     </div>
                     <div>
                         <Label htmlFor="activity">Деятельность/профессия</Label>
-                        <Input id="activity" value={formData.activity} onChange={handleChange} placeholder="например, Кузнец" required />
+                        <Input id="activity" value={formData.activity ?? ''} onChange={handleChange} placeholder="например, Кузнец" required />
                     </div>
                     <div>
                         <Label htmlFor="currentFameLevel">Текущая известность</Label>
-                         <Select onValueChange={(value) => handleSelectChange('currentFameLevel', value)} value={formData.currentFameLevel}>
+                         <Select onValueChange={(value) => handleSelectChange('currentFameLevel', value)} value={formData.currentFameLevel ?? ''}>
                             <SelectTrigger id="currentFameLevel">
                                 <SelectValue placeholder="Выберите уровень известности" />
                             </SelectTrigger>
@@ -113,7 +113,7 @@ const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps)
                     </div>
                     <div>
                         <Label htmlFor="skillLevel">Уровень навыка</Label>
-                         <Select onValueChange={(value) => handleSelectChange('skillLevel', value)} value={formData.skillLevel}>
+                         <Select onValueChange={(value) => handleSelectChange('skillLevel', value)} value={formData.skillLevel ?? ''}>
                             <SelectTrigger id="skillLevel">
                                 <SelectValue placeholder="Выберите уровень навыка" />
                             </SelectTrigger>
@@ -126,33 +126,33 @@ const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps)
                     </div>
                      <div>
                         <Label htmlFor="skillDescription">Описание навыка (необязательно)</Label>
-                        <Input id="skillDescription" value={formData.skillDescription} onChange={handleChange} placeholder="например, в области конструкта" />
+                        <Input id="skillDescription" value={formData.skillDescription ?? ''} onChange={handleChange} placeholder="например, в области конструкта" />
                     </div>
                     <div>
                         <Label htmlFor="workLocation">Место работы (необязательно)</Label>
-                        <Input id="workLocation" value={formData.workLocation} onChange={handleChange} placeholder="например, Железная кузница" />
+                        <Input id="workLocation" value={formData.workLocation ?? ''} onChange={handleChange} placeholder="например, Железная кузница" />
                     </div>
                     
                     {/* Main Section */}
                     <div>
                         <Label htmlFor="appearance">Внешность</Label>
-                        <Textarea id="appearance" value={formData.appearance} onChange={handleChange} placeholder="Подробное описание внешности персонажа..." rows={5}/>
+                        <Textarea id="appearance" value={formData.appearance ?? ''} onChange={handleChange} placeholder="Подробное описание внешности персонажа..." rows={5}/>
                     </div>
                     <div>
                         <Label htmlFor="personality">Характер</Label>
-                        <Textarea id="personality" value={formData.personality} onChange={handleChange} placeholder="Описание характера, привычек, мировоззрения..." rows={5}/>
+                        <Textarea id="personality" value={formData.personality ?? ''} onChange={handleChange} placeholder="Описание характера, привычек, мировоззрения..." rows={5}/>
                     </div>
                      <div>
                         <Label htmlFor="biography">Биография</Label>
-                        <Textarea id="biography" value={formData.biography} onChange={handleChange} placeholder="История жизни персонажа..." rows={8}/>
+                        <Textarea id="biography" value={formData.biography ?? ''} onChange={handleChange} placeholder="История жизни персонажа..." rows={8}/>
                     </div>
                     <div>
                         <Label htmlFor="abilities">Способности</Label>
-                        <Textarea id="abilities" value={formData.abilities} onChange={handleChange} placeholder="Магические или физические способности..." rows={4}/>
+                        <Textarea id="abilities" value={formData.abilities ?? ''} onChange={handleChange} placeholder="Магические или физические способности..." rows={4}/>
                     </div>
                      <div>
                         <Label htmlFor="weaknesses">Слабости</Label>
-                        <Textarea id="weaknesses" value={formData.weaknesses} onChange={handleChange} placeholder="Физические или психологические уязвимости..." rows={4}/>
+                        <Textarea id="weaknesses" value={formData.weaknesses ?? ''} onChange={handleChange} placeholder="Физические или психологические уязвимости..." rows={4}/>
                     </div>
                     
                     {/* Additional Section */}
@@ -170,19 +170,19 @@ const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps)
                     </div>
                      <div>
                         <Label htmlFor="relationships">Отношения</Label>
-                        <Textarea id="relationships" value={formData.relationships} onChange={handleChange} placeholder="Значимые связи и отношения с другими персонажами..." rows={4}/>
+                        <Textarea id="relationships" value={formData.relationships ?? ''} onChange={handleChange} placeholder="Значимые связи и отношения с другими персонажами..." rows={4}/>
                     </div>
                      <div>
                         <Label htmlFor="lifeGoal">Жизненная цель</Label>
-                        <Textarea id="lifeGoal" value={formData.lifeGoal} onChange={handleChange} placeholder="Главная цель или мечта персонажа..." rows={4}/>
+                        <Textarea id="lifeGoal" value={formData.lifeGoal ?? ''} onChange={handleChange} placeholder="Главная цель или мечта персонажа..." rows={4}/>
                     </div>
                      <div>
                         <Label htmlFor="pets">Питомцы</Label>
-                        <Textarea id="pets" value={formData.pets} onChange={handleChange} placeholder="Список и описание питомцев..." rows={3}/>
+                        <Textarea id="pets" value={formData.pets ?? ''} onChange={handleChange} placeholder="Список и описание питомцев..." rows={3}/>
                     </div>
                     <div>
                         <Label htmlFor="diary">Личный дневник</Label>
-                        <Textarea id="diary" value={formData.diary} onChange={handleChange} placeholder="Мысли, секреты и личные записи персонажа..." rows={6}/>
+                        <Textarea id="diary" value={formData.diary ?? ''} onChange={handleChange} placeholder="Мысли, секреты и личные записи персонажа..." rows={6}/>
                     </div>
                 </div>
             </ScrollArea>

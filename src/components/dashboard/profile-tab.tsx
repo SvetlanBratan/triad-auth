@@ -275,7 +275,7 @@ export default function ProfileTab() {
       </div>
 
        <Dialog open={isFormDialogOpen} onOpenChange={setFormDialogOpen}>
-            <DialogContent>
+            <DialogContent className="max-w-3xl">
                 <DialogHeader>
                 <DialogTitle>{editingCharacter ? 'Редактировать персонажа' : 'Добавить нового персонажа'}</DialogTitle>
                 <DialogDescription>
