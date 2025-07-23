@@ -5,7 +5,7 @@ import React, { createContext, useState, useMemo, useCallback, useEffect, useCon
 import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
-import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, collectionGroup, query, where, orderBy } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, collectionGroup, query, where, orderBy, deleteDoc } from "firebase/firestore";
 import { ALL_FAMILIARS, FAMILIARS_BY_ID, MOODLETS_DATA } from '@/lib/data';
 
 interface AuthContextType {
@@ -45,6 +45,7 @@ interface UserContextType {
   clearPointHistoryForUser: (userId: string) => Promise<void>;
   addMoodletToCharacter: (userId: string, characterId: string, moodletId: string, durationInDays: number) => Promise<void>;
   removeMoodletFromCharacter: (userId: string, characterId: string, moodletId: string) => Promise<void>;
+  clearRewardRequestsHistory: () => Promise<void>;
 }
 
 export const UserContext = createContext<UserContextType | null>(null);
@@ -653,6 +654,21 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       await updateUserInStateAndFirestore(userId, { characters: updatedCharacters });
   }, [fetchUserById, updateUserInStateAndFirestore]);
 
+   const clearRewardRequestsHistory = useCallback(async () => {
+    const allUsers = await fetchAllUsers();
+    const batch = writeBatch(db);
+
+    for (const user of allUsers) {
+      const requestsQuery = query(collection(db, `users/${user.id}/reward_requests`), where('status', '!=', 'в ожидании'));
+      const requestSnapshot = await getDocs(requestsQuery);
+      requestSnapshot.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+    }
+
+    await batch.commit();
+  }, [fetchAllUsers]);
+
 
   const signOutUser = useCallback(() => {
     signOut(auth);
@@ -687,8 +703,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       clearPointHistoryForUser,
       addMoodletToCharacter,
       removeMoodletFromCharacter,
+      clearRewardRequestsHistory,
     }),
-    [currentUser, fetchAllUsers, fetchAllRewardRequests, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, fetchAvailableMythicCardsCount, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter]
+    [currentUser, fetchAllUsers, fetchAllRewardRequests, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, fetchAvailableMythicCardsCount, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory]
   );
 
   return (
@@ -699,5 +716,3 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     </AuthContext.Provider>
   );
 }
-
-    

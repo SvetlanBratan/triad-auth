@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import type { RewardRequest, RewardRequestStatus } from '@/lib/types';
-import { CheckCircle, XCircle, Clock } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   AlertDialog,
@@ -25,7 +25,7 @@ import { ScrollArea } from '../ui/scroll-area';
 
 
 export default function RequestsTab() {
-    const { fetchAllRewardRequests, updateRewardRequestStatus, addPointsToUser, currentUser } = useUser();
+    const { fetchAllRewardRequests, updateRewardRequestStatus, clearRewardRequestsHistory, currentUser } = useUser();
     const [rewardRequests, setRewardRequests] = useState<RewardRequest[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [processingRequestId, setProcessingRequestId] = useState<string | null>(null);
@@ -82,6 +82,24 @@ export default function RequestsTab() {
             setProcessingRequestId(null);
         }
     };
+
+    const handleClearHistory = async () => {
+        try {
+            await clearRewardRequestsHistory();
+            setRewardRequests(prev => prev.filter(r => r.status === 'в ожидании'));
+            toast({
+                title: 'История очищена!',
+                description: 'Вся история обработанных запросов была удалена.'
+            });
+        } catch (error) {
+             console.error("Error clearing request history:", error);
+            toast({
+                variant: 'destructive',
+                title: 'Ошибка',
+                description: 'Не удалось очистить историю запросов.'
+            });
+        }
+    }
 
     const getStatusProps = (status: RewardRequestStatus) => {
         switch (status) {
@@ -196,7 +214,31 @@ export default function RequestsTab() {
                 )}
             </div>
              <div className="flex flex-col h-full">
-                <h2 className="text-2xl font-bold mb-4">История запросов</h2>
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-2xl font-bold">История запросов</h2>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                             <Button variant="destructive" size="sm" disabled={processedRequests.length === 0}>
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Очистить историю
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Вы уверены?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Это действие удалит ВСЕ обработанные (одобренные и отклоненные) запросы для ВСЕХ пользователей. Это действие необратимо.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Отмена</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleClearHistory} className="bg-destructive hover:bg-destructive/90">
+                                    Да, я понимаю, очистить
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </div>
                 {processedRequests.length > 0 ? (
                     <ScrollArea className="h-[75vh] pr-4">
                         <RequestList requests={processedRequests} />
