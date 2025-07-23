@@ -328,12 +328,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     // Check for "Generous" achievement
     const hasGenerousAchievement = (updatedUser.achievementIds || []).includes(GENEROUS_ACHIEVEMENT_ID);
     if (!hasGenerousAchievement) {
-        // Fetch all requests to calculate total spent
         const requestsQuery = query(collection(db, `users/${user.id}/reward_requests`));
         const allRequestsSnapshot = await getDocs(requestsQuery);
         let totalSpent = 0;
         allRequestsSnapshot.docs.forEach(doc => {
             const request = doc.data() as RewardRequest;
+            // Count pending and approved requests towards the total
             if (request.status === 'одобрено' || request.status === 'в ожидании') {
                  totalSpent += request.rewardCost;
             }
@@ -424,12 +424,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (user.points < cost) throw new Error("Недостаточно очков.");
     
     // Check for "First Time?" achievement before anything else
-    const hasPulledBefore = user.pointHistory.some(log => log.reason.includes('Рулетка'));
+    const hasEverPulledGacha = user.pointHistory.some(log => log.reason.includes('Рулетка'));
     const hasFirstPullAchievement = (user.achievementIds || []).includes(FIRST_PULL_ACHIEVEMENT_ID);
-    let shouldGrantFirstPullAchievement = false;
-    if (!hasPulledBefore && !hasFirstPullAchievement) {
-        shouldGrantFirstPullAchievement = true;
-    }
 
     const claimedMythicIds = new Set<string>();
     allUsers.forEach(u => {
@@ -454,7 +450,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     let finalPointChange = -cost;
     let reason = `Рулетка: получена карта ${newCard.name} (${newCard.rank})`;
     
-    if (shouldGrantFirstPullAchievement) {
+    if (!hasEverPulledGacha && !hasFirstPullAchievement) {
         updatedUser.achievementIds = [...(updatedUser.achievementIds || []), FIRST_PULL_ACHIEVEMENT_ID];
     }
     
