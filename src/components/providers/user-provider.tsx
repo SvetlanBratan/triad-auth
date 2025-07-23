@@ -30,7 +30,7 @@ interface UserContextType {
   fetchAllUsers: () => Promise<User[]>;
   fetchAllRewardRequests: () => Promise<RewardRequest[]>;
   addPointsToUser: (userId: string, amount: number, reason: string, characterName?: string) => Promise<User | null>;
-  addCharacterToUser: (userId: string, character: Omit<Character, 'id' | 'familiarCards' | 'moodlets' | 'inventory' | 'appearance' | 'personality' | 'biography' | 'diary' | 'training' | 'relationships'>) => Promise<void>;
+  addCharacterToUser: (userId: string, character: Omit<Character, 'id' | 'familiarCards' | 'moodlets' | 'inventory' | 'appearance' | 'personality' | 'biography' | 'diary' | 'training' | 'relationships' | 'abilities' | 'weaknesses' | 'lifeGoal' | 'pets'>) => Promise<void>;
   updateCharacterInUser: (userId: string, character: Character) => Promise<void>;
   deleteCharacterFromUser: (userId: string, characterId: string) => Promise<void>;
   updateUserStatus: (userId: string, status: UserStatus) => Promise<void>;
@@ -266,7 +266,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     return finalUser;
   }, [fetchUserById, updateUserInStateAndFirestore, fetchAllUsers, grantAchievementToUser]);
 
-  const addCharacterToUser = useCallback(async (userId: string, characterData: Omit<Character, 'id' | 'familiarCards' | 'moodlets' | 'inventory' | 'appearance' | 'personality' | 'biography' | 'diary' | 'training' | 'relationships'>) => {
+  const addCharacterToUser = useCallback(async (userId: string, characterData: Omit<Character, 'id' | 'familiarCards' | 'moodlets' | 'inventory' | 'appearance' | 'personality' | 'biography' | 'diary' | 'training' | 'relationships' | 'abilities' | 'weaknesses' | 'lifeGoal' | 'pets'>) => {
     const user = await fetchUserById(userId);
     if (!user) return;
     
@@ -279,11 +279,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         appearance: '',
         personality: '',
         biography: '',
+        abilities: '',
+        weaknesses: '',
         diary: '',
         training: [],
         relationships: '',
-        abilities: '',
-        weaknesses: '',
         lifeGoal: '',
         pets: '',
         inventory: {

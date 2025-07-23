@@ -19,52 +19,46 @@ interface CharacterFormProps {
     closeDialog: () => void;
 }
 
+const initialFormData: Character = {
+    id: '',
+    name: '',
+    activity: '',
+    skillLevel: '',
+    skillDescription: '',
+    currentFameLevel: '',
+    workLocation: '',
+    appearance: '',
+    personality: '',
+    biography: '',
+    diary: '',
+    training: [],
+    relationships: '',
+    abilities: '',
+    weaknesses: '',
+    lifeGoal: '',
+    pets: '',
+    familiarCards: [],
+    inventory: {
+        оружие: [],
+        гардероб: [],
+        еда: [],
+        подарки: [],
+        артефакты: [],
+        зелья: [],
+        недвижимость: [],
+        транспорт: [],
+        familiarCards: [],
+    }
+};
+
 const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps) => {
-    const [formData, setFormData] = useState<Omit<Character, 'id' | 'inventory' | 'familiarCards' | 'moodlets'>>({
-        name: '',
-        activity: '',
-        skillLevel: '',
-        skillDescription: '',
-        currentFameLevel: '',
-        workLocation: '',
-        appearance: '',
-        personality: '',
-        biography: '',
-        diary: '',
-        training: [],
-        relationships: '',
-        abilities: '',
-        weaknesses: '',
-        lifeGoal: '',
-        pets: '',
-    });
+    const [formData, setFormData] = useState<Character>(initialFormData);
 
     useEffect(() => {
         if (character) {
-            setFormData({
-                name: character.name,
-                activity: character.activity,
-                skillLevel: character.skillLevel,
-                skillDescription: character.skillDescription || '',
-                currentFameLevel: character.currentFameLevel,
-                workLocation: character.workLocation || '',
-                appearance: character.appearance || '',
-                personality: character.personality || '',
-                biography: character.biography || '',
-                diary: character.diary || '',
-                training: character.training || [],
-                relationships: character.relationships || '',
-                abilities: character.abilities || '',
-                weaknesses: character.weaknesses || '',
-                lifeGoal: character.lifeGoal || '',
-                pets: character.pets || '',
-            });
+             setFormData(character as Character);
         } else {
-             setFormData({
-                name: '', activity: '', skillLevel: '', skillDescription: '', currentFameLevel: '', workLocation: '',
-                appearance: '', personality: '', biography: '', diary: '', training: [], relationships: '',
-                abilities: '', weaknesses: '', lifeGoal: '', pets: ''
-            });
+             setFormData(initialFormData);
         }
     }, [character]);
 
@@ -80,21 +74,12 @@ const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps)
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.name || !formData.activity || !formData.skillLevel || !formData.currentFameLevel) {
-          // Optional: Add a toast notification for missing fields
           return;
         }
-
-        const fullCharacterData: Character = {
-            ...(character as Character), // Keep existing fields like id, inventory etc.
-            ...formData,
-        };
-        
-        onSubmit(fullCharacterData);
+        onSubmit(formData);
         closeDialog();
     };
     
-    // Derived state for the MultiSelect component's `selected` prop.
-    // This avoids running complex logic inside the render method or a useEffect with deep dependencies.
     const selectedTrainingValues = (formData.training || [])
         .map(label => TRAINING_OPTIONS.find(option => option.label === label)?.value)
         .filter(Boolean) as string[];
