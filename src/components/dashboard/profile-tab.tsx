@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Star, Trash2, Sparkles, Anchor, ShieldCheck } from 'lucide-react';
+import { PlusCircle, Star, Trash2, Sparkles, Anchor } from 'lucide-react';
 import type { PointLog, UserStatus, Character } from '@/lib/types';
 import {
   Dialog,
@@ -34,10 +34,24 @@ import React from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { cn, formatTimeLeft } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { SKILL_LEVELS, FAME_LEVELS } from '@/lib/data';
+import { SKILL_LEVELS, FAME_LEVELS, ACHIEVEMENTS_BY_ID } from '@/lib/data';
 import FamiliarCardDisplay from './familiar-card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import * as LucideIcons from 'lucide-react';
+
+type IconName = keyof typeof LucideIcons;
+
+const DynamicIcon = ({ name, className }: { name: string, className?: string }) => {
+    const IconComponent = LucideIcons[name as IconName];
+
+    if (!IconComponent) {
+        return <Star className={className} />;
+    }
+
+    return <IconComponent className={className} />;
+};
+
 
 const AddCharacterForm = ({ onAddCharacter, closeDialog }: { onAddCharacter: (character: any) => void, closeDialog: () => void }) => {
     const [name, setName] = React.useState('');
@@ -220,6 +234,7 @@ export default function ProfileTab() {
   };
   
   const sortedPointHistory = currentUser.pointHistory.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const userAchievements = (currentUser.achievementIds || []).map(id => ACHIEVEMENTS_BY_ID[id]).filter(Boolean);
 
 
   return (
@@ -255,6 +270,28 @@ export default function ProfileTab() {
               <span className="text-muted-foreground">Роль</span>
               <Badge variant="outline">{currentUser.role}</Badge>
             </div>
+             {userAchievements.length > 0 && (
+                <div className="pt-4">
+                    <h4 className="text-sm font-semibold text-muted-foreground mb-2">Достижения</h4>
+                    <TooltipProvider>
+                        <div className="flex flex-wrap gap-2">
+                            {userAchievements.map(ach => (
+                                <Tooltip key={ach.id}>
+                                    <TooltipTrigger>
+                                        <div className="p-2 bg-muted rounded-md hover:bg-primary/10">
+                                            <DynamicIcon name={ach.iconName} className="w-5 h-5 text-primary" />
+                                        </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p className="font-bold">{ach.name}</p>
+                                        <p className="text-xs">{ach.description}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            ))}
+                        </div>
+                    </TooltipProvider>
+                </div>
+            )}
           </CardContent>
         </Card>
         <Card>

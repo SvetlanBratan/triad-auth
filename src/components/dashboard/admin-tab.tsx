@@ -11,12 +11,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
-import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift } from 'lucide-react';
+import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star } from 'lucide-react';
 import type { UserStatus, UserRole, User } from '@/lib/types';
-import { FAME_LEVELS_POINTS, EVENT_FAMILIARS } from '@/lib/data';
+import { FAME_LEVELS_POINTS, EVENT_FAMILIARS, ALL_ACHIEVEMENTS } from '@/lib/data';
 
 export default function AdminTab() {
-  const { addPointsToUser, updateUserStatus, updateUserRole, giveEventFamiliarToCharacter, fetchAllUsers } = useUser();
+  const { addPointsToUser, updateUserStatus, updateUserRole, giveEventFamiliarToCharacter, grantAchievementToUser, fetchAllUsers } = useUser();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -29,6 +29,9 @@ export default function AdminTab() {
   const [eventAwardUserId, setEventAwardUserId] = useState<string>('');
   const [eventAwardCharacterId, setEventAwardCharacterId] = useState<string>('');
   const [eventAwardFamiliarId, setEventAwardFamiliarId] = useState<string>('');
+
+  const [achieveUserId, setAchieveUserId] = useState<string>('');
+  const [achieveId, setAchieveId] = useState<string>('');
 
 
   const [points, setPoints] = useState<number>(0);
@@ -219,6 +222,32 @@ export default function AdminTab() {
     setEventAwardFamiliarId('');
   }
 
+  const handleGrantAchievement = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!achieveUserId || !achieveId) {
+      toast({ variant: 'destructive', title: 'Ошибка', description: 'Пожалуйста, выберите пользователя и ачивку.' });
+      return;
+    }
+    
+    await grantAchievementToUser(achieveUserId, achieveId);
+
+    const userName = users.find(u => u.id === achieveUserId)?.name;
+    const achievementName = ALL_ACHIEVEMENTS.find(a => a.id === achieveId)?.name;
+    
+    toast({ title: 'Ачивка выдана!', description: `Ачивка "${achievementName}" выдана пользователю ${userName}.` });
+
+    setUsers(prev => prev.map(u => {
+        if (u.id === achieveUserId) {
+            const newAchievementIds = [...(u.achievementIds || []), achieveId];
+            return { ...u, achievementIds: Array.from(new Set(newAchievementIds)) };
+        }
+        return u;
+    }));
+    
+    setAchieveUserId('');
+    setAchieveId('');
+  };
+
   const charactersForSelectedUser = useMemo(() => {
     if (!eventAwardUserId) return [];
     return users.find(u => u.id === eventAwardUserId)?.characters || [];
@@ -353,6 +382,70 @@ export default function AdminTab() {
       <div className="space-y-6">
         <Card>
           <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Trophy /> Выдать ачивку</CardTitle>
+            <CardDescription>Наградите игрока уникальным достижением.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleGrantAchievement} className="space-y-4">
+              <div>
+                <Label htmlFor="user-select-achieve">Пользователь</Label>
+                <Select value={achieveUserId} onValueChange={setAchieveUserId}>
+                  <SelectTrigger id="user-select-achieve">
+                    <SelectValue placeholder="Выберите пользователя" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.map(user => (
+                      <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="achieve-select">Ачивка</Label>
+                <Select value={achieveId} onValueChange={setAchieveId}>
+                  <SelectTrigger id="achieve-select">
+                    <SelectValue placeholder="Выберите ачивку" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ALL_ACHIEVEMENTS.map(ach => (
+                      <SelectItem key={ach.id} value={ach.id}>{ach.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button type="submit">Выдать ачивку</Button>
+            </form>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Clock /> Автоматические действия</CardTitle>
+            <CardDescription>Симулируйте автоматические расчеты баллов.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+              <div>
+                  <h3 className="font-semibold mb-2 flex items-center gap-2"><Users /> Еженедельный бонус за активность</h3>
+                  <p className="text-sm text-muted-foreground mb-3">Начисляет 800 баллов всем 'активным' игрокам.</p>
+                  <Button onClick={handleWeeklyCalculations} variant="outline">Запустить еженедельный расчет</Button>
+              </div>
+              <Separator />
+              <div>
+                  <h3 className="font-semibold mb-2 flex items-center gap-2"><Trophy /> Награда за известность</h3>
+                  <p className="text-sm text-muted-foreground mb-3">Начисляет баллы всем игрокам в зависимости от известности их персонажей.</p>
+                  <Button onClick={handleFameAwards} variant="outline">Начислить награды</Button>
+              </div>
+              <Separator />
+              <div>
+                  <h3 className="font-semibold mb-2 flex items-center gap-2"><Users /> Еженедельный штраф за неактивность</h3>
+                  <p className="text-sm text-muted-foreground mb-3">Списывает 1000 баллов со всех 'неактивных' игроков.</p>
+                  <Button onClick={handleInactivityPenalty} variant="destructive">Применить штраф</Button>
+              </div>
+          </CardContent>
+        </Card>
+      </div>
+       <Card>
+          <CardHeader>
             <CardTitle className="flex items-center gap-2"><Gift /> Выдать ивентового фамильяра</CardTitle>
             <CardDescription>Наградите игрока эксклюзивным фамильяром.</CardDescription>
           </CardHeader>
@@ -401,33 +494,6 @@ export default function AdminTab() {
             </form>
           </CardContent>
         </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Clock /> Автоматические действия</CardTitle>
-            <CardDescription>Симулируйте автоматические расчеты баллов.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-              <div>
-                  <h3 className="font-semibold mb-2 flex items-center gap-2"><Users /> Еженедельный бонус за активность</h3>
-                  <p className="text-sm text-muted-foreground mb-3">Начисляет 800 баллов всем 'активным' игрокам.</p>
-                  <Button onClick={handleWeeklyCalculations} variant="outline">Запустить еженедельный расчет</Button>
-              </div>
-              <Separator />
-              <div>
-                  <h3 className="font-semibold mb-2 flex items-center gap-2"><Trophy /> Награда за известность</h3>
-                  <p className="text-sm text-muted-foreground mb-3">Начисляет баллы всем игрокам в зависимости от известности их персонажей.</p>
-                  <Button onClick={handleFameAwards} variant="outline">Начислить награды</Button>
-              </div>
-              <Separator />
-              <div>
-                  <h3 className="font-semibold mb-2 flex items-center gap-2"><Users /> Еженедельный штраф за неактивность</h3>
-                  <p className="text-sm text-muted-foreground mb-3">Списывает 1000 баллов со всех 'неактивных' игроков.</p>
-                  <Button onClick={handleInactivityPenalty} variant="destructive">Применить штраф</Button>
-              </div>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }

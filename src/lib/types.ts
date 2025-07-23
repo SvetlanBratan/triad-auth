@@ -3,6 +3,13 @@ export type UserStatus = 'активный' | 'неактивный' | 'отпу
 export type RewardRequestStatus = 'в ожидании' | 'одобрено' | 'отклонено';
 export type FamiliarRank = 'обычный' | 'редкий' | 'легендарный' | 'мифический' | 'ивентовый';
 
+export interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  iconName: string;
+}
+
 export interface FamiliarCard {
   id: string;
   name: string;
@@ -36,7 +43,7 @@ export interface PointLog {
 }
 
 export interface User {
-  id: string;
+  id:string;
   name: string;
   email: string;
   avatar: string;
@@ -45,6 +52,7 @@ export interface User {
   status: UserStatus;
   characters: Character[];
   pointHistory: PointLog[];
+  achievementIds?: string[];
 }
 
 export interface Reward {

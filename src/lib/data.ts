@@ -1,5 +1,5 @@
 
-import type { Reward, FamiliarCard } from './types';
+import type { Reward, FamiliarCard, Achievement } from './types';
 
 // The 'id' for users now corresponds to the Firebase Auth UID.
 // For initial users, these are placeholders. New users created via the app
@@ -34,6 +34,25 @@ export const rewards: Reward[] = [
     { id: 'r-hybrid', title: 'Полукровка/гибрид', description: 'Полукровка/гибрид из двух рас', cost: 150000, type: 'permanent', iconName: 'Combine' },
     { id: 'r-pumpkin-wife', title: 'Приобрести Тыкво-Жену', description: 'Приобрести Тыкво-Жену', cost: 100000, type: 'permanent', iconName: 'Heart' },
 ];
+
+export const ALL_ACHIEVEMENTS: Achievement[] = [
+  { id: 'ach-first-gacha', name: 'Первый раз?', description: 'Впервые испытать удачу в гаче фамильяров.', iconName: 'Dices' },
+  { id: 'ach-all-common', name: 'Коллекционер обыденности', description: 'Собрать всех обычных фамильяров одним персонажем.', iconName: 'Archive' },
+  { id: 'ach-legendary-pull', name: 'Легендарная удача', description: 'Вытащить легендарного фамильяра из гачи.', iconName: 'Star' },
+  { id: 'ach-mythic-pull', name: 'Мифическое везение', description: 'Вытащить мифического фамильяра из гачи.', iconName: 'Sparkles' },
+  { id: 'ach-event-participant', name: 'Участник события', description: 'Принять участие в глобальном ивенте.', iconName: 'PartyPopper' },
+  { id: 'ach-master-crafter', name: 'Мастер своего дела', description: 'Достичь уровня "Мастер" или выше в ремесле.', iconName: 'Hammer' },
+  { id: 'ach-famous', name: 'Знаменитость', description: 'Достичь уровня известности "Знаменитый на весь мир".', iconName: 'Award' },
+  { id: 'ach-beta-tester', name: 'Бета-тестер', description: 'За участие в тестировании системы баллов.', iconName: 'FlaskConical' },
+  { id: 'ach-bug-hunter', name: 'Охотник за ошибками', description: 'За помощь в поиске и исправлении ошибок.', iconName: 'Bug' },
+  { id: 'ach-generous', name: 'Меценат', description: 'Потратить более 100,000 баллов на награды.', iconName: 'Gem' },
+];
+
+export const ACHIEVEMENTS_BY_ID: Record<string, Achievement> = ALL_ACHIEVEMENTS.reduce((acc, ach) => {
+    acc[ach.id] = ach;
+    return acc;
+}, {} as Record<string, Achievement>);
+
 
 export const SKILL_LEVELS: string[] = [
     'Рукожоп', 'Посмешище', 'Дилетант', 'Новичок', 'Ученик', 'Энтузиаст',

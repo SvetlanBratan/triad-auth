@@ -34,6 +34,7 @@ interface UserContextType {
   deleteCharacterFromUser: (userId: string, characterId: string) => Promise<void>;
   updateUserStatus: (userId: string, status: UserStatus) => Promise<void>;
   updateUserRole: (userId: string, role: UserRole) => Promise<void>;
+  grantAchievementToUser: (userId: string, achievementId: string) => Promise<void>;
   createNewUser: (uid: string, nickname: string) => Promise<User>;
   createRewardRequest: (rewardRequest: Omit<RewardRequest, 'id' | 'status' | 'createdAt'>) => Promise<void>;
   updateRewardRequestStatus: (request: RewardRequest, newStatus: RewardRequestStatus) => Promise<RewardRequest | null>;
@@ -112,6 +113,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             amount: 1000,
             reason: 'Приветственный бонус!',
         }],
+        achievementIds: [],
     };
     try {
       await setDoc(doc(db, "users", uid), newUser);
@@ -135,6 +137,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                     ...char,
                     familiarCards: char.familiarCards || []
                 })) || [];
+                userData.achievementIds = userData.achievementIds || [];
                 setCurrentUser(userData);
             } else {
                 const nickname = user.displayName || user.email?.split('@')[0] || 'Пользователь';
@@ -163,6 +166,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             ...char,
             familiarCards: char.familiarCards || []
         })) || [];
+        userData.achievementIds = userData.achievementIds || [];
         return userData;
     });
   }, []);
@@ -182,6 +186,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 ...char,
                 familiarCards: char.familiarCards || []
             })) || [];
+           userData.achievementIds = userData.achievementIds || [];
           return userData;
       }
       return null;
@@ -198,10 +203,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             ...char,
             familiarCards: char.familiarCards || []
         })) || [];
+      updatedUser.achievementIds = updatedUser.achievementIds || [];
 
 
       if (currentUser?.id === userId) {
-        setCurrentUser(prev => ({...prev!, ...updates, characters: updatedUser.characters}));
+        setCurrentUser(prev => ({...prev!, ...updates, characters: updatedUser.characters, achievementIds: updatedUser.achievementIds}));
       }
       return updatedUser;
   }, [currentUser?.id]);
@@ -253,6 +259,17 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const updateUserRole = useCallback(async (userId: string, role: UserRole) => {
     await updateUserInStateAndFirestore(userId, { role });
   }, [updateUserInStateAndFirestore]);
+
+  const grantAchievementToUser = useCallback(async (userId: string, achievementId: string) => {
+    const user = await fetchUserById(userId);
+    if (!user) return;
+
+    const achievementIds = user.achievementIds || [];
+    if (!achievementIds.includes(achievementId)) {
+        const updatedAchievementIds = [...achievementIds, achievementId];
+        await updateUserInStateAndFirestore(userId, { achievementIds: updatedAchievementIds });
+    }
+  }, [fetchUserById, updateUserInStateAndFirestore]);
   
   const createRewardRequest = useCallback(async (rewardRequestData: Omit<RewardRequest, 'id' | 'status' | 'createdAt'>) => {
     const user = await fetchUserById(rewardRequestData.userId);
@@ -451,13 +468,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       deleteCharacterFromUser,
       updateUserStatus,
       updateUserRole,
+      grantAchievementToUser,
       createNewUser,
       createRewardRequest,
       updateRewardRequestStatus,
       pullGachaForCharacter,
       giveEventFamiliarToCharacter,
     }),
-    [currentUser, fetchAllUsers, fetchAllRewardRequests, addPointsToUser, addCharacterToUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter]
+    [currentUser, fetchAllUsers, fetchAllRewardRequests, addPointsToUser, addCharacterToUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter]
   );
 
   return (

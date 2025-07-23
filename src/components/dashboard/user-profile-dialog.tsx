@@ -12,6 +12,21 @@ import FamiliarCardDisplay from './familiar-card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { DialogHeader, DialogTitle } from '../ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { ACHIEVEMENTS_BY_ID } from '@/lib/data';
+import * as LucideIcons from 'lucide-react';
+
+type IconName = keyof typeof LucideIcons;
+
+const DynamicIcon = ({ name, className }: { name: string, className?: string }) => {
+    const IconComponent = LucideIcons[name as IconName];
+
+    if (!IconComponent) {
+        return <Star className={className} />;
+    }
+
+    return <IconComponent className={className} />;
+};
+
 
 const CharacterDisplay = ({ character }: { character: Character }) => {
     const familiarCards = character.familiarCards || [];
@@ -86,6 +101,7 @@ export default function UserProfileDialog({ user }: { user: User }) {
   };
   
   const sortedPointHistory = [...user.pointHistory].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const userAchievements = (user.achievementIds || []).map(id => ACHIEVEMENTS_BY_ID[id]).filter(Boolean);
 
   return (
     <>
@@ -124,6 +140,28 @@ export default function UserProfileDialog({ user }: { user: User }) {
               <span className="text-muted-foreground">Роль</span>
               <Badge variant="outline">{user.role}</Badge>
             </div>
+             {userAchievements.length > 0 && (
+                <div className="pt-4">
+                    <h4 className="text-sm font-semibold text-muted-foreground mb-2">Достижения</h4>
+                    <TooltipProvider>
+                        <div className="flex flex-wrap gap-2">
+                            {userAchievements.map(ach => (
+                                <Tooltip key={ach.id}>
+                                    <TooltipTrigger>
+                                        <div className="p-2 bg-muted rounded-md hover:bg-primary/10">
+                                            <DynamicIcon name={ach.iconName} className="w-5 h-5 text-primary" />
+                                        </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p className="font-bold">{ach.name}</p>
+                                        <p className="text-xs">{ach.description}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            ))}
+                        </div>
+                    </TooltipProvider>
+                </div>
+            )}
           </CardContent>
         </Card>
         <Card>
