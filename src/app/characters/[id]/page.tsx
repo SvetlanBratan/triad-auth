@@ -324,18 +324,22 @@ export default function CharacterPage() {
                                         <p className="text-muted-foreground text-sm">Здесь будет список подарков.</p>
                                     </AccordionContent>
                                 </AccordionItem>
+                                {(inventory.недвижимость && inventory.недвижимость.length > 0) && (
                                 <AccordionItem value="real-estate">
                                     <AccordionTrigger><Home className="mr-2 w-4 h-4"/>Недвижимость ({inventory.недвижимость.length})</AccordionTrigger>
                                     <AccordionContent>
                                         <p className="text-muted-foreground text-sm">Здесь будет список недвижимости.</p>
                                     </AccordionContent>
                                 </AccordionItem>
+                                )}
+                                {(inventory.транспорт && inventory.транспорт.length > 0) && (
                                 <AccordionItem value="transport">
                                     <AccordionTrigger><CarFront className="mr-2 w-4 h-4"/>Транспорт ({inventory.транспорт.length})</AccordionTrigger>
                                     <AccordionContent>
                                         <p className="text-muted-foreground text-sm">Здесь будет список транспорта.</p>
                                     </AccordionContent>
                                 </AccordionItem>
+                                )}
                              </Accordion>
                         </CardContent>
                     </Card>
@@ -364,24 +368,30 @@ export default function CharacterPage() {
                                         <p className="whitespace-pre-wrap">{character.relationships || 'Описание отсутствует.'}</p>
                                     </AccordionContent>
                                 </AccordionItem>
+                                {character.lifeGoal && (
                                  <AccordionItem value="lifeGoal">
                                     <AccordionTrigger>Жизненная цель</AccordionTrigger>
                                     <AccordionContent>
-                                        <p className="whitespace-pre-wrap">{character.lifeGoal || 'Описание отсутствует.'}</p>
+                                        <p className="whitespace-pre-wrap">{character.lifeGoal}</p>
                                     </AccordionContent>
                                 </AccordionItem>
+                                )}
+                                {character.pets && (
                                  <AccordionItem value="pets">
                                     <AccordionTrigger>Питомцы</AccordionTrigger>
                                     <AccordionContent>
-                                        <p className="whitespace-pre-wrap">{character.pets || 'Питомцев нет.'}</p>
+                                        <p className="whitespace-pre-wrap">{character.pets}</p>
                                     </AccordionContent>
                                 </AccordionItem>
+                                )}
+                                {character.diary && (
                                  <AccordionItem value="diary">
                                     <AccordionTrigger>Личный дневник</AccordionTrigger>
                                     <AccordionContent>
-                                        <p className="whitespace-pre-wrap">{character.diary || 'Записей нет.'}</p>
+                                        <p className="whitespace-pre-wrap">{character.diary}</p>
                                     </AccordionContent>
                                 </AccordionItem>
+                                )}
                              </Accordion>
                         </CardContent>
                     </Card>
