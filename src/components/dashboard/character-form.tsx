@@ -38,6 +38,7 @@ const initialFormData: Character = {
     lifeGoal: '',
     pets: '',
     familiarCards: [],
+    moodlets: [],
     inventory: {
         оружие: [],
         гардероб: [],
@@ -55,9 +56,6 @@ const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps)
     const [formData, setFormData] = useState<Character>(initialFormData);
 
     useEffect(() => {
-        // This effect runs once when the component mounts or when the `character` prop changes.
-        // It correctly initializes the form state for both creating a new character (character is null)
-        // and editing an existing one.
         if (character) {
             setFormData(character);
         } else {
@@ -70,15 +68,12 @@ const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps)
         setFormData(prev => ({ ...prev, [id]: value }));
     };
 
-    const handleSelectChange = (id: string, value: string | string[]) => {
+    const handleSelectChange = (id: keyof Character, value: string | string[]) => {
         setFormData(prev => ({ ...prev, [id]: value }));
     }
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.name || !formData.activity || !formData.skillLevel || !formData.currentFameLevel) {
-          return;
-        }
         onSubmit(formData);
     };
     
