@@ -177,13 +177,13 @@ export default function UserProfileDialog({ user }: { user: User }) {
               )}
               </CardContent>
           </Card>
-          <Card className="flex flex-col">
+          <Card>
               <CardHeader>
               <CardTitle>Персонажи</CardTitle>
               <CardDescription>Список персонажей игрока</CardDescription>
               </CardHeader>
-                <ScrollArea className="flex-grow pr-3" style={{ maxHeight: 'calc(80vh - 350px)' }}>
-                  <CardContent>
+              <CardContent>
+                  <ScrollArea className="pr-3" style={{ maxHeight: 'calc(80vh - 350px)' }}>
                   {user.characters.length > 0 ? (
                       <Accordion type="single" collapsible className="w-full">
                           {user.characters.map(char => (
@@ -193,8 +193,8 @@ export default function UserProfileDialog({ user }: { user: User }) {
                   ) : (
                       <p className="text-sm text-muted-foreground text-center py-4">У этого игрока нет персонажей.</p>
                   )}
-                  </CardContent>
-                </ScrollArea>
+                  </ScrollArea>
+              </CardContent>
           </Card>
           </div>
 
@@ -204,7 +204,7 @@ export default function UserProfileDialog({ user }: { user: User }) {
                   <CardTitle>История баллов</CardTitle>
                   <CardDescription>Журнал заработанных и потраченных баллов.</CardDescription>
               </CardHeader>
-              <ScrollArea className="pr-2">
+              <ScrollArea className="pr-2 flex-grow">
                 <CardContent>
                     <Table>
                         <TableHeader>
@@ -242,3 +242,4 @@ export default function UserProfileDialog({ user }: { user: User }) {
     </>
   );
 }
+
