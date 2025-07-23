@@ -331,13 +331,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         // Fetch all requests to calculate total spent
         const requestsQuery = query(collection(db, `users/${user.id}/reward_requests`));
         const allRequestsSnapshot = await getDocs(requestsQuery);
-        const totalSpent = allRequestsSnapshot.docs.reduce((sum, doc) => {
+        let totalSpent = 0;
+        allRequestsSnapshot.docs.forEach(doc => {
             const request = doc.data() as RewardRequest;
-            // Count pending and approved requests towards the total
-            return sum + request.rewardCost;
-        }, 0);
+            if (request.status === 'одобрено' || request.status === 'в ожидании') {
+                 totalSpent += request.rewardCost;
+            }
+        });
 
-        if (totalSpent > GENEROUS_THRESHOLD) {
+        if (totalSpent >= GENEROUS_THRESHOLD) {
             await grantAchievementToUser(user.id, GENEROUS_ACHIEVEMENT_ID);
         }
     }
@@ -421,6 +423,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     if (user.points < cost) throw new Error("Недостаточно очков.");
     
+    // Check for "First Time?" achievement before anything else
+    const hasPulledBefore = user.pointHistory.some(log => log.reason.includes('Рулетка'));
+    const hasFirstPullAchievement = (user.achievementIds || []).includes(FIRST_PULL_ACHIEVEMENT_ID);
+    let shouldGrantFirstPullAchievement = false;
+    if (!hasPulledBefore && !hasFirstPullAchievement) {
+        shouldGrantFirstPullAchievement = true;
+    }
+
     const claimedMythicIds = new Set<string>();
     allUsers.forEach(u => {
         u.characters.forEach(c => {
@@ -444,10 +454,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     let finalPointChange = -cost;
     let reason = `Рулетка: получена карта ${newCard.name} (${newCard.rank})`;
     
-    const hasPulledBefore = user.pointHistory.some(log => log.reason.includes('Рулетка'));
-    const hasFirstPullAchievement = (user.achievementIds || []).includes(FIRST_PULL_ACHIEVEMENT_ID);
-
-    if (!hasPulledBefore && !hasFirstPullAchievement) {
+    if (shouldGrantFirstPullAchievement) {
         updatedUser.achievementIds = [...(updatedUser.achievementIds || []), FIRST_PULL_ACHIEVEMENT_ID];
     }
     
