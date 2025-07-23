@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Star, Trash2, Sparkles, Anchor, KeyRound, Pencil } from 'lucide-react';
-import type { PointLog, UserStatus, Character } from '@/lib/types';
+import type { PointLog, UserStatus, Character, FamiliarCard, FamiliarRank } from '@/lib/types';
 import {
   Dialog,
   DialogContent,
@@ -31,7 +31,7 @@ import {
 import React from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { cn, formatTimeLeft } from '@/lib/utils';
-import { ACHIEVEMENTS_BY_ID } from '@/lib/data';
+import { ACHIEVEMENTS_BY_ID, FAMILIARS_BY_ID } from '@/lib/data';
 import FamiliarCardDisplay from './familiar-card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
@@ -51,10 +51,30 @@ const DynamicIcon = ({ name, className }: { name: string, className?: string }) 
     return <IconComponent className={className} />;
 };
 
+const rankOrder: FamiliarRank[] = ['мифический', 'ивентовый', 'легендарный', 'редкий', 'обычный'];
+const rankNames: Record<FamiliarRank, string> = {
+    'мифический': 'Мифические',
+    'ивентовый': 'Ивентовые',
+    'легендарный': 'Легендарные',
+    'редкий': 'Редкие',
+    'обычный': 'Обычные'
+};
 
 const CharacterDisplay = ({ character, onEdit, onDelete }: { character: Character, onEdit: (character: Character) => void, onDelete: (characterId: string) => void }) => {
     const familiarCards = character.familiarCards || [];
     const isBlessed = character.blessingExpires && new Date(character.blessingExpires) > new Date();
+
+    const groupedFamiliars = familiarCards.reduce((acc, ownedCard) => {
+        const cardDetails = FAMILIARS_BY_ID[ownedCard.id];
+        if (cardDetails) {
+            const rank = cardDetails.rank;
+            if (!acc[rank]) {
+                acc[rank] = [];
+            }
+            acc[rank].push(cardDetails);
+        }
+        return acc;
+    }, {} as Record<FamiliarRank, FamiliarCard[]>);
 
     return (
         <AccordionItem value={character.id} className="border-b">
@@ -124,10 +144,22 @@ const CharacterDisplay = ({ character, onEdit, onDelete }: { character: Characte
                         <AccordionTrigger className="text-sm">Показать фамильяров ({familiarCards.length})</AccordionTrigger>
                         <AccordionContent>
                              {familiarCards.length > 0 ? (
-                                <div className="flex flex-wrap gap-2 pt-2">
-                                    {familiarCards.map(card => (
-                                        <FamiliarCardDisplay key={card.id} cardId={card.id} />
-                                    ))}
+                                <div className="space-y-4 pt-2">
+                                {rankOrder.map(rank => {
+                                    if (groupedFamiliars[rank] && groupedFamiliars[rank].length > 0) {
+                                    return (
+                                        <div key={rank}>
+                                        <h4 className="font-semibold capitalize text-muted-foreground mb-2">{rankNames[rank]}</h4>
+                                        <div className="flex flex-wrap gap-2">
+                                            {groupedFamiliars[rank].map(card => (
+                                                <FamiliarCardDisplay key={card.id} cardId={card.id} />
+                                            ))}
+                                        </div>
+                                        </div>
+                                    )
+                                    }
+                                    return null;
+                                })}
                                 </div>
                             ) : (
                                 <p className="text-sm text-muted-foreground text-center py-4">У этого персонажа нет фамильяров.</p>
