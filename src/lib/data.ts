@@ -36,13 +36,13 @@ export const rewards: Reward[] = [
 ];
 
 export const ALL_ACHIEVEMENTS: Achievement[] = [
-  { id: 'ach-first-gacha', name: 'Первый раз?', description: 'Выдается игроку, который впервые воспользовался рулеткой фамильяров.', iconName: 'Dices' },
-  { id: 'ach-mythic-pull', name: 'Мифическое везение', description: 'Награда за получение первого "мифического" фамильяра из рулетки.', iconName: 'Sparkles' },
-  { id: 'ach-event-participant', name: 'Участник события', description: 'За активное участие в крупных серверных или ролевых ивентах.', iconName: 'PartyPopper' },
-  { id: 'ach-famous', name: 'Знаменитость', description: 'Выдается персонажу, достигшему уровня известности "Знаменитый на весь мир" или выше.', iconName: 'Award' },
-  { id: 'ach-beta-tester', name: 'Бета-тестер', description: 'Выдается первым игрокам, которые участвовали в тестировании и настройке системы баллов.', iconName: 'FlaskConical' },
-  { id: 'ach-bug-hunter', name: 'Охотник за ошибками', description: 'Для игрока, который нашел и сообщил о важной ошибке или уязвимости в системе.', iconName: 'Bug' },
-  { id: 'ach-generous', name: 'Меценат', description: 'Выдается игроку, который потратил более 100,000 баллов на различные награды.', iconName: 'Gem' },
+  { id: 'ach-first-gacha', name: 'Первый раз?', description: 'За первое использование рулетки.', iconName: 'Dices' },
+  { id: 'ach-mythic-pull', name: 'Мифическое везение', description: 'За получение первого мифического фамильяра.', iconName: 'Sparkles' },
+  { id: 'ach-event-participant', name: 'Участник события', description: 'За активное участие в ивентах.', iconName: 'PartyPopper' },
+  { id: 'ach-famous', name: 'Знаменитость', description: 'За достижение мировой известности.', iconName: 'Award' },
+  { id: 'ach-beta-tester', name: 'Бета-тестер', description: 'За участие в бета-тесте системы.', iconName: 'FlaskConical' },
+  { id: 'ach-bug-hunter', name: 'Охотник за ошибками', description: 'За нахождение и репорт ошибки.', iconName: 'Bug' },
+  { id: 'ach-generous', name: 'Меценат', description: 'За трату более 100,000 баллов.', iconName: 'Gem' },
 ];
 
 export const ACHIEVEMENTS_BY_ID: Record<string, Achievement> = ALL_ACHIEVEMENTS.reduce((acc, ach) => {
