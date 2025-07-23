@@ -65,6 +65,7 @@ const PUMPKIN_HUSBAND_CARD_ID = 'fam-e-pumpkin-husband';
 const PUMPKIN_SPOUSE_ACHIEVEMENT_ID = 'ach-pumpkin-spouse';
 const PUMPKIN_HUSBAND_ACHIEVEMENT_ID = 'ach-pumpkin-husband';
 const FORBES_LIST_ACHIEVEMENT_ID = 'ach-forbes-list';
+const GODS_FAVORITE_ACHIEVEMENT_ID = 'ach-gods-favorite';
 
 
 const drawFamiliarCard = (hasBlessing: boolean, unavailableMythicIds: Set<string>): FamiliarCard => {
@@ -260,7 +261,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const newPoints = user.points + amount;
     const newHistory = [newPointLog, ...user.pointHistory].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
-    await updateUserInStateAndFirestore(userId, { points: newPoints, pointHistory: newHistory });
+    const updatedUserForNow = await updateUserInStateAndFirestore(userId, { points: newPoints, pointHistory: newHistory });
 
     // After updating points, check leaderboard for top 3 achievement
     const allUsers = await fetchAllUsers();
@@ -274,12 +275,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
     
     // Return the locally constructed user object to avoid another fetch, since we know what changed.
-    const updatedUser = {
-      ...user,
-      points: newPoints,
-      pointHistory: newHistory,
-    };
-    return updatedUser;
+    const finalUser = await fetchUserById(userId);
+    return finalUser;
   }, [fetchUserById, updateUserInStateAndFirestore, fetchAllUsers, grantAchievementToUser]);
 
   const addCharacterToUser = useCallback(async (userId: string, characterData: Omit<Character, 'id' | 'familiarCards' | 'moodlets'>) => {
@@ -422,6 +419,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           'r-body-parts': 'ach-chimera-mancer',
           'r-pumpkin-wife': PUMPKIN_SPOUSE_ACHIEVEMENT_ID,
           'r-pumpkin-husband': PUMPKIN_HUSBAND_ACHIEVEMENT_ID,
+          'r-blessing': GODS_FAVORITE_ACHIEVEMENT_ID,
         };
 
         const achievementIdToGrant = achievementMap[request.rewardId];
@@ -486,7 +484,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
       }
       return {...request, status: newStatus};
-  }, [fetchUserById, currentUser?.id, grantAchievementToUser]);
+  }, [fetchUserById, currentUser?.id]);
 
 
   const pullGachaForCharacter = useCallback(async (userId: string, characterId: string): Promise<{newCard: FamiliarCard, isDuplicate: boolean}> => {
@@ -757,7 +755,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       clearRewardRequestsHistory,
       removeFamiliarFromCharacter,
     }),
-    [currentUser, fetchAllUsers, fetchAllRewardRequests, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, fetchAvailableMythicCardsCount, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter]
+    [currentUser, fetchAllUsers, fetchAllRewardRequests, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, fetchAvailableMythicCardsCount, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, grantAchievementToUser]
   );
 
   return (

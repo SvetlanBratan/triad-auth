@@ -41,7 +41,7 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
   { id: 'ach-first-gacha', name: 'Первый раз?', description: 'Даётся за первое использование рулетки, независимо от того, получили вы дубликат или нет.', iconName: 'Dices' },
   { id: 'ach-mythic-pull', name: 'Мифическое везение', description: 'Выдаётся за получение первого мифического фамильяра, которого нет ни у одного другого игрока.', iconName: 'Sparkles' },
   { id: 'ach-generous', name: 'Меценат', description: 'Даётся игроку, потратившему более 100,000 баллов на награды в магазине. Учитываются только одобренные запросы.', iconName: 'Gem' },
-  { id: 'ach-forbes-list', name: 'В списке Forbes', description: 'Выдаётся за попадание в топ-3 таблицы лидеров.', iconName: 'DollarSign' },
+  { id: 'ach-forbes-list', name: 'В списке Forbes', description: 'Выдаётся за попадание в топ-3 таблицы лидеров.', iconName: 'Trophy' },
   { id: 'ach-unique-character', name: 'Владелец уникального персонажа', description: 'Выдаётся за покупку закрытой расы для персонажа. Любой уровень расы засчитывается.', iconName: 'VenetianMask' },
   { id: 'ach-multi-hand', name: 'Многоручка', description: 'Игрок, купивший дополнительного персонажа, когда лимит на бесплатных персонажей исчерпан.', iconName: 'Users' },
   { id: 'ach-tamer', name: 'Укротитель', description: 'Персонаж сумел завести себе неприручаемое в обычных условиях животное в качестве питомца.', iconName: 'Cat' },
@@ -62,6 +62,7 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
   { id: 'ach-exchange-master', name: 'Мастер обмена', description: 'Персонаж обменял одну из своих магических стихий на два учения.', iconName: 'Replace' },
   { id: 'ach-dark-lord', name: 'Тёмный Владыка', description: 'Персонаж получил доступ к запретной магии, недоступной для его расы.', iconName: 'Skull' },
   { id: 'ach-chimera-mancer', name: 'Химеромант', description: 'Персонаж изменил своё тело до неузнаваемости, добавив иные конечности.', iconName: 'GitBranchPlus' },
+  { id: 'ach-gods-favorite', name: 'Любимчик Богов', description: 'Даётся за покупку благословения богов.', iconName: 'Heart' },
 
   // Manual
   { id: 'ach-ruler', name: 'Правитель государства', description: 'Несёт тяжкое бремя правления и ответственности за судьбу всего государства в Триаде. Выдаётся вручную.', iconName: 'ShieldCheck' },
