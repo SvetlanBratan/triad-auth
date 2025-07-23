@@ -154,6 +154,11 @@ const ALL_FAMILIAR_CARDS_RAW: Omit<FamiliarCard, 'data-ai-hint'>[] = [
     { id: 'fam-c-deep-cutter', name: 'Глуборез', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753282464/5_br9xrp.jpg' },
     { id: 'fam-c-fire-lizard', name: 'Огнеящер', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753282464/6_ddn5jx.jpg' },
     { id: 'fam-c-owl-rat', name: 'Совурат', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753282464/10_e6mtr6.jpg' },
+    { id: 'fam-c-merinag', name: 'Меринаг', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753282465/14_itfd7p.jpg' },
+    { id: 'fam-c-krokun', name: 'Крокун', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753282469/15_uefxmb.jpg' },
+    { id: 'fam-c-leniko', name: 'Ленико', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753282470/16_xanfvi.jpg' },
+    { id: 'fam-c-krilopotam', name: 'Крылопотам', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753282497/17_ipkhgy.jpg' },
+    { id: 'fam-c-orkalen', name: 'Оркалень', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753283333/18_gg2qyb.jpg' },
 
 
     { id: 'fam-r-1', name: 'Артерианская гончая', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753197216/%D0%90%D1%80%D1%82%D0%B5%D1%80%D0%B8%D0%B0%D0%BD%D1%81%D0%BA%D0%B0%D1%8F_%D0%B3%D0%BE%D0%BD%D1%87%D0%B0%D1%8F_jjjx11.png' },
@@ -168,9 +173,11 @@ const ALL_FAMILIAR_CARDS_RAW: Omit<FamiliarCard, 'data-ai-hint'>[] = [
     { id: 'fam-r-remoh', name: 'Ремох', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199461/%D0%A0%D0%B5%D0%BC%D0%BE%D1%85_fk06lc.png' },
     { id: 'fam-r-savokl', name: 'Савокль', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199462/%D0%A1%D0%B0%D0%B2%D0%BE%D0%BA%D0%BB%D1%8C_jaqcy9.png' },
     { id: 'fam-r-tykvohodka', name: 'Тыквоходка', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199464/%D0%A2%D1%8B%D0%BA%D0%B2%D0%BE%D1%85%D0%BE%D0%B4%D0%BA%D0%B0_bopaqu.png' },
-    { id: 'fam-r-eikthyrnir', name: 'Эйктюрнир', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199470/%D1%8D%D0%B9%D0%BA%D1%82%D1%8E%D1%80%D0%BD%D0%B8%D1%80_n9hfrv.png' },
+    { id: 'fam-r-eikthyrnir', name: 'Эйктюрнир', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199470/%D1%8d%D0%B9%D0%BA%D1%82%D1%8E%D1%80%D0%BD%D0%B8%D1%80_n9hfrv.png' },
     { id: 'fam-r-elephwal', name: 'Элефваль', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753282464/9_zqunlp.jpg' },
     { id: 'fam-r-griffondeer', name: 'Грифолень', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753282464/11_lz5ro1.jpg' },
+    { id: 'fam-r-drakoskorpius', name: 'Дракоскорпиус', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753282465/12_ptw4qg.jpg' },
+    { id: 'fam-r-skorgus', name: 'Скоргус', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753282465/13_rknyfp.jpg' },
 
 
     { id: 'fam-l-1', name: 'Альви', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753194638/%D0%90%D0%BB%D1%8C%D0%B2%D0%B8_ggcs5g.png' },
@@ -297,6 +304,13 @@ const addHint = (card: Omit<FamiliarCard, 'data-ai-hint'>): FamiliarCard => {
     else if (lowerCaseName.includes('огнеящер')) hint = 'fire lizard';
     else if (lowerCaseName.includes('грифолень')) hint = 'griffon deer';
     else if (lowerCaseName.includes('совурат')) hint = 'owl rat';
+    else if (lowerCaseName.includes('дракоскорпиус')) hint = 'dragon scorpion';
+    else if (lowerCaseName.includes('меринаг')) hint = 'merinag creature';
+    else if (lowerCaseName.includes('скоргус')) hint = 'skorgus creature';
+    else if (lowerCaseName.includes('крокун')) hint = 'krokun creature';
+    else if (lowerCaseName.includes('ленико')) hint = 'leniko creature';
+    else if (lowerCaseName.includes('крылопотам')) hint = 'winged hippo';
+    else if (lowerCaseName.includes('оркалень')) hint = 'orca deer';
     return { ...card, 'data-ai-hint': hint };
 };
 
