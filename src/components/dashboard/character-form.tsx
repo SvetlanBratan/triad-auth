@@ -95,7 +95,7 @@ const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps)
     
     // Derived state for the MultiSelect component's `selected` prop.
     // This avoids running complex logic inside the render method or a useEffect with deep dependencies.
-    const selectedTrainingValues = formData.training
+    const selectedTrainingValues = (formData.training || [])
         .map(label => TRAINING_OPTIONS.find(option => option.label === label)?.value)
         .filter(Boolean) as string[];
 
