@@ -11,9 +11,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
-import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle } from 'lucide-react';
-import type { UserStatus, UserRole, User } from '@/lib/types';
-import { FAME_LEVELS_POINTS, EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA } from '@/lib/data';
+import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask } from 'lucide-react';
+import type { UserStatus, UserRole, User, FamiliarCard } from '@/lib/types';
+import { FAME_LEVELS_POINTS, EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, FAMILIARS_BY_ID } from '@/lib/data';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,14 +25,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '../ui/command';
-import { Check, ChevronsUpDown } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 
 export default function AdminTab() {
-  const { addPointsToUser, updateUserStatus, updateUserRole, giveEventFamiliarToCharacter, grantAchievementToUser, fetchAllUsers, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter } = useUser();
+  const { addPointsToUser, updateUserStatus, updateUserRole, giveEventFamiliarToCharacter, grantAchievementToUser, fetchAllUsers, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, removeFamiliarFromCharacter } = useUser();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -64,7 +60,23 @@ export default function AdminTab() {
   const [moodletDuration, setMoodletDuration] = useState<number>(7);
   const [moodletSource, setMoodletSource] = useState('');
 
+  // Familiar removal state
+  const [removeFamiliarUserId, setRemoveFamiliarUserId] = useState<string>('');
+  const [removeFamiliarCharId, setRemoveFamiliarCharId] = useState<string>('');
+  const [removeFamiliarCardId, setRemoveFamiliarCardId] = useState<string>('');
+
+
   const { toast } = useToast();
+
+  const refetchUsers = useCallback(async () => {
+    try {
+        const fetchedUsers = await fetchAllUsers();
+        setUsers(fetchedUsers);
+    } catch (error) {
+        console.error("Failed to refetch users", error);
+        toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось обновить список пользователей.' });
+    }
+  }, [fetchAllUsers, toast]);
 
   useEffect(() => {
     const loadUsers = async () => {
@@ -95,14 +107,13 @@ export default function AdminTab() {
       return;
     }
     
-    const updatedUser = await addPointsToUser(awardSelectedUserId, pointsToAward, reason);
-    if (updatedUser) {
-        setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
-        toast({
-            title: "Баллы начислены!",
-            description: `Начислено ${pointsToAward} баллов пользователю ${updatedUser.name}.`,
-        });
-    }
+    await addPointsToUser(awardSelectedUserId, pointsToAward, reason);
+    await refetchUsers();
+    
+    toast({
+        title: "Баллы начислены!",
+        description: `Начислено ${pointsToAward} баллов.`,
+    });
 
     setAwardSelectedUserId('');
     setPoints('');
@@ -123,16 +134,14 @@ export default function AdminTab() {
     }
 
     const pointsToDeduct = -Math.abs(pointsToDeductNum);
-    const updatedUser = await addPointsToUser(deductSelectedUserId, pointsToDeduct, deductReason);
-
-    if (updatedUser) {
-      setUsers((prev) => prev.map((u) => (u.id === updatedUser.id ? updatedUser : u)));
-      toast({
-        title: 'Баллы списаны!',
-        description: `Списано ${Math.abs(pointsToDeduct)} баллов с пользователя ${updatedUser.name}.`,
-        variant: 'destructive',
-      });
-    }
+    await addPointsToUser(deductSelectedUserId, pointsToDeduct, deductReason);
+    await refetchUsers();
+    
+    toast({
+      title: 'Баллы списаны!',
+      description: `Списано ${Math.abs(pointsToDeduct)} баллов.`,
+      variant: 'destructive',
+    });
 
     setDeductSelectedUserId('');
     setDeductPoints('');
@@ -150,10 +159,10 @@ export default function AdminTab() {
         return;
     }
     await updateUserStatus(statusSelectedUserId, selectedStatus);
-    setUsers(prev => prev.map(u => u.id === statusSelectedUserId ? {...u, status: selectedStatus} : u));
+    await refetchUsers();
     toast({
         title: "Статус обновлен!",
-        description: `Статус пользователя ${users.find(u => u.id === statusSelectedUserId)?.name} изменен на "${selectedStatus}".`,
+        description: `Статус пользователя изменен на "${selectedStatus}".`,
     });
     setStatusSelectedUserId('');
     setSelectedStatus('');
@@ -170,42 +179,44 @@ export default function AdminTab() {
       return;
     }
     await updateUserRole(roleSelectedUserId, selectedRole);
-    setUsers(prev => prev.map(u => u.id === roleSelectedUserId ? {...u, role: selectedRole} : u));
+    await refetchUsers();
     toast({
       title: "Роль обновлена!",
-      description: `Роль пользователя ${users.find(u => u.id === roleSelectedUserId)?.name} изменен на "${selectedRole}".`,
+      description: `Роль пользователя изменена на "${selectedRole}".`,
     });
     setRoleSelectedUserId('');
     setSelectedRole('');
   };
 
-  const handleWeeklyCalculations = () => {
+  const handleWeeklyCalculations = async () => {
     const activeUsers = users.filter(u => u.status === 'активный');
-    activeUsers.forEach(user => {
-        addPointsToUser(user.id, 800, 'Еженедельный бонус за активность');
-    });
+    for(const user of activeUsers) {
+        await addPointsToUser(user.id, 800, 'Еженедельный бонус за активность');
+    }
+    await refetchUsers();
     toast({
         title: "Еженедельные расчеты завершены",
         description: `Бонусы за активность начислены ${activeUsers.length} активным пользователям.`,
     });
   };
 
-  const handleInactivityPenalty = () => {
+  const handleInactivityPenalty = async () => {
     const inactiveUsers = users.filter(u => u.status === 'неактивный');
-    inactiveUsers.forEach(user => {
-        addPointsToUser(user.id, -1000, 'Еженедельный штраф за неактивность');
-    });
+    for(const user of inactiveUsers) {
+        await addPointsToUser(user.id, -1000, 'Еженедельный штраф за неактивность');
+    }
+     await refetchUsers();
     toast({
         title: "Применен штраф за неактивность",
         description: `Штраф применен к ${inactiveUsers.length} неактивным пользователям.`,
     });
   };
 
-  const handleFameAwards = () => {
+  const handleFameAwards = async () => {
     let usersAwardedCount = 0;
     let totalPointsAwarded = 0;
 
-    users.forEach(user => {
+    for (const user of users) {
       if (user.characters && user.characters.length > 0) {
         let pointsForUser = 0;
         user.characters.forEach(character => {
@@ -216,12 +227,14 @@ export default function AdminTab() {
         });
 
         if (pointsForUser > 0) {
-          addPointsToUser(user.id, pointsForUser, 'Награда за известность персонажей');
+          await addPointsToUser(user.id, pointsForUser, 'Награда за известность персонажей');
           usersAwardedCount++;
           totalPointsAwarded += pointsForUser;
         }
       }
-    });
+    }
+    
+    await refetchUsers();
 
     if (usersAwardedCount > 0) {
       toast({
@@ -248,34 +261,15 @@ export default function AdminTab() {
     }
     
     await giveEventFamiliarToCharacter(eventAwardUserId, eventAwardCharacterId, eventAwardFamiliarId);
+    await refetchUsers();
 
-    const userName = users.find(u => u.id === eventAwardUserId)?.name;
     const familiarName = EVENT_FAMILIARS.find(f => f.id === eventAwardFamiliarId)?.name;
 
     toast({
       title: "Ивентовый фамильяр выдан!",
-      description: `Фамильяр "${familiarName}" выдан пользователю ${userName}.`,
+      description: `Фамильяр "${familiarName}" выдан.`,
     });
     
-    setUsers(prevUsers => {
-        return prevUsers.map(user => {
-            if (user.id === eventAwardUserId) {
-                const updatedCharacters = user.characters.map(char => {
-                    if (char.id === eventAwardCharacterId) {
-                        return {
-                            ...char,
-                            familiarCards: [...(char.familiarCards || []), { id: eventAwardFamiliarId }]
-                        };
-                    }
-                    return char;
-                });
-                return { ...user, characters: updatedCharacters };
-            }
-            return user;
-        });
-    });
-
-
     setEventAwardUserId('');
     setEventAwardCharacterId('');
     setEventAwardFamiliarId('');
@@ -289,20 +283,12 @@ export default function AdminTab() {
     }
     
     await grantAchievementToUser(achieveUserId, achieveId);
+    await refetchUsers();
 
-    const userName = users.find(u => u.id === achieveUserId)?.name;
     const achievementName = ALL_ACHIEVEMENTS.find(a => a.id === achieveId)?.name;
     
-    toast({ title: 'Ачивка выдана!', description: `Ачивка "${achievementName}" выдана пользователю ${userName}.` });
+    toast({ title: 'Ачивка выдана!', description: `Ачивка "${achievementName}" выдана.` });
 
-    setUsers(prev => prev.map(u => {
-        if (u.id === achieveUserId) {
-            const newAchievementIds = [...(u.achievementIds || []), achieveId];
-            return { ...u, achievementIds: Array.from(new Set(newAchievementIds)) };
-        }
-        return u;
-    }));
-    
     setAchieveUserId('');
     setAchieveId('');
   };
@@ -314,11 +300,10 @@ export default function AdminTab() {
     }
     
     await clearPointHistoryForUser(clearHistoryUserId);
+    await refetchUsers();
 
-    const userName = users.find(u => u.id === clearHistoryUserId)?.name;
-    toast({ title: 'История очищена!', description: `Журнал баллов для пользователя ${userName} был успешно очищен.` });
+    toast({ title: 'История очищена!', description: `Журнал баллов был успешно очищен.` });
     
-    setUsers(prev => prev.map(u => u.id === clearHistoryUserId ? { ...u, pointHistory: [] } : u));
     setClearHistoryUserId('');
   };
 
@@ -333,8 +318,7 @@ export default function AdminTab() {
     const moodletName = MOODLETS_DATA[moodletId as keyof typeof MOODLETS_DATA].name;
     toast({ title: 'Мудлет добавлен!', description: `Мудлет "${moodletName}" добавлен персонажу на ${moodletDuration} дней.` });
     
-    const updatedUsers = await fetchAllUsers();
-    setUsers(updatedUsers);
+    await refetchUsers();
     
     setMoodletUserId('');
     setMoodletCharId('');
@@ -347,8 +331,28 @@ export default function AdminTab() {
       await removeMoodletFromCharacter(userId, charId, moodletId);
       const moodletName = MOODLETS_DATA[moodletId as keyof typeof MOODLETS_DATA].name;
       toast({ title: 'Мудлет удален!', description: `Мудлет "${moodletName}" удален у персонажа.`, variant: 'destructive' });
-      const updatedUsers = await fetchAllUsers();
-      setUsers(updatedUsers);
+      await refetchUsers();
+  };
+
+   const handleRemoveFamiliar = async () => {
+    if (!removeFamiliarUserId || !removeFamiliarCharId || !removeFamiliarCardId) {
+      toast({ variant: 'destructive', title: 'Ошибка', description: 'Пожалуйста, выберите пользователя, персонажа и карту.' });
+      return;
+    }
+
+    try {
+      await removeFamiliarFromCharacter(removeFamiliarUserId, removeFamiliarCharId, removeFamiliarCardId);
+      const cardName = FAMILIARS_BY_ID[removeFamiliarCardId]?.name || 'Карта';
+      toast({ title: 'Карта удалена!', description: `${cardName} была удалена у персонажа.` });
+      await refetchUsers();
+      
+      setRemoveFamiliarUserId('');
+      setRemoveFamiliarCharId('');
+      setRemoveFamiliarCardId('');
+    } catch (error) {
+      console.error('Failed to remove familiar card:', error);
+      toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось удалить карту.' });
+    }
   };
 
 
@@ -361,6 +365,23 @@ export default function AdminTab() {
     if (!moodletUserId) return [];
     return users.find(u => u.id === moodletUserId)?.characters || [];
   }, [moodletUserId, users]);
+
+  const charactersForFamiliarRemoval = useMemo(() => {
+    if (!removeFamiliarUserId) return [];
+    return users.find(u => u.id === removeFamiliarUserId)?.characters || [];
+  }, [removeFamiliarUserId, users]);
+
+  const familiarsForSelectedCharacter = useMemo((): (FamiliarCard & { ownedId: string })[] => {
+    if (!removeFamiliarUserId || !removeFamiliarCharId) return [];
+    const user = users.find(u => u.id === removeFamiliarUserId);
+    const character = user?.characters.find(c => c.id === removeFamiliarCharId);
+    if (!character || !character.familiarCards) return [];
+    return character.familiarCards.map((ownedCard, index) => {
+      const cardDetails = FAMILIARS_BY_ID[ownedCard.id];
+      return { ...cardDetails, ownedId: `${ownedCard.id}-${index}` }; // Create a unique ID for the list key
+    }).filter(Boolean);
+  }, [removeFamiliarUserId, removeFamiliarCharId, users]);
+
 
   const selectedCharacterForMoodlet = useMemo(() => {
       if (!moodletUserId || !moodletCharId) return null;
@@ -409,7 +430,7 @@ export default function AdminTab() {
                   type="number"
                   value={points}
                   onChange={(e) => setPoints(e.target.value)}
-                  placeholder="0"
+                  placeholder="Введите количество"
                 />
               </div>
               <div>
@@ -452,7 +473,7 @@ export default function AdminTab() {
                   type="number"
                   value={deductPoints}
                   onChange={(e) => setDeductPoints(e.target.value)}
-                  placeholder="0"
+                  placeholder="Введите количество"
                 />
               </div>
               <div>
@@ -519,7 +540,7 @@ export default function AdminTab() {
       <div className="space-y-6">
        <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><ShieldAlert /> Изменить статус</CardTitle>
+            <CardTitle className="flex items-center gap-2"><UserCog /> Изменить статус</CardTitle>
             <CardDescription>Измените статус активности пользователя.</CardDescription>
           </CardHeader>
           <CardContent>
@@ -640,6 +661,31 @@ export default function AdminTab() {
             </form>
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Clock /> Автоматические действия</CardTitle>
+            <CardDescription>Симулируйте автоматические расчеты баллов.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+              <div>
+                  <h3 className="font-semibold mb-2 flex items-center gap-2"><Users /> Еженедельный бонус за активность</h3>
+                  <p className="text-sm text-muted-foreground mb-3">Начисляет 800 баллов всем 'активным' игрокам.</p>
+                  <Button onClick={handleWeeklyCalculations} variant="outline">Запустить еженедельный расчет</Button>
+              </div>
+              <Separator />
+              <div>
+                  <h3 className="font-semibold mb-2 flex items-center gap-2"><Trophy /> Награда за известность</h3>
+                  <p className="text-sm text-muted-foreground mb-3">Начисляет баллы всем игрокам в зависимости от известности их персонажей.</p>
+                  <Button onClick={handleFameAwards} variant="outline">Начислить награды</Button>
+              </div>
+              <Separator />
+              <div>
+                  <h3 className="font-semibold mb-2 flex items-center gap-2"><Users /> Еженедельный штраф за неактивность</h3>
+                  <p className="text-sm text-muted-foreground mb-3">Списывает 1000 баллов со всех 'неактивных' игроков.</p>
+                  <Button onClick={handleInactivityPenalty} variant="destructive">Применить штраф</Button>
+              </div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="space-y-6">
@@ -685,33 +731,7 @@ export default function AdminTab() {
             </form>
           </CardContent>
         </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Clock /> Автоматические действия</CardTitle>
-            <CardDescription>Симулируйте автоматические расчеты баллов.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-              <div>
-                  <h3 className="font-semibold mb-2 flex items-center gap-2"><Users /> Еженедельный бонус за активность</h3>
-                  <p className="text-sm text-muted-foreground mb-3">Начисляет 800 баллов всем 'активным' игрокам.</p>
-                  <Button onClick={handleWeeklyCalculations} variant="outline">Запустить еженедельный расчет</Button>
-              </div>
-              <Separator />
-              <div>
-                  <h3 className="font-semibold mb-2 flex items-center gap-2"><Trophy /> Награда за известность</h3>
-                  <p className="text-sm text-muted-foreground mb-3">Начисляет баллы всем игрокам в зависимости от известности их персонажей.</p>
-                  <Button onClick={handleFameAwards} variant="outline">Начислить награды</Button>
-              </div>
-              <Separator />
-              <div>
-                  <h3 className="font-semibold mb-2 flex items-center gap-2"><Users /> Еженедельный штраф за неактивность</h3>
-                  <p className="text-sm text-muted-foreground mb-3">Списывает 1000 баллов со всех 'неактивных' игроков.</p>
-                  <Button onClick={handleInactivityPenalty} variant="destructive">Применить штраф</Button>
-              </div>
-          </CardContent>
-        </Card>
-        
+                
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Wand2 /> Управление мудлетами</CardTitle>
@@ -789,6 +809,83 @@ export default function AdminTab() {
                         </div>
                     </div>
                 )}
+            </CardContent>
+        </Card>
+
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><VenetianMask /> Управление Фамильярами</CardTitle>
+                <CardDescription>Удалить карту фамильяра у персонажа.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-4">
+                     <div>
+                        <Label htmlFor="remove-fam-user">Пользователь</Label>
+                        <Select value={removeFamiliarUserId} onValueChange={uid => { setRemoveFamiliarUserId(uid); setRemoveFamiliarCharId(''); setRemoveFamiliarCardId(''); }}>
+                          <SelectTrigger id="remove-fam-user">
+                            <SelectValue placeholder="Выберите пользователя" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {users.map(user => (
+                              <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="remove-fam-char">Персонаж</Label>
+                        <Select value={removeFamiliarCharId} onValueChange={cid => { setRemoveFamiliarCharId(cid); setRemoveFamiliarCardId(''); }} disabled={!removeFamiliarUserId}>
+                          <SelectTrigger id="remove-fam-char">
+                            <SelectValue placeholder="Выберите персонажа" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {charactersForFamiliarRemoval.map(character => (
+                              <SelectItem key={character.id} value={character.id}>{character.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="remove-fam-card">Карта для удаления</Label>
+                         <Select value={removeFamiliarCardId} onValueChange={setRemoveFamiliarCardId} disabled={!removeFamiliarCharId}>
+                          <SelectTrigger id="remove-fam-card">
+                            <SelectValue placeholder="Выберите карту" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {familiarsForSelectedCharacter.map((card) => (
+                              <SelectItem key={card.ownedId} value={card.id}>{card.name} ({card.rank})</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                           <Button 
+                              variant="destructive" 
+                              disabled={!removeFamiliarCardId}
+                            >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Удалить карту
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>Вы уверены?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Это действие удалит карту 
+                                <span className="font-bold"> {FAMILIARS_BY_ID[removeFamiliarCardId]?.name} </span> 
+                                у персонажа. Если карта мифическая, она вернется в рулетку. Это действие необратимо.
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                            <AlertDialogCancel>Отмена</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleRemoveFamiliar} className="bg-destructive hover:bg-destructive/90">
+                                Да, удалить
+                            </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                </div>
             </CardContent>
         </Card>
       </div>

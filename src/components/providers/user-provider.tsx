@@ -46,6 +46,7 @@ interface UserContextType {
   addMoodletToCharacter: (userId: string, characterId: string, moodletId: string, durationInDays: number, source?: string) => Promise<void>;
   removeMoodletFromCharacter: (userId: string, characterId: string, moodletId: string) => Promise<void>;
   clearRewardRequestsHistory: () => Promise<void>;
+  removeFamiliarFromCharacter: (userId: string, characterId: string, cardId: string) => Promise<void>;
 }
 
 export const UserContext = createContext<UserContextType | null>(null);
@@ -259,7 +260,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const newPoints = user.points + amount;
     const newHistory = [newPointLog, ...user.pointHistory].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
-    const updatedUser = await updateUserInStateAndFirestore(userId, { points: newPoints, pointHistory: newHistory });
+    await updateUserInStateAndFirestore(userId, { points: newPoints, pointHistory: newHistory });
 
     // After updating points, check leaderboard for top 3 achievement
     const allUsers = await fetchAllUsers();
@@ -272,6 +273,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       }
     }
     
+    // Return the locally constructed user object to avoid another fetch, since we know what changed.
+    const updatedUser = {
+      ...user,
+      points: newPoints,
+      pointHistory: newHistory,
+    };
     return updatedUser;
   }, [fetchUserById, updateUserInStateAndFirestore, fetchAllUsers, grantAchievementToUser]);
 
@@ -688,6 +695,30 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     await batch.commit();
   }, [fetchAllUsers]);
+  
+  const removeFamiliarFromCharacter = useCallback(async (userId: string, characterId: string, cardId: string) => {
+    const user = await fetchUserById(userId);
+    if (!user) throw new Error("User not found");
+
+    const characterIndex = user.characters.findIndex(char => char.id === characterId);
+    if (characterIndex === -1) throw new Error("Character not found");
+
+    const character = { ...user.characters[characterIndex] };
+    const ownedCards = character.familiarCards || [];
+
+    // Find the first instance of the card and remove it
+    const cardIndexToRemove = ownedCards.findIndex(card => card.id === cardId);
+    if (cardIndexToRemove === -1) throw new Error("Card not found on character");
+
+    const updatedCards = [...ownedCards];
+    updatedCards.splice(cardIndexToRemove, 1);
+    character.familiarCards = updatedCards;
+
+    const updatedCharacters = [...user.characters];
+    updatedCharacters[characterIndex] = character;
+
+    await updateUserInStateAndFirestore(userId, { characters: updatedCharacters });
+  }, [fetchUserById, updateUserInStateAndFirestore]);
 
 
   const signOutUser = useCallback(() => {
@@ -724,8 +755,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       addMoodletToCharacter,
       removeMoodletFromCharacter,
       clearRewardRequestsHistory,
+      removeFamiliarFromCharacter,
     }),
-    [currentUser, fetchAllUsers, fetchAllRewardRequests, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, fetchAvailableMythicCardsCount, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory]
+    [currentUser, fetchAllUsers, fetchAllRewardRequests, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, fetchAvailableMythicCardsCount, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter]
   );
 
   return (
