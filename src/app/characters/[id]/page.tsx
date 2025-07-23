@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FAMILIARS_BY_ID } from '@/lib/data';
+import { FAMILIARS_BY_ID, TRAINING_OPTIONS } from '@/lib/data';
 import FamiliarCardDisplay from '@/components/dashboard/familiar-card';
 import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront } from 'lucide-react';
 import Link from 'next/link';
@@ -125,6 +125,11 @@ export default function CharacterPage() {
     const skillLevelText = Array.isArray(character.skillLevel)
         ? character.skillLevel.join(', ')
         : character.skillLevel;
+    
+    const trainingLabels = (Array.isArray(character.training) ? character.training : []).map(value => {
+        const option = TRAINING_OPTIONS.find(opt => opt.value === value);
+        return option ? option.label : value;
+    });
 
 
     return (
@@ -262,9 +267,9 @@ export default function CharacterPage() {
                                 <AccordionItem value="training">
                                     <AccordionTrigger>Обучение</AccordionTrigger>
                                     <AccordionContent>
-                                         {character.training && character.training.length > 0 ? (
+                                         {trainingLabels.length > 0 ? (
                                             <ul className="list-disc pl-5 space-y-1">
-                                                {character.training.map(school => <li key={school}>{school}</li>)}
+                                                {trainingLabels.map(label => <li key={label}>{label}</li>)}
                                             </ul>
                                         ) : (
                                             <p className="whitespace-pre-wrap">Описание отсутствует.</p>
