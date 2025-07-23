@@ -62,6 +62,7 @@ const PUMPKIN_WIFE_CARD_ID = 'fam-e-pumpkin-wife';
 const PUMPKIN_HUSBAND_REWARD_ID = 'r-pumpkin-husband';
 const PUMPKIN_HUSBAND_CARD_ID = 'fam-e-pumpkin-husband';
 const PUMPKIN_SPOUSE_ACHIEVEMENT_ID = 'ach-pumpkin-spouse';
+const PUMPKIN_HUSBAND_ACHIEVEMENT_ID = 'ach-pumpkin-husband';
 
 
 const drawFamiliarCard = (hasBlessing: boolean, unavailableMythicIds: Set<string>): FamiliarCard => {
@@ -398,7 +399,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           'r-forbidden-magic': 'ach-dark-lord',
           'r-body-parts': 'ach-chimera-mancer',
           'r-pumpkin-wife': PUMPKIN_SPOUSE_ACHIEVEMENT_ID,
-          'r-pumpkin-husband': PUMPKIN_SPOUSE_ACHIEVEMENT_ID,
+          'r-pumpkin-husband': PUMPKIN_HUSBAND_ACHIEVEMENT_ID,
         };
 
         const achievementIdToGrant = achievementMap[request.rewardId];
