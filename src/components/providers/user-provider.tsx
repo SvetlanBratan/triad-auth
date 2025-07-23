@@ -132,19 +132,25 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             // A simple parser for "21 марта 2709 год"
             const months: { [key: string]: number } = { "января":0, "февраля":1, "марта":2, "апреля":3, "мая":4, "июня":5, "июля":6, "августа":7, "сентября":8, "октября":9, "ноября":10, "декабря":11 };
             const parts = dateStr.replace(' год', '').split(' ');
-            const day = parseInt(parts[0]);
-            const month = months[parts[1].toLowerCase()];
-            const year = parseInt(parts[2]);
-            const gameDate = new Date(year, month, day);
+            if (parts.length === 3) {
+              const day = parseInt(parts[0]);
+              const month = months[parts[1].toLowerCase()];
+              const year = parseInt(parts[2]);
+              const gameDate = new Date(year, month, day);
 
-            setGameSettings({ gameDateString: dateStr, gameDate });
-        } else {
-            // If not found, set the default
-            await setDoc(settingsRef, { gameDateString: DEFAULT_GAME_SETTINGS.gameDateString });
-            setGameSettings(DEFAULT_GAME_SETTINGS);
+              if (!isNaN(gameDate.getTime())) {
+                setGameSettings({ gameDateString: dateStr, gameDate });
+                return;
+              }
+            }
         }
+        // If doc doesn't exist or is invalid, use default and try to set it
+        await setDoc(doc(db, 'game_settings', 'main'), { gameDateString: DEFAULT_GAME_SETTINGS.gameDateString }, { merge: true });
+        setGameSettings(DEFAULT_GAME_SETTINGS);
+
     } catch (error) {
         console.error("Error fetching game settings:", error);
+        // On error (like permission denied), fall back to default for the current session.
         setGameSettings(DEFAULT_GAME_SETTINGS);
     }
   }, []);
@@ -188,8 +194,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       if (docSnap.exists()) {
           const userData = docSnap.data() as User;
            userData.characters = userData.characters?.map(char => ({
-                familiarCards: [],
+                ...initialFormData, // Ensure all keys are present
                 ...char,
+                currentFameLevel: Array.isArray(char.currentFameLevel) ? char.currentFameLevel : (char.currentFameLevel ? [char.currentFameLevel] : []),
+                skillLevel: Array.isArray(char.skillLevel) ? char.skillLevel : (char.skillLevel ? [char.skillLevel] : []),
+                training: Array.isArray(char.training) ? char.training : [],
                 inventory: char.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: char.familiarCards || [] },
                 moodlets: char.moodlets || [],
             })) || [];
@@ -200,11 +209,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    fetchGameSettings();
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setLoading(true);
       setFirebaseUser(user);
       if (user) {
+        // Fetch game settings as soon as a user is authenticated
+        await fetchGameSettings();
         try {
             const userData = await fetchUserById(user.uid);
             if (userData) {
@@ -219,7 +229,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             setCurrentUser(null);
         }
       } else {
+        // No user, reset to default date and clear current user
         setCurrentUser(null);
+        setGameSettings(DEFAULT_GAME_SETTINGS);
       }
       setLoading(false);
     });
@@ -233,7 +245,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     return userSnapshot.docs.map(doc => {
         const userData = doc.data() as User;
         userData.characters = userData.characters?.map(char => ({
-            familiarCards: [],
+            ...initialFormData,
             ...char,
             inventory: char.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: char.familiarCards || [] },
             moodlets: char.moodlets || [],
@@ -253,14 +265,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const userRef = doc(db, "users", userId);
       await updateDoc(userRef, updates);
       
-      const updatedUser = await fetchUserById(userId);
-      if (!updatedUser) throw new Error("Failed to fetch updated user data.");
-
+      // Instead of re-fetching, optimistically update local state for speed.
       if (currentUser?.id === userId) {
-        setCurrentUser(prev => ({...prev!, ...updatedUser}));
+        setCurrentUser(prev => prev ? { ...prev, ...updates } : null);
       }
-  }, [currentUser?.id, fetchUserById]);
-
+  }, [currentUser?.id]);
 
   const grantAchievementToUser = useCallback(async (userId: string, achievementId: string) => {
     const user = await fetchUserById(userId);
@@ -300,9 +309,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       }
     }
     
-    const finalUser = await fetchUserById(userId);
+    // Return the locally constructed user object for UI updates
+    const finalUser = { ...user, points: newPoints, pointHistory: newHistory };
+    if(currentUser?.id === userId) {
+      setCurrentUser(finalUser);
+    }
     return finalUser;
-  }, [fetchUserById, updateUser, fetchAllUsers, grantAchievementToUser]);
+  }, [fetchUserById, updateUser, fetchAllUsers, grantAchievementToUser, currentUser?.id]);
 
   const addCharacterToUser = useCallback(async (userId: string, characterData: Character) => {
     const user = await fetchUserById(userId);
@@ -317,16 +330,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (!user) return;
     
     const characterIndex = user.characters.findIndex(char => char.id === characterToUpdate.id);
-    if (characterIndex === -1) {
-        // This is a new character
-        await addCharacterToUser(userId, characterToUpdate);
+    const updatedCharacters = [...user.characters];
+
+    if (characterIndex > -1) {
+      updatedCharacters[characterIndex] = characterToUpdate;
     } else {
-        // This is an existing character, update it
-        const updatedCharacters = [...user.characters];
-        updatedCharacters[characterIndex] = characterToUpdate;
-        await updateUser(userId, { characters: updatedCharacters });
+      updatedCharacters.push(characterToUpdate);
     }
-  }, [fetchUserById, updateUser, addCharacterToUser]);
+    
+    await updateUser(userId, { characters: updatedCharacters });
+  }, [fetchUserById, updateUser]);
 
 
   const deleteCharacterFromUser = useCallback(async (userId: string, characterId: string) => {
@@ -378,7 +391,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const updatedUser = { ...user, points: updatedPoints, pointHistory: updatedHistory };
 
     if (currentUser?.id === user.id) {
-        setCurrentUser(prev => ({...prev!, ...updatedUser}));
+        setCurrentUser(updatedUser);
     }
 
     const hasGenerousAchievement = (updatedUser.achievementIds || []).includes(GENEROUS_ACHIEVEMENT_ID);
@@ -509,7 +522,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
       }
       return {...request, status: newStatus};
-  }, [fetchUserById, currentUser?.id, grantAchievementToUser]);
+  }, [fetchUserById, currentUser?.id]);
 
 
   const pullGachaForCharacter = useCallback(async (userId: string, characterId: string): Promise<{newCard: FamiliarCard, isDuplicate: boolean}> => {
@@ -749,6 +762,41 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const signOutUser = useCallback(() => {
     signOut(auth);
   }, []);
+  
+  const initialFormData: Character = {
+    id: '',
+    name: '',
+    activity: '',
+    race: '',
+    birthDate: '',
+    skillLevel: [],
+    skillDescription: '',
+    currentFameLevel: [],
+    workLocation: '',
+    appearance: '',
+    personality: '',
+    biography: '',
+    diary: '',
+    training: [],
+    relationships: '',
+    abilities: '',
+    weaknesses: '',
+    lifeGoal: '',
+    pets: '',
+    familiarCards: [],
+    moodlets: [],
+    inventory: {
+        оружие: [],
+        гардероб: [],
+        еда: [],
+        подарки: [],
+        артефакты: [],
+        зелья: [],
+        недвижимость: [],
+        транспорт: [],
+        familiarCards: [],
+    }
+};
 
   const authValue = useMemo(() => ({
     user: firebaseUser,
@@ -797,3 +845,5 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     </AuthContext.Provider>
   );
 }
+
+    
