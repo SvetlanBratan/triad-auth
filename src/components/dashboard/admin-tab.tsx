@@ -546,7 +546,7 @@ export default function AdminTab() {
                   <SelectTrigger id="user-select-achieve">
                     <SelectValue placeholder="Выберите пользователя" />
                   </SelectTrigger>
-                  <SelectContent className="max-h-[50vh]">
+                  <SelectContent>
                     {users.map(user => (
                       <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
                     ))}
@@ -559,12 +559,12 @@ export default function AdminTab() {
                   <SelectTrigger id="achieve-select">
                     <SelectValue placeholder="Выберите ачивку" />
                   </SelectTrigger>
-                  <SelectContent className="max-h-[50vh]">
+                  <SelectContent>
                     {ALL_ACHIEVEMENTS.map(ach => (
                       <SelectItem key={ach.id} value={ach.id}>
-                        <div className="flex items-center gap-2">
-                           <span className="font-semibold">{ach.name}</span>-
-                           <span className="text-xs text-muted-foreground">{ach.description}</span>
+                        <div className="flex flex-col items-start">
+                          <span className="font-semibold">{ach.name}</span>
+                          <span className="text-xs text-muted-foreground whitespace-normal">{ach.description}</span>
                         </div>
                       </SelectItem>
                     ))}
