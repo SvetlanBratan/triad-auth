@@ -90,6 +90,19 @@ export const MOODLETS_DATA = {
     'dark-god-watch': { name: 'Под наблюдением Тёмного Бога', description: 'Тёмный Бог наблюдает за этим персонажем.', iconName: 'Moon' },
     'goddess-watch': { name: 'Под наблюдением Неизвестной Богини', description: 'Неизвестная Богиня наблюдает за этим персонажем.', iconName: 'MilkyWay' },
     'mafia-target': { name: 'Цель мафии', description: 'Этот персонаж стал целью мафии.', iconName: 'Target' },
+    'poisoned': { name: 'Отравлен', description: 'Персонаж отравлен и может испытывать негативные эффекты.', iconName: 'Biohazard' },
+    'love-spell': { name: 'Под любовным зельем', description: 'Персонаж находится под действием любовного приворота.', iconName: 'Heart' },
+    'sick': { name: 'Болеет', description: 'Персонаж болен и его состояние может ухудшаться.', iconName: 'Thermometer' },
+    'wanted': { name: 'В розыске', description: 'За поимку этого персонажа назначена награда.', iconName: 'Handcuffs' },
+    'death-mark': { name: 'Метка смерти', description: 'На персонажа наложена метка, предвещающая скорую гибель.', iconName: 'Crosshair' },
+    'family-protection': { name: 'Под защитой рода', description: 'Персонаж находится под защитой своего рода или семьи.', iconName: 'Shield' },
+    'on-trial': { name: 'На испытании', description: 'Персонаж проходит важное испытание или проверку.', iconName: 'Scaling' },
+    'observed': { name: 'Наблюдаемый', description: 'За персонажем кто-то или что-то пристально наблюдает.', iconName: 'Eye' },
+    'secret-keeper': { name: 'Носитель тайны', description: 'Персонаж хранит важную и опасную тайну.', iconName: 'Key' },
+    'chosen-one': { name: 'Избранник', description: 'Персонаж был избран для великой цели или судьбы.', iconName: 'Award' },
+    'double-agent': { name: 'Двойной агент', description: 'Персонаж тайно работает на две или более стороны.', iconName: 'Spy' },
+    'prophecy-puppet': { name: 'Марионетка пророчества', description: 'Действия персонажа предопределены древним пророчеством.', iconName: 'Bot' },
+    'soul-bond': { name: 'Связь с другой душой', description: 'Душа персонажа связана с другой душой, разделяя чувства или судьбу.', iconName: 'Link' },
 };
 
 
