@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FAMILIARS_BY_ID } from '@/lib/data';
 import FamiliarCardDisplay from '@/components/dashboard/familiar-card';
-import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse } from 'lucide-react';
+import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices } from 'lucide-react';
 import Link from 'next/link';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -116,7 +116,7 @@ export default function CharacterPage() {
     }
 
     const canEdit = currentUser?.id === owner.id || currentUser?.role === 'admin';
-    const inventory = character.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], familiarCards: [] };
+    const inventory = character.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], familiarCards: [] };
 
     return (
         <div className="container mx-auto p-4 md:p-8 space-y-6">
@@ -167,15 +167,17 @@ export default function CharacterPage() {
                             <CardTitle>Основная информация</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-2 text-sm">
-                            <div className="flex justify-between items-start">
+                            <div className="flex justify-between"><span>Известность:</span> <Badge variant="secondary">{character.currentFameLevel}</Badge></div>
+                             <div className="flex justify-between items-start">
                                 <span>Уровень навыка:</span> 
                                 <div className="text-right">
                                     <Badge variant="secondary">{character.skillLevel}</Badge>
                                     {character.skillDescription && <p className="text-muted-foreground text-xs mt-1">{character.skillDescription}</p>}
                                 </div>
                             </div>
-                            <div className="flex justify-between"><span>Известность:</span> <Badge variant="secondary">{character.currentFameLevel}</Badge></div>
                              {character.workLocation && <div className="flex justify-between"><span>Место работы:</span> <span className="text-right">{character.workLocation}</span></div>}
+                             {character.abilities && <div className="flex justify-between"><span>Способности:</span> <span className="text-right">{character.abilities}</span></div>}
+                             {character.weaknesses && <div className="flex justify-between"><span>Слабости:</span> <span className="text-right">{character.weaknesses}</span></div>}
                         </CardContent>
                     </Card>
                     <Card>
@@ -202,6 +204,30 @@ export default function CharacterPage() {
                                          <p className="text-muted-foreground text-sm">Здесь будет список одежды.</p>
                                     </AccordionContent>
                                 </AccordionItem>
+                                <AccordionItem value="artifacts">
+                                    <AccordionTrigger><Gem className="mr-2 w-4 h-4"/>Артефакты ({inventory.артефакты.length})</AccordionTrigger>
+                                    <AccordionContent>
+                                        <p className="text-muted-foreground text-sm">Здесь будет список артефактов.</p>
+                                    </AccordionContent>
+                                </AccordionItem>
+                                <AccordionItem value="potions">
+                                    <AccordionTrigger><BrainCircuit className="mr-2 w-4 h-4"/>Зелья ({inventory.зелья.length})</AccordionTrigger>
+                                    <AccordionContent>
+                                        <p className="text-muted-foreground text-sm">Здесь будет список зелий.</p>
+                                    </AccordionContent>
+                                </AccordionItem>
+                                <AccordionItem value="food">
+                                    <AccordionTrigger><Star className="mr-2 w-4 h-4"/>Еда ({inventory.еда.length})</AccordionTrigger>
+                                    <AccordionContent>
+                                        <p className="text-muted-foreground text-sm">Здесь будет список еды.</p>
+                                    </AccordionContent>
+                                </AccordionItem>
+                                <AccordionItem value="gifts">
+                                    <AccordionTrigger><Dices className="mr-2 w-4 h-4"/>Подарки ({inventory.подарки.length})</AccordionTrigger>
+                                    <AccordionContent>
+                                        <p className="text-muted-foreground text-sm">Здесь будет список подарков.</p>
+                                    </AccordionContent>
+                                </AccordionItem>
                              </Accordion>
                         </CardContent>
                     </Card>
@@ -222,6 +248,18 @@ export default function CharacterPage() {
                                     <AccordionTrigger>Отношения</AccordionTrigger>
                                     <AccordionContent>
                                         <p className="whitespace-pre-wrap">{character.relationships || 'Описание отсутствует.'}</p>
+                                    </AccordionContent>
+                                </AccordionItem>
+                                 <AccordionItem value="lifeGoal">
+                                    <AccordionTrigger>Жизненная цель</AccordionTrigger>
+                                    <AccordionContent>
+                                        <p className="whitespace-pre-wrap">{character.lifeGoal || 'Описание отсутствует.'}</p>
+                                    </AccordionContent>
+                                </AccordionItem>
+                                 <AccordionItem value="pets">
+                                    <AccordionTrigger>Питомцы</AccordionTrigger>
+                                    <AccordionContent>
+                                        <p className="whitespace-pre-wrap">{character.pets || 'Питомцев нет.'}</p>
                                     </AccordionContent>
                                 </AccordionItem>
                                  <AccordionItem value="diary">

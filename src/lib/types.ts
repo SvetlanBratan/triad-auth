@@ -2,7 +2,7 @@ export type UserRole = 'admin' | 'user';
 export type UserStatus = 'активный' | 'неактивный' | 'отпуск';
 export type RewardRequestStatus = 'в ожидании' | 'одобрено' | 'отклонено';
 export type FamiliarRank = 'обычный' | 'редкий' | 'легендарный' | 'мифический' | 'ивентовый';
-export type InventoryCategory = 'оружие' | 'гардероб' | 'еда' | 'подарки';
+export type InventoryCategory = 'оружие' | 'гардероб' | 'еда' | 'подарки' | 'артефакты' | 'зелья';
 
 export interface Achievement {
   id: string;
@@ -43,6 +43,8 @@ export interface Inventory {
     гардероб: InventoryItem[];
     еда: InventoryItem[];
     подарки: InventoryItem[];
+    артефакты: InventoryItem[];
+    зелья: InventoryItem[];
     familiarCards: OwnedFamiliarCard[];
 }
 
@@ -55,6 +57,10 @@ export interface Character {
   currentFameLevel: string;
   workLocation: string;
   // New questionnaire fields
+  abilities?: string;
+  weaknesses?: string;
+  lifeGoal?: string;
+  pets?: string;
   appearance: string;
   personality: string;
   biography: string;
