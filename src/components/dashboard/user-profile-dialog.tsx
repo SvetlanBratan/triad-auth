@@ -3,7 +3,7 @@
 
 import React from 'react';
 import type { User, UserStatus, PointLog, Character } from '@/lib/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -179,25 +179,27 @@ export default function UserProfileDialog({ user }: { user: User }) {
           </Card>
           <Card className="flex flex-col h-[400px]">
               <CardHeader>
-              <CardTitle>Персонажи</CardTitle>
-              <CardDescription>Список персонажей игрока</CardDescription>
+                  <CardTitle>Персонажи</CardTitle>
+                  <CardDescription>Список персонажей игрока</CardDescription>
               </CardHeader>
-              <ScrollArea className="flex-grow px-6 pb-6">
-                {user.characters.length > 0 ? (
-                    <Accordion type="single" collapsible className="w-full">
-                        {user.characters.map(char => (
-                            <CharacterDisplay key={char.id} character={char} />
-                        ))}
-                    </Accordion>
-                ) : (
-                    <p className="text-sm text-muted-foreground text-center py-4">У этого игрока нет персонажей.</p>
-                )}
-              </ScrollArea>
+              <CardContent className="flex-grow overflow-hidden pr-2">
+                  <ScrollArea className="h-full">
+                      {user.characters.length > 0 ? (
+                          <Accordion type="single" collapsible className="w-full">
+                              {user.characters.map(char => (
+                                  <CharacterDisplay key={char.id} character={char} />
+                              ))}
+                          </Accordion>
+                      ) : (
+                          <p className="text-sm text-muted-foreground text-center py-4">У этого игрока нет персонажей.</p>
+                      )}
+                  </ScrollArea>
+              </CardContent>
           </Card>
           </div>
 
           {/* Right Column */}
-          <Card className="flex flex-col max-h-[calc(400px+400px+1.5rem)]">
+          <Card className="flex flex-col h-[calc(400px+24px+252px)] max-h-[calc(100vh-12rem)]">
               <CardHeader>
                   <CardTitle>История баллов</CardTitle>
                   <CardDescription>Журнал заработанных и потраченных баллов.</CardDescription>
