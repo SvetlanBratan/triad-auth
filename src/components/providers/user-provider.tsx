@@ -328,19 +328,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     // Check for "Generous" achievement
     const hasGenerousAchievement = (updatedUser.achievementIds || []).includes(GENEROUS_ACHIEVEMENT_ID);
     if (!hasGenerousAchievement) {
-        const requestsQuery = query(collection(db, `users/${user.id}/reward_requests`), where('status', '==', 'одобрено'));
-        const approvedRequestsSnapshot = await getDocs(requestsQuery);
-        let totalSpent = 0;
-        approvedRequestsSnapshot.docs.forEach(doc => {
-            totalSpent += (doc.data() as RewardRequest).rewardCost;
-        });
+        // Fetch all requests to calculate total spent
+        const requestsQuery = query(collection(db, `users/${user.id}/reward_requests`));
+        const allRequestsSnapshot = await getDocs(requestsQuery);
+        const totalSpent = allRequestsSnapshot.docs.reduce((sum, doc) => {
+            const request = doc.data() as RewardRequest;
+            // Count pending and approved requests towards the total
+            return sum + request.rewardCost;
+        }, 0);
 
-        // Also count the current unapproved one, as it will likely be approved
-        if (newRequest.status === 'в ожидании') {
-          const allRequestsSnapshot = await getDocs(collection(db, `users/${user.id}/reward_requests`));
-          totalSpent = allRequestsSnapshot.docs.reduce((sum, doc) => sum + (doc.data() as RewardRequest).rewardCost, 0)
-        }
-        
         if (totalSpent > GENEROUS_THRESHOLD) {
             await grantAchievementToUser(user.id, GENEROUS_ACHIEVEMENT_ID);
         }
@@ -448,9 +444,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     let finalPointChange = -cost;
     let reason = `Рулетка: получена карта ${newCard.name} (${newCard.rank})`;
     
-    // Check for first-ever pull achievement before altering history
     const hasPulledBefore = user.pointHistory.some(log => log.reason.includes('Рулетка'));
     const hasFirstPullAchievement = (user.achievementIds || []).includes(FIRST_PULL_ACHIEVEMENT_ID);
+
     if (!hasPulledBefore && !hasFirstPullAchievement) {
         updatedUser.achievementIds = [...(updatedUser.achievementIds || []), FIRST_PULL_ACHIEVEMENT_ID];
     }
@@ -582,7 +578,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       giveEventFamiliarToCharacter,
       fetchAvailableMythicCardsCount,
     }),
-    [currentUser, fetchAllUsers, fetchAllRewardRequests, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, fetchAvailableMythicCardsCount, grantAchievementToUser]
+    [currentUser, fetchAllUsers, fetchAllRewardRequests, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, fetchAvailableMythicCardsCount]
   );
 
   return (
