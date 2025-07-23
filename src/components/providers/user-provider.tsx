@@ -143,7 +143,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             }
         }
     } catch (error) {
-        console.error("Error fetching game settings, may be due to permissions:", error);
+        console.error("Error fetching game settings, likely due to permissions:", error);
     }
   }, []);
 
@@ -241,24 +241,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       setFirebaseUser(user);
       if (user) {
         try {
-            const userData = await fetchUserById(user.uid);
-            if (userData) {
-                setCurrentUser(userData);
-                if (userData.role === 'admin') {
-                    await fetchGameSettings();
-                } else {
-                    setGameSettings(DEFAULT_GAME_SETTINGS);
-                }
-            } else {
+            let userData = await fetchUserById(user.uid);
+            if (!userData) {
                 const nickname = user.displayName || user.email?.split('@')[0] || 'Пользователь';
-                const newUser = await createNewUser(user.uid, nickname);
-                setCurrentUser(newUser);
-                if (newUser.role === 'admin') {
-                     await fetchGameSettings();
-                } else {
-                    setGameSettings(DEFAULT_GAME_SETTINGS);
-                }
+                userData = await createNewUser(user.uid, nickname);
             }
+            setCurrentUser(userData);
         } catch (error) {
             console.error("Error fetching user data:", error);
             setCurrentUser(null);
@@ -271,7 +259,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => unsubscribe();
-  }, [createNewUser, fetchUserById, fetchGameSettings]);
+  }, [createNewUser, fetchUserById]);
+
+   // Effect to fetch game settings only for admins
+    useEffect(() => {
+        if (currentUser && currentUser.role === 'admin') {
+            fetchGameSettings();
+        } else {
+            setGameSettings(DEFAULT_GAME_SETTINGS);
+        }
+    }, [currentUser, fetchGameSettings]);
 
   const fetchAllUsers = useCallback(async (): Promise<User[]> => {
     const usersCollection = collection(db, "users");
@@ -841,5 +838,3 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     </AuthContext.Provider>
   );
 }
-
-    
