@@ -11,9 +11,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
-import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2 } from 'lucide-react';
+import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle } from 'lucide-react';
 import type { UserStatus, UserRole, User } from '@/lib/types';
-import { FAME_LEVELS_POINTS, EVENT_FAMILIARS, ALL_ACHIEVEMENTS } from '@/lib/data';
+import { FAME_LEVELS_POINTS, EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA } from '@/lib/data';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,7 +28,7 @@ import {
 
 
 export default function AdminTab() {
-  const { addPointsToUser, updateUserStatus, updateUserRole, giveEventFamiliarToCharacter, grantAchievementToUser, fetchAllUsers, clearPointHistoryForUser } = useUser();
+  const { addPointsToUser, updateUserStatus, updateUserRole, giveEventFamiliarToCharacter, grantAchievementToUser, fetchAllUsers, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter } = useUser();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -52,6 +52,12 @@ export default function AdminTab() {
   const [deductSelectedUserId, setDeductSelectedUserId] = useState<string>('');
   const [deductPoints, setDeductPoints] = useState<number>(0);
   const [deductReason, setDeductReason] = useState<string>('');
+
+  // Moodlet state
+  const [moodletUserId, setMoodletUserId] = useState<string>('');
+  const [moodletCharId, setMoodletCharId] = useState<string>('');
+  const [moodletId, setMoodletId] = useState<string>('');
+  const [moodletDuration, setMoodletDuration] = useState<number>(7);
 
   const { toast } = useToast();
 
@@ -307,11 +313,53 @@ export default function AdminTab() {
     setClearHistoryUserId('');
   };
 
+  const handleAddMoodlet = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!moodletUserId || !moodletCharId || !moodletId || moodletDuration <= 0) {
+      toast({ variant: 'destructive', title: 'Ошибка', description: 'Пожалуйста, заполните все поля для мудлета.' });
+      return;
+    }
+    await addMoodletToCharacter(moodletUserId, moodletCharId, moodletId, moodletDuration);
+    
+    const moodletName = MOODLETS_DATA[moodletId as keyof typeof MOODLETS_DATA].name;
+    toast({ title: 'Мудлет добавлен!', description: `Мудлет "${moodletName}" добавлен персонажу на ${moodletDuration} дней.` });
+    
+    // Optimistic update
+    const updatedUsers = await fetchAllUsers();
+    setUsers(updatedUsers);
+    
+    // Reset form
+    setMoodletUserId('');
+    setMoodletCharId('');
+    setMoodletId('');
+    setMoodletDuration(7);
+  };
+
+  const handleRemoveMoodlet = async (userId: string, charId: string, moodletId: string) => {
+      await removeMoodletFromCharacter(userId, charId, moodletId);
+      const moodletName = MOODLETS_DATA[moodletId as keyof typeof MOODLETS_DATA].name;
+      toast({ title: 'Мудлет удален!', description: `Мудлет "${moodletName}" удален у персонажа.`, variant: 'destructive' });
+      // Optimistic update
+      const updatedUsers = await fetchAllUsers();
+      setUsers(updatedUsers);
+  };
+
 
   const charactersForSelectedUser = useMemo(() => {
     if (!eventAwardUserId) return [];
     return users.find(u => u.id === eventAwardUserId)?.characters || [];
   }, [eventAwardUserId, users]);
+
+  const charactersForMoodletUser = useMemo(() => {
+    if (!moodletUserId) return [];
+    return users.find(u => u.id === moodletUserId)?.characters || [];
+  }, [moodletUserId, users]);
+
+  const selectedCharacterForMoodlet = useMemo(() => {
+      if (!moodletUserId || !moodletCharId) return null;
+      const user = users.find(u => u.id === moodletUserId);
+      return user?.characters.find(c => c.id === moodletCharId) || null;
+  }, [moodletUserId, moodletCharId, users]);
 
   if (isLoading) {
     return <div className="flex justify-center items-center h-64"><p>Загрузка данных...</p></div>
@@ -559,12 +607,12 @@ export default function AdminTab() {
                   <SelectTrigger id="achieve-select">
                     <SelectValue placeholder="Выберите ачивку" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-w-[300px]">
                     {ALL_ACHIEVEMENTS.map(ach => (
-                      <SelectItem key={ach.id} value={ach.id}>
+                      <SelectItem key={ach.id} value={ach.id} className="whitespace-normal">
                         <div className="flex flex-col items-start">
                           <span className="font-semibold">{ach.name}</span>
-                          <span className="text-xs text-muted-foreground whitespace-normal">{ach.description}</span>
+                          <span className="text-xs text-muted-foreground">{ach.description}</span>
                         </div>
                       </SelectItem>
                     ))}
@@ -601,6 +649,77 @@ export default function AdminTab() {
               </div>
           </CardContent>
         </Card>
+        
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Wand2 /> Управление мудлетами</CardTitle>
+                <CardDescription>Наложите временные эффекты на персонажей.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <form onSubmit={handleAddMoodlet} className="space-y-4">
+                     <div>
+                        <Label htmlFor="moodlet-user">Пользователь</Label>
+                        <Select value={moodletUserId} onValueChange={uid => { setMoodletUserId(uid); setMoodletCharId(''); }}>
+                          <SelectTrigger id="moodlet-user">
+                            <SelectValue placeholder="Выберите пользователя" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {users.map(user => (
+                              <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="moodlet-char">Персонаж</Label>
+                        <Select value={moodletCharId} onValueChange={setMoodletCharId} disabled={!moodletUserId}>
+                          <SelectTrigger id="moodlet-char">
+                            <SelectValue placeholder="Выберите персонажа" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {charactersForMoodletUser.map(character => (
+                              <SelectItem key={character.id} value={character.id}>{character.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="moodlet-type">Мудлет</Label>
+                         <Select value={moodletId} onValueChange={setMoodletId}>
+                          <SelectTrigger id="moodlet-type">
+                            <SelectValue placeholder="Выберите мудлет" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(MOODLETS_DATA).map(([id, data]) => (
+                              <SelectItem key={id} value={id}>{data.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="moodlet-duration">Длительность (в днях)</Label>
+                        <Input id="moodlet-duration" type="number" value={moodletDuration} onChange={(e) => setMoodletDuration(Number(e.target.value))} />
+                      </div>
+                      <Button type="submit"><PlusCircle className="mr-2 h-4 w-4" />Добавить мудлет</Button>
+                </form>
+                {selectedCharacterForMoodlet && (selectedCharacterForMoodlet.moodlets || []).filter(m => new Date(m.expiresAt) > new Date()).length > 0 && (
+                    <div className="mt-4 pt-4 border-t">
+                        <h4 className="font-semibold text-sm mb-2">Активные мудлеты:</h4>
+                        <div className="space-y-2">
+                           {(selectedCharacterForMoodlet.moodlets || []).filter(m => new Date(m.expiresAt) > new Date()).map(moodlet => (
+                                <div key={moodlet.id} className="flex items-center justify-between text-sm p-2 bg-muted rounded-md">
+                                    <span>{moodlet.name}</span>
+                                    <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleRemoveMoodlet(moodletUserId, moodletCharId, moodlet.id)}>
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                           ))}
+                        </div>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+
          <Card className="border-destructive/50">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-destructive"><ShieldAlert /> Опасная зона</CardTitle>

@@ -2,11 +2,11 @@
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
-import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard } from '@/lib/types';
+import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, collectionGroup, query, where, orderBy } from "firebase/firestore";
-import { ALL_FAMILIARS, FAMILIARS_BY_ID } from '@/lib/data';
+import { ALL_FAMILIARS, FAMILIARS_BY_ID, MOODLETS_DATA } from '@/lib/data';
 
 interface AuthContextType {
     user: FirebaseUser | null;
@@ -30,7 +30,7 @@ interface UserContextType {
   fetchAllUsers: () => Promise<User[]>;
   fetchAllRewardRequests: () => Promise<RewardRequest[]>;
   addPointsToUser: (userId: string, amount: number, reason: string, characterName?: string) => Promise<User | null>;
-  addCharacterToUser: (userId: string, character: Omit<Character, 'id' | 'familiarCards'>) => Promise<void>;
+  addCharacterToUser: (userId: string, character: Omit<Character, 'id' | 'familiarCards' | 'moodlets'>) => Promise<void>;
   updateCharacterInUser: (userId: string, character: Character) => Promise<void>;
   deleteCharacterFromUser: (userId: string, characterId: string) => Promise<void>;
   updateUserStatus: (userId: string, status: UserStatus) => Promise<void>;
@@ -43,6 +43,8 @@ interface UserContextType {
   giveEventFamiliarToCharacter: (userId: string, characterId: string, familiarId: string) => Promise<void>;
   fetchAvailableMythicCardsCount: () => Promise<number>;
   clearPointHistoryForUser: (userId: string) => Promise<void>;
+  addMoodletToCharacter: (userId: string, characterId: string, moodletId: string, durationInDays: number) => Promise<void>;
+  removeMoodletFromCharacter: (userId: string, characterId: string, moodletId: string) => Promise<void>;
 }
 
 export const UserContext = createContext<UserContextType | null>(null);
@@ -145,7 +147,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 const userData = userDoc.data() as User;
                 userData.characters = userData.characters?.map(char => ({
                     ...char,
-                    familiarCards: char.familiarCards || []
+                    familiarCards: char.familiarCards || [],
+                    moodlets: char.moodlets || [],
                 })) || [];
                 userData.achievementIds = userData.achievementIds || [];
                 setCurrentUser(userData);
@@ -174,7 +177,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const userData = doc.data() as User;
         userData.characters = userData.characters?.map(char => ({
             ...char,
-            familiarCards: char.familiarCards || []
+            familiarCards: char.familiarCards || [],
+            moodlets: char.moodlets || [],
         })) || [];
         userData.achievementIds = userData.achievementIds || [];
         return userData;
@@ -194,7 +198,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           const userData = docSnap.data() as User;
            userData.characters = userData.characters?.map(char => ({
                 ...char,
-                familiarCards: char.familiarCards || []
+                familiarCards: char.familiarCards || [],
+                moodlets: char.moodlets || [],
             })) || [];
            userData.achievementIds = userData.achievementIds || [];
           return userData;
@@ -211,7 +216,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const updatedUser = updatedDoc.data() as User;
       updatedUser.characters = updatedUser.characters?.map(char => ({
             ...char,
-            familiarCards: char.familiarCards || []
+            familiarCards: char.familiarCards || [],
+            moodlets: char.moodlets || [],
         })) || [];
       updatedUser.achievementIds = updatedUser.achievementIds || [];
 
@@ -240,14 +246,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     return await updateUserInStateAndFirestore(userId, { points: newPoints, pointHistory: newHistory });
   }, [fetchUserById, updateUserInStateAndFirestore]);
 
-  const addCharacterToUser = useCallback(async (userId: string, characterData: Omit<Character, 'id' | 'familiarCards'>) => {
+  const addCharacterToUser = useCallback(async (userId: string, characterData: Omit<Character, 'id' | 'familiarCards' | 'moodlets'>) => {
     const user = await fetchUserById(userId);
     if (!user) return;
     
     const newCharacter: Character = {
         id: `c-${Date.now()}`,
         ...characterData,
-        familiarCards: []
+        familiarCards: [],
+        moodlets: [],
     };
 
     const updatedCharacters = [...user.characters, newCharacter];
@@ -608,6 +615,51 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     await updateUserInStateAndFirestore(userId, { pointHistory: [] });
   }, [updateUserInStateAndFirestore]);
 
+  const addMoodletToCharacter = useCallback(async (userId: string, characterId: string, moodletId: string, durationInDays: number) => {
+    const user = await fetchUserById(userId);
+    if (!user) return;
+
+    const characterIndex = user.characters.findIndex(char => char.id === characterId);
+    if (characterIndex === -1) return;
+
+    const moodletData = MOODLETS_DATA[moodletId as keyof typeof MOODLETS_DATA];
+    if (!moodletData) return;
+
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + durationInDays);
+
+    const newMoodlet: Moodlet = {
+        id: moodletId,
+        ...moodletData,
+        expiresAt: expiryDate.toISOString(),
+    };
+
+    const character = { ...user.characters[characterIndex] };
+    const existingMoodlets = (character.moodlets || []).filter(m => m.id !== moodletId);
+    character.moodlets = [...existingMoodlets, newMoodlet];
+
+    const updatedCharacters = [...user.characters];
+    updatedCharacters[characterIndex] = character;
+    
+    await updateUserInStateAndFirestore(userId, { characters: updatedCharacters });
+  }, [fetchUserById, updateUserInStateAndFirestore]);
+
+  const removeMoodletFromCharacter = useCallback(async (userId: string, characterId: string, moodletId: string) => {
+      const user = await fetchUserById(userId);
+      if (!user) return;
+
+      const characterIndex = user.characters.findIndex(char => char.id === characterId);
+      if (characterIndex === -1) return;
+
+      const character = { ...user.characters[characterIndex] };
+      character.moodlets = (character.moodlets || []).filter(m => m.id !== moodletId);
+
+      const updatedCharacters = [...user.characters];
+      updatedCharacters[characterIndex] = character;
+      
+      await updateUserInStateAndFirestore(userId, { characters: updatedCharacters });
+  }, [fetchUserById, updateUserInStateAndFirestore]);
+
 
   const signOutUser = useCallback(() => {
     signOut(auth);
@@ -639,9 +691,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       pullGachaForCharacter,
       giveEventFamiliarToCharacter,
       fetchAvailableMythicCardsCount,
-      clearPointHistoryForUser
+      clearPointHistoryForUser,
+      addMoodletToCharacter,
+      removeMoodletFromCharacter,
     }),
-    [currentUser, fetchAllUsers, fetchAllRewardRequests, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, fetchAvailableMythicCardsCount, clearPointHistoryForUser]
+    [currentUser, fetchAllUsers, fetchAllRewardRequests, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, fetchAvailableMythicCardsCount, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter]
   );
 
   return (

@@ -10,6 +10,14 @@ export interface Achievement {
   iconName: string;
 }
 
+export interface Moodlet {
+  id: string; // e.g., 'curse'
+  name: string;
+  description: string;
+  iconName: string;
+  expiresAt: string; // ISO string date
+}
+
 export interface FamiliarCard {
   id: string;
   name: string;
@@ -33,6 +41,7 @@ export interface Character {
   blessingExpires?: string; // ISO string date
   hasLeviathanFriendship?: boolean;
   hasCrimeConnections?: boolean;
+  moodlets?: Moodlet[];
 }
 
 export interface PointLog {

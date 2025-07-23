@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Star, Trash2, Sparkles, Anchor, KeyRound, Pencil } from 'lucide-react';
-import type { PointLog, UserStatus, Character, FamiliarCard, FamiliarRank } from '@/lib/types';
+import type { PointLog, UserStatus, Character, FamiliarCard, FamiliarRank, Moodlet } from '@/lib/types';
 import {
   Dialog,
   DialogContent,
@@ -63,6 +63,8 @@ const rankNames: Record<FamiliarRank, string> = {
 const CharacterDisplay = ({ character, onEdit, onDelete }: { character: Character, onEdit: (character: Character) => void, onDelete: (characterId: string) => void }) => {
     const familiarCards = character.familiarCards || [];
     const isBlessed = character.blessingExpires && new Date(character.blessingExpires) > new Date();
+
+    const activeMoodlets = (character.moodlets || []).filter(m => new Date(m.expiresAt) > new Date());
 
     const groupedFamiliars = familiarCards.reduce((acc, ownedCard) => {
         const cardDetails = FAMILIARS_BY_ID[ownedCard.id];
@@ -139,6 +141,30 @@ const CharacterDisplay = ({ character, onEdit, onDelete }: { character: Characte
                     {character.workLocation && <p><span className="font-semibold">Место работы:</span> {character.workLocation}</p>}
                 </div>
 
+                {activeMoodlets.length > 0 && (
+                    <div className="px-4 pb-2">
+                        <h4 className="text-sm font-semibold mb-2">Мудлеты:</h4>
+                        <div className="flex flex-wrap gap-2">
+                            {activeMoodlets.map(moodlet => (
+                                <Popover key={moodlet.id}>
+                                    <PopoverTrigger asChild>
+                                        <Badge variant="outline" className="cursor-pointer">
+                                            <DynamicIcon name={moodlet.iconName} className="w-3.5 h-3.5 mr-1.5" />
+                                            {moodlet.name}
+                                        </Badge>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto max-w-xs text-sm">
+                                        <p className="font-bold">{moodlet.name}</p>
+                                        <p className="text-xs mb-2">{moodlet.description}</p>
+                                        <p className="text-xs text-muted-foreground">{formatTimeLeft(moodlet.expiresAt)}</p>
+                                    </PopoverContent>
+                                </Popover>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+
                 <Accordion type="single" collapsible className="w-full mt-2 px-2">
                     <AccordionItem value="item-1">
                         <AccordionTrigger className="text-sm">Показать фамильяров ({familiarCards.length})</AccordionTrigger>
@@ -197,7 +223,7 @@ export default function ProfileTab() {
     toast({ variant: 'destructive', title: "Персонаж удален", description: "Персонаж и все его данные были удалены." });
   };
 
-  const handleFormSubmit = (characterData: Omit<Character, 'id' | 'familiarCards'> | Character) => {
+  const handleFormSubmit = (characterData: Omit<Character, 'id' | 'familiarCards' | 'moodlets'> | Character) => {
       if (!currentUser) return;
 
       if ('id' in characterData) {

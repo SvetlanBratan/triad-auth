@@ -83,6 +83,16 @@ export const ACHIEVEMENTS_BY_ID: Record<string, Achievement> = ALL_ACHIEVEMENTS.
 }, {} as Record<string, Achievement>);
 
 
+export const MOODLETS_DATA = {
+    'curse': { name: 'Проклятье', description: 'На персонаже лежит проклятье.', iconName: 'Skull' },
+    'blessing': { name: 'Благословение', description: 'Персонаж благословлен.', iconName: 'Sparkles' },
+    'light-god-watch': { name: 'Под наблюдением Светлого Бога', description: 'Светлый Бог наблюдает за этим персонажем.', iconName: 'Sun' },
+    'dark-god-watch': { name: 'Под наблюдением Тёмного Бога', description: 'Тёмный Бог наблюдает за этим персонажем.', iconName: 'Moon' },
+    'goddess-watch': { name: 'Под наблюдением Неизвестной Богини', description: 'Неизвестная Богиня наблюдает за этим персонажем.', iconName: 'MilkyWay' },
+    'mafia-target': { name: 'Цель мафии', description: 'Этот персонаж стал целью мафии.', iconName: 'Target' },
+};
+
+
 export const SKILL_LEVELS: string[] = [
     'Рукожоп', 'Посмешище', 'Дилетант', 'Новичок', 'Ученик', 'Энтузиаст',
     'Любитель', 'Умелец', 'Знаток', 'Специалист', 'Эксперт', 'Мастер',

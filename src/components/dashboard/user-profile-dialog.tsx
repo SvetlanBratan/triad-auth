@@ -2,7 +2,7 @@
 "use client";
 
 import React from 'react';
-import type { User, UserStatus, PointLog, Character, FamiliarCard, FamiliarRank } from '@/lib/types';
+import type { User, UserStatus, PointLog, Character, FamiliarCard, FamiliarRank, Moodlet } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -43,6 +43,8 @@ const rankNames: Record<FamiliarRank, string> = {
 const CharacterDisplay = ({ character }: { character: Character }) => {
     const familiarCards = character.familiarCards || [];
     const isBlessed = character.blessingExpires && new Date(character.blessingExpires) > new Date();
+    const activeMoodlets = (character.moodlets || []).filter(m => new Date(m.expiresAt) > new Date());
+
 
     const groupedFamiliars = familiarCards.reduce((acc, ownedCard) => {
         const cardDetails = FAMILIARS_BY_ID[ownedCard.id];
@@ -92,6 +94,29 @@ const CharacterDisplay = ({ character }: { character: Character }) => {
                 <p><span className="font-semibold">Известность:</span> {character.currentFameLevel}</p>
                 {character.workLocation && <p><span className="font-semibold">Место работы:</span> {character.workLocation}</p>}
             </div>
+
+            {activeMoodlets.length > 0 && (
+                <div className="px-2 pb-2">
+                    <h4 className="text-sm font-semibold mb-2">Мудлеты:</h4>
+                    <div className="flex flex-wrap gap-2">
+                        {activeMoodlets.map(moodlet => (
+                            <Popover key={moodlet.id}>
+                                <PopoverTrigger asChild>
+                                    <Badge variant="outline" className="cursor-pointer">
+                                        <DynamicIcon name={moodlet.iconName} className="w-3.5 h-3.5 mr-1.5" />
+                                        {moodlet.name}
+                                    </Badge>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto max-w-xs text-sm">
+                                    <p className="font-bold">{moodlet.name}</p>
+                                    <p className="text-xs mb-2">{moodlet.description}</p>
+                                    <p className="text-xs text-muted-foreground">{formatTimeLeft(moodlet.expiresAt)}</p>
+                                </PopoverContent>
+                            </Popover>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             <Accordion type="single" collapsible className="w-full mt-2">
                 <AccordionItem value="item-1">

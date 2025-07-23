@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 interface CharacterFormProps {
     character: Character | null;
-    onSubmit: (data: Omit<Character, 'id' | 'familiarCards'> | Character) => void;
+    onSubmit: (data: Omit<Character, 'id' | 'familiarCards' | 'moodlets'> | Character) => void;
     closeDialog: () => void;
 }
 
