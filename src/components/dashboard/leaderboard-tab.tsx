@@ -133,7 +133,7 @@ export default function LeaderboardTab() {
             </TableBody>
             </Table>
              {selectedUser && (
-                <DialogContent className="max-w-4xl">
+                <DialogContent className="max-w-6xl">
                     <UserProfileDialog user={selectedUser} />
                 </DialogContent>
             )}

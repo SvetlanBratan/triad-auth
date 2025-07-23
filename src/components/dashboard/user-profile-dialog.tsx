@@ -11,11 +11,12 @@ import { Anchor, KeyRound, Sparkles, Star } from 'lucide-react';
 import { cn, formatTimeLeft } from '@/lib/utils';
 import FamiliarCardDisplay from './familiar-card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
-import { DialogHeader, DialogTitle } from '../ui/dialog';
+import { DialogClose, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { ACHIEVEMENTS_BY_ID } from '@/lib/data';
 import * as LucideIcons from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
+import { X } from 'lucide-react';
 
 type IconName = keyof typeof LucideIcons;
 
@@ -119,6 +120,10 @@ export default function UserProfileDialog({ user }: { user: User }) {
     <>
       <DialogHeader>
           <DialogTitle className="text-2xl">Профиль игрока: {user.name}</DialogTitle>
+          <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </DialogClose>
       </DialogHeader>
       <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
           {/* Left Column */}
@@ -182,19 +187,19 @@ export default function UserProfileDialog({ user }: { user: User }) {
                   <CardTitle>Персонажи</CardTitle>
                   <CardDescription>Список персонажей игрока</CardDescription>
               </CardHeader>
-              <CardContent className="flex-grow overflow-hidden pr-2">
-                  <ScrollArea className="h-full">
-                      {user.characters.length > 0 ? (
-                          <Accordion type="single" collapsible className="w-full">
-                              {user.characters.map(char => (
-                                  <CharacterDisplay key={char.id} character={char} />
-                              ))}
-                          </Accordion>
-                      ) : (
-                          <p className="text-sm text-muted-foreground text-center py-4">У этого игрока нет персонажей.</p>
-                      )}
-                  </ScrollArea>
-              </CardContent>
+                <CardContent className="flex-grow overflow-hidden pr-2">
+                   <ScrollArea className="h-full pr-2">
+                        {user.characters.length > 0 ? (
+                            <Accordion type="single" collapsible className="w-full">
+                                {user.characters.map(char => (
+                                    <CharacterDisplay key={char.id} character={char} />
+                                ))}
+                            </Accordion>
+                        ) : (
+                            <p className="text-sm text-muted-foreground text-center py-4">У этого игрока нет персонажей.</p>
+                        )}
+                   </ScrollArea>
+                </CardContent>
           </Card>
           </div>
 
