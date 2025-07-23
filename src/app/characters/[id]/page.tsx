@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn, formatTimeLeft, calculateAge } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import * as LucideIcons from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 
 type IconName = keyof typeof LucideIcons;
@@ -199,7 +200,9 @@ export default function CharacterPage() {
                             <CardTitle className="flex items-center gap-2"><PersonStanding /> Внешность</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p className="whitespace-pre-wrap">{character.appearance || 'Описание отсутствует.'}</p>
+                            <ScrollArea className="h-40 w-full">
+                                <p className="whitespace-pre-wrap pr-4">{character.appearance || 'Описание отсутствует.'}</p>
+                            </ScrollArea>
                         </CardContent>
                     </Card>
                      <Card>
@@ -207,7 +210,9 @@ export default function CharacterPage() {
                             <CardTitle className="flex items-center gap-2"><Heart /> Характер</CardTitle>
                         </CardHeader>
                         <CardContent>
-                             <p className="whitespace-pre-wrap">{character.personality || 'Описание отсутствует.'}</p>
+                            <ScrollArea className="h-40 w-full">
+                                <p className="whitespace-pre-wrap pr-4">{character.personality || 'Описание отсутствует.'}</p>
+                             </ScrollArea>
                         </CardContent>
                     </Card>
                      <Card>
@@ -215,7 +220,9 @@ export default function CharacterPage() {
                             <CardTitle className="flex items-center gap-2"><BookOpen /> Биография</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p className="whitespace-pre-wrap">{character.biography || 'Описание отсутствует.'}</p>
+                            <ScrollArea className="h-64 w-full">
+                                <p className="whitespace-pre-wrap pr-4">{character.biography || 'Описание отсутствует.'}</p>
+                            </ScrollArea>
                         </CardContent>
                     </Card>
                 </div>
