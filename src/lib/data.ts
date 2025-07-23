@@ -37,44 +37,44 @@ export const rewards: Reward[] = [
 
 export const ALL_ACHIEVEMENTS: Achievement[] = [
   // Automated
-  { id: 'ach-first-gacha', name: 'Первый раз?', description: 'Первое использование рулетки.', iconName: 'Dices' },
-  { id: 'ach-mythic-pull', name: 'Мифическое везение', description: 'Получение первого мифического фамильяра.', iconName: 'Sparkles' },
-  { id: 'ach-generous', name: 'Меценат', description: 'Трата более 100,000 баллов.', iconName: 'Gem' },
-  { id: 'ach-unique-character', name: 'Владелец уникального персонажа', description: 'Покупка закрытой расы.', iconName: 'VenetianMask' },
-  { id: 'ach-multi-hand', name: 'Многоручка', description: 'Покупка дополнительного персонажа.', iconName: 'Users' },
-  { id: 'ach-tamer', name: 'Укротитель', description: 'Сумел завести неприручаемое животное в качестве питомца.', iconName: 'Cat' },
-  { id: 'ach-mafiosi', name: 'Мафиози', description: 'Имеет связи в преступном мире.', iconName: 'KeyRound' },
-  { id: 'ach-submariner', name: 'Люблю подводный мир', description: 'Персонажу удалось подружиться с Левиафаном.', iconName: 'Anchor' },
-  { id: 'ach-seaman', name: 'Мореход', description: 'Имеет судно в своём распоряжении.', iconName: 'Ship' },
-  { id: 'ach-sky-master', name: 'Освоил небо', description: 'Купил дирижабль для собственных нужд.', iconName: 'Rocket' },
-  { id: 'ach-big-mage', name: 'Большой, большой!', description: 'Даётся за покупку большого магического резерва.', iconName: 'Flame' },
-  { id: 'ach-important-person', name: 'Важный', description: 'Имеет высокую должность при дворе.', iconName: 'Crown' },
-  { id: 'ach-baron', name: 'Ваша Милость', description: 'Заработал титул Барона своим трудом.', iconName: 'ChessKing' },
-  { id: 'ach-sir-lady', name: 'Сэр/Леди', description: 'Получил признание прилагая усилия.', iconName: 'Award' },
-  { id: 'ach-warlock', name: 'Колдун', description: 'Получил дополнительную стихию для персонажа.', iconName: 'Waves' },
-  { id: 'ach-wizard', name: 'Чародей', description: 'Получил дополнительное учение для персонажа.', iconName: 'BookPlus' },
-  { id: 'ach-guildmaster', name: 'Гильдмастер', description: 'Видел гильдию? Я основаль.', iconName: 'Building2' },
-  { id: 'ach-hybrid', name: 'Гибридная полукровка', description: 'Нет! Он нашей расы!', iconName: 'Combine' },
+  { id: 'ach-first-gacha', name: 'Первый раз?', description: 'Даётся за первое использование рулетки, независимо от того, получили вы дубликат или нет.', iconName: 'Dices' },
+  { id: 'ach-mythic-pull', name: 'Мифическое везение', description: 'Выдаётся за получение первого мифического фамильяра, которого нет ни у одного другого игрока.', iconName: 'Sparkles' },
+  { id: 'ach-generous', name: 'Меценат', description: 'Даётся игроку, потратившему более 100,000 баллов на награды в магазине. Учитываются только одобренные запросы.', iconName: 'Gem' },
+  { id: 'ach-unique-character', name: 'Владелец уникального персонажа', description: 'Выдаётся за покупку закрытой расы для персонажа. Любой уровень расы засчитывается.', iconName: 'VenetianMask' },
+  { id: 'ach-multi-hand', name: 'Многоручка', description: 'Игрок, купивший дополнительного персонажа, когда лимит на бесплатных персонажей исчерпан.', iconName: 'Users' },
+  { id: 'ach-tamer', name: 'Укротитель', description: 'Персонаж сумел завести себе неприручаемое в обычных условиях животное в качестве питомца.', iconName: 'Cat' },
+  { id: 'ach-mafiosi', name: 'Мафиози', description: 'Даётся персонажу, который приобрёл связи в преступном мире через магазин наград.', iconName: 'KeyRound' },
+  { id: 'ach-submariner', name: 'Люблю подводный мир', description: 'Персонажу удалось подружиться с Левиафаном, морским чудовищем, и теперь его суда в безопасности.', iconName: 'Anchor' },
+  { id: 'ach-seaman', name: 'Мореход', description: 'Игрок имеет судно в своём распоряжении, приобретённое в магазине наград.', iconName: 'Ship' },
+  { id: 'ach-sky-master', name: 'Освоил небо', description: 'Игрок купил дирижабль для собственных нужд, открыв новые горизонты для путешествий.', iconName: 'Rocket' },
+  { id: 'ach-big-mage', name: 'Большой, большой!', description: 'Даётся за покупку большого магического резерва для персонажа, что делает его магом уровня архимага.', iconName: 'Flame' },
+  { id: 'ach-important-person', name: 'Важный', description: 'Персонаж имеет высокую должность при дворе, независимо от его титула и пола.', iconName: 'Crown' },
+  { id: 'ach-baron', name: 'Ваша Милость', description: 'Персонаж заработал титул Барона своим трудом и получил землю в придачу.', iconName: 'ChessKing' },
+  { id: 'ach-sir-lady', name: 'Сэр/Леди', description: 'Персонаж получил признание от аристократии и землю вместе с почетным титулом.', iconName: 'Award' },
+  { id: 'ach-warlock', name: 'Колдун', description: 'Даётся за получение дополнительной стихии для персонажа, что расширяет его магические возможности.', iconName: 'Waves' },
+  { id: 'ach-wizard', name: 'Чародей', description: 'Даётся за получение дополнительного учения для персонажа, углубляя его познания в магии.', iconName: 'BookPlus' },
+  { id: 'ach-guildmaster', name: 'Гильдмастер', description: 'Игрок создал собственную преступную группировку или гильдию, став её лидером.', iconName: 'Building2' },
+  { id: 'ach-hybrid', name: 'Гибридная полукровка', description: 'Игрок создал персонажа, являющегося полукровкой или гибридом двух рас.', iconName: 'Combine' },
   { id: 'ach-pumpkin-spouse', name: 'Тыкво-Жена', description: 'Обладатель самой прекрасной супруги в мире Триады.', iconName: 'Heart' },
-  { id: 'ach-exchange-master', name: 'Мастер обмена', description: 'Обменял стихию на учение.', iconName: 'Replace' },
-  { id: 'ach-dark-lord', name: 'Тёмный Владыка', description: 'Получил запретную магию недоступную для его расы.', iconName: 'Skull' },
-  { id: 'ach-chimera-mancer', name: 'Химеромант', description: 'Изменил тело персонажа до неузнаваемости.', iconName: 'GitBranchPlus' },
+  { id: 'ach-exchange-master', name: 'Мастер обмена', description: 'Персонаж обменял одну из своих магических стихий на два учения.', iconName: 'Replace' },
+  { id: 'ach-dark-lord', name: 'Тёмный Владыка', description: 'Персонаж получил доступ к запретной магии, недоступной для его расы.', iconName: 'Skull' },
+  { id: 'ach-chimera-mancer', name: 'Химеромант', description: 'Персонаж изменил своё тело до неузнаваемости, добавив иные конечности.', iconName: 'GitBranchPlus' },
 
   // Manual
-  { id: 'ach-ruler', name: 'Правитель государства', description: 'Несёт бремя правления в Триаде.', iconName: 'ShieldCheck' },
-  { id: 'ach-august-family', name: 'Из семьи августейших особ', description: 'Несет бремя известности, так как связан семейными узами с правителем государства.', iconName: 'Users' },
-  { id: 'ach-your-grace', name: 'Ваша Светлость', description: 'Второй по важности в государстве землевладелец.', iconName: 'Landmark' },
-  { id: 'ach-your-excellency', name: 'Ваше Сиятельство', description: 'Третий по важности в государстве землевладелец.', iconName: 'Landmark' },
-  { id: 'ach-event-master', name: 'Мастер ивентов', description: 'Тамада хороший и конкурсы интересные. Дается за получение фамильяра.', iconName: 'PartyPopper' },
-  { id: 'ach-light-god-watch', name: 'Светлый Бог следит за вами', description: 'Вы заинтересовали Бога.', iconName: 'Sun' },
-  { id: 'ach-dark-god-watch', name: 'Тёмный Бог следит за вами', description: 'Вы заинтересовали Бога.', iconName: 'Moon' },
-  { id: 'ach-unknown-goddess-watch', name: 'Неизвестная Богиня следит за вами', description: 'Вы заинтересовали Бога.', iconName: 'Sparkles' },
-  { id: 'ach-demigod-watch', name: 'Полубоги заинтересованы в вас', description: 'Вы заинтересовали Полубогов.', iconName: 'Star' },
-  { id: 'ach-saturn-watch', name: 'Сатур следит за вашей судьбой', description: 'А ты думаешь, что сможешь скрыться от папарацци?', iconName: 'Eye' },
-  { id: 'ach-newspaper-regular', name: 'Завсегдатай газет', description: 'Покупка 10 статей в газете о себе.', iconName: 'Newspaper' },
-  { id: 'ach-landless', name: 'Безземельный', description: 'Пятый брат вашего троюродного соседа.', iconName: 'Home' },
-  { id: 'ach-beta-tester', name: 'Бета-тестер', description: 'Участие в бета-тесте системы.', iconName: 'FlaskConical' },
-  { id: 'ach-bug-hunter', name: 'Охотник за ошибками', description: 'Нахождение и репорт ошибки.', iconName: 'Bug' },
+  { id: 'ach-ruler', name: 'Правитель государства', description: 'Несёт тяжкое бремя правления и ответственности за судьбу всего государства в Триаде. Выдаётся вручную.', iconName: 'ShieldCheck' },
+  { id: 'ach-august-family', name: 'Из семьи августейших особ', description: 'Связан семейными узами с правителем государства и несёт бремя известности. Выдаётся вручную.', iconName: 'Users' },
+  { id: 'ach-your-grace', name: 'Ваша Светлость', description: 'Является вторым по важности землевладельцем в государстве, обладая огромным влиянием. Выдаётся вручную.', iconName: 'Landmark' },
+  { id: 'ach-your-excellency', name: 'Ваше Сиятельство', description: 'Является третьим по важности землевладельцем в государстве, играя ключевую роль в политике. Выдаётся вручную.', iconName: 'Landmark' },
+  { id: 'ach-event-master', name: 'Мастер ивентов', description: 'Тамада хороший и конкурсы интересные. Даётся за получение ивентового фамильяра. Выдаётся вручную.', iconName: 'PartyPopper' },
+  { id: 'ach-light-god-watch', name: 'Светлый Бог следит за вами', description: 'Персонаж своими действиями и словами сумел заинтересовать Светлого Бога. Выдаётся вручную.', iconName: 'Sun' },
+  { id: 'ach-dark-god-watch', name: 'Тёмный Бог следит за вами', description: 'Персонаж своими действиями и словами сумел заинтересовать Тёмного Бога. Выдаётся вручную.', iconName: 'Moon' },
+  { id: 'ach-unknown-goddess-watch', name: 'Неизвестная Богиня следит за вами', description: 'Персонаж своими действиями и словами сумел заинтересовать Неизвестную Богиню. Выдаётся вручную.', iconName: 'Sparkles' },
+  { id: 'ach-demigod-watch', name: 'Полубоги заинтересованы в вас', description: 'Персонаж привлёк внимание могущественных полубогов своими деяниями. Выдаётся вручную.', iconName: 'Star' },
+  { id: 'ach-saturn-watch', name: 'Сатур следит за вашей судьбой', description: 'А ты думаешь, что сможешь скрыться от всевидящего ока папарацци? Не надейся! Выдаётся вручную.', iconName: 'Eye' },
+  { id: 'ach-newspaper-regular', name: 'Завсегдатай газет', description: 'Персонаж, о котором написали не менее 10 статей в местной газете. Выдаётся вручную.', iconName: 'Newspaper' },
+  { id: 'ach-landless', name: 'Безземельный', description: 'Он пятый брат вашего троюродного соседа. Беден, но горд! Выдаётся вручную.', iconName: 'Home' },
+  { id: 'ach-beta-tester', name: 'Бета-тестер', description: 'За активное участие в бета-тестировании системы начисления баллов. Выдаётся вручную.', iconName: 'FlaskConical' },
+  { id: 'ach-bug-hunter', name: 'Охотник за ошибками', description: 'За нахождение и своевременный репорт критической ошибки или бага в системе. Выдаётся вручную.', iconName: 'Bug' },
 ];
 
 export const ACHIEVEMENTS_BY_ID: Record<string, Achievement> = ALL_ACHIEVEMENTS.reduce((acc, ach) => {
@@ -84,25 +84,25 @@ export const ACHIEVEMENTS_BY_ID: Record<string, Achievement> = ALL_ACHIEVEMENTS.
 
 
 export const MOODLETS_DATA = {
-    'curse': { name: 'Проклятье', description: 'На персонаже лежит проклятье.', iconName: 'Skull' },
-    'blessing': { name: 'Благословение', description: 'Персонаж благословлен.', iconName: 'Sparkles' },
-    'light-god-watch': { name: 'Под наблюдением Светлого Бога', description: 'Светлый Бог наблюдает за этим персонажем.', iconName: 'Sun' },
-    'dark-god-watch': { name: 'Под наблюдением Тёмного Бога', description: 'Тёмный Бог наблюдает за этим персонажем.', iconName: 'Moon' },
-    'goddess-watch': { name: 'Под наблюдением Неизвестной Богини', description: 'Неизвестная Богиня наблюдает за этим персонажем.', iconName: 'MilkyWay' },
-    'mafia-target': { name: 'Цель мафии', description: 'Этот персонаж стал целью мафии.', iconName: 'Target' },
-    'poisoned': { name: 'Отравлен', description: 'Персонаж отравлен и может испытывать негативные эффекты.', iconName: 'Biohazard' },
-    'love-spell': { name: 'Под любовным зельем', description: 'Персонаж находится под действием любовного приворота.', iconName: 'Heart' },
-    'sick': { name: 'Болеет', description: 'Персонаж болен и его состояние может ухудшаться.', iconName: 'Thermometer' },
-    'wanted': { name: 'В розыске', description: 'За поимку этого персонажа назначена награда.', iconName: 'Handcuffs' },
-    'death-mark': { name: 'Метка смерти', description: 'На персонажа наложена метка, предвещающая скорую гибель.', iconName: 'Crosshair' },
-    'family-protection': { name: 'Под защитой рода', description: 'Персонаж находится под защитой своего рода или семьи.', iconName: 'Shield' },
-    'on-trial': { name: 'На испытании', description: 'Персонаж проходит важное испытание или проверку.', iconName: 'Scaling' },
-    'observed': { name: 'Наблюдаемый', description: 'За персонажем кто-то или что-то пристально наблюдает.', iconName: 'Eye' },
-    'secret-keeper': { name: 'Носитель тайны', description: 'Персонаж хранит важную и опасную тайну.', iconName: 'Key' },
-    'chosen-one': { name: 'Избранник', description: 'Персонаж был избран для великой цели или судьбы.', iconName: 'Award' },
-    'double-agent': { name: 'Двойной агент', description: 'Персонаж тайно работает на две или более стороны.', iconName: 'Spy' },
-    'prophecy-puppet': { name: 'Марионетка пророчества', description: 'Действия персонажа предопределены древним пророчеством.', iconName: 'Bot' },
-    'soul-bond': { name: 'Связь с другой душой', description: 'Душа персонажа связана с другой душой, разделяя чувства или судьбу.', iconName: 'Link' },
+    'curse': { name: 'Проклятье', description: 'На персонаже лежит проклятье, которое может влиять на его удачу или способности.', iconName: 'Skull' },
+    'blessing': { name: 'Благословение', description: 'Персонаж благословлен высшими силами, что может даровать ему временные преимущества.', iconName: 'Sparkles' },
+    'light-god-watch': { name: 'Под наблюдением Светлого Бога', description: 'Светлый Бог пристально наблюдает за каждым шагом этого персонажа.', iconName: 'Sun' },
+    'dark-god-watch': { name: 'Под наблюдением Тёмного Бога', description: 'Тёмный Бог пристально наблюдает за каждым шагом этого персонажа.', iconName: 'Moon' },
+    'goddess-watch': { name: 'Под наблюдением Неизвестной Богини', description: 'Неизвестная Богиня наблюдает за этим персонажем, её мотивы неясны.', iconName: 'MilkyWay' },
+    'mafia-target': { name: 'Цель мафии', description: 'Этот персонаж стал целью влиятельной преступной группировки. Опасность на каждом шагу.', iconName: 'Target' },
+    'poisoned': { name: 'Отравлен', description: 'Персонаж отравлен и может испытывать негативные эффекты, пока не найдет противоядие.', iconName: 'Biohazard' },
+    'love-spell': { name: 'Под любовным зельем', description: 'Персонаж находится под действием любовного приворота, его чувства и решения не принадлежат ему.', iconName: 'Heart' },
+    'sick': { name: 'Болеет', description: 'Персонаж страдает от болезни, его состояние может ухудшаться со временем.', iconName: 'Thermometer' },
+    'wanted': { name: 'В розыске', description: 'За поимку этого персонажа назначена награда, и охотники уже идут по его следу.', iconName: 'Handcuffs' },
+    'death-mark': { name: 'Метка смерти', description: 'На персонажа наложена метка, предвещающая скорую и неотвратимую гибель.', iconName: 'Crosshair' },
+    'family-protection': { name: 'Под защитой рода', description: 'Персонаж находится под защитой своего могущественного рода или семьи.', iconName: 'Shield' },
+    'on-trial': { name: 'На испытании', description: 'Персонаж проходит важное испытание или проверку, от которой зависит его будущее.', iconName: 'Scaling' },
+    'observed': { name: 'Наблюдаемый', description: 'За персонажем кто-то или что-то пристально наблюдает, оставаясь в тени.', iconName: 'Eye' },
+    'secret-keeper': { name: 'Носитель тайны', description: 'Персонаж хранит важную и опасную тайну, которая может изменить мир.', iconName: 'Key' },
+    'chosen-one': { name: 'Избранник', description: 'Персонаж был избран для великой цели или судьбы, хочет он того или нет.', iconName: 'Award' },
+    'double-agent': { name: 'Двойной агент', description: 'Персонаж тайно работает на две или более стороны, рискуя быть раскрытым в любой момент.', iconName: 'Spy' },
+    'prophecy-puppet': { name: 'Марионетка пророчества', description: 'Действия персонажа предопределены древним пророчеством, и он не в силах изменить свою судьбу.', iconName: 'Bot' },
+    'soul-bond': { name: 'Связь с другой душой', description: 'Душа персонажа связана с другой душой, разделяя чувства, боль или даже судьбу.', iconName: 'Link' },
 };
 
 
@@ -159,6 +159,9 @@ const ALL_FAMILIAR_CARDS_RAW: Omit<FamiliarCard, 'data-ai-hint'>[] = [
     { id: 'fam-c-leniko', name: 'Ленико', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753282470/16_xanfvi.jpg' },
     { id: 'fam-c-krilopotam', name: 'Крылопотам', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753282497/17_ipkhgy.jpg' },
     { id: 'fam-c-orkalen', name: 'Оркалень', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753283333/18_gg2qyb.jpg' },
+    { id: 'fam-c-medopus', name: 'Медопус', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753283957/20_gmyek1.jpg' },
+    { id: 'fam-c-varassas', name: 'Варассас', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753283957/21_gvut5b.jpg' },
+    { id: 'fam-c-kirafa', name: 'Кирафа', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753283957/22_nxpyjq.jpg' },
 
 
     { id: 'fam-r-1', name: 'Артерианская гончая', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753197216/%D0%90%D1%80%D1%82%D0%B5%D1%80%D0%B8%D0%B0%D0%BD%D1%81%D0%BA%D0%B0%D1%8F_%D0%B3%D0%BE%D0%BD%D1%87%D0%B0%D1%8F_jjjx11.png' },
@@ -178,6 +181,9 @@ const ALL_FAMILIAR_CARDS_RAW: Omit<FamiliarCard, 'data-ai-hint'>[] = [
     { id: 'fam-r-griffondeer', name: 'Грифолень', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753282464/11_lz5ro1.jpg' },
     { id: 'fam-r-drakoskorpius', name: 'Дракоскорпиус', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753282465/12_ptw4qg.jpg' },
     { id: 'fam-r-skorgus', name: 'Скоргус', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753282465/13_rknyfp.jpg' },
+    { id: 'fam-r-lunoria', name: 'Лунория', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753283958/25_btigbh.jpg' },
+    { id: 'fam-r-fenortul', name: 'Фенортул', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753283958/24_lftev7.jpg' },
+    { id: 'fam-r-kitsuda', name: 'Кицуда', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753283958/23_mur51x.jpg' },
 
 
     { id: 'fam-l-1', name: 'Альви', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753194638/%D0%90%D0%BB%D1%8C%D0%B2%D0%B8_ggcs5g.png' },
@@ -208,6 +214,8 @@ const ALL_FAMILIAR_CARDS_RAW: Omit<FamiliarCard, 'data-ai-hint'>[] = [
     { id: 'fam-m-nightmare', name: 'Найтмар', rank: 'мифический', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199455/%D0%BD%D0%B0%D0%B9%D1%82%D0%BC%D0%B0%D1%80_axauir.png' },
     { id: 'fam-m-skywhale', name: 'Небесный кит', rank: 'мифический', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199456/%D0%9D%D0%B5%D0%B1%D0%B5%D1%81%D0%BD%D1%8B%D0%B9_%D1%81%D0%BA%D0%B0%D1%82_yuvpwb.png' },
     { id: 'fam-m-flower-cat', name: 'Цветокот', rank: 'мифический', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753282462/1_xcq8ff.jpg' },
+    { id: 'fam-m-paukok', name: 'Паукок', rank: 'мифический', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753283956/19_swxogi.jpg' },
+
 ];
 
 
@@ -311,6 +319,13 @@ const addHint = (card: Omit<FamiliarCard, 'data-ai-hint'>): FamiliarCard => {
     else if (lowerCaseName.includes('ленико')) hint = 'leniko creature';
     else if (lowerCaseName.includes('крылопотам')) hint = 'winged hippo';
     else if (lowerCaseName.includes('оркалень')) hint = 'orca deer';
+    else if (lowerCaseName.includes('паукок')) hint = 'peacock spider';
+    else if (lowerCaseName.includes('медопус')) hint = 'honey octopus';
+    else if (lowerCaseName.includes('варассас')) hint = 'varassas creature';
+    else if (lowerCaseName.includes('кирафа')) hint = 'kirafa creature';
+    else if (lowerCaseName.includes('лунория')) hint = 'lunoria creature';
+    else if (lowerCaseName.includes('фенортул')) hint = 'fenortul creature';
+    else if (lowerCaseName.includes('кицуда')) hint = 'kitsuda creature';
     return { ...card, 'data-ai-hint': hint };
 };
 
