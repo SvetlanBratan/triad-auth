@@ -58,6 +58,14 @@ const CharacterDisplay = ({ character }: { character: Character }) => {
         return acc;
     }, {} as Record<FamiliarRank, FamiliarCard[]>);
 
+    const fameLevelText = Array.isArray(character.currentFameLevel)
+        ? character.currentFameLevel.join(', ')
+        : character.currentFameLevel;
+
+    const skillLevelText = Array.isArray(character.skillLevel)
+        ? character.skillLevel.join(', ')
+        : character.skillLevel;
+
     return (
         <AccordionItem value={character.id} className="border-b">
             <div className="flex justify-between items-center w-full hover:bg-muted/50 rounded-md">
@@ -90,8 +98,8 @@ const CharacterDisplay = ({ character }: { character: Character }) => {
             </div>
             <AccordionContent>
             <div className="text-sm space-y-1 pl-2 pb-2">
-                <p><span className="font-semibold">Навык:</span> {character.skillLevel?.join(', ') || 'N/A'}</p>
-                <p><span className="font-semibold">Известность:</span> {character.currentFameLevel?.join(', ') || 'N/A'}</p>
+                <p><span className="font-semibold">Навык:</span> {skillLevelText || 'N/A'}</p>
+                <p><span className="font-semibold">Известность:</span> {fameLevelText || 'N/A'}</p>
                 {character.workLocation && <p><span className="font-semibold">Место работы:</span> {character.workLocation}</p>}
             </div>
 

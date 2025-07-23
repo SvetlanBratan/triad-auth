@@ -118,6 +118,15 @@ export default function CharacterPage() {
     const canEdit = currentUser?.id === owner.id || currentUser?.role === 'admin';
     const inventory = character.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: [] };
 
+    const fameLevelText = Array.isArray(character.currentFameLevel)
+        ? character.currentFameLevel.join(', ')
+        : character.currentFameLevel;
+
+    const skillLevelText = Array.isArray(character.skillLevel)
+        ? character.skillLevel.join(', ')
+        : character.skillLevel;
+
+
     return (
         <div className="container mx-auto p-4 md:p-8 space-y-6">
             <Link href="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4">
@@ -167,11 +176,11 @@ export default function CharacterPage() {
                             <CardTitle>Основная информация</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-2 text-sm">
-                            <div className="flex justify-between"><span>Известность:</span> <Badge variant="secondary">{character.currentFameLevel?.join(', ') || 'N/A'}</Badge></div>
+                            <div className="flex justify-between"><span>Известность:</span> <Badge variant="secondary">{fameLevelText || 'N/A'}</Badge></div>
                              <div className="flex justify-between items-start">
                                 <span>Уровень навыка:</span> 
                                 <div className="text-right">
-                                    <Badge variant="secondary">{character.skillLevel?.join(', ') || 'N/A'}</Badge>
+                                    <Badge variant="secondary">{skillLevelText || 'N/A'}</Badge>
                                     {character.skillDescription && <p className="text-muted-foreground text-xs mt-1">{character.skillDescription}</p>}
                                 </div>
                             </div>

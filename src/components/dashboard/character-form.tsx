@@ -109,7 +109,7 @@ const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps)
                          <MultiSelect
                             options={fameLevelOptions}
                             selected={formData.currentFameLevel}
-                            onChange={(selected) => handleSingleSelectChange('currentFameLevel', selected[selected.length - 1])}
+                            onChange={(selected) => handleSingleSelectChange('currentFameLevel', selected[selected.length - 1] || '')}
                             placeholder="Выберите уровень известности..."
                             className="w-full"
                         />
@@ -119,7 +119,7 @@ const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps)
                          <MultiSelect
                             options={skillLevelOptions}
                             selected={formData.skillLevel}
-                            onChange={(selected) => handleSingleSelectChange('skillLevel', selected[selected.length - 1])}
+                            onChange={(selected) => handleSingleSelectChange('skillLevel', selected[selected.length - 1] || '')}
                             placeholder="Выберите уровень навыка..."
                             className="w-full"
                         />
