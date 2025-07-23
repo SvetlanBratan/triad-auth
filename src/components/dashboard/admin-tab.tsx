@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
-import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask } from 'lucide-react';
+import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock } from 'lucide-react';
 import type { UserStatus, UserRole, User, FamiliarCard } from '@/lib/types';
 import { FAME_LEVELS_POINTS, EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, FAMILIARS_BY_ID } from '@/lib/data';
 import {
@@ -28,7 +28,20 @@ import {
 
 
 export default function AdminTab() {
-  const { addPointsToUser, updateUserStatus, updateUserRole, giveEventFamiliarToCharacter, grantAchievementToUser, fetchAllUsers, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, removeFamiliarFromCharacter } = useUser();
+  const { 
+    addPointsToUser, 
+    updateUserStatus, 
+    updateUserRole, 
+    giveEventFamiliarToCharacter, 
+    grantAchievementToUser, 
+    fetchAllUsers, 
+    clearPointHistoryForUser, 
+    addMoodletToCharacter, 
+    removeMoodletFromCharacter, 
+    removeFamiliarFromCharacter,
+    updateGameDate,
+    gameDateString: initialGameDate,
+  } = useUser();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -64,6 +77,10 @@ export default function AdminTab() {
   const [removeFamiliarUserId, setRemoveFamiliarUserId] = useState<string>('');
   const [removeFamiliarCharId, setRemoveFamiliarCharId] = useState<string>('');
   const [removeFamiliarCardId, setRemoveFamiliarCardId] = useState<string>('');
+  
+  // Game date state
+  const [newGameDateString, setNewGameDateString] = useState(initialGameDate || '');
+  const [isUpdatingDate, setIsUpdatingDate] = useState(false);
 
 
   const { toast } = useToast();
@@ -93,6 +110,24 @@ export default function AdminTab() {
     };
     loadUsers();
   }, [fetchAllUsers, toast]);
+
+  useEffect(() => {
+      setNewGameDateString(initialGameDate || '');
+  }, [initialGameDate]);
+
+  const handleUpdateGameDate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsUpdatingDate(true);
+    try {
+        await updateGameDate(newGameDateString);
+        toast({ title: 'Игровая дата обновлена', description: `Новая дата: ${newGameDateString}` });
+    } catch(error) {
+        console.error('Failed to update game date', error);
+        toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось обновить игровую дату.' });
+    } finally {
+        setIsUpdatingDate(false);
+    }
+  };
 
   const handleAwardPoints = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -220,7 +255,7 @@ export default function AdminTab() {
       if (user.characters && user.characters.length > 0) {
         let pointsForUser = 0;
         user.characters.forEach(character => {
-          const fameLevel = character.currentFameLevel as keyof typeof FAME_LEVELS_POINTS;
+          const fameLevel = Array.isArray(character.currentFameLevel) ? character.currentFameLevel[0] : character.currentFameLevel as (keyof typeof FAME_LEVELS_POINTS);
           if (FAME_LEVELS_POINTS[fameLevel]) {
             pointsForUser += FAME_LEVELS_POINTS[fameLevel];
           }
@@ -538,6 +573,30 @@ export default function AdminTab() {
       </div>
       
       <div className="space-y-6">
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><CalendarClock /> Управление игровой датой</CardTitle>
+                <CardDescription>Измените текущую дату в игровом мире.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <form onSubmit={handleUpdateGameDate} className="space-y-4">
+                    <div>
+                        <Label htmlFor="game-date-input">Текущая дата</Label>
+                        <Input
+                        id="game-date-input"
+                        type="text"
+                        value={newGameDateString}
+                        onChange={(e) => setNewGameDateString(e.target.value)}
+                        placeholder="например, 21 марта 2709 год"
+                        disabled={isUpdatingDate}
+                        />
+                    </div>
+                    <Button type="submit" disabled={isUpdatingDate || newGameDateString === initialGameDate}>
+                        {isUpdatingDate ? 'Сохранение...' : 'Сохранить дату'}
+                    </Button>
+                </form>
+            </CardContent>
+        </Card>
        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><UserCog /> Изменить статус</CardTitle>

@@ -1,10 +1,14 @@
 
-import type { Reward, FamiliarCard, Achievement } from './types';
+import type { Reward, FamiliarCard, Achievement, GameSettings } from './types';
 import type { OptionType } from '@/components/ui/multi-select';
 
-// Game Date
-export const CURRENT_GAME_DATE_STRING = "21 марта 2709 год";
-export const CURRENT_GAME_DATE = new Date(2709, 2, 21); // Month is 0-indexed (2 = March)
+// Game Date is now fetched from Firestore. See UserProvider.
+// This is a fallback/default value if nothing is in the database.
+export const DEFAULT_GAME_SETTINGS: GameSettings = {
+    gameDateString: "21 марта 2709 год",
+    gameDate: new Date(2709, 2, 21), // Month is 0-indexed (2 = March)
+}
+
 
 // The 'id' for users now corresponds to the Firebase Auth UID.
 // For initial users, these are placeholders. New users created via the app

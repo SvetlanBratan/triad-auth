@@ -4,11 +4,10 @@
 import { useUser } from '@/hooks/use-user';
 import { Button } from '../ui/button';
 import { useAuth } from '../providers/user-provider';
-import { CURRENT_GAME_DATE_STRING } from '@/lib/data';
 import { CalendarDays } from 'lucide-react';
 
 export function UserSwitcher() {
-  const { currentUser } = useUser();
+  const { currentUser, gameDateString } = useUser();
   const { signOutUser } = useAuth();
 
   if (!currentUser) return null;
@@ -22,7 +21,7 @@ export function UserSwitcher() {
          </div>
          <div className="text-muted-foreground flex items-center gap-1.5">
             <CalendarDays className="w-3.5 h-3.5" />
-            <span>{CURRENT_GAME_DATE_STRING}</span>
+            <span>{gameDateString}</span>
          </div>
       </div>
       <Button onClick={signOutUser} variant="outline" size="sm">Выйти</Button>

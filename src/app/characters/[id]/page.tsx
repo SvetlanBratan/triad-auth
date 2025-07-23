@@ -8,7 +8,7 @@ import { User, Character, FamiliarCard, FamiliarRank, Moodlet } from '@/lib/type
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FAMILIARS_BY_ID, MOODLETS_DATA, TRAINING_OPTIONS, CURRENT_GAME_DATE } from '@/lib/data';
+import { FAMILIARS_BY_ID, MOODLETS_DATA, TRAINING_OPTIONS } from '@/lib/data';
 import FamiliarCardDisplay from '@/components/dashboard/familiar-card';
 import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound } from 'lucide-react';
 import Link from 'next/link';
@@ -88,7 +88,7 @@ const FamiliarsSection = ({ character }: { character: Character }) => {
 
 export default function CharacterPage() {
     const { id } = useParams();
-    const { currentUser, fetchAllUsers, updateCharacterInUser } = useUser();
+    const { currentUser, fetchAllUsers, updateCharacterInUser, gameDate } = useUser();
     const [character, setCharacter] = useState<Character | null>(null);
     const [owner, setOwner] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -151,7 +151,7 @@ export default function CharacterPage() {
     
     const isBlessed = character.blessingExpires && new Date(character.blessingExpires) > new Date();
     const activeMoodlets = (character.moodlets || []).filter(m => new Date(m.expiresAt) > new Date());
-    const age = calculateAge(character.birthDate, CURRENT_GAME_DATE);
+    const age = gameDate ? calculateAge(character.birthDate, gameDate) : null;
 
 
     return (

@@ -5,6 +5,11 @@ export type RewardRequestStatus = 'в ожидании' | 'одобрено' | '
 export type FamiliarRank = 'обычный' | 'редкий' | 'легендарный' | 'мифический' | 'ивентовый';
 export type InventoryCategory = 'оружие' | 'гардероб' | 'еда' | 'подарки' | 'артефакты' | 'зелья' | 'недвижимость' | 'транспорт';
 
+export interface GameSettings {
+  gameDateString: string;
+  gameDate: Date;
+}
+
 export interface Achievement {
   id: string;
   name: string;

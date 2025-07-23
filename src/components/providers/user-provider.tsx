@@ -2,11 +2,12 @@
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
-import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory } from '@/lib/types';
+import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, collectionGroup, query, where, orderBy, deleteDoc } from "firebase/firestore";
-import { ALL_FAMILIARS, FAMILIARS_BY_ID, MOODLETS_DATA } from '@/lib/data';
+import { ALL_FAMILIARS, FAMILIARS_BY_ID, MOODLETS_DATA, DEFAULT_GAME_SETTINGS } from '@/lib/data';
+import { parse } from 'date-fns';
 
 interface AuthContextType {
     user: FirebaseUser | null;
@@ -27,6 +28,8 @@ export const useAuth = () => {
 interface UserContextType {
   currentUser: User | null;
   setCurrentUser: (user: User | null) => void;
+  gameDate: Date | null;
+  gameDateString: string | null;
   fetchAllUsers: () => Promise<User[]>;
   fetchAllRewardRequests: () => Promise<RewardRequest[]>;
   addPointsToUser: (userId: string, amount: number, reason: string, characterName?: string) => Promise<User | null>;
@@ -48,6 +51,7 @@ interface UserContextType {
   clearRewardRequestsHistory: () => Promise<void>;
   removeFamiliarFromCharacter: (userId: string, characterId: string, cardId: string) => Promise<void>;
   updateUser: (userId: string, updates: Partial<User>) => Promise<void>;
+  updateGameDate: (newDateString: string) => Promise<void>;
 }
 
 export const UserContext = createContext<UserContextType | null>(null);
@@ -115,7 +119,41 @@ const drawFamiliarCard = (hasBlessing: boolean, unavailableMythicIds: Set<string
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+  const [gameSettings, setGameSettings] = useState<GameSettings>(DEFAULT_GAME_SETTINGS);
   const [loading, setLoading] = useState(true);
+
+  const fetchGameSettings = useCallback(async () => {
+    try {
+        const settingsRef = doc(db, 'game_settings', 'main');
+        const docSnap = await getDoc(settingsRef);
+        if (docSnap.exists()) {
+            const data = docSnap.data() as { gameDateString: string };
+            const dateStr = data.gameDateString;
+            // A simple parser for "21 марта 2709 год"
+            const months: { [key: string]: number } = { "января":0, "февраля":1, "марта":2, "апреля":3, "мая":4, "июня":5, "июля":6, "августа":7, "сентября":8, "октября":9, "ноября":10, "декабря":11 };
+            const parts = dateStr.replace(' год', '').split(' ');
+            const day = parseInt(parts[0]);
+            const month = months[parts[1].toLowerCase()];
+            const year = parseInt(parts[2]);
+            const gameDate = new Date(year, month, day);
+
+            setGameSettings({ gameDateString: dateStr, gameDate });
+        } else {
+            // If not found, set the default
+            await setDoc(settingsRef, { gameDateString: DEFAULT_GAME_SETTINGS.gameDateString });
+            setGameSettings(DEFAULT_GAME_SETTINGS);
+        }
+    } catch (error) {
+        console.error("Error fetching game settings:", error);
+        setGameSettings(DEFAULT_GAME_SETTINGS);
+    }
+  }, []);
+
+  const updateGameDate = useCallback(async (newDateString: string) => {
+    const settingsRef = doc(db, 'game_settings', 'main');
+    await updateDoc(settingsRef, { gameDateString: newDateString });
+    await fetchGameSettings(); // Refetch to update state everywhere
+  }, [fetchGameSettings]);
 
   const createNewUser = useCallback(async (uid: string, nickname: string): Promise<User> => {
     const newUser: User = {
@@ -162,6 +200,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    fetchGameSettings();
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setLoading(true);
       setFirebaseUser(user);
@@ -186,7 +225,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => unsubscribe();
-  }, [createNewUser, fetchUserById]);
+  }, [createNewUser, fetchUserById, fetchGameSettings]);
 
   const fetchAllUsers = useCallback(async (): Promise<User[]> => {
     const usersCollection = collection(db, "users");
@@ -722,6 +761,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     () => ({
       currentUser,
       setCurrentUser,
+      gameDate: gameSettings.gameDate,
+      gameDateString: gameSettings.gameDateString,
       fetchAllUsers,
       fetchAllRewardRequests,
       addPointsToUser,
@@ -743,8 +784,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       clearRewardRequestsHistory,
       removeFamiliarFromCharacter,
       updateUser,
+      updateGameDate,
     }),
-    [currentUser, fetchAllUsers, fetchAllRewardRequests, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, fetchAvailableMythicCardsCount, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser]
+    [currentUser, gameSettings, fetchAllUsers, fetchAllRewardRequests, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, fetchAvailableMythicCardsCount, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateGameDate]
   );
 
   return (
