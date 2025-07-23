@@ -41,6 +41,7 @@ interface UserContextType {
   updateRewardRequestStatus: (request: RewardRequest, newStatus: RewardRequestStatus) => Promise<RewardRequest | null>;
   pullGachaForCharacter: (userId: string, characterId: string, cost: number) => Promise<{newCard: FamiliarCard, isDuplicate: boolean}>;
   giveEventFamiliarToCharacter: (userId: string, characterId: string, familiarId: string) => Promise<void>;
+  fetchAvailableMythicCardsCount: () => Promise<number>;
 }
 
 export const UserContext = createContext<UserContextType | null>(null);
@@ -48,7 +49,7 @@ export const UserContext = createContext<UserContextType | null>(null);
 const ADMIN_UIDS = ['Td5P02zpyaMR3IxCY9eCf7gcYky1', 'yawuIwXKVbNhsBQSqWfGZyAzZ3A3'];
 const DUPLICATE_REFUND = 1000;
 
-const drawFamiliarCard = (hasBlessing: boolean): FamiliarCard => {
+const drawFamiliarCard = (hasBlessing: boolean, unavailableMythicIds: Set<string>): FamiliarCard => {
     
     let rand = Math.random() * 100;
 
@@ -64,7 +65,7 @@ const drawFamiliarCard = (hasBlessing: boolean): FamiliarCard => {
     
     const availableCards = ALL_FAMILIARS;
 
-    const availableMythic = availableCards.filter(c => c.rank === 'мифический');
+    const availableMythic = availableCards.filter(c => c.rank === 'мифический' && !unavailableMythicIds.has(c.id));
     const availableLegendary = availableCards.filter(c => c.rank === 'легендарный');
     const availableRare = availableCards.filter(c => c.rank === 'редкий');
     const availableCommon = availableCards.filter(c => c.rank === 'обычный');
@@ -80,11 +81,12 @@ const drawFamiliarCard = (hasBlessing: boolean): FamiliarCard => {
     } else if (availableCommon.length > 0) {
         chosenPool = availableCommon;
     } else {
-      chosenPool = availableCards;
+      chosenPool = availableCards.filter(c => c.rank !== 'мифический');
     }
     
     if (chosenPool.length === 0) {
-      chosenPool = availableCards;
+      // Fallback if all pools somehow end up empty, except mythics
+      chosenPool = availableCards.filter(c => c.rank !== 'мифический' || (c.rank === 'мифический' && !unavailableMythicIds.has(c.id)));
     }
 
     return chosenPool[Math.floor(Math.random() * chosenPool.length)];
@@ -378,17 +380,31 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
 
   const pullGachaForCharacter = useCallback(async (userId: string, characterId: string, cost: number): Promise<{newCard: FamiliarCard, isDuplicate: boolean}> => {
-    const user = await fetchUserById(userId);
+    const allUsers = await fetchAllUsers();
+    const user = allUsers.find(u => u.id === userId);
+
     if (!user) throw new Error("Пользователь не найден.");
 
     const characterIndex = user.characters.findIndex(c => c.id === characterId);
     if (characterIndex === -1) throw new Error("Персонаж не найден.");
 
     if (user.points < cost) throw new Error("Недостаточно очков.");
-
+    
+    const claimedMythicIds = new Set<string>();
+    allUsers.forEach(u => {
+        u.characters.forEach(c => {
+            c.familiarCards.forEach(card => {
+                const familiar = FAMILIARS_BY_ID[card.id];
+                if (familiar && familiar.rank === 'мифический') {
+                    claimedMythicIds.add(card.id);
+                }
+            })
+        })
+    });
+    
     const character = user.characters[characterIndex];
     const hasBlessing = character.blessingExpires ? new Date(character.blessingExpires) > new Date() : false;
-    const newCard = drawFamiliarCard(hasBlessing);
+    const newCard = drawFamiliarCard(hasBlessing, claimedMythicIds);
     
     const ownedCardIds = new Set((character.familiarCards || []).map(c => c.id));
     const isDuplicate = ownedCardIds.has(newCard.id);
@@ -429,7 +445,27 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
 
     return { newCard, isDuplicate };
-  }, [fetchUserById, currentUser?.id]);
+  }, [fetchAllUsers, currentUser?.id]);
+  
+  const fetchAvailableMythicCardsCount = useCallback(async (): Promise<number> => {
+      const allUsers = await fetchAllUsers();
+      const allMythicCards = ALL_FAMILIARS.filter(c => c.rank === 'мифический');
+      const totalMythicCount = allMythicCards.length;
+
+      const claimedMythicIds = new Set<string>();
+      allUsers.forEach(u => {
+        u.characters.forEach(c => {
+            c.familiarCards.forEach(card => {
+                const familiar = FAMILIARS_BY_ID[card.id];
+                if (familiar && familiar.rank === 'мифический') {
+                    claimedMythicIds.add(card.id);
+                }
+            })
+        })
+    });
+
+    return totalMythicCount - claimedMythicIds.size;
+  }, [fetchAllUsers]);
 
   const giveEventFamiliarToCharacter = useCallback(async (userId: string, characterId: string, familiarId: string) => {
     const user = await fetchUserById(userId);
@@ -498,8 +534,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       updateRewardRequestStatus,
       pullGachaForCharacter,
       giveEventFamiliarToCharacter,
+      fetchAvailableMythicCardsCount,
     }),
-    [currentUser, fetchAllUsers, fetchAllRewardRequests, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter]
+    [currentUser, fetchAllUsers, fetchAllRewardRequests, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, fetchAvailableMythicCardsCount]
   );
 
   return (
