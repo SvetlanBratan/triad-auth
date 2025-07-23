@@ -33,7 +33,7 @@ export const rewards: Reward[] = [
     { id: 'r-swap-element', title: 'Обмен стихии на учения', description: 'Поменять 1 стихию на 2 учения', cost: 100, type: 'permanent', iconName: 'Replace', requiresCharacter: true },
     { id: 'r-hybrid', title: 'Полукровка/гибрид', description: 'Полукровка/гибрид из двух рас', cost: 150000, type: 'permanent', iconName: 'Combine' },
     { id: 'r-pumpkin-wife', title: 'Приобрести Тыкво-Жену', description: 'Приобрести Тыкво-Жену', cost: 100000, type: 'permanent', iconName: 'Heart', requiresCharacter: true },
-    { id: 'r-pumpkin-husband', title: 'Приобрести Тыкво-Мужа', description: 'Приобрести Тыкво-Мужа', cost: 100000, type: 'permanent', iconName: 'Heart', requiresCharacter: true },
+    { id: 'r-pumpkin-husband', title: 'Приобрести Тыкво-Мужа', cost: 100000, type: 'permanent', iconName: 'Heart', requiresCharacter: true },
 ];
 
 export const ALL_ACHIEVEMENTS: Achievement[] = [
@@ -41,6 +41,7 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
   { id: 'ach-first-gacha', name: 'Первый раз?', description: 'Даётся за первое использование рулетки, независимо от того, получили вы дубликат или нет.', iconName: 'Dices' },
   { id: 'ach-mythic-pull', name: 'Мифическое везение', description: 'Выдаётся за получение первого мифического фамильяра, которого нет ни у одного другого игрока.', iconName: 'Sparkles' },
   { id: 'ach-generous', name: 'Меценат', description: 'Даётся игроку, потратившему более 100,000 баллов на награды в магазине. Учитываются только одобренные запросы.', iconName: 'Gem' },
+  { id: 'ach-forbes-list', name: 'В списке Forbes', description: 'Выдаётся за попадание в топ-3 таблицы лидеров.', iconName: 'DollarSign' },
   { id: 'ach-unique-character', name: 'Владелец уникального персонажа', description: 'Выдаётся за покупку закрытой расы для персонажа. Любой уровень расы засчитывается.', iconName: 'VenetianMask' },
   { id: 'ach-multi-hand', name: 'Многоручка', description: 'Игрок, купивший дополнительного персонажа, когда лимит на бесплатных персонажей исчерпан.', iconName: 'Users' },
   { id: 'ach-tamer', name: 'Укротитель', description: 'Персонаж сумел завести себе неприручаемое в обычных условиях животное в качестве питомца.', iconName: 'Cat' },

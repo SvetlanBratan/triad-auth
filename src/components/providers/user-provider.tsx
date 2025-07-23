@@ -63,6 +63,7 @@ const PUMPKIN_HUSBAND_REWARD_ID = 'r-pumpkin-husband';
 const PUMPKIN_HUSBAND_CARD_ID = 'fam-e-pumpkin-husband';
 const PUMPKIN_SPOUSE_ACHIEVEMENT_ID = 'ach-pumpkin-spouse';
 const PUMPKIN_HUSBAND_ACHIEVEMENT_ID = 'ach-pumpkin-husband';
+const FORBES_LIST_ACHIEVEMENT_ID = 'ach-forbes-list';
 
 
 const drawFamiliarCard = (hasBlessing: boolean, unavailableMythicIds: Set<string>): FamiliarCard => {
@@ -233,6 +234,17 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, [currentUser?.id]);
 
 
+  const grantAchievementToUser = useCallback(async (userId: string, achievementId: string) => {
+    const user = await fetchUserById(userId);
+    if (!user) return;
+
+    const achievementIds = user.achievementIds || [];
+    if (!achievementIds.includes(achievementId)) {
+        const updatedAchievementIds = [...achievementIds, achievementId];
+        await updateUserInStateAndFirestore(userId, { achievementIds: updatedAchievementIds });
+    }
+  }, [fetchUserById, updateUserInStateAndFirestore]);
+
   const addPointsToUser = useCallback(async (userId: string, amount: number, reason: string, characterName?: string): Promise<User | null> => {
     const user = await fetchUserById(userId);
     if (!user) return null;
@@ -247,8 +259,21 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const newPoints = user.points + amount;
     const newHistory = [newPointLog, ...user.pointHistory].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
-    return await updateUserInStateAndFirestore(userId, { points: newPoints, pointHistory: newHistory });
-  }, [fetchUserById, updateUserInStateAndFirestore]);
+    const updatedUser = await updateUserInStateAndFirestore(userId, { points: newPoints, pointHistory: newHistory });
+
+    // After updating points, check leaderboard for top 3 achievement
+    const allUsers = await fetchAllUsers();
+    const sortedUsers = allUsers.sort((a, b) => b.points - a.points);
+    const top3Users = sortedUsers.slice(0, 3);
+    
+    for (const topUser of top3Users) {
+      if (!topUser.achievementIds?.includes(FORBES_LIST_ACHIEVEMENT_ID)) {
+        await grantAchievementToUser(topUser.id, FORBES_LIST_ACHIEVEMENT_ID);
+      }
+    }
+    
+    return updatedUser;
+  }, [fetchUserById, updateUserInStateAndFirestore, fetchAllUsers, grantAchievementToUser]);
 
   const addCharacterToUser = useCallback(async (userId: string, characterData: Omit<Character, 'id' | 'familiarCards' | 'moodlets'>) => {
     const user = await fetchUserById(userId);
@@ -293,16 +318,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     await updateUserInStateAndFirestore(userId, { role });
   }, [updateUserInStateAndFirestore]);
 
-  const grantAchievementToUser = useCallback(async (userId: string, achievementId: string) => {
-    const user = await fetchUserById(userId);
-    if (!user) return;
-
-    const achievementIds = user.achievementIds || [];
-    if (!achievementIds.includes(achievementId)) {
-        const updatedAchievementIds = [...achievementIds, achievementId];
-        await updateUserInStateAndFirestore(userId, { achievementIds: updatedAchievementIds });
-    }
-  }, [fetchUserById, updateUserInStateAndFirestore]);
   
   const createRewardRequest = useCallback(async (rewardRequestData: Omit<RewardRequest, 'id' | 'status' | 'createdAt'>) => {
     const user = await fetchUserById(rewardRequestData.userId);
@@ -464,7 +479,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
       }
       return {...request, status: newStatus};
-  }, [fetchUserById, currentUser?.id]);
+  }, [fetchUserById, currentUser?.id, grantAchievementToUser]);
 
 
   const pullGachaForCharacter = useCallback(async (userId: string, characterId: string): Promise<{newCard: FamiliarCard, isDuplicate: boolean}> => {
