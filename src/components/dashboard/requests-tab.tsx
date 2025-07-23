@@ -21,6 +21,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { ScrollArea } from '../ui/scroll-area';
 
 
 export default function RequestsTab() {
@@ -112,35 +113,35 @@ export default function RequestsTab() {
     };
 
     const pendingRequests = rewardRequests.filter(r => r.status === 'в ожидании');
-    const processedRequests = rewardRequests.filter(r => r.status !== 'в ожидании');
+    const processedRequests = rewardRequests.filter(r => r.status !== 'в ожидании').sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     const RequestList = ({ requests }: { requests: RewardRequest[] }) => (
-        <div className="space-y-4">
+        <div className="space-y-3">
             {requests.map(request => {
                 const statusProps = getStatusProps(request.status);
                 const isProcessing = processingRequestId === request.id;
                 return (
                     <Card key={request.id}>
-                        <CardHeader>
+                        <CardHeader className="p-4">
                              <div className="flex justify-between items-start">
                                 <div>
-                                    <CardTitle>{request.rewardTitle}</CardTitle>
-                                    <CardDescription>
+                                    <CardTitle className="text-base">{request.rewardTitle}</CardTitle>
+                                    <CardDescription className="text-xs">
                                         От: <strong>{request.userName}</strong> | Стоимость: {request.rewardCost.toLocaleString()} баллов
                                     </CardDescription>
                                     {request.characterName && (
-                                        <p className="text-sm text-muted-foreground mt-1">
+                                        <p className="text-xs text-muted-foreground mt-1">
                                             Для персонажа: <strong>{request.characterName}</strong>
                                         </p>
                                     )}
                                 </div>
-                                <Badge variant="outline" className={cn("flex items-center gap-2", statusProps.badgeClass)}>
+                                <Badge variant="outline" className={cn("flex items-center gap-2 text-xs", statusProps.badgeClass)}>
                                     {statusProps.icon}
                                     {statusProps.text}
                                 </Badge>
                             </div>
                         </CardHeader>
-                        <CardFooter className="flex justify-between items-center">
+                        <CardFooter className="flex justify-between items-center p-4 pt-0">
                              <p className="text-xs text-muted-foreground">
                                 Запрошено: {new Date(request.createdAt).toLocaleString()}
                              </p>
@@ -185,7 +186,7 @@ export default function RequestsTab() {
     }
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
             <div>
                 <h2 className="text-2xl font-bold mb-4">Ожидают решения</h2>
                 {pendingRequests.length > 0 ? (
@@ -194,10 +195,12 @@ export default function RequestsTab() {
                     <p className="text-muted-foreground">Новых запросов нет.</p>
                 )}
             </div>
-             <div>
+             <div className="flex flex-col h-full">
                 <h2 className="text-2xl font-bold mb-4">История запросов</h2>
                 {processedRequests.length > 0 ? (
-                    <RequestList requests={processedRequests} />
+                    <ScrollArea className="h-[75vh] pr-4">
+                        <RequestList requests={processedRequests} />
+                    </ScrollArea>
                 ) : (
                     <p className="text-muted-foreground">Обработанных запросов нет.</p>
                 )}
