@@ -129,27 +129,29 @@ const CharacterDisplay = ({ character, onDelete }: { character: Character, onDel
         <AccordionItem value={character.id} className="border-b">
              <div className="flex justify-between items-center w-full hover:bg-muted/50 rounded-md">
                 <AccordionTrigger className="flex-1 py-4 px-2 hover:no-underline">
-                    <div className="text-left flex items-center gap-2">
+                    <div className="text-left flex items-start gap-2 flex-wrap">
                         <p className="font-bold text-base">{character.name}</p>
-                        {isBlessed && (
-                           <Tooltip>
-                                <TooltipTrigger asChild><Sparkles className="h-4 w-4 text-yellow-500" /></TooltipTrigger>
-                                <TooltipContent><p>{formatTimeLeft(character.blessingExpires)}. Повышен шанс гачи.</p></TooltipContent>
-                           </Tooltip>
-                        )}
-                        {character.hasLeviathanFriendship && (
-                             <Tooltip>
-                                <TooltipTrigger asChild><Anchor className="h-4 w-4 text-blue-500" /></TooltipTrigger>
-                                <TooltipContent><p>Дружба с Левиафаном</p></TooltipContent>
-                           </Tooltip>
-                        )}
-                        {character.hasCrimeConnections && (
-                             <Tooltip>
-                                <TooltipTrigger asChild><KeyRound className="h-4 w-4 text-gray-500" /></TooltipTrigger>
-                                <TooltipContent><p>Связи в преступном мире</p></TooltipContent>
-                           </Tooltip>
-                        )}
-                        <p className="text-sm text-muted-foreground ml-2 truncate">({character.activity})</p>
+                         <div className="flex items-center gap-1.5">
+                            {isBlessed && (
+                               <Tooltip>
+                                    <TooltipTrigger asChild><Sparkles className="h-4 w-4 text-yellow-500" /></TooltipTrigger>
+                                    <TooltipContent><p>{formatTimeLeft(character.blessingExpires)}. Повышен шанс гачи.</p></TooltipContent>
+                               </Tooltip>
+                            )}
+                            {character.hasLeviathanFriendship && (
+                                 <Tooltip>
+                                    <TooltipTrigger asChild><Anchor className="h-4 w-4 text-blue-500" /></TooltipTrigger>
+                                    <TooltipContent><p>Дружба с Левиафаном</p></TooltipContent>
+                               </Tooltip>
+                            )}
+                            {character.hasCrimeConnections && (
+                                 <Tooltip>
+                                    <TooltipTrigger asChild><KeyRound className="h-4 w-4 text-gray-500" /></TooltipTrigger>
+                                    <TooltipContent><p>Связи в преступном мире</p></TooltipContent>
+                               </Tooltip>
+                            )}
+                        </div>
+                        <p className="text-sm text-muted-foreground">({character.activity})</p>
                     </div>
                 </AccordionTrigger>
                 <AlertDialog>
