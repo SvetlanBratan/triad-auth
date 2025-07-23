@@ -304,12 +304,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const charIndex = updatedUser.characters.findIndex(c => c.id === request.characterId);
             if (charIndex !== -1) {
                 let characterToUpdate = { ...updatedUser.characters[charIndex] };
-                if (request.rewardId === 'r2') { // Blessing
+                if (request.rewardId === 'r-blessing') { // Blessing
                     const expiryDate = new Date();
                     expiryDate.setDate(expiryDate.getDate() + 5);
                     characterToUpdate.blessingExpires = expiryDate.toISOString();
                 }
-                if (request.rewardId === 'r9') { // Leviathan
+                if (request.rewardId === 'r-leviathan') { // Leviathan
                     characterToUpdate.hasLeviathanFriendship = true;
                 }
                 updatedUser.characters[charIndex] = characterToUpdate;
