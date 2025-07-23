@@ -409,7 +409,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         id: `h-${Date.now()}-gacha`,
         date: new Date().toISOString(),
         amount: -cost,
-        reason: `Гача: получена карта ${newCard.name} (${newCard.rank})`,
+        reason: `Рулетка: получена карта ${newCard.name} (${newCard.rank})`,
         characterName: character.name,
     };
     updatedUser.pointHistory.unshift(newPointLog);
@@ -503,5 +503,3 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     </AuthContext.Provider>
   );
 }
-
-    

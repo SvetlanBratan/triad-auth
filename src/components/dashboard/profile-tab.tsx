@@ -34,9 +34,8 @@ import { cn, formatTimeLeft } from '@/lib/utils';
 import { ACHIEVEMENTS_BY_ID } from '@/lib/data';
 import FamiliarCardDisplay from './familiar-card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-import * as LucideIcons from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import * as LucideIcons from 'lucide-react';
 import CharacterForm from './character-form';
 
 
@@ -58,7 +57,6 @@ const CharacterDisplay = ({ character, onEdit, onDelete }: { character: Characte
     const isBlessed = character.blessingExpires && new Date(character.blessingExpires) > new Date();
 
     return (
-      <TooltipProvider>
         <AccordionItem value={character.id} className="border-b">
              <div className="flex justify-between items-center w-full hover:bg-muted/50 rounded-md">
                 <AccordionTrigger className="flex-1 py-4 px-2 hover:no-underline">
@@ -66,22 +64,22 @@ const CharacterDisplay = ({ character, onEdit, onDelete }: { character: Characte
                         <p className="font-bold text-base">{character.name}</p>
                          <div className="flex items-center gap-1.5">
                             {isBlessed && (
-                               <Tooltip>
-                                    <TooltipTrigger asChild><Sparkles className="h-4 w-4 text-yellow-500" /></TooltipTrigger>
-                                    <TooltipContent><p>{formatTimeLeft(character.blessingExpires)}. Повышен шанс гачи.</p></TooltipContent>
-                               </Tooltip>
+                               <Popover>
+                                    <PopoverTrigger asChild><button><Sparkles className="h-4 w-4 text-yellow-500" /></button></PopoverTrigger>
+                                    <PopoverContent className="w-auto text-sm"><p>{formatTimeLeft(character.blessingExpires)}. Повышен шанс в рулетке.</p></PopoverContent>
+                               </Popover>
                             )}
                             {character.hasLeviathanFriendship && (
-                                 <Tooltip>
-                                    <TooltipTrigger asChild><Anchor className="h-4 w-4 text-blue-500" /></TooltipTrigger>
-                                    <TooltipContent><p>Дружба с Левиафаном</p></TooltipContent>
-                               </Tooltip>
+                                <Popover>
+                                    <PopoverTrigger asChild><button><Anchor className="h-4 w-4 text-blue-500" /></button></PopoverTrigger>
+                                    <PopoverContent className="w-auto text-sm"><p>Дружба с Левиафаном</p></PopoverContent>
+                               </Popover>
                             )}
                             {character.hasCrimeConnections && (
-                                 <Tooltip>
-                                    <TooltipTrigger asChild><KeyRound className="h-4 w-4 text-gray-500" /></TooltipTrigger>
-                                    <TooltipContent><p>Связи в преступном мире</p></TooltipContent>
-                               </Tooltip>
+                                <Popover>
+                                    <PopoverTrigger asChild><button><KeyRound className="h-4 w-4 text-gray-500" /></button></PopoverTrigger>
+                                    <PopoverContent className="w-auto text-sm"><p>Связи в преступном мире</p></PopoverContent>
+                               </Popover>
                             )}
                         </div>
                         <p className="text-sm text-muted-foreground">({character.activity})</p>
@@ -141,7 +139,6 @@ const CharacterDisplay = ({ character, onEdit, onDelete }: { character: Characte
                 </Accordion>
             </AccordionContent>
         </AccordionItem>
-    </TooltipProvider>
     );
 };
 
@@ -343,5 +340,3 @@ export default function ProfileTab() {
     </div>
   );
 }
-
-    

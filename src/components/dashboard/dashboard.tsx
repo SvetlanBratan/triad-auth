@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,7 +8,7 @@ import LeaderboardTab from "./leaderboard-tab";
 import RewardsTab from "./rewards-tab";
 import AdminTab from "./admin-tab";
 import RequestsTab from "./requests-tab";
-import GachaTab from "./gacha-tab";
+import RouletteTab from "./gacha-tab";
 import { User, Trophy, Award, Shield, GitPullRequest, Dices } from "lucide-react";
 import AuthPage from "../auth/auth-page";
 import { useAuth } from "../providers/user-provider";
@@ -39,7 +40,7 @@ export function Dashboard() {
   const tabs = [
     { value: 'profile', label: 'Мой профиль', icon: User },
     { value: 'leaderboard', label: 'Таблица лидеров', icon: Trophy },
-    { value: 'gacha', label: 'Гача', icon: Dices },
+    { value: 'roulette', label: 'Рулетка', icon: Dices },
     { value: 'rewards', label: 'Награды', icon: Award },
     ...(isAdmin ? [{ value: 'requests', label: 'Запросы', icon: GitPullRequest }] : []),
     ...(isAdmin ? [{ value: 'admin', label: 'Админ-панель', icon: Shield }] : []),
@@ -68,8 +69,8 @@ export function Dashboard() {
         <TabsContent value="leaderboard" className="mt-4">
           <LeaderboardTab />
         </TabsContent>
-        <TabsContent value="gacha" className="mt-4">
-          <GachaTab />
+        <TabsContent value="roulette" className="mt-4">
+          <RouletteTab />
         </TabsContent>
         <TabsContent value="rewards" className="mt-4">
           <RewardsTab />

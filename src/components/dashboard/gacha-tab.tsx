@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -25,9 +26,9 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { ALL_FAMILIARS } from '@/lib/data';
 
-const GACHA_COST = 5000;
+const ROULETTE_COST = 5000;
 
-export default function GachaTab() {
+export default function RouletteTab() {
   const { currentUser, pullGachaForCharacter } = useUser();
   const { toast } = useToast();
   const [selectedCharacterId, setSelectedCharacterId] = useState<string>('');
@@ -35,7 +36,7 @@ export default function GachaTab() {
   const [isFlipping, setIsFlipping] = useState(false);
   const [revealedCard, setRevealedCard] = useState<FamiliarCard | null>(null);
 
-  const handlePullGacha = async () => {
+  const handlePull = async () => {
     if (!currentUser || !selectedCharacterId) {
       toast({
         variant: 'destructive',
@@ -45,11 +46,11 @@ export default function GachaTab() {
       return;
     }
 
-    if (currentUser.points < GACHA_COST) {
+    if (currentUser.points < ROULETTE_COST) {
       toast({
         variant: 'destructive',
         title: 'Недостаточно баллов',
-        description: `Вам нужно ${GACHA_COST.toLocaleString()} баллов.`,
+        description: `Вам нужно ${ROULETTE_COST.toLocaleString()} баллов.`,
       });
       return;
     }
@@ -77,7 +78,7 @@ export default function GachaTab() {
       const newCard = await pullGachaForCharacter(
         currentUser.id,
         selectedCharacterId,
-        GACHA_COST
+        ROULETTE_COST
       );
 
       // Wait for flip animation to progress before showing the card
@@ -94,7 +95,7 @@ export default function GachaTab() {
         error instanceof Error ? error.message : 'Произошла неизвестная ошибка.';
       toast({
         variant: 'destructive',
-        title: 'Ошибка гачи',
+        title: 'Ошибка рулетки',
         description: errorMessage,
       });
       setIsFlipping(false);
@@ -106,7 +107,7 @@ export default function GachaTab() {
     }
   };
   
-  const resetGacha = () => {
+  const resetRoulette = () => {
     setIsFlipping(false);
     setRevealedCard(null);
   }
@@ -116,7 +117,7 @@ export default function GachaTab() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Dices /> Гача Фамильяров
+            <Dices /> Рулетка Фамильяров
           </CardTitle>
           <CardDescription>
             Испытайте свою удачу! Получите случайную карту фамильяра для одного
@@ -127,7 +128,7 @@ export default function GachaTab() {
           <div className="flex justify-between items-center p-3 rounded-lg bg-primary/10">
             <span className="font-semibold">Стоимость одной прокрутки:</span>
             <span className="font-bold text-lg text-primary flex items-center gap-1">
-              <Star className="w-4 h-4" /> {GACHA_COST.toLocaleString()}
+              <Star className="w-4 h-4" /> {ROULETTE_COST.toLocaleString()}
             </span>
           </div>
 
@@ -156,11 +157,11 @@ export default function GachaTab() {
             )}
           </div>
           <Button
-            onClick={handlePullGacha}
+            onClick={handlePull}
             disabled={
               !selectedCharacterId ||
               isLoading ||
-              (currentUser?.points ?? 0) < GACHA_COST ||
+              (currentUser?.points ?? 0) < ROULETTE_COST ||
               currentUser?.characters.length === 0
             }
             className="w-full"
@@ -202,7 +203,7 @@ export default function GachaTab() {
              </div>
              {revealedCard && (
                 <div className="text-center mt-4">
-                    <Button onClick={resetGacha} variant="outline">Крутить еще раз</Button>
+                    <Button onClick={resetRoulette} variant="outline">Крутить еще раз</Button>
                 </div>
              )}
            </div>

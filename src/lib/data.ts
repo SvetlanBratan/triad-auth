@@ -36,8 +36,8 @@ export const rewards: Reward[] = [
 ];
 
 export const ALL_ACHIEVEMENTS: Achievement[] = [
-  { id: 'ach-first-gacha', name: 'Первый раз?', description: 'Выдается игроку, который впервые воспользовался гачей фамильяров.', iconName: 'Dices' },
-  { id: 'ach-mythic-pull', name: 'Мифическое везение', description: 'Награда за получение первого "мифического" фамильяра из гачи.', iconName: 'Sparkles' },
+  { id: 'ach-first-gacha', name: 'Первый раз?', description: 'Выдается игроку, который впервые воспользовался рулеткой фамильяров.', iconName: 'Dices' },
+  { id: 'ach-mythic-pull', name: 'Мифическое везение', description: 'Награда за получение первого "мифического" фамильяра из рулетки.', iconName: 'Sparkles' },
   { id: 'ach-event-participant', name: 'Участник события', description: 'За активное участие в крупных серверных или ролевых ивентах.', iconName: 'PartyPopper' },
   { id: 'ach-famous', name: 'Знаменитость', description: 'Выдается персонажу, достигшему уровня известности "Знаменитый на весь мир" или выше.', iconName: 'Award' },
   { id: 'ach-beta-tester', name: 'Бета-тестер', description: 'Выдается первым игрокам, которые участвовали в тестировании и настройке системы баллов.', iconName: 'FlaskConical' },
