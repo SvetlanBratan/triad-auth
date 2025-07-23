@@ -408,7 +408,12 @@ export default function AdminTab() {
                   </SelectTrigger>
                   <SelectContent>
                     {ALL_ACHIEVEMENTS.map(ach => (
-                      <SelectItem key={ach.id} value={ach.id}>{ach.name}</SelectItem>
+                      <SelectItem key={ach.id} value={ach.id} className="items-start">
+                        <div className="flex flex-col">
+                          <span className="font-semibold">{ach.name}</span>
+                          <span className="text-xs text-muted-foreground whitespace-normal">{ach.description}</span>
+                        </div>
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
