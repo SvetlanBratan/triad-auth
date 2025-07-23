@@ -139,15 +139,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
               if (!isNaN(gameDate.getTime())) {
                 setGameSettings({ gameDateString: dateStr, gameDate });
-                return;
               }
             }
         }
     } catch (error) {
-        console.error("Error fetching game settings (may be due to permissions for non-admins):", error);
+        console.error("Error fetching game settings, may be due to permissions:", error);
     }
-    // Fallback if doc doesn't exist or there's an error.
-    setGameSettings(DEFAULT_GAME_SETTINGS);
   }, []);
 
   const updateGameDate = useCallback(async (newDateString: string) => {
@@ -247,17 +244,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const userData = await fetchUserById(user.uid);
             if (userData) {
                 setCurrentUser(userData);
-                // CRITICAL FIX: Only fetch game settings IF the user is an admin.
                 if (userData.role === 'admin') {
                     await fetchGameSettings();
                 } else {
-                    setGameSettings(DEFAULT_GAME_SETTINGS); // Ensure non-admins have the default
+                    setGameSettings(DEFAULT_GAME_SETTINGS);
                 }
             } else {
                 const nickname = user.displayName || user.email?.split('@')[0] || 'Пользователь';
                 const newUser = await createNewUser(user.uid, nickname);
                 setCurrentUser(newUser);
-                // Also check role for newly created user
                 if (newUser.role === 'admin') {
                      await fetchGameSettings();
                 } else {
@@ -270,7 +265,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
       } else {
         setCurrentUser(null);
-        setGameSettings(DEFAULT_GAME_SETTINGS); // Reset to default on logout
+        setGameSettings(DEFAULT_GAME_SETTINGS); 
       }
       setLoading(false);
     });
@@ -846,3 +841,5 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     </AuthContext.Provider>
   );
 }
+
+    
