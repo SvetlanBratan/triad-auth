@@ -50,11 +50,11 @@ export default function AdminTab() {
   const [achieveUserId, setAchieveUserId] = useState<string>('');
   const [achieveId, setAchieveId] = useState<string>('');
 
-  const [points, setPoints] = useState<number>(0);
+  const [points, setPoints] = useState<string>('');
   const [reason, setReason] = useState<string>('');
 
   const [deductSelectedUserId, setDeductSelectedUserId] = useState<string>('');
-  const [deductPoints, setDeductPoints] = useState<number>(0);
+  const [deductPoints, setDeductPoints] = useState<string>('');
   const [deductReason, setDeductReason] = useState<string>('');
 
   // Moodlet state
@@ -84,7 +84,9 @@ export default function AdminTab() {
 
   const handleAwardPoints = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!awardSelectedUserId || points === 0 || !reason) {
+    const pointsToAward = parseInt(points, 10);
+
+    if (!awardSelectedUserId || !pointsToAward || !reason) {
       toast({
         variant: "destructive",
         title: "Отсутствует информация",
@@ -93,23 +95,25 @@ export default function AdminTab() {
       return;
     }
     
-    const updatedUser = await addPointsToUser(awardSelectedUserId, points, reason);
+    const updatedUser = await addPointsToUser(awardSelectedUserId, pointsToAward, reason);
     if (updatedUser) {
         setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
         toast({
             title: "Баллы начислены!",
-            description: `Начислено ${points} баллов пользователю ${updatedUser.name}.`,
+            description: `Начислено ${pointsToAward} баллов пользователю ${updatedUser.name}.`,
         });
     }
 
     setAwardSelectedUserId('');
-    setPoints(0);
+    setPoints('');
     setReason('');
   };
 
    const handleDeductPoints = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!deductSelectedUserId || deductPoints === 0 || !deductReason) {
+     const pointsToDeductNum = parseInt(deductPoints, 10);
+
+    if (!deductSelectedUserId || !pointsToDeductNum || !deductReason) {
       toast({
         variant: 'destructive',
         title: 'Отсутствует информация',
@@ -118,7 +122,7 @@ export default function AdminTab() {
       return;
     }
 
-    const pointsToDeduct = -Math.abs(deductPoints);
+    const pointsToDeduct = -Math.abs(pointsToDeductNum);
     const updatedUser = await addPointsToUser(deductSelectedUserId, pointsToDeduct, deductReason);
 
     if (updatedUser) {
@@ -131,7 +135,7 @@ export default function AdminTab() {
     }
 
     setDeductSelectedUserId('');
-    setDeductPoints(0);
+    setDeductPoints('');
     setDeductReason('');
   };
 
@@ -404,7 +408,8 @@ export default function AdminTab() {
                   id="points-input"
                   type="number"
                   value={points}
-                  onChange={e => setPoints(parseInt(e.target.value, 10) || 0)}
+                  onChange={(e) => setPoints(e.target.value)}
+                  placeholder="0"
                 />
               </div>
               <div>
@@ -446,7 +451,8 @@ export default function AdminTab() {
                   id="points-input-deduct"
                   type="number"
                   value={deductPoints}
-                  onChange={e => setDeductPoints(parseInt(e.target.value, 10) || 0)}
+                  onChange={(e) => setDeductPoints(e.target.value)}
+                  placeholder="0"
                 />
               </div>
               <div>
