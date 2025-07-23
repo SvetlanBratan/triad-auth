@@ -108,16 +108,16 @@ const AddCharacterForm = ({ onAddCharacter, closeDialog }: { onAddCharacter: (ch
 const CharacterDisplay = ({ character, onDelete }: { character: Character, onDelete: (characterId: string) => void }) => {
     const familiarCards = character.familiarCards || [];
     return (
-        <Card className="mb-4">
-            <CardHeader>
-                <div className="flex justify-between items-start">
-                    <div>
-                        <CardTitle>{character.name}</CardTitle>
-                        <CardDescription>{character.activity}</CardDescription>
+        <AccordionItem value={character.id} className="border-b">
+            <AccordionTrigger className="hover:no-underline">
+                <div className="flex justify-between items-center w-full">
+                    <div className="text-left">
+                        <p className="font-bold text-base">{character.name}</p>
+                        <p className="text-sm text-muted-foreground">{character.activity}</p>
                     </div>
-                    <AlertDialog>
+                     <AlertDialog>
                         <AlertDialogTrigger asChild>
-                             <Button variant="ghost" size="icon">
+                             <Button variant="ghost" size="icon" className="mr-2 hover:bg-destructive/10" onClick={(e) => e.stopPropagation()}>
                                 <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                         </AlertDialogTrigger>
@@ -139,20 +139,20 @@ const CharacterDisplay = ({ character, onDelete }: { character: Character, onDel
                         </AlertDialogContent>
                     </AlertDialog>
                 </div>
-            </CardHeader>
-            <CardContent>
-                <div className="text-sm space-y-1">
+            </AccordionTrigger>
+            <AccordionContent>
+                <div className="text-sm space-y-1 pl-2 pb-2">
                     <p><span className="font-semibold">Навык:</span> {character.skillLevel}</p>
                     <p><span className="font-semibold">Известность:</span> {character.currentFameLevel}</p>
                     {character.workLocation && <p><span className="font-semibold">Место работы:</span> {character.workLocation}</p>}
                 </div>
 
-                <Accordion type="single" collapsible className="w-full mt-4">
+                <Accordion type="single" collapsible className="w-full mt-2">
                     <AccordionItem value="item-1">
-                        <AccordionTrigger>Показать фамильяров ({familiarCards.length})</AccordionTrigger>
+                        <AccordionTrigger className="text-sm">Показать фамильяров ({familiarCards.length})</AccordionTrigger>
                         <AccordionContent>
                              {familiarCards.length > 0 ? (
-                                <div className="flex flex-wrap gap-4 mt-2">
+                                <div className="flex flex-wrap gap-2 pt-2">
                                     {familiarCards.map(card => (
                                         <FamiliarCardDisplay key={card.id} cardId={card.id} />
                                     ))}
@@ -163,8 +163,8 @@ const CharacterDisplay = ({ character, onDelete }: { character: Character, onDel
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>
-            </CardContent>
-        </Card>
+            </AccordionContent>
+        </AccordionItem>
     );
 };
 
@@ -267,11 +267,11 @@ export default function ProfileTab() {
           </CardHeader>
           <CardContent>
             {currentUser.characters.length > 0 ? (
-                <div className="space-y-4">
+                <Accordion type="single" collapsible className="w-full">
                     {currentUser.characters.map(char => (
                         <CharacterDisplay key={char.id} character={char} onDelete={handleDeleteCharacter} />
                     ))}
-                </div>
+                </Accordion>
             ) : (
                 <p className="text-sm text-muted-foreground text-center py-4">Персонажей пока нет.</p>
             )}
