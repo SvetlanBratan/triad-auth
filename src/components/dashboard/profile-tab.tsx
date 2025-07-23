@@ -117,16 +117,18 @@ export default function ProfileTab() {
     toast({ variant: 'destructive', title: "Персонаж удален", description: "Персонаж и все его данные были удалены." });
   };
 
-  const handleFormSubmit = (characterData: Omit<Character, 'id' | 'familiarCards' | 'moodlets' | 'inventory' | 'appearance' | 'personality' | 'biography' | 'diary' | 'training' | 'relationships'> | Character) => {
+  const handleFormSubmit = (characterData: Character) => {
       if (!currentUser) return;
 
-      if ('id' in characterData) {
+      if (characterData.id) {
         // Editing existing character
-        updateCharacterInUser(currentUser.id, characterData as Character);
+        updateCharacterInUser(currentUser.id, characterData);
         toast({ title: "Успешно", description: "Данные персонажа обновлены." });
       } else {
-        // Adding new character
-        addCharacterToUser(currentUser.id, characterData);
+        // Adding new character - this path is less likely now form is for full edits
+        // but keeping logic just in case. The form should be initialized with a partial type for new.
+        const newCharacterData = characterData as Omit<Character, 'id' | 'inventory' | 'familiarCards' | 'moodlets'>;
+        addCharacterToUser(currentUser.id, newCharacterData);
         toast({ title: "Успешно", description: "Персонаж добавлен. Теперь он может получать награды." });
       }
       setFormDialogOpen(false);
@@ -281,7 +283,7 @@ export default function ProfileTab() {
                 </DialogDescription>
                 </DialogHeader>
                 <CharacterForm 
-                    onSubmit={handleFormSubmit}
+                    onSubmit={handleFormSubmit as (data: Character) => void}
                     character={editingCharacter}
                     closeDialog={() => setFormDialogOpen(false)} 
                 />

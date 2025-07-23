@@ -51,6 +51,7 @@ export interface Character {
   name: string;
   activity: string;
   skillLevel: string;
+  skillDescription?: string;
   currentFameLevel: string;
   workLocation: string;
   // New questionnaire fields

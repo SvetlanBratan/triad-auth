@@ -23,6 +23,7 @@ const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps)
         name: '',
         activity: '',
         skillLevel: '',
+        skillDescription: '',
         currentFameLevel: '',
         workLocation: '',
         appearance: '',
@@ -39,6 +40,7 @@ const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps)
                 name: character.name,
                 activity: character.activity,
                 skillLevel: character.skillLevel,
+                skillDescription: character.skillDescription || '',
                 currentFameLevel: character.currentFameLevel,
                 workLocation: character.workLocation || '',
                 appearance: character.appearance || '',
@@ -49,9 +51,8 @@ const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps)
                 relationships: character.relationships || '',
             });
         } else {
-            // Reset for new character, though this form is now primarily for editing full profiles
              setFormData({
-                name: '', activity: '', skillLevel: '', currentFameLevel: '', workLocation: '',
+                name: '', activity: '', skillLevel: '', skillDescription: '', currentFameLevel: '', workLocation: '',
                 appearance: '', personality: '', biography: '', diary: '', training: '', relationships: ''
             });
         }
@@ -107,6 +108,10 @@ const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps)
                                 ))}
                             </SelectContent>
                         </Select>
+                    </div>
+                     <div>
+                        <Label htmlFor="skillDescription">Описание навыка (необязательно)</Label>
+                        <Input id="skillDescription" value={formData.skillDescription} onChange={handleChange} placeholder="например, в области конструкта" />
                     </div>
                     <div>
                         <Label htmlFor="currentFameLevel">Текущая известность</Label>

@@ -293,6 +293,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         ...characterData,
         familiarCards: [],
         moodlets: [],
+        skillDescription: '',
         appearance: '',
         personality: '',
         biography: '',
