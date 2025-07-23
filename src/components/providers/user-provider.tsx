@@ -50,6 +50,10 @@ const ADMIN_UIDS = ['Td5P02zpyaMR3IxCY9eCf7gcYky1', 'yawuIwXKVbNhsBQSqWfGZyAzZ3A
 const ROULETTE_COST = 5000;
 const DUPLICATE_REFUND = 1000;
 const FIRST_PULL_ACHIEVEMENT_ID = 'ach-first-gacha';
+const MYTHIC_PULL_ACHIEVEMENT_ID = 'ach-mythic-pull';
+const GENEROUS_ACHIEVEMENT_ID = 'ach-generous';
+const GENEROUS_THRESHOLD = 100000;
+
 
 const drawFamiliarCard = (hasBlessing: boolean, unavailableMythicIds: Set<string>): FamiliarCard => {
     
@@ -309,16 +313,31 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     };
     const updatedPoints = user.points - rewardRequestData.rewardCost;
     const updatedHistory = [newPointLog, ...user.pointHistory].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
     const userRef = doc(db, "users", user.id);
     batch.update(userRef, { points: updatedPoints, pointHistory: updatedHistory });
 
     await batch.commit();
 
+    const updatedUser = { ...user, points: updatedPoints, pointHistory: updatedHistory };
+
     if (currentUser?.id === user.id) {
-        const updatedUser = { ...user, points: updatedPoints, pointHistory: updatedHistory };
         setCurrentUser(prev => ({...prev!, ...updatedUser}));
     }
-  }, [fetchUserById, currentUser?.id]);
+
+    // Check for "Generous" achievement
+    const hasGenerousAchievement = (updatedUser.achievementIds || []).includes(GENEROUS_ACHIEVEMENT_ID);
+    if (!hasGenerousAchievement) {
+        const requestsQuery = query(collection(db, `users/${user.id}/reward_requests`), where('status', '==', 'одобрено'));
+        const approvedRequestsSnapshot = await getDocs(requestsQuery);
+        const totalSpent = approvedRequestsSnapshot.docs.reduce((sum, doc) => sum + (doc.data() as RewardRequest).rewardCost, rewardRequestData.rewardCost);
+        
+        if (totalSpent > GENEROUS_THRESHOLD) {
+            await grantAchievementToUser(user.id, GENEROUS_ACHIEVEMENT_ID);
+        }
+    }
+
+  }, [fetchUserById, currentUser?.id, grantAchievementToUser]);
   
  const updateRewardRequestStatus = useCallback(async (request: RewardRequest, newStatus: RewardRequestStatus): Promise<RewardRequest | null> => {
       const user = await fetchUserById(request.userId);
@@ -429,6 +448,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             familiarCards: [...(character.familiarCards || []), { id: newCard.id }],
         };
         updatedUser.characters[characterIndex] = updatedCharacter;
+        
+        // Check for Mythic Pull achievement
+        const hasMythicAchievement = (user.achievementIds || []).includes(MYTHIC_PULL_ACHIEVEMENT_ID);
+        if (newCard.rank === 'мифический' && !hasMythicAchievement) {
+            updatedUser.achievementIds = [...(updatedUser.achievementIds || []), MYTHIC_PULL_ACHIEVEMENT_ID];
+        }
     }
 
     updatedUser.points += finalPointChange;
@@ -444,8 +469,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     // Check for first-ever pull achievement
     const hasPulledBefore = user.pointHistory.some(log => log.reason.includes('Рулетка'));
-    const hasAchievement = (user.achievementIds || []).includes(FIRST_PULL_ACHIEVEMENT_ID);
-    if (!hasPulledBefore && !hasAchievement) {
+    const hasFirstPullAchievement = (user.achievementIds || []).includes(FIRST_PULL_ACHIEVEMENT_ID);
+    if (!hasPulledBefore && !hasFirstPullAchievement) {
         updatedUser.achievementIds = [...(updatedUser.achievementIds || []), FIRST_PULL_ACHIEVEMENT_ID];
     }
 
@@ -550,7 +575,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       giveEventFamiliarToCharacter,
       fetchAvailableMythicCardsCount,
     }),
-    [currentUser, fetchAllUsers, fetchAllRewardRequests, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, fetchAvailableMythicCardsCount]
+    [currentUser, fetchAllUsers, fetchAllRewardRequests, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, fetchAvailableMythicCardsCount, grantAchievementToUser]
   );
 
   return (
@@ -561,3 +586,4 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     </AuthContext.Provider>
   );
 }
+
