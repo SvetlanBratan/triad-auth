@@ -43,7 +43,25 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
   { id: 'ach-beta-tester', name: 'Бета-тестер', description: 'За участие в бета-тесте системы.', iconName: 'FlaskConical' },
   { id: 'ach-bug-hunter', name: 'Охотник за ошибками', description: 'За нахождение и репорт ошибки.', iconName: 'Bug' },
   { id: 'ach-generous', name: 'Меценат', description: 'За трату более 100,000 баллов.', iconName: 'Gem' },
-  { id: 'ach-pumpkin-spouse', name: 'Тыквенный(ая) супруг(а)', description: 'За приобретение Тыкво-Жены.', iconName: 'Heart' },
+  { id: 'ach-pumpkin-spouse', name: 'Тыквенный(ая) супруг(а)', description: 'Обладатель самой прекрасной супруги в мире Триады.', iconName: 'Heart' },
+  { id: 'ach-unique-character', name: 'Владелец уникального персонажа', description: 'Покупка закрытой расы.', iconName: 'VenetianMask' },
+  { id: 'ach-multi-hand', name: 'Многоручка', description: 'Покупка дополнительного персонажа.', iconName: 'Users' },
+  { id: 'ach-tamer', name: 'Укротитель', description: 'Сумел завести неприручаемое животное.', iconName: 'Cat' },
+  { id: 'ach-mafiosi', name: 'Мафиози', description: 'Имеет связи в преступном мире.', iconName: 'KeyRound' },
+  { id: 'ach-submariner', name: 'Люблю подводный мир', description: 'Подружился с Левиафаном.', iconName: 'Anchor' },
+  { id: 'ach-seaman', name: 'Мореход', description: 'Имеет судно в своём распоряжении.', iconName: 'Ship' },
+  { id: 'ach-sky-master', name: 'Освоил небо', description: 'Купил дирижабль для собственных нужд.', iconName: 'Rocket' },
+  { id: 'ach-big-mage', name: 'Большой, большой, большо-ой!', description: 'Даётся за покупку большого магического резерва.', iconName: 'Flame' },
+  { id: 'ach-important-person', name: 'Важный', description: 'Имеет высокую должность при дворе.', iconName: 'Crown' },
+  { id: 'ach-baron', name: 'Ваша Милость', description: 'Заработал титул Барона своим трудом.', iconName: 'Landmark' },
+  { id: 'ach-sir-lady', name: 'Сэр/Леди', description: 'Получил признание прилагая усилия.', iconName: 'Award' },
+  { id: 'ach-warlock', name: 'Колдун', description: 'Получил дополнительную стихию для персонажа.', iconName: 'Waves' },
+  { id: 'ach-wizard', name: 'Чародей', description: 'Получил дополнительное учение для персонажа.', iconName: 'BookPlus' },
+  { id: 'ach-guildmaster', name: 'Гильдмастер', description: 'Видел гильдию? Я основаль.', iconName: 'Building2' },
+  { id: 'ach-hybrid', name: 'Гибридная полукровка', description: 'Нет! Он нашей расы!', iconName: 'Combine' },
+  { id: 'ach-exchange-master', name: 'Мастер обмена', description: 'Обменял стихию на учение.', iconName: 'Replace' },
+  { id: 'ach-dark-lord', name: 'Тёмный Владыка', description: 'Получил запретную магию.', iconName: 'Skull' },
+  { id: 'ach-chimera-mancer', name: 'Химеромант', description: 'Изменил тело персонажа до неузнаваемости.', iconName: 'GitBranchPlus' },
 ];
 
 export const ACHIEVEMENTS_BY_ID: Record<string, Achievement> = ALL_ACHIEVEMENTS.reduce((acc, ach) => {
@@ -232,3 +250,5 @@ export const FAMILIARS_BY_ID: Record<string, FamiliarCard> = [...ALL_FAMILIARS, 
     acc[card.id] = card;
     return acc;
 }, {} as Record<string, FamiliarCard>);
+
+    

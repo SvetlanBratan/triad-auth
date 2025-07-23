@@ -349,7 +349,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, [fetchUserById, currentUser?.id, grantAchievementToUser]);
   
  const updateRewardRequestStatus = useCallback(async (request: RewardRequest, newStatus: RewardRequestStatus): Promise<RewardRequest | null> => {
-      const user = await fetchUserById(request.userId);
+      let user = await fetchUserById(request.userId);
       if (!user) throw new Error("User for the request not found");
 
       const batch = writeBatch(db);
@@ -364,7 +364,44 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (request.characterId) {
             characterToUpdateIndex = updatedUser.characters.findIndex(c => c.id === request.characterId);
         }
+        
+        const achievementMap: Record<string, string> = {
+          'r-race-1': 'ach-unique-character',
+          'r-race-2': 'ach-unique-character',
+          'r-race-3': 'ach-unique-character',
+          'r-race-4': 'ach-unique-character',
+          'r-extra-char': 'ach-multi-hand',
+          'r-wild-pet': 'ach-tamer',
+          'r-crime-connections': 'ach-mafiosi',
+          'r-leviathan': 'ach-submariner',
+          'r-ship': 'ach-seaman',
+          'r-airship': 'ach-sky-master',
+          'r-archmage': 'ach-big-mage',
+          'r-court-position': 'ach-important-person',
+          'r-baron': 'ach-baron',
+          'r-land-titled': 'ach-sir-lady',
+          'r-extra-element': 'ach-warlock',
+          'r-extra-doctrine': 'ach-wizard',
+          'r-guild': 'ach-guildmaster',
+          'r-hybrid': 'ach-hybrid',
+          'r-swap-element': 'ach-exchange-master',
+          'r-forbidden-magic': 'ach-dark-lord',
+          'r-body-parts': 'ach-chimera-mancer',
+          'r-pumpkin-wife': PUMPKIN_SPOUSE_ACHIEVEMENT_ID,
+        };
 
+        const achievementIdToGrant = achievementMap[request.rewardId];
+        if (achievementIdToGrant) {
+            // We don't need to await this as it will fetch the user again
+            // and we batch the updates later anyway.
+             const currentAchievements = updatedUser.achievementIds || [];
+             if (!currentAchievements.includes(achievementIdToGrant)) {
+                updatedUser.achievementIds = [...currentAchievements, achievementIdToGrant];
+                updatesForUser.achievementIds = updatedUser.achievementIds;
+             }
+        }
+
+        // Specific reward logic
         if (request.rewardId === PUMPKIN_WIFE_REWARD_ID) {
             // Give the card to the first character if one exists
             if (updatedUser.characters.length > 0) {
@@ -376,12 +413,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                     updatedUser.characters[firstCharIndex] = characterToUpdate;
                     updatesForUser.characters = updatedUser.characters;
                  }
-            }
-            // Grant the achievement
-            const currentAchievements = updatedUser.achievementIds || [];
-            if (!currentAchievements.includes(PUMPKIN_SPOUSE_ACHIEVEMENT_ID)) {
-                updatedUser.achievementIds = [...currentAchievements, PUMPKIN_SPOUSE_ACHIEVEMENT_ID];
-                updatesForUser.achievementIds = updatedUser.achievementIds;
             }
         } else if (characterToUpdateIndex !== -1) {
             let characterToUpdate = { ...updatedUser.characters[characterToUpdateIndex] };
@@ -621,3 +652,5 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     </AuthContext.Provider>
   );
 }
+
+    
