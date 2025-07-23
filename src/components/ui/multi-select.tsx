@@ -62,15 +62,24 @@ function MultiSelect({ options, selected, onChange, className, placeholder = "Se
                       className="rounded-sm"
                     >
                       {option?.label || item}
-                      <button
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Remove ${option?.label || item}`}
                         className="ml-1 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.stopPropagation();
+                            handleUnselect(item);
+                          }
+                        }}
                         onClick={(e) => {
                            e.stopPropagation(); // Prevent popover from closing
                            handleUnselect(item);
                         }}
                       >
                         <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                      </button>
+                      </div>
                     </Badge>
                   )
               })}
