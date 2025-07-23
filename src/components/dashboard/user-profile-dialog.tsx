@@ -11,12 +11,10 @@ import { Anchor, KeyRound, Sparkles, Star } from 'lucide-react';
 import { cn, formatTimeLeft } from '@/lib/utils';
 import FamiliarCardDisplay from './familiar-card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
-import { DialogClose, DialogHeader, DialogTitle } from '../ui/dialog';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { DialogHeader, DialogTitle } from '../ui/dialog';
 import { ACHIEVEMENTS_BY_ID } from '@/lib/data';
 import * as LucideIcons from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
-import { X } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Button } from '../ui/button';
 
@@ -38,7 +36,7 @@ const CharacterDisplay = ({ character }: { character: Character }) => {
     const isBlessed = character.blessingExpires && new Date(character.blessingExpires) > new Date();
 
     return (
-        <TooltipProvider>
+        <Popover>
             <AccordionItem value={character.id} className="border-b">
                  <div className="flex justify-between items-center w-full hover:bg-muted/50 rounded-md">
                     <AccordionTrigger className="flex-1 py-4 px-2 hover:no-underline">
@@ -46,22 +44,22 @@ const CharacterDisplay = ({ character }: { character: Character }) => {
                             <p className="font-bold text-base">{character.name}</p>
                             <div className="flex items-center gap-1.5">
                                 {isBlessed && (
-                                <Tooltip>
-                                        <TooltipTrigger asChild><Sparkles className="h-4 w-4 text-yellow-500" /></TooltipTrigger>
-                                        <TooltipContent><p>{formatTimeLeft(character.blessingExpires)}. Повышен шанс гачи.</p></TooltipContent>
-                                </Tooltip>
+                                <Popover>
+                                    <PopoverTrigger asChild><Sparkles className="h-4 w-4 text-yellow-500 cursor-pointer" /></PopoverTrigger>
+                                    <PopoverContent><p>{formatTimeLeft(character.blessingExpires)}. Повышен шанс гачи.</p></PopoverContent>
+                                </Popover>
                                 )}
                                 {character.hasLeviathanFriendship && (
-                                    <Tooltip>
-                                        <TooltipTrigger asChild><Anchor className="h-4 w-4 text-blue-500" /></TooltipTrigger>
-                                        <TooltipContent><p>Дружба с Левиафаном</p></TooltipContent>
-                                </Tooltip>
+                                    <Popover>
+                                        <PopoverTrigger asChild><Anchor className="h-4 w-4 text-blue-500 cursor-pointer" /></PopoverTrigger>
+                                        <PopoverContent><p>Дружба с Левиафаном</p></PopoverContent>
+                                    </Popover>
                                 )}
                                 {character.hasCrimeConnections && (
-                                    <Tooltip>
-                                        <TooltipTrigger asChild><KeyRound className="h-4 w-4 text-gray-500" /></TooltipTrigger>
-                                        <TooltipContent><p>Связи в преступном мире</p></TooltipContent>
-                                </Tooltip>
+                                    <Popover>
+                                        <PopoverTrigger asChild><KeyRound className="h-4 w-4 text-gray-500 cursor-pointer" /></PopoverTrigger>
+                                        <PopoverContent><p>Связи в преступном мире</p></PopoverContent>
+                                    </Popover>
                                 )}
                             </div>
                             <p className="text-sm text-muted-foreground">({character.activity})</p>
@@ -93,7 +91,7 @@ const CharacterDisplay = ({ character }: { character: Character }) => {
                     </Accordion>
                 </AccordionContent>
             </AccordionItem>
-        </TooltipProvider>
+        </Popover>
     );
 };
 
@@ -122,10 +120,6 @@ export default function UserProfileDialog({ user }: { user: User }) {
     <>
       <DialogHeader>
           <DialogTitle className="text-2xl">Профиль игрока: {user.name}</DialogTitle>
-          <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-            <X className="h-4 w-4" />
-            <span className="sr-only">Close</span>
-          </DialogClose>
       </DialogHeader>
       <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
           {/* Left Column */}
@@ -187,19 +181,17 @@ export default function UserProfileDialog({ user }: { user: User }) {
                   <CardTitle>Персонажи</CardTitle>
                   <CardDescription>Список персонажей игрока</CardDescription>
               </CardHeader>
-              <CardContent className="flex-1 overflow-y-auto pr-2">
-                   <ScrollArea className="h-full pr-2">
-                        {user.characters.length > 0 ? (
-                            <Accordion type="single" collapsible className="w-full">
-                                {user.characters.map(char => (
-                                    <CharacterDisplay key={char.id} character={char} />
-                                ))}
-                            </Accordion>
-                        ) : (
-                            <p className="text-sm text-muted-foreground text-center py-4">У этого игрока нет персонажей.</p>
-                        )}
-                   </ScrollArea>
-                </CardContent>
+                <ScrollArea className="flex-1 overflow-y-auto px-6 pb-6">
+                    {user.characters.length > 0 ? (
+                        <Accordion type="single" collapsible className="w-full">
+                            {user.characters.map(char => (
+                                <CharacterDisplay key={char.id} character={char} />
+                            ))}
+                        </Accordion>
+                    ) : (
+                        <p className="text-sm text-muted-foreground text-center py-4">У этого игрока нет персонажей.</p>
+                    )}
+                </ScrollArea>
           </Card>
           </div>
 
