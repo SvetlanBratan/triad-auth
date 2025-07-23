@@ -50,17 +50,25 @@ export function Dashboard() {
     <TooltipProvider delayDuration={0}>
       <Tabs defaultValue="profile" className="w-full">
         <TabsList className={`grid w-full ${gridColsClass}`}>
-          {tabs.map(({ value, label, icon: Icon }) => (
-            <Tooltip key={value}>
-              <TooltipTrigger asChild>
-                <TabsTrigger value={value} className="flex-1">
+          {tabs.map(({ value, label, icon: Icon }) => {
+            const trigger = (
+                <TabsTrigger value={value} className="flex-1 w-full">
                   <Icon className={isMobile ? "h-5 w-5" : "w-4 h-4 mr-2"} />
                   {!isMobile && label}
                 </TabsTrigger>
-              </TooltipTrigger>
-              {isMobile && <TooltipContent><p>{label}</p></TooltipContent>}
-            </Tooltip>
-          ))}
+            );
+
+            if (isMobile) {
+              return trigger;
+            }
+
+            return (
+              <Tooltip key={value}>
+                <TooltipTrigger asChild>{trigger}</TooltipTrigger>
+                <TooltipContent><p>{label}</p></TooltipContent>
+              </Tooltip>
+            );
+          })}
         </TabsList>
 
         <TabsContent value="profile" className="mt-4">
