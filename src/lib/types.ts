@@ -55,9 +55,9 @@ export interface Character {
   id: string;
   name: string;
   activity: string;
-  skillLevel: string;
+  skillLevel: string[];
   skillDescription?: string;
-  currentFameLevel: string;
+  currentFameLevel: string[];
   workLocation: string;
   // New questionnaire fields
   abilities?: string;

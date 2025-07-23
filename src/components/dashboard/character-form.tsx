@@ -8,10 +8,9 @@ import { Button } from '@/components/ui/button';
 import { DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '../ui/textarea';
 import { ScrollArea } from '../ui/scroll-area';
-import { MultiSelect } from '../ui/multi-select';
+import { MultiSelect, OptionType } from '../ui/multi-select';
 
 interface CharacterFormProps {
     character: Character | null;
@@ -23,9 +22,9 @@ const initialFormData: Character = {
     id: '',
     name: '',
     activity: '',
-    skillLevel: '',
+    skillLevel: [],
     skillDescription: '',
-    currentFameLevel: '',
+    currentFameLevel: [],
     workLocation: '',
     appearance: '',
     personality: '',
@@ -52,12 +51,23 @@ const initialFormData: Character = {
     }
 };
 
+const fameLevelOptions: OptionType[] = FAME_LEVELS.map(level => ({ value: level, label: level }));
+const skillLevelOptions: OptionType[] = SKILL_LEVELS.map(level => ({ value: level, label: level }));
+
+
 const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps) => {
     const [formData, setFormData] = useState<Character>(initialFormData);
 
     useEffect(() => {
         if (character) {
-            setFormData(character);
+            // Ensure all fields are initialized to prevent controlled/uncontrolled errors
+            const initializedCharacter = {
+                ...initialFormData,
+                ...character,
+                currentFameLevel: Array.isArray(character.currentFameLevel) ? character.currentFameLevel : (character.currentFameLevel ? [character.currentFameLevel] : []),
+                skillLevel: Array.isArray(character.skillLevel) ? character.skillLevel : (character.skillLevel ? [character.skillLevel] : []),
+            };
+            setFormData(initializedCharacter);
         } else {
             setFormData(initialFormData);
         }
@@ -68,20 +78,19 @@ const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps)
         setFormData(prev => ({ ...prev, [id]: value }));
     };
 
-    const handleSelectChange = (id: keyof Character, value: string | string[]) => {
-        setFormData(prev => ({ ...prev, [id]: value }));
-    }
+    const handleMultiSelectChange = (id: keyof Character, values: string[]) => {
+        setFormData(prev => ({ ...prev, [id]: values }));
+    };
+    
+    const handleSingleSelectChange = (id: keyof Character, value: string) => {
+         setFormData(prev => ({ ...prev, [id]: value ? [value] : [] }));
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         onSubmit(formData);
     };
     
-    const selectedTrainingValues = (formData.training || [])
-        .map(label => TRAINING_OPTIONS.find(option => option.label === label)?.value)
-        .filter(Boolean) as string[];
-
-
     return (
         <form onSubmit={handleSubmit}>
             <ScrollArea className="h-[70vh] pr-6">
@@ -97,29 +106,23 @@ const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps)
                     </div>
                     <div>
                         <Label htmlFor="currentFameLevel">Текущая известность</Label>
-                         <Select onValueChange={(value) => handleSelectChange('currentFameLevel', value)} value={formData.currentFameLevel ?? ''}>
-                            <SelectTrigger id="currentFameLevel">
-                                <SelectValue placeholder="Выберите уровень известности" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {FAME_LEVELS.map(level => (
-                                    <SelectItem key={level} value={level}>{level}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                         <MultiSelect
+                            options={fameLevelOptions}
+                            selected={formData.currentFameLevel}
+                            onChange={(selected) => handleSingleSelectChange('currentFameLevel', selected[selected.length - 1])}
+                            placeholder="Выберите уровень известности..."
+                            className="w-full"
+                        />
                     </div>
                     <div>
                         <Label htmlFor="skillLevel">Уровень навыка</Label>
-                         <Select onValueChange={(value) => handleSelectChange('skillLevel', value)} value={formData.skillLevel ?? ''}>
-                            <SelectTrigger id="skillLevel">
-                                <SelectValue placeholder="Выберите уровень навыка" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {SKILL_LEVELS.map(level => (
-                                    <SelectItem key={level} value={level}>{level}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                         <MultiSelect
+                            options={skillLevelOptions}
+                            selected={formData.skillLevel}
+                            onChange={(selected) => handleSingleSelectChange('skillLevel', selected[selected.length - 1])}
+                            placeholder="Выберите уровень навыка..."
+                            className="w-full"
+                        />
                     </div>
                      <div>
                         <Label htmlFor="skillDescription">Описание навыка (необязательно)</Label>
@@ -157,11 +160,8 @@ const CharacterForm = ({ character, onSubmit, closeDialog }: CharacterFormProps)
                         <Label htmlFor="training">Обучение</Label>
                         <MultiSelect
                             options={TRAINING_OPTIONS}
-                            selected={selectedTrainingValues}
-                            onChange={(selectedValues) => {
-                                const selectedLabels = selectedValues.map(v => TRAINING_OPTIONS.find(o => o.value === v)?.label).filter(Boolean) as string[];
-                                handleSelectChange('training', selectedLabels);
-                            }}
+                            selected={formData.training}
+                            onChange={(selectedValues) => handleMultiSelectChange('training', selectedValues)}
                             placeholder="Выберите учебные заведения..."
                         />
                     </div>

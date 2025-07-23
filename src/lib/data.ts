@@ -1,5 +1,6 @@
 
 import type { Reward, FamiliarCard, Achievement } from './types';
+import type { OptionType } from '@/components/ui/multi-select';
 
 // The 'id' for users now corresponds to the Firebase Auth UID.
 // For initial users, these are placeholders. New users created via the app
@@ -139,7 +140,7 @@ export const FAME_LEVELS_POINTS = {
     'Вошедший в историю': 1000,
 };
 
-export const TRAINING_OPTIONS = [
+export const TRAINING_OPTIONS: OptionType[] = [
     { value: 'peasant_school', label: 'Крестьянская школа' },
     { value: 'noble_guesthouse', label: 'Пансион благородных девиц' },
     { value: 'knightly_training', label: 'Рыцарское обучение' },

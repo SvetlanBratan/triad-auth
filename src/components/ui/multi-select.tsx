@@ -41,6 +41,11 @@ function MultiSelect({ options, selected, onChange, className, placeholder = "Se
     onChange(selected.filter((i) => i !== item))
   }
 
+  // Find the labels for the selected values
+  const selectedLabels = selected
+    .map(value => options.find(option => option.value === value)?.label)
+    .filter(Boolean);
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -52,30 +57,30 @@ function MultiSelect({ options, selected, onChange, className, placeholder = "Se
           onClick={() => setOpen(!open)}
         >
              <div className="flex flex-wrap gap-1">
-              {selected.length === 0 && <span className="text-muted-foreground font-normal">{placeholder}</span>}
-              {selected.map((item) => {
-                 const option = options.find(opt => opt.value === item);
+              {selectedLabels.length === 0 && <span className="text-muted-foreground font-normal">{placeholder}</span>}
+              {selectedLabels.map((label, index) => {
+                 const value = selected[index];
                  return (
                     <Badge
                       variant="secondary"
-                      key={item}
+                      key={value}
                       className="rounded-sm"
                     >
-                      {option?.label || item}
+                      {label}
                       <div
                         role="button"
                         tabIndex={0}
-                        aria-label={`Remove ${option?.label || item}`}
+                        aria-label={`Remove ${label}`}
                         className="ml-1 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
                         onKeyDown={(e) => {
                           if (e.key === "Enter" || e.key === " ") {
                             e.stopPropagation();
-                            handleUnselect(item);
+                            handleUnselect(value);
                           }
                         }}
                         onClick={(e) => {
                            e.stopPropagation(); // Prevent popover from closing
-                           handleUnselect(item);
+                           handleUnselect(value);
                         }}
                       >
                         <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />

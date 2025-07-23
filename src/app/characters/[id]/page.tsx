@@ -167,11 +167,11 @@ export default function CharacterPage() {
                             <CardTitle>Основная информация</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-2 text-sm">
-                            <div className="flex justify-between"><span>Известность:</span> <Badge variant="secondary">{character.currentFameLevel}</Badge></div>
+                            <div className="flex justify-between"><span>Известность:</span> <Badge variant="secondary">{character.currentFameLevel?.join(', ') || 'N/A'}</Badge></div>
                              <div className="flex justify-between items-start">
                                 <span>Уровень навыка:</span> 
                                 <div className="text-right">
-                                    <Badge variant="secondary">{character.skillLevel}</Badge>
+                                    <Badge variant="secondary">{character.skillLevel?.join(', ') || 'N/A'}</Badge>
                                     {character.skillDescription && <p className="text-muted-foreground text-xs mt-1">{character.skillDescription}</p>}
                                 </div>
                             </div>
