@@ -59,6 +59,8 @@ const GENEROUS_ACHIEVEMENT_ID = 'ach-generous';
 const GENEROUS_THRESHOLD = 100000;
 const PUMPKIN_WIFE_REWARD_ID = 'r-pumpkin-wife';
 const PUMPKIN_WIFE_CARD_ID = 'fam-e-pumpkin-wife';
+const PUMPKIN_HUSBAND_REWARD_ID = 'r-pumpkin-husband';
+const PUMPKIN_HUSBAND_CARD_ID = 'fam-e-pumpkin-husband';
 const PUMPKIN_SPOUSE_ACHIEVEMENT_ID = 'ach-pumpkin-spouse';
 
 
@@ -396,6 +398,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           'r-forbidden-magic': 'ach-dark-lord',
           'r-body-parts': 'ach-chimera-mancer',
           'r-pumpkin-wife': PUMPKIN_SPOUSE_ACHIEVEMENT_ID,
+          'r-pumpkin-husband': PUMPKIN_SPOUSE_ACHIEVEMENT_ID,
         };
 
         const achievementIdToGrant = achievementMap[request.rewardId];
@@ -415,6 +418,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                  if (!currentCards.some(card => card.id === PUMPKIN_WIFE_CARD_ID)) {
                     characterToUpdate.familiarCards = [...currentCards, { id: PUMPKIN_WIFE_CARD_ID }];
                  }
+            } else if (request.rewardId === PUMPKIN_HUSBAND_REWARD_ID) {
+                const currentCards = characterToUpdate.familiarCards || [];
+                if (!currentCards.some(card => card.id === PUMPKIN_HUSBAND_CARD_ID)) {
+                   characterToUpdate.familiarCards = [...currentCards, { id: PUMPKIN_HUSBAND_CARD_ID }];
+                }
             } else if (request.rewardId === 'r-blessing') {
                 const expiryDate = new Date();
                 expiryDate.setDate(expiryDate.getDate() + 5);

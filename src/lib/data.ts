@@ -33,6 +33,7 @@ export const rewards: Reward[] = [
     { id: 'r-swap-element', title: 'Обмен стихии на учения', description: 'Поменять 1 стихию на 2 учения', cost: 100, type: 'permanent', iconName: 'Replace', requiresCharacter: true },
     { id: 'r-hybrid', title: 'Полукровка/гибрид', description: 'Полукровка/гибрид из двух рас', cost: 150000, type: 'permanent', iconName: 'Combine' },
     { id: 'r-pumpkin-wife', title: 'Приобрести Тыкво-Жену', description: 'Приобрести Тыкво-Жену', cost: 100000, type: 'permanent', iconName: 'Heart', requiresCharacter: true },
+    { id: 'r-pumpkin-husband', title: 'Приобрести Тыкво-Мужа', description: 'Приобрести Тыкво-Мужа', cost: 100000, type: 'permanent', iconName: 'Heart', requiresCharacter: true },
 ];
 
 export const ALL_ACHIEVEMENTS: Achievement[] = [
@@ -47,7 +48,7 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
   { id: 'ach-submariner', name: 'Люблю подводный мир', description: 'Персонажу удалось подружиться с Левиафаном, морским чудовищем, и теперь его суда в безопасности.', iconName: 'Anchor' },
   { id: 'ach-seaman', name: 'Мореход', description: 'Игрок имеет судно в своём распоряжении, приобретённое в магазине наград.', iconName: 'Ship' },
   { id: 'ach-sky-master', name: 'Освоил небо', description: 'Игрок купил дирижабль для собственных нужд, открыв новые горизонты для путешествий.', iconName: 'Rocket' },
-  { id: 'ach-big-mage', name: 'Большой, большой!', description: 'Даётся за покупку большого магического резерва для персонажа, что делает его магом уровня архимага.', iconName: 'Flame' },
+  { id: 'ach-big-mage', name: 'Большой, большой!', description: 'Даётся за покупку большого магического резерва.', iconName: 'Flame' },
   { id: 'ach-important-person', name: 'Важный', description: 'Персонаж имеет высокую должность при дворе, независимо от его титула и пола.', iconName: 'Crown' },
   { id: 'ach-baron', name: 'Ваша Милость', description: 'Персонаж заработал титул Барона своим трудом и получил землю в придачу.', iconName: 'ChessKing' },
   { id: 'ach-sir-lady', name: 'Сэр/Леди', description: 'Персонаж получил признание от аристократии и землю вместе с почетным титулом.', iconName: 'Award' },
@@ -240,6 +241,7 @@ export const EVENT_FAMILIARS_RAW: Omit<FamiliarCard, 'data-ai-hint'>[] = [
     { id: 'fam-e-anhel', name: 'Анхель', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753272049/123123_oljkkn.jpg' },
     { id: 'fam-e-faust', name: 'Фауст', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753272049/312312412341_kl5exi.jpg' },
     { id: 'fam-e-pumpkin-wife', name: 'Тыкво-жена', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753276855/%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B8%D0%9A%D0%9A%D0%98_sqv5if.png' },
+    { id: 'fam-e-pumpkin-husband', name: 'Тыкво-муж', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753286999/%D0%A2%D1%8B%D0%BA%D0%B2%D0%BE%D0%BC%D1%83%D0%B6_v9bpsg.png' },
 ];
 
 const addHint = (card: Omit<FamiliarCard, 'data-ai-hint'>): FamiliarCard => {
@@ -308,6 +310,7 @@ const addHint = (card: Omit<FamiliarCard, 'data-ai-hint'>): FamiliarCard => {
     else if (lowerCaseName.includes('анхель')) hint = 'anhel portrait';
     else if (lowerCaseName.includes('фауст')) hint = 'faust portrait';
     else if (lowerCaseName.includes('тыкво-жена')) hint = 'pumpkin wife';
+    else if (lowerCaseName.includes('тыкво-муж')) hint = 'pumpkin husband';
     else if (lowerCaseName.includes('цветокот')) hint = 'flower cat';
     else if (lowerCaseName.includes('серисса')) hint = 'serissa creature';
     else if (lowerCaseName.includes('ночной сыч')) hint = 'night owl';
