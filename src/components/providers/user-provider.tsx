@@ -408,32 +408,25 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
              }
         }
 
-        // Specific reward logic
-        if (request.rewardId === PUMPKIN_WIFE_REWARD_ID) {
-            // Give the card to the first character if one exists
-            if (updatedUser.characters.length > 0) {
-                 const firstCharIndex = 0;
-                 let characterToUpdate = { ...updatedUser.characters[firstCharIndex] };
+        if (characterToUpdateIndex !== -1) {
+            let characterToUpdate = { ...updatedUser.characters[characterToUpdateIndex] };
+
+            // Specific reward logic
+            if (request.rewardId === PUMPKIN_WIFE_REWARD_ID) {
                  const currentCards = characterToUpdate.familiarCards || [];
                  if (!currentCards.some(card => card.id === PUMPKIN_WIFE_CARD_ID)) {
                     characterToUpdate.familiarCards = [...currentCards, { id: PUMPKIN_WIFE_CARD_ID }];
-                    updatedUser.characters[firstCharIndex] = characterToUpdate;
-                    updatesForUser.characters = updatedUser.characters;
                  }
-            }
-        } else if (characterToUpdateIndex !== -1) {
-            let characterToUpdate = { ...updatedUser.characters[characterToUpdateIndex] };
-            if (request.rewardId === 'r-blessing') { // Blessing
+            } else if (request.rewardId === 'r-blessing') { // Blessing
                 const expiryDate = new Date();
                 expiryDate.setDate(expiryDate.getDate() + 5);
                 characterToUpdate.blessingExpires = expiryDate.toISOString();
-            }
-            if (request.rewardId === 'r-leviathan') { // Leviathan
+            } else if (request.rewardId === 'r-leviathan') { // Leviathan
                 characterToUpdate.hasLeviathanFriendship = true;
-            }
-            if (request.rewardId === 'r-crime-connections') { // Crime Connections
+            } else if (request.rewardId === 'r-crime-connections') { // Crime Connections
                 characterToUpdate.hasCrimeConnections = true;
             }
+            
             updatedUser.characters[characterToUpdateIndex] = characterToUpdate;
             updatesForUser.characters = updatedUser.characters;
         }

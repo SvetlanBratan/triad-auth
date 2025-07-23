@@ -32,7 +32,7 @@ export const rewards: Reward[] = [
     { id: 'r-guild', title: 'Собственная гильдия', description: 'Создать собственную преступную группировку/гильдию', cost: 50000, type: 'permanent', iconName: 'Building2' },
     { id: 'r-swap-element', title: 'Обмен стихии на учения', description: 'Поменять 1 стихию на 2 учения', cost: 100, type: 'permanent', iconName: 'Replace', requiresCharacter: true },
     { id: 'r-hybrid', title: 'Полукровка/гибрид', description: 'Полукровка/гибрид из двух рас', cost: 150000, type: 'permanent', iconName: 'Combine' },
-    { id: 'r-pumpkin-wife', title: 'Приобрести Тыкво-Жену', description: 'Приобрести Тыкво-Жену', cost: 100000, type: 'permanent', iconName: 'Heart' },
+    { id: 'r-pumpkin-wife', title: 'Приобрести Тыкво-Жену', description: 'Приобрести Тыкво-Жену', cost: 100000, type: 'permanent', iconName: 'Heart', requiresCharacter: true },
 ];
 
 export const ALL_ACHIEVEMENTS: Achievement[] = [
@@ -40,7 +40,6 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
   { id: 'ach-first-gacha', name: 'Первый раз?', description: 'Первое использование рулетки.', iconName: 'Dices' },
   { id: 'ach-mythic-pull', name: 'Мифическое везение', description: 'Получение первого мифического фамильяра.', iconName: 'Sparkles' },
   { id: 'ach-generous', name: 'Меценат', description: 'Трата более 100,000 баллов.', iconName: 'Gem' },
-  { id: 'ach-pumpkin-spouse', name: 'Тыкво-Жена', description: 'Обладатель самой прекрасной супруги в мире Триады.', iconName: 'Heart' },
   { id: 'ach-unique-character', name: 'Владелец уникального персонажа', description: 'Покупка закрытой расы.', iconName: 'VenetianMask' },
   { id: 'ach-multi-hand', name: 'Многоручка', description: 'Покупка дополнительного персонажа.', iconName: 'Users' },
   { id: 'ach-tamer', name: 'Укротитель', description: 'Сумел завести неприручаемое животное в качестве питомца.', iconName: 'Cat' },
@@ -56,6 +55,7 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
   { id: 'ach-wizard', name: 'Чародей', description: 'Получил дополнительное учение для персонажа.', iconName: 'BookPlus' },
   { id: 'ach-guildmaster', name: 'Гильдмастер', description: 'Видел гильдию? Я основаль.', iconName: 'Building2' },
   { id: 'ach-hybrid', name: 'Гибридная полукровка', description: 'Нет! Он нашей расы!', iconName: 'Combine' },
+  { id: 'ach-pumpkin-spouse', name: 'Тыкво-Жена', description: 'Обладатель самой прекрасной супруги в мире Триады.', iconName: 'Heart' },
   { id: 'ach-exchange-master', name: 'Мастер обмена', description: 'Обменял стихию на учение.', iconName: 'Replace' },
   { id: 'ach-dark-lord', name: 'Тёмный Владыка', description: 'Получил запретную магию недоступную для его расы.', iconName: 'Skull' },
   { id: 'ach-chimera-mancer', name: 'Химеромант', description: 'Изменил тело персонажа до неузнаваемости.', iconName: 'GitBranchPlus' },
