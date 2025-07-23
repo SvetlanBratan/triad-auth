@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -112,12 +113,12 @@ export default function UserProfileDialog({ user }: { user: User }) {
   const userAchievements = (user.achievementIds || []).map(id => ACHIEVEMENTS_BY_ID[id]).filter(Boolean);
 
   return (
-    <>
+    <div className="flex flex-col h-full">
     <DialogHeader>
         <DialogTitle className="text-2xl">Профиль игрока: {user.name}</DialogTitle>
     </DialogHeader>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-      <div className="md:col-span-1 space-y-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 overflow-hidden flex-grow">
+      <div className="md:col-span-1 space-y-6 overflow-y-auto">
         <Card>
           <CardHeader>
              <div className="flex items-center gap-4">
@@ -190,14 +191,13 @@ export default function UserProfileDialog({ user }: { user: User }) {
           </CardContent>
         </Card>
       </div>
-      <div className="md:col-span-1">
-        <Card className="flex flex-col h-full">
+      <div className="md:col-span-1 flex flex-col h-full overflow-hidden">
+        <Card className="flex flex-col flex-grow">
           <CardHeader>
             <CardTitle>История баллов</CardTitle>
             <CardDescription>Журнал заработанных и потраченных баллов.</CardDescription>
           </CardHeader>
-          <div className="flex-grow overflow-y-auto">
-            <CardContent>
+          <CardContent className="flex-grow overflow-y-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -227,11 +227,10 @@ export default function UserProfileDialog({ user }: { user: User }) {
                   )}
                 </TableBody>
               </Table>
-            </CardContent>
-          </div>
+          </CardContent>
         </Card>
       </div>
     </div>
-    </>
+    </div>
   );
 }
