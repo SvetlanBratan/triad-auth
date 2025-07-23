@@ -8,20 +8,23 @@ export function cn(...inputs: ClassValue[]) {
 
 export function formatTimeLeft(isoDateString?: string | null): string {
     if (!isoDateString) {
-        return "Благословение активно";
+        return "Время не указано";
     }
     const targetDate = new Date(isoDateString);
     if (isPast(targetDate)) {
-        return "Срок благословения истек";
+        return "Срок истек";
     }
     const duration = intervalToDuration({ start: new Date(), end: targetDate });
     
     const parts: string[] = [];
-    if (duration.days) parts.push(`${duration.days} д.`);
-    if (duration.hours) parts.push(`${duration.hours} ч.`);
+    if (duration.days && duration.days > 0) parts.push(`${duration.days} д.`);
+    if (duration.hours && duration.hours > 0) parts.push(`${duration.hours} ч.`);
 
-    if (parts.length === 0 && duration.minutes) {
-      return `Осталось менее часа`;
+    if (parts.length === 0) {
+      if (duration.minutes && duration.minutes > 0) {
+        return `Осталось менее часа`;
+      }
+      return "Срок истекает";
     }
 
     return `Осталось: ${parts.join(' ')}`;

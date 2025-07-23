@@ -4,19 +4,35 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, notFound } from 'next/navigation';
 import { useUser } from '@/hooks/use-user';
-import { User, Character, FamiliarCard, FamiliarRank } from '@/lib/types';
+import { User, Character, FamiliarCard, FamiliarRank, Moodlet } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FAMILIARS_BY_ID, TRAINING_OPTIONS } from '@/lib/data';
+import { FAMILIARS_BY_ID, MOODLETS_DATA, TRAINING_OPTIONS } from '@/lib/data';
 import FamiliarCardDisplay from '@/components/dashboard/familiar-card';
-import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront } from 'lucide-react';
+import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound } from 'lucide-react';
 import Link from 'next/link';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import CharacterForm from '@/components/dashboard/character-form';
 import { useToast } from '@/hooks/use-toast';
+import { cn, formatTimeLeft } from '@/lib/utils';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import * as LucideIcons from 'lucide-react';
+
+
+type IconName = keyof typeof LucideIcons;
+
+const DynamicIcon = ({ name, className }: { name: string, className?: string }) => {
+    const IconComponent = LucideIcons[name as IconName];
+
+    if (!IconComponent) {
+        return <Star className={className} />;
+    }
+
+    return <IconComponent className={className} />;
+};
+
 
 const rankOrder: FamiliarRank[] = ['мифический', 'ивентовый', 'легендарный', 'редкий', 'обычный'];
 const rankNames: Record<FamiliarRank, string> = {
@@ -132,6 +148,9 @@ export default function CharacterPage() {
         const option = TRAINING_OPTIONS.find(opt => opt.value === value);
         return option ? option.label : value;
     });
+    
+    const isBlessed = character.blessingExpires && new Date(character.blessingExpires) > new Date();
+    const activeMoodlets = (character.moodlets || []).filter(m => new Date(m.expiresAt) > new Date());
 
 
     return (
@@ -141,13 +160,35 @@ export default function CharacterPage() {
                 Вернуться в профиль
             </Link>
 
-            <header className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
-                <div>
-                    <h1 className="text-3xl md:text-4xl font-bold font-headline text-primary">{character.name}</h1>
+            <header className="flex flex-col md:flex-row justify-between md:items-start mb-6 gap-4">
+                <div className="flex-1">
+                    <div className="flex items-center gap-3 flex-wrap">
+                        <h1 className="text-3xl md:text-4xl font-bold font-headline text-primary">{character.name}</h1>
+                        <div className="flex items-center gap-1.5">
+                            {isBlessed && (
+                                <Popover>
+                                    <PopoverTrigger asChild><button><Sparkles className="h-5 w-5 text-yellow-500 cursor-pointer" /></button></PopoverTrigger>
+                                    <PopoverContent className="w-auto text-sm"><p>{formatTimeLeft(character.blessingExpires)}. Повышен шанс в рулетке.</p></PopoverContent>
+                                </Popover>
+                            )}
+                            {character.hasLeviathanFriendship && (
+                                <Popover>
+                                    <PopoverTrigger asChild><button><Anchor className="h-5 w-5 text-blue-500 cursor-pointer" /></button></PopoverTrigger>
+                                    <PopoverContent className="w-auto text-sm"><p>Дружба с Левиафаном</p></PopoverContent>
+                                </Popover>
+                            )}
+                            {character.hasCrimeConnections && (
+                                <Popover>
+                                    <PopoverTrigger asChild><button><KeyRound className="h-5 w-5 text-gray-500 cursor-pointer" /></button></PopoverTrigger>
+                                    <PopoverContent className="w-auto text-sm"><p>Связи в преступном мире</p></PopoverContent>
+                                </Popover>
+                            )}
+                        </div>
+                    </div>
                     <p className="text-muted-foreground">{character.activity}</p>
                     <p className="text-sm text-muted-foreground">Владелец: {owner.name}</p>
                 </div>
-                {canEdit && <Button onClick={() => setIsFormOpen(true)}><Edit className="mr-2"/>Редактировать анкету</Button>}
+                {canEdit && <Button onClick={() => setIsFormOpen(true)} className="mt-2 md:mt-0"><Edit className="mr-2"/>Редактировать анкету</Button>}
             </header>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -196,6 +237,36 @@ export default function CharacterPage() {
                              {character.weaknesses && <div className="flex justify-between"><span>Слабости:</span> <span className="text-right">{character.weaknesses}</span></div>}
                         </CardContent>
                     </Card>
+
+                     {activeMoodlets.length > 0 && (
+                        <Card>
+                             <CardHeader>
+                                <CardTitle>Активные эффекты</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-2">
+                                {activeMoodlets.map(moodlet => (
+                                    <Popover key={moodlet.id}>
+                                        <PopoverTrigger asChild>
+                                            <div className="flex items-center justify-between w-full cursor-pointer text-sm p-2 rounded-md hover:bg-muted">
+                                                <div className="flex items-center gap-2">
+                                                    <DynamicIcon name={moodlet.iconName} className="w-4 h-4" />
+                                                    <span>{moodlet.name}</span>
+                                                </div>
+                                                <span className="text-xs text-muted-foreground">{formatTimeLeft(moodlet.expiresAt)}</span>
+                                            </div>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto max-w-xs text-sm">
+                                            <p className="font-bold">{moodlet.name}</p>
+                                            <p className="text-xs mb-2">{moodlet.description}</p>
+                                            {moodlet.source && <p className="text-xs mb-2">Источник: <span className="font-semibold">{moodlet.source}</span></p>}
+                                            <p className="text-xs text-muted-foreground">{formatTimeLeft(moodlet.expiresAt)}</p>
+                                        </PopoverContent>
+                                    </Popover>
+                                ))}
+                            </CardContent>
+                        </Card>
+                     )}
+
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2"><Warehouse /> Инвентарь</CardTitle>
