@@ -1,7 +1,8 @@
+
 "use client";
 
 import { Dashboard } from "@/components/dashboard/dashboard";
-import { UserProvider, useAuth } from "@/components/providers/user-provider";
+import { useAuth } from "@/components/providers/user-provider";
 import { UserSwitcher } from "@/components/auth/user-switcher";
 import AuthPage from "@/components/auth/auth-page";
 
@@ -39,8 +40,6 @@ function AppContent() {
 
 export default function Home() {
   return (
-    <UserProvider>
       <AppContent />
-    </UserProvider>
   );
 }
