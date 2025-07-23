@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 
 
 export default function LeaderboardTab() {
-  const { currentUser, fetchAllUsers } = useUser();
+  const { fetchAllUsers } = useUser();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -39,8 +39,6 @@ export default function LeaderboardTab() {
       loadUsers();
   }, [fetchAllUsers, toast]);
 
-  const isAdmin = currentUser?.role === 'admin';
-
   const getStatusClass = (status: UserStatus) => {
     switch (status) {
       case 'активный':
@@ -55,9 +53,7 @@ export default function LeaderboardTab() {
   };
 
   const handleUserClick = (user: User) => {
-    if (isAdmin) {
-      setSelectedUser(user);
-    }
+    setSelectedUser(user);
   };
 
   if (isLoading) {
@@ -85,7 +81,7 @@ export default function LeaderboardTab() {
           <Trophy className="text-yellow-500" /> Таблица лидеров
         </CardTitle>
         <CardDescription>
-            Список <s>Forbes</s> Тыквенного Переполоха. {isAdmin && "Нажмите на пользователя, чтобы просмотреть детали."}
+            Список <s>Forbes</s> Тыквенного Переполоха. Нажмите на пользователя, чтобы просмотреть детали.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -101,7 +97,7 @@ export default function LeaderboardTab() {
             </TableHeader>
             <TableBody>
                 {users.map((user, index) => (
-                <TableRow key={user.id} onClick={() => handleUserClick(user)} className={cn(isAdmin && "cursor-pointer")}>
+                <TableRow key={user.id} onClick={() => handleUserClick(user)} className="cursor-pointer">
                     <TableCell className="font-bold text-lg text-muted-foreground">
                     {index === 0 && <Trophy className="w-6 h-6 text-yellow-400 inline-block" />}
                     {index === 1 && <Trophy className="w-6 h-6 text-slate-400 inline-block" />}
