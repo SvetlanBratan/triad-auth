@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useUser } from '@/hooks/use-user';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Dices, Star, Sprout } from 'lucide-react';
+import { Dices, Star, Sprout, Gift } from 'lucide-react';
 import type { FamiliarCard } from '@/lib/types';
 import FamiliarCardDisplay from './familiar-card';
 import Image from 'next/image';
@@ -53,6 +53,20 @@ export default function RouletteTab() {
     getMythicCount();
   }, [fetchAvailableMythicCardsCount, currentUser]);
 
+  const isFirstSpinForChar = useMemo(() => {
+    if (!currentUser || !selectedCharacterId) return false;
+    const character = currentUser.characters.find(c => c.id === selectedCharacterId);
+    if (!character || (character.familiarCards && character.familiarCards.length > 0)) {
+        return false;
+    }
+    // Check if there's any gacha history for this character
+    return !currentUser.pointHistory.some(log => 
+        log.characterName === character.name && log.reason.includes('Рулетка')
+    );
+  }, [currentUser, selectedCharacterId]);
+
+  const currentCost = isFirstSpinForChar ? 0 : ROULETTE_COST;
+
   const handlePull = async () => {
     if (!currentUser || !selectedCharacterId) {
       toast({
@@ -63,11 +77,11 @@ export default function RouletteTab() {
       return;
     }
 
-    if (currentUser.points < ROULETTE_COST) {
+    if (currentUser.points < currentCost) {
       toast({
         variant: 'destructive',
         title: 'Недостаточно баллов',
-        description: `Вам нужно ${ROULETTE_COST.toLocaleString()} баллов.`,
+        description: `Вам нужно ${currentCost.toLocaleString()} баллов.`,
       });
       return;
     }
@@ -81,8 +95,7 @@ export default function RouletteTab() {
     try {
       const { newCard, isDuplicate } = await pullGachaForCharacter(
         currentUser.id,
-        selectedCharacterId,
-        ROULETTE_COST
+        selectedCharacterId
       );
 
       // Wait for flip animation to progress before showing the card
@@ -147,8 +160,12 @@ export default function RouletteTab() {
           </div>
           <div className="flex justify-between items-center p-3 rounded-lg bg-primary/10">
             <span className="font-semibold">Стоимость одной прокрутки:</span>
-            <span className="font-bold text-lg text-primary flex items-center gap-1">
-              <Star className="w-4 h-4" /> {ROULETTE_COST.toLocaleString()}
+            <span className={cn(
+                "font-bold text-lg text-primary flex items-center gap-1",
+                isFirstSpinForChar && "text-green-600"
+            )}>
+              {isFirstSpinForChar ? <Gift className="w-4 h-4" /> : <Star className="w-4 h-4" />}
+              {isFirstSpinForChar ? 'Бесплатно' : `${ROULETTE_COST.toLocaleString()}`}
             </span>
           </div>
 
@@ -181,13 +198,13 @@ export default function RouletteTab() {
             disabled={
               !selectedCharacterId ||
               isLoading ||
-              (currentUser?.points ?? 0) < ROULETTE_COST ||
+              (currentUser?.points ?? 0) < currentCost ||
               currentUser?.characters.length === 0
             }
             className="w-full"
             size="lg"
           >
-            {isLoading ? 'Прокрутка...' : 'Крутить!'}
+            {isLoading ? 'Прокрутка...' : (isFirstSpinForChar ? 'Крутить бесплатно!' : 'Крутить!')}
           </Button>
         </CardContent>
       </Card>

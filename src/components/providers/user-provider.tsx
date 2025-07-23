@@ -39,7 +39,7 @@ interface UserContextType {
   createNewUser: (uid: string, nickname: string) => Promise<User>;
   createRewardRequest: (rewardRequest: Omit<RewardRequest, 'id' | 'status' | 'createdAt'>) => Promise<void>;
   updateRewardRequestStatus: (request: RewardRequest, newStatus: RewardRequestStatus) => Promise<RewardRequest | null>;
-  pullGachaForCharacter: (userId: string, characterId: string, cost: number) => Promise<{newCard: FamiliarCard, isDuplicate: boolean}>;
+  pullGachaForCharacter: (userId: string, characterId: string) => Promise<{newCard: FamiliarCard, isDuplicate: boolean}>;
   giveEventFamiliarToCharacter: (userId: string, characterId: string, familiarId: string) => Promise<void>;
   fetchAvailableMythicCardsCount: () => Promise<number>;
 }
@@ -47,18 +47,20 @@ interface UserContextType {
 export const UserContext = createContext<UserContextType | null>(null);
 
 const ADMIN_UIDS = ['Td5P02zpyaMR3IxCY9eCf7gcYky1', 'yawuIwXKVbNhsBQSqWfGZyAzZ3A3'];
+const ROULETTE_COST = 5000;
 const DUPLICATE_REFUND = 1000;
+const FIRST_PULL_ACHIEVEMENT_ID = 'ach-first-gacha';
 
 const drawFamiliarCard = (hasBlessing: boolean, unavailableMythicIds: Set<string>): FamiliarCard => {
     
     let rand = Math.random() * 100;
 
-    let mythicChance = 5;
+    let mythicChance = 2; // Reduced from 5
     let legendaryChance = 10;
     let rareChance = 25;
     
     if (hasBlessing) {
-        mythicChance = 10;
+        mythicChance = 5; // Reduced from 10
         legendaryChance = 20;
         rareChance = 40;
     }
@@ -379,7 +381,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, [fetchUserById, currentUser?.id]);
 
 
-  const pullGachaForCharacter = useCallback(async (userId: string, characterId: string, cost: number): Promise<{newCard: FamiliarCard, isDuplicate: boolean}> => {
+  const pullGachaForCharacter = useCallback(async (userId: string, characterId: string): Promise<{newCard: FamiliarCard, isDuplicate: boolean}> => {
     const allUsers = await fetchAllUsers();
     const user = allUsers.find(u => u.id === userId);
 
@@ -388,12 +390,17 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const characterIndex = user.characters.findIndex(c => c.id === characterId);
     if (characterIndex === -1) throw new Error("Персонаж не найден.");
 
+    const character = user.characters[characterIndex];
+
+    const isFirstPullForChar = (character.familiarCards || []).length === 0 && !user.pointHistory.some(log => log.characterName === character.name && log.reason.includes('Рулетка'));
+    const cost = isFirstPullForChar ? 0 : ROULETTE_COST;
+
     if (user.points < cost) throw new Error("Недостаточно очков.");
     
     const claimedMythicIds = new Set<string>();
     allUsers.forEach(u => {
         u.characters.forEach(c => {
-            c.familiarCards.forEach(card => {
+            (c.familiarCards || []).forEach(card => {
                 const familiar = FAMILIARS_BY_ID[card.id];
                 if (familiar && familiar.rank === 'мифический') {
                     claimedMythicIds.add(card.id);
@@ -402,7 +409,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         })
     });
     
-    const character = user.characters[characterIndex];
     const hasBlessing = character.blessingExpires ? new Date(character.blessingExpires) > new Date() : false;
     const newCard = drawFamiliarCard(hasBlessing, claimedMythicIds);
     
@@ -436,6 +442,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     };
     updatedUser.pointHistory.unshift(newPointLog);
 
+    // Check for first-ever pull achievement
+    const hasPulledBefore = user.pointHistory.some(log => log.reason.includes('Рулетка'));
+    const hasAchievement = (user.achievementIds || []).includes(FIRST_PULL_ACHIEVEMENT_ID);
+    if (!hasPulledBefore && !hasAchievement) {
+        updatedUser.achievementIds = [...(updatedUser.achievementIds || []), FIRST_PULL_ACHIEVEMENT_ID];
+    }
+
+
     const userRef = doc(db, "users", userId);
     batch.set(userRef, updatedUser);
     await batch.commit();
@@ -455,7 +469,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const claimedMythicIds = new Set<string>();
       allUsers.forEach(u => {
         u.characters.forEach(c => {
-            c.familiarCards.forEach(card => {
+            (c.familiarCards || []).forEach(card => {
                 const familiar = FAMILIARS_BY_ID[card.id];
                 if (familiar && familiar.rank === 'мифический') {
                     claimedMythicIds.add(card.id);
