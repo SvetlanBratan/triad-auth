@@ -2,11 +2,11 @@
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
-import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, OwnedFamiliarCard } from '@/lib/types';
+import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
-import { doc, getDoc, setDoc, collection, getDocs, writeBatch, collectionGroup, query, orderBy, updateDoc } from "firebase/firestore";
-import { ALL_FAMILIARS, EVENT_FAMILIARS, FAMILIARS_BY_ID } from '@/lib/data';
+import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, collectionGroup, query, where, orderBy } from "firebase/firestore";
+import { ALL_FAMILIARS, FAMILIARS_BY_ID } from '@/lib/data';
 
 interface AuthContextType {
     user: FirebaseUser | null;
@@ -24,22 +24,21 @@ export const useAuth = () => {
     return context;
 };
 
-
 interface UserContextType {
-  users: User[];
-  rewardRequests: RewardRequest[];
   currentUser: User | null;
   setCurrentUser: (user: User | null) => void;
-  addPointsToUser: (userId: string, amount: number, reason: string, characterName?: string) => void;
-  addCharacterToUser: (userId: string, character: Omit<Character, 'id'>) => void;
-  deleteCharacterFromUser: (userId: string, characterId: string) => void;
-  updateUserStatus: (userId: string, status: UserStatus) => void;
-  updateUserRole: (userId: string, role: UserRole) => void;
+  fetchAllUsers: () => Promise<User[]>;
+  fetchAllRewardRequests: () => Promise<RewardRequest[]>;
+  addPointsToUser: (userId: string, amount: number, reason: string, characterName?: string) => Promise<User | null>;
+  addCharacterToUser: (userId: string, character: Omit<Character, 'id'>) => Promise<void>;
+  deleteCharacterFromUser: (userId: string, characterId: string) => Promise<void>;
+  updateUserStatus: (userId: string, status: UserStatus) => Promise<void>;
+  updateUserRole: (userId: string, role: UserRole) => Promise<void>;
   createNewUser: (uid: string, nickname: string) => Promise<User>;
   createRewardRequest: (rewardRequest: Omit<RewardRequest, 'id' | 'status' | 'createdAt'>) => Promise<void>;
-  updateRewardRequestStatus: (requestId: string, status: RewardRequestStatus) => Promise<void>;
+  updateRewardRequestStatus: (request: RewardRequest, newStatus: RewardRequestStatus) => Promise<RewardRequest | null>;
   pullGachaForCharacter: (userId: string, characterId: string, cost: number) => Promise<FamiliarCard>;
-  giveEventFamiliarToCharacter: (userId: string, characterId: string, familiarId: string) => void;
+  giveEventFamiliarToCharacter: (userId: string, characterId: string, familiarId: string) => Promise<void>;
 }
 
 export const UserContext = createContext<UserContextType | null>(null);
@@ -55,19 +54,16 @@ const drawFamiliarCard = (ownedCardIds: Set<string>, hasBlessing: boolean): Fami
     
     let rand = Math.random() * 100;
 
-    // Base chances
     let mythicChance = 5;
     let legendaryChance = 10;
     let rareChance = 25;
     
-    // Boost chances if blessed
     if (hasBlessing) {
-        mythicChance = 10; // Doubled
-        legendaryChance = 20; // Doubled
-        rareChance = 40; // Increased
+        mythicChance = 10;
+        legendaryChance = 20;
+        rareChance = 40;
     }
 
-    // Filter available cards by rank
     const availableMythic = availableCards.filter(c => c.rank === 'мифический');
     const availableLegendary = availableCards.filter(c => c.rank === 'легендарный');
     const availableRare = availableCards.filter(c => c.rank === 'редкий');
@@ -84,13 +80,10 @@ const drawFamiliarCard = (ownedCardIds: Set<string>, hasBlessing: boolean): Fami
     } else if (availableCommon.length > 0) {
         chosenPool = availableCommon;
     } else {
-      // Fallback to any available card if preferred ranks are all owned
       chosenPool = availableCards;
     }
     
     if (chosenPool.length === 0) {
-      // This should only happen if logic is flawed or all cards of all ranks are exhausted.
-      // Final fallback to any available card.
       chosenPool = availableCards;
     }
 
@@ -99,43 +92,9 @@ const drawFamiliarCard = (ownedCardIds: Set<string>, hasBlessing: boolean): Fami
 
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
-  const [users, setUsers] = useState<User[]>([]);
-  const [rewardRequests, setRewardRequests] = useState<RewardRequest[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isInitialDataLoaded, setIsInitialDataLoaded] = useState(false);
-
-  // Load all users and requests from Firestore on initial mount
-  useEffect(() => {
-    const fetchAllData = async () => {
-        try {
-            const usersCollection = collection(db, "users");
-            const userSnapshot = await getDocs(usersCollection);
-            const userList = userSnapshot.docs.map(doc => {
-                const userData = doc.data() as User;
-                // Ensure all characters have a familiarCards array
-                userData.characters = userData.characters?.map(char => ({
-                    ...char,
-                    familiarCards: char.familiarCards || []
-                })) || [];
-                return userData;
-            });
-            setUsers(userList);
-
-            const requestsQuery = query(collectionGroup(db, 'reward_requests'), orderBy('createdAt', 'desc'));
-            const requestSnapshot = await getDocs(requestsQuery);
-            const requestList = requestSnapshot.docs.map(doc => doc.data() as RewardRequest);
-            setRewardRequests(requestList);
-
-        } catch (error) {
-            console.error("Could not load data from Firestore", error);
-        } finally {
-            setIsInitialDataLoaded(true);
-        }
-    };
-    fetchAllData();
-  }, []);
 
   const createNewUser = useCallback(async (uid: string, nickname: string): Promise<User> => {
     const newUser: User = {
@@ -156,7 +115,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     };
     try {
       await setDoc(doc(db, "users", uid), newUser);
-      setUsers(prev => [...prev, newUser]);
       return newUser;
     } catch(error) {
       console.error("Error creating user in Firestore:", error);
@@ -165,36 +123,28 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!isInitialDataLoaded) return;
-
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setLoading(true);
       setFirebaseUser(user);
       if (user) {
-        let existingUser = users.find(u => u.id === user.uid);
-        
-        if (!existingUser) {
-          const userDoc = await getDoc(doc(db, "users", user.uid));
-          if (userDoc.exists()) {
-            existingUser = userDoc.data() as User;
-            // Ensure all characters have a familiarCards array for this newly fetched user
-            existingUser.characters = existingUser.characters?.map(char => ({
-                ...char,
-                familiarCards: char.familiarCards || []
-            })) || [];
-            setUsers(prev => [...prev.filter(u => u.id !== user.uid), existingUser!]);
-          } else {
-            const nickname = user.displayName || user.email?.split('@')[0] || 'Пользователь';
-            existingUser = await createNewUser(user.uid, nickname);
-          }
-        } else {
-             // Also check the user from state
-             existingUser.characters = existingUser.characters?.map(char => ({
-                ...char,
-                familiarCards: char.familiarCards || []
-            })) || [];
+        try {
+            const userDoc = await getDoc(doc(db, "users", user.uid));
+            if (userDoc.exists()) {
+                const userData = userDoc.data() as User;
+                userData.characters = userData.characters?.map(char => ({
+                    ...char,
+                    familiarCards: char.familiarCards || []
+                })) || [];
+                setCurrentUser(userData);
+            } else {
+                const nickname = user.displayName || user.email?.split('@')[0] || 'Пользователь';
+                const newUser = await createNewUser(user.uid, nickname);
+                setCurrentUser(newUser);
+            }
+        } catch (error) {
+            console.error("Error fetching user data:", error);
+            setCurrentUser(null);
         }
-        
-        setCurrentUser(existingUser);
       } else {
         setCurrentUser(null);
       }
@@ -202,35 +152,54 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => unsubscribe();
-  }, [users, createNewUser, isInitialDataLoaded]);
+  }, [createNewUser]);
 
+  const fetchAllUsers = useCallback(async (): Promise<User[]> => {
+    const usersCollection = collection(db, "users");
+    const userSnapshot = await getDocs(usersCollection);
+    return userSnapshot.docs.map(doc => {
+        const userData = doc.data() as User;
+        userData.characters = userData.characters?.map(char => ({
+            ...char,
+            familiarCards: char.familiarCards || []
+        })) || [];
+        return userData;
+    });
+  }, []);
 
-  const updateUserInStateAndFirestore = useCallback(async (userId: string, updates: Partial<User>) => {
-    const userToUpdate = users.find(u => u.id === userId);
-    if (!userToUpdate) return;
-    
-    const updatedUser = { ...userToUpdate, ...updates };
+  const fetchAllRewardRequests = useCallback(async (): Promise<RewardRequest[]> => {
+      const requestsQuery = query(collectionGroup(db, 'reward_requests'), orderBy('createdAt', 'desc'));
+      const requestSnapshot = await getDocs(requestsQuery);
+      return requestSnapshot.docs.map(doc => doc.data() as RewardRequest);
+  }, []);
 
-    try {
-        const userRef = doc(db, "users", userId);
-        await updateDoc(userRef, updates);
-        
-        setUsers(prevUsers =>
-          prevUsers.map(u => (u.id === userId ? updatedUser : u))
-        );
-        if (currentUser?.id === userId) {
-          setCurrentUser(updatedUser);
-        }
-      } catch (error) {
-        console.error("Error updating user:", error);
-        throw error;
+  const fetchUserById = useCallback(async (userId: string): Promise<User | null> => {
+      const userRef = doc(db, "users", userId);
+      const docSnap = await getDoc(userRef);
+      if (docSnap.exists()) {
+          return docSnap.data() as User;
       }
-  }, [users, currentUser?.id]);
+      return null;
+  }, []);
 
 
-  const addPointsToUser = useCallback((userId: string, amount: number, reason: string, characterName?: string) => {
-    const user = users.find(u => u.id === userId);
-    if (!user) return;
+  const updateUserInStateAndFirestore = useCallback(async (userId: string, updates: Partial<User>): Promise<User> => {
+      const userRef = doc(db, "users", userId);
+      await updateDoc(userRef, updates);
+      
+      const updatedDoc = await getDoc(userRef);
+      const updatedUser = updatedDoc.data() as User;
+
+      if (currentUser?.id === userId) {
+        setCurrentUser(updatedUser);
+      }
+      return updatedUser;
+  }, [currentUser?.id]);
+
+
+  const addPointsToUser = useCallback(async (userId: string, amount: number, reason: string, characterName?: string): Promise<User | null> => {
+    const user = await fetchUserById(userId);
+    if (!user) return null;
 
     const newPointLog: PointLog = {
       id: `h-${Date.now()}`,
@@ -242,46 +211,44 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const newPoints = user.points + amount;
     const newHistory = [newPointLog, ...user.pointHistory].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
-    updateUserInStateAndFirestore(userId, { points: newPoints, pointHistory: newHistory });
-  }, [users, updateUserInStateAndFirestore]);
+    return await updateUserInStateAndFirestore(userId, { points: newPoints, pointHistory: newHistory });
+  }, [fetchUserById, updateUserInStateAndFirestore]);
 
-  const addCharacterToUser = useCallback((userId: string, characterData: Omit<Character, 'id'>) => {
-    const user = users.find(u => u.id === userId);
+  const addCharacterToUser = useCallback(async (userId: string, characterData: Omit<Character, 'id'>) => {
+    const user = await fetchUserById(userId);
     if (!user) return;
     
     const newCharacter: Character = {
         id: `c-${Date.now()}`,
         ...characterData,
-        familiarCards: characterData.familiarCards || [] // Ensure it's initialized
+        familiarCards: characterData.familiarCards || []
     };
 
     const updatedCharacters = [...user.characters, newCharacter];
-    updateUserInStateAndFirestore(userId, { characters: updatedCharacters });
-  }, [users, updateUserInStateAndFirestore]);
+    await updateUserInStateAndFirestore(userId, { characters: updatedCharacters });
+  }, [fetchUserById, updateUserInStateAndFirestore]);
 
-  const deleteCharacterFromUser = useCallback((userId: string, characterId: string) => {
-    const user = users.find(u => u.id === userId);
+  const deleteCharacterFromUser = useCallback(async (userId: string, characterId: string) => {
+    const user = await fetchUserById(userId);
     if (!user) return;
 
     const updatedCharacters = user.characters.filter(char => char.id !== characterId);
-    updateUserInStateAndFirestore(userId, { characters: updatedCharacters });
-  }, [users, updateUserInStateAndFirestore]);
+    await updateUserInStateAndFirestore(userId, { characters: updatedCharacters });
+  }, [fetchUserById, updateUserInStateAndFirestore]);
 
-  const updateUserStatus = useCallback((userId: string, status: UserStatus) => {
-    updateUserInStateAndFirestore(userId, { status });
+  const updateUserStatus = useCallback(async (userId: string, status: UserStatus) => {
+    await updateUserInStateAndFirestore(userId, { status });
   }, [updateUserInStateAndFirestore]);
 
-  const updateUserRole = useCallback((userId: string, role: UserRole) => {
-    updateUserInStateAndFirestore(userId, { role });
+  const updateUserRole = useCallback(async (userId: string, role: UserRole) => {
+    await updateUserInStateAndFirestore(userId, { role });
   }, [updateUserInStateAndFirestore]);
   
   const createRewardRequest = useCallback(async (rewardRequestData: Omit<RewardRequest, 'id' | 'status' | 'createdAt'>) => {
-    const user = users.find(u => u.id === rewardRequestData.userId);
+    const user = await fetchUserById(rewardRequestData.userId);
     if (!user) throw new Error("User not found for reward request");
 
     const batch = writeBatch(db);
-
-    // 1. Create the new request
     const requestId = `req-${Date.now()}`;
     const newRequest: RewardRequest = {
         ...rewardRequestData,
@@ -292,7 +259,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const requestRef = doc(db, "users", user.id, "reward_requests", requestId);
     batch.set(requestRef, newRequest);
 
-    // 2. Subtract points from the user
     const newPointLog: PointLog = {
       id: `h-${Date.now()}-req`,
       date: new Date().toISOString(),
@@ -306,50 +272,41 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     await batch.commit();
 
-    // Update state locally
-    setRewardRequests(prev => [newRequest, ...prev].sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-    const updatedUser = { ...user, points: updatedPoints, pointHistory: updatedHistory };
-    setUsers(prevUsers => prevUsers.map(u => (u.id === updatedUser.id ? updatedUser : u)));
-    if (currentUser?.id === updatedUser.id) {
+    if (currentUser?.id === user.id) {
+        const updatedUser = { ...user, points: updatedPoints, pointHistory: updatedHistory };
         setCurrentUser(updatedUser);
     }
-  }, [users, currentUser?.id]);
+  }, [fetchUserById, currentUser?.id]);
   
- const updateRewardRequestStatus = useCallback(async (requestId: string, status: RewardRequestStatus) => {
-      const request = rewardRequests.find(r => r.id === requestId);
-      if (!request) throw new Error("Request not found");
-
-      const user = users.find(u => u.id === request.userId);
+ const updateRewardRequestStatus = useCallback(async (request: RewardRequest, newStatus: RewardRequestStatus): Promise<RewardRequest | null> => {
+      const user = await fetchUserById(request.userId);
       if (!user) throw new Error("User for the request not found");
 
       const batch = writeBatch(db);
-      
-      const requestRef = doc(db, "users", request.userId, "reward_requests", requestId);
-      batch.update(requestRef, { status });
+      const requestRef = doc(db, "users", request.userId, "reward_requests", request.id);
+      batch.update(requestRef, { status: newStatus });
       
       let updatedUser = { ...user };
       let updatesForUser: Partial<User> = {};
 
-      if (status === 'одобрено') {
+      if (newStatus === 'одобрено') {
         if (request.characterId) {
             const charIndex = updatedUser.characters.findIndex(c => c.id === request.characterId);
             if (charIndex !== -1) {
                 let characterToUpdate = { ...updatedUser.characters[charIndex] };
-                // Logic for specific rewards
-                if (request.rewardId === 'r2') { // Благословение Богов
+                if (request.rewardId === 'r2') { // Blessing
                     const expiryDate = new Date();
                     expiryDate.setDate(expiryDate.getDate() + 5);
                     characterToUpdate.blessingExpires = expiryDate.toISOString();
                 }
-                if (request.rewardId === 'r9') { // Дружба с Левиафаном
+                if (request.rewardId === 'r9') { // Leviathan
                     characterToUpdate.hasLeviathanFriendship = true;
                 }
                 updatedUser.characters[charIndex] = characterToUpdate;
                 updatesForUser.characters = updatedUser.characters;
             }
         }
-      } else if (status === 'отклонено') {
-          // Refund points
+      } else if (newStatus === 'отклонено') {
           const reason = `Возврат за отклоненный запрос: ${request.rewardTitle}`;
           const newPointLog: PointLog = {
               id: `h-${Date.now()}-refund`,
@@ -363,29 +320,24 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           updatesForUser.pointHistory = updatedUser.pointHistory;
       }
 
-      const userRef = doc(db, "users", user.id);
       if (Object.keys(updatesForUser).length > 0) {
+        const userRef = doc(db, "users", user.id);
         batch.update(userRef, updatesForUser);
       }
 
       await batch.commit();
 
-      // Optimistically update user state
       if (Object.keys(updatesForUser).length > 0) {
-        setUsers(prevUsers => prevUsers.map(u => u.id === updatedUser.id ? updatedUser : u));
         if (currentUser?.id === updatedUser.id) {
-            setCurrentUser(updatedUser);
+            setCurrentUser(prev => ({...prev!, ...updatesForUser}));
         }
       }
-
-      // Optimistically update request state
-      setRewardRequests(prev => prev.map(r => r.id === requestId ? { ...r, status } : r));
-
-  }, [rewardRequests, users, currentUser?.id]);
+      return {...request, status: newStatus};
+  }, [fetchUserById, currentUser?.id]);
 
 
   const pullGachaForCharacter = useCallback(async (userId: string, characterId: string, cost: number): Promise<FamiliarCard> => {
-    const user = users.find(u => u.id === userId);
+    const user = await fetchUserById(userId);
     if (!user) throw new Error("Пользователь не найден.");
 
     const characterIndex = user.characters.findIndex(c => c.id === characterId);
@@ -396,14 +348,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const character = user.characters[characterIndex];
     const ownedCardIds = new Set((character.familiarCards || []).map(c => c.id));
 
-    // Check for blessing
     const hasBlessing = character.blessingExpires ? new Date(character.blessingExpires) > new Date() : false;
-
     const newCard = drawFamiliarCard(ownedCardIds, hasBlessing);
 
     const batch = writeBatch(db);
 
-    // Update character with new card ID
     const updatedCharacter: Character = {
         ...character,
         familiarCards: [...(character.familiarCards || []), { id: newCard.id }],
@@ -412,7 +361,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const updatedUser = { ...user };
     updatedUser.characters[characterIndex] = updatedCharacter;
     
-    // Subtract points and add log
     updatedUser.points -= cost;
     const newPointLog: PointLog = {
         id: `h-${Date.now()}-gacha`,
@@ -425,20 +373,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     const userRef = doc(db, "users", userId);
     batch.set(userRef, updatedUser);
-
     await batch.commit();
     
-    // Update state
-    setUsers(prev => prev.map(u => u.id === userId ? updatedUser : u));
     if (currentUser?.id === userId) {
         setCurrentUser(updatedUser);
     }
-    
     return newCard;
-  }, [users, currentUser?.id]);
+  }, [fetchUserById, currentUser?.id]);
 
-  const giveEventFamiliarToCharacter = useCallback((userId: string, characterId: string, familiarId: string) => {
-    const user = users.find(u => u.id === userId);
+  const giveEventFamiliarToCharacter = useCallback(async (userId: string, characterId: string, familiarId: string) => {
+    const user = await fetchUserById(userId);
     if (!user) return;
 
     const characterIndex = user.characters.findIndex(c => c.id === characterId);
@@ -449,10 +393,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     const character = user.characters[characterIndex];
     
-    // Check if character already owns this card
     if ((character.familiarCards || []).some(card => card.id === familiarId)) {
       console.warn(`Character ${character.name} already owns familiar ${familiar.name}`);
-      // Maybe show a toast here in the future
       return;
     }
 
@@ -473,8 +415,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     };
     const newHistory = [newPointLog, ...user.pointHistory];
 
-    updateUserInStateAndFirestore(userId, { characters: updatedCharacters, pointHistory: newHistory });
-  }, [users, updateUserInStateAndFirestore]);
+    await updateUserInStateAndFirestore(userId, { characters: updatedCharacters, pointHistory: newHistory });
+  }, [fetchUserById, updateUserInStateAndFirestore]);
 
 
   const signOutUser = useCallback(() => {
@@ -490,10 +432,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   const userContextValue = useMemo(
     () => ({
-      users,
-      rewardRequests,
       currentUser,
       setCurrentUser,
+      fetchAllUsers,
+      fetchAllRewardRequests,
       addPointsToUser,
       addCharacterToUser,
       deleteCharacterFromUser,
@@ -505,7 +447,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       pullGachaForCharacter,
       giveEventFamiliarToCharacter,
     }),
-    [users, rewardRequests, currentUser, addPointsToUser, addCharacterToUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter]
+    [currentUser, fetchAllUsers, fetchAllRewardRequests, addPointsToUser, addCharacterToUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter]
   );
 
   return (

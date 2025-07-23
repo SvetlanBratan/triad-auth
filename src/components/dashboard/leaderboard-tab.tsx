@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useUser } from '@/hooks/use-user';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -11,13 +11,33 @@ import type { User, UserStatus } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogTrigger } from '../ui/dialog';
 import UserProfileDialog from './user-profile-dialog';
+import { useToast } from '@/hooks/use-toast';
 
 
 export default function LeaderboardTab() {
-  const { users, currentUser } = useUser();
+  const { currentUser, fetchAllUsers } = useUser();
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const { toast } = useToast();
 
-  const sortedUsers = [...users].sort((a, b) => b.points - a.points);
+  useEffect(() => {
+      const loadUsers = async () => {
+          setIsLoading(true);
+          try {
+              const fetchedUsers = await fetchAllUsers();
+              const sorted = fetchedUsers.sort((a, b) => b.points - a.points);
+              setUsers(sorted);
+          } catch (error) {
+              console.error("Failed to fetch users", error);
+              toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось загрузить таблицу лидеров.' });
+          } finally {
+              setIsLoading(false);
+          }
+      };
+      loadUsers();
+  }, [fetchAllUsers, toast]);
+
   const isAdmin = currentUser?.role === 'admin';
 
   const getStatusClass = (status: UserStatus) => {
@@ -38,6 +58,24 @@ export default function LeaderboardTab() {
       setSelectedUser(user);
     }
   };
+
+  if (isLoading) {
+      return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                <Trophy className="text-yellow-500" /> Таблица лидеров
+                </CardTitle>
+                <CardDescription>
+                    Загрузка данных...
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="flex justify-center items-center h-64"><p>Загрузка...</p></div>
+            </CardContent>
+        </Card>
+      );
+  }
 
   return (
     <Card>
@@ -61,7 +99,7 @@ export default function LeaderboardTab() {
                 </TableRow>
             </TableHeader>
             <TableBody>
-                {sortedUsers.map((user, index) => (
+                {users.map((user, index) => (
                 <TableRow key={user.id} onClick={() => handleUserClick(user)} className={cn(isAdmin && "cursor-pointer")}>
                     <TableCell className="font-bold text-lg text-muted-foreground">
                     {index === 0 && <Trophy className="w-6 h-6 text-yellow-400 inline-block" />}
@@ -94,7 +132,7 @@ export default function LeaderboardTab() {
             </TableBody>
             </Table>
              {selectedUser && (
-                <DialogContent className="max-w-3xl h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-4xl h-[90vh] overflow-y-auto">
                     <UserProfileDialog user={selectedUser} />
                 </DialogContent>
             )}

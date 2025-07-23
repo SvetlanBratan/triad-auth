@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useUser } from '@/hooks/use-user';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,18 +11,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
 import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift } from 'lucide-react';
-import type { UserStatus, UserRole } from '@/lib/types';
+import type { UserStatus, UserRole, User } from '@/lib/types';
 import { FAME_LEVELS_POINTS, EVENT_FAMILIARS } from '@/lib/data';
 
 export default function AdminTab() {
-  const { users, addPointsToUser, updateUserStatus, updateUserRole, giveEventFamiliarToCharacter } = useUser();
+  const { addPointsToUser, updateUserStatus, updateUserRole, giveEventFamiliarToCharacter, fetchAllUsers } = useUser();
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   const [awardSelectedUserId, setAwardSelectedUserId] = useState<string>('');
   const [statusSelectedUserId, setStatusSelectedUserId] = useState<string>('');
   const [roleSelectedUserId, setRoleSelectedUserId] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<UserStatus | ''>('');
   const [selectedRole, setSelectedRole] = useState<UserRole | ''>('');
   
-  // State for event familiar award
   const [eventAwardUserId, setEventAwardUserId] = useState<string>('');
   const [eventAwardCharacterId, setEventAwardCharacterId] = useState<string>('');
   const [eventAwardFamiliarId, setEventAwardFamiliarId] = useState<string>('');
@@ -32,7 +34,23 @@ export default function AdminTab() {
   const [reason, setReason] = useState<string>('');
   const { toast } = useToast();
 
-  const handleAwardPoints = (e: React.FormEvent) => {
+  useEffect(() => {
+    const loadUsers = async () => {
+        setIsLoading(true);
+        try {
+            const fetchedUsers = await fetchAllUsers();
+            setUsers(fetchedUsers);
+        } catch (error) {
+            console.error("Failed to fetch users", error);
+            toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось загрузить пользователей.' });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    loadUsers();
+  }, [fetchAllUsers, toast]);
+
+  const handleAwardPoints = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!awardSelectedUserId || points === 0 || !reason) {
       toast({
@@ -43,18 +61,21 @@ export default function AdminTab() {
       return;
     }
     
-    addPointsToUser(awardSelectedUserId, points, reason);
-    toast({
-      title: "Баллы начислены!",
-      description: `Начислено ${points} баллов пользователю ${users.find(u => u.id === awardSelectedUserId)?.name}.`,
-    });
+    const updatedUser = await addPointsToUser(awardSelectedUserId, points, reason);
+    if (updatedUser) {
+        setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+        toast({
+            title: "Баллы начислены!",
+            description: `Начислено ${points} баллов пользователю ${updatedUser.name}.`,
+        });
+    }
 
     setAwardSelectedUserId('');
     setPoints(0);
     setReason('');
   };
 
-  const handleChangeStatus = (e: React.FormEvent) => {
+  const handleChangeStatus = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!statusSelectedUserId || !selectedStatus) {
         toast({
@@ -64,7 +85,8 @@ export default function AdminTab() {
         });
         return;
     }
-    updateUserStatus(statusSelectedUserId, selectedStatus);
+    await updateUserStatus(statusSelectedUserId, selectedStatus);
+    setUsers(prev => prev.map(u => u.id === statusSelectedUserId ? {...u, status: selectedStatus} : u));
     toast({
         title: "Статус обновлен!",
         description: `Статус пользователя ${users.find(u => u.id === statusSelectedUserId)?.name} изменен на "${selectedStatus}".`,
@@ -73,7 +95,7 @@ export default function AdminTab() {
     setSelectedStatus('');
   };
 
-   const handleChangeRole = (e: React.FormEvent) => {
+   const handleChangeRole = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!roleSelectedUserId || !selectedRole) {
       toast({
@@ -83,10 +105,11 @@ export default function AdminTab() {
       });
       return;
     }
-    updateUserRole(roleSelectedUserId, selectedRole);
+    await updateUserRole(roleSelectedUserId, selectedRole);
+    setUsers(prev => prev.map(u => u.id === roleSelectedUserId ? {...u, role: selectedRole} : u));
     toast({
       title: "Роль обновлена!",
-      description: `Роль пользователя ${users.find(u => u.id === roleSelectedUserId)?.name} изменена на "${selectedRole}".`,
+      description: `Роль пользователя ${users.find(u => u.id === roleSelectedUserId)?.name} изменен на "${selectedRole}".`,
     });
     setRoleSelectedUserId('');
     setSelectedRole('');
@@ -149,7 +172,7 @@ export default function AdminTab() {
     }
   };
 
-  const handleAwardEventFamiliar = (e: React.FormEvent) => {
+  const handleAwardEventFamiliar = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!eventAwardUserId || !eventAwardCharacterId || !eventAwardFamiliarId) {
       toast({
@@ -160,7 +183,7 @@ export default function AdminTab() {
       return;
     }
     
-    giveEventFamiliarToCharacter(eventAwardUserId, eventAwardCharacterId, eventAwardFamiliarId);
+    await giveEventFamiliarToCharacter(eventAwardUserId, eventAwardCharacterId, eventAwardFamiliarId);
 
     const userName = users.find(u => u.id === eventAwardUserId)?.name;
     const familiarName = EVENT_FAMILIARS.find(f => f.id === eventAwardFamiliarId)?.name;
@@ -169,6 +192,26 @@ export default function AdminTab() {
       title: "Ивентовый фамильяр выдан!",
       description: `Фамильяр "${familiarName}" выдан пользователю ${userName}.`,
     });
+    
+    // Manually update the user in the local state to reflect the change immediately
+    setUsers(prevUsers => {
+        return prevUsers.map(user => {
+            if (user.id === eventAwardUserId) {
+                const updatedCharacters = user.characters.map(char => {
+                    if (char.id === eventAwardCharacterId) {
+                        return {
+                            ...char,
+                            familiarCards: [...(char.familiarCards || []), { id: eventAwardFamiliarId }]
+                        };
+                    }
+                    return char;
+                });
+                return { ...user, characters: updatedCharacters };
+            }
+            return user;
+        });
+    });
+
 
     setEventAwardUserId('');
     setEventAwardCharacterId('');
@@ -180,6 +223,9 @@ export default function AdminTab() {
     return users.find(u => u.id === eventAwardUserId)?.characters || [];
   }, [eventAwardUserId, users]);
 
+  if (isLoading) {
+    return <div className="flex justify-center items-center h-64"><p>Загрузка данных...</p></div>
+  }
   
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
