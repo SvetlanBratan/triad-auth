@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
@@ -1163,7 +1162,11 @@ const addBankPointsToCharacter = useCallback(async (userId: string, characterId:
     const updatedCharacters = [...user.characters];
     const character = { ...updatedCharacters[characterIndex] };
     
-    const currentBalance = character.bankAccount;
+    let currentBalance = character.bankAccount;
+    // This is the critical fix: ensure currentBalance is an object.
+    if (typeof currentBalance !== 'object' || currentBalance === null) {
+      currentBalance = { platinum: 0, gold: 0, silver: 0, copper: 0 };
+    }
     
     currentBalance.platinum += amount.platinum || 0;
     currentBalance.gold += amount.gold || 0;
@@ -1253,9 +1256,12 @@ const processMonthlySalary = useCallback(async () => {
 
   const fetchOpenExchangeRequests = useCallback(async (): Promise<ExchangeRequest[]> => {
     const requestsCollection = collection(db, "exchange_requests");
-    const q = query(requestsCollection, where('status', '==', 'open'), orderBy('createdAt', 'desc'));
+    const q = query(requestsCollection, where('status', '==', 'open'));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ExchangeRequest));
+    const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ExchangeRequest));
+    // Manual sort because orderBy requires an index
+    requests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return requests;
   }, []);
 
   const acceptExchangeRequest = useCallback(async (acceptorUserId: string, request: ExchangeRequest) => {
@@ -1392,6 +1398,4 @@ const processMonthlySalary = useCallback(async () => {
   );
 }
 
-
-  
-
+    
