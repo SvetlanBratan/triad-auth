@@ -43,7 +43,6 @@ interface UserContextType {
   updateRewardRequestStatus: (request: RewardRequest, newStatus: RewardRequestStatus) => Promise<RewardRequest | null>;
   pullGachaForCharacter: (userId: string, characterId: string) => Promise<{newCard: FamiliarCard, isDuplicate: boolean}>;
   giveEventFamiliarToCharacter: (userId: string, characterId: string, familiarId: string) => Promise<void>;
-  fetchAvailableMythicCardsCount: () => Promise<number>;
   clearPointHistoryForUser: (userId: string) => Promise<void>;
   addMoodletToCharacter: (userId: string, characterId: string, moodletId: string, durationInDays: number, source?: string) => Promise<void>;
   removeMoodletFromCharacter: (userId: string, characterId: string, moodletId: string) => Promise<void>;
@@ -587,18 +586,21 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
 
   const pullGachaForCharacter = useCallback(async (userId: string, characterId: string): Promise<{newCard: FamiliarCard, isDuplicate: boolean}> => {
-    const allUsers = await fetchUsersForAdmin(); // Use the safe query
-    let user = allUsers.find(u => u.id === userId);
-
-    if (!user) throw new Error("Пользователь не найден.");
+    // This function will be executed on the client, so it needs permission to read its own user data.
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (!userDoc.exists()) throw new Error("Пользователь не найден.");
+    
+    let user = userDoc.data() as User;
     
     const hasPulledGachaBefore = user.pointHistory.some(log => log.reason.includes('Рулетка'));
     const hasFirstPullAchievement = (user.achievementIds || []).includes(FIRST_PULL_ACHIEVEMENT_ID);
 
     if (!hasPulledGachaBefore && !hasFirstPullAchievement) {
         await grantAchievementToUser(userId, FIRST_PULL_ACHIEVEMENT_ID);
-        user = await fetchUserById(userId);
-        if (!user) throw new Error("Could not re-fetch user after granting achievement.");
+        // Re-fetch user to get the achievement update
+        const updatedUserDoc = await getDoc(doc(db, 'users', userId));
+        if (!updatedUserDoc.exists()) throw new Error("Could not re-fetch user after granting achievement.");
+        user = updatedUserDoc.data() as User;
     }
     
     const characterIndex = user.characters.findIndex(c => c.id === characterId);
@@ -610,18 +612,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     if (user.points < cost) throw new Error("Недостаточно очков.");
 
+    // This part is problematic as it requires reading all users. 
+    // We will temporarily draw from all mythic cards, even if they are already owned by someone else.
+    // A proper solution would require a Cloud Function to handle this logic securely.
     const claimedMythicIds = new Set<string>();
-    allUsers.forEach(u => {
-        u.characters.forEach(c => {
-            (c.inventory?.familiarCards || c.familiarCards || []).forEach(card => {
-                const familiar = FAMILIARS_BY_ID[card.id];
-                if (familiar && familiar.rank === 'мифический') {
-                    claimedMythicIds.add(card.id);
-                }
-            })
-        })
-    });
-    
+
     const hasBlessing = character.blessingExpires ? new Date(character.blessingExpires) > new Date() : false;
     const newCard = drawFamiliarCard(hasBlessing, claimedMythicIds);
     
@@ -670,27 +665,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
 
     return { newCard, isDuplicate };
-  }, [currentUser?.id, grantAchievementToUser, fetchUserById, fetchUsersForAdmin]);
+  }, [currentUser?.id, grantAchievementToUser]);
   
-  const fetchAvailableMythicCardsCount = useCallback(async (): Promise<number> => {
-      const allUsers = await fetchUsersForAdmin();
-      const allMythicCards = ALL_FAMILIARS.filter(c => c.rank === 'мифический');
-      const totalMythicCount = allMythicCards.length;
-
-      const claimedMythicIds = new Set<string>();
-      allUsers.forEach(u => {
-        u.characters.forEach(c => {
-            (c.inventory?.familiarCards || c.familiarCards || []).forEach(card => {
-                const familiar = FAMILIARS_BY_ID[card.id];
-                if (familiar && familiar.rank === 'мифический') {
-                    claimedMythicIds.add(card.id);
-                }
-            })
-        })
-    });
-
-    return totalMythicCount - claimedMythicIds.size;
-  }, [fetchUsersForAdmin]);
 
   const giveEventFamiliarToCharacter = useCallback(async (userId: string, characterId: string, familiarId: string) => {
     const user = await fetchUserById(userId);
@@ -858,7 +834,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       updateRewardRequestStatus,
       pullGachaForCharacter,
       giveEventFamiliarToCharacter,
-      fetchAvailableMythicCardsCount,
       clearPointHistoryForUser,
       addMoodletToCharacter,
       removeMoodletFromCharacter,
@@ -868,7 +843,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       updateGameDate,
       checkExtraCharacterSlots,
     }),
-    [currentUser, gameSettings, fetchUsersForAdmin, fetchAllRewardRequests, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, fetchAvailableMythicCardsCount, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateGameDate, checkExtraCharacterSlots]
+    [currentUser, gameSettings, fetchUsersForAdmin, fetchAllRewardRequests, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateGameDate, checkExtraCharacterSlots]
   );
 
   return (

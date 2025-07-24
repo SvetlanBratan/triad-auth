@@ -33,25 +33,13 @@ const totalMythicCount = ALL_FAMILIARS.filter(f => f.rank === 'мифическ�
 
 
 export default function RouletteTab() {
-  const { currentUser, pullGachaForCharacter, fetchAvailableMythicCardsCount } = useUser();
+  const { currentUser, pullGachaForCharacter } = useUser();
   const { toast } = useToast();
   const [selectedCharacterId, setSelectedCharacterId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [isFlipping, setIsFlipping] = useState(false);
   const [revealedCard, setRevealedCard] = useState<FamiliarCard | null>(null);
-  const [availableMythics, setAvailableMythics] = useState(totalMythicCount);
-
-  useEffect(() => {
-    const getMythicCount = async () => {
-        try {
-            const count = await fetchAvailableMythicCardsCount();
-            setAvailableMythics(count);
-        } catch (error) {
-            console.error("Failed to fetch mythic card count:", error);
-        }
-    }
-    getMythicCount();
-  }, [fetchAvailableMythicCardsCount, currentUser]);
+  
 
   const isFirstSpinForChar = useMemo(() => {
     if (!currentUser || !selectedCharacterId) return false;
@@ -101,9 +89,6 @@ export default function RouletteTab() {
       // Wait for flip animation to progress before showing the card
       setTimeout(() => {
         setRevealedCard(newCard);
-         if (newCard.rank === 'мифический' && !isDuplicate) {
-            setAvailableMythics(prev => prev - 1);
-        }
       }, 300); // half of the animation duration
 
       if (isDuplicate) {
@@ -152,12 +137,6 @@ export default function RouletteTab() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-           <div className="flex justify-between items-center p-3 rounded-lg bg-yellow-400/10 border border-yellow-400/30">
-            <span className="font-semibold text-yellow-800">Мифических карт в игре:</span>
-            <span className="font-bold text-lg text-yellow-600 flex items-center gap-1">
-              <Sprout className="w-4 h-4" /> {availableMythics} / {totalMythicCount}
-            </span>
-          </div>
           <div className="flex justify-between items-center p-3 rounded-lg bg-primary/10">
             <span className="font-semibold">Стоимость одной прокрутки:</span>
             <span className={cn(
