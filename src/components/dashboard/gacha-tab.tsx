@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Dices, Star, Sprout, Gift } from 'lucide-react';
+import { Dices, Star, Sprout, Gift, ShieldAlert } from 'lucide-react';
 import type { FamiliarCard } from '@/lib/types';
 import FamiliarCardDisplay from './familiar-card';
 import Image from 'next/image';
@@ -33,13 +33,21 @@ const totalMythicCount = ALL_FAMILIARS.filter(f => f.rank === 'мифическ�
 
 
 export default function RouletteTab() {
-  const { currentUser, pullGachaForCharacter } = useUser();
+  const { currentUser, pullGachaForCharacter, fetchAvailableMythicCardsCount } = useUser();
   const { toast } = useToast();
   const [selectedCharacterId, setSelectedCharacterId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [isFlipping, setIsFlipping] = useState(false);
   const [revealedCard, setRevealedCard] = useState<FamiliarCard | null>(null);
+  const [availableMythicCount, setAvailableMythicCount] = useState<number | null>(null);
   
+  useEffect(() => {
+    // Only fetch count if the user is an admin, to avoid permission issues for regular users.
+    // The actual gacha logic on the backend (user provider) is secure.
+    if (currentUser?.role === 'admin') {
+      fetchAvailableMythicCardsCount().then(setAvailableMythicCount);
+    }
+  }, [fetchAvailableMythicCardsCount, currentUser?.role]);
 
   const isFirstSpinForChar = useMemo(() => {
     if (!currentUser || !selectedCharacterId) return false;
@@ -102,6 +110,12 @@ export default function RouletteTab() {
           description: `Вы получили новую карту: ${newCard.name}!`,
         });
       }
+
+      // Refetch mythic count if admin
+      if (currentUser.role === 'admin' && newCard.rank === 'мифический' && !isDuplicate) {
+        fetchAvailableMythicCardsCount().then(setAvailableMythicCount);
+      }
+
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Произошла неизвестная ошибка.';
@@ -147,6 +161,13 @@ export default function RouletteTab() {
               {isFirstSpinForChar ? 'Бесплатно' : `${ROULETTE_COST.toLocaleString()}`}
             </span>
           </div>
+
+          {currentUser?.role === 'admin' && availableMythicCount !== null && (
+            <div className="flex justify-between items-center p-3 rounded-lg bg-amber-500/10 text-amber-800 text-sm">
+                 <span className="font-semibold flex items-center gap-2"><ShieldAlert className="w-4 h-4" /> Мифические карты:</span>
+                 <span className="font-bold">{availableMythicCount} / {totalMythicCount} доступно</span>
+            </div>
+          )}
 
           <div>
             <label className="text-sm font-medium mb-2 block">
