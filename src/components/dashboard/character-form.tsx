@@ -45,6 +45,9 @@ const initialFormData: Character = {
     weaknesses: '',
     lifeGoal: '',
     pets: '',
+    pumpkins: 0,
+    bankAccount: 0,
+    // familiarCards is deprecated at top level, use inventory.familiarCards
     familiarCards: [],
     moodlets: [],
     inventory: {
@@ -79,21 +82,28 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
 
      useEffect(() => {
         if (character) {
-            // Deep merge to prevent overwriting existing nested data like inventory
+            // Create a deeply merged character object to ensure no data is lost
             const initializedCharacter = {
                 ...initialFormData,
                 ...character,
+                // Ensure nested inventory object is merged, not overwritten
                 inventory: {
                     ...initialFormData.inventory,
                     ...(character.inventory || {}),
+                    // Prioritize inventory.familiarCards, fallback to root-level for backward compatibility
                     familiarCards: character.inventory?.familiarCards || character.familiarCards || [],
                 },
+                // The root-level familiarCards should also be consistent
                 familiarCards: character.inventory?.familiarCards || character.familiarCards || [],
+                // Ensure fields that are now arrays are correctly initialized
                 currentFameLevel: Array.isArray(character.currentFameLevel) ? character.currentFameLevel : (character.currentFameLevel ? [character.currentFameLevel] : []),
                 skillLevel: Array.isArray(character.skillLevel) ? character.skillLevel : (character.skillLevel ? [character.skillLevel] : []),
                 training: Array.isArray(character.training) ? character.training : [],
                 marriedTo: Array.isArray(character.marriedTo) ? character.marriedTo : [],
+                // Ensure relationships have a temporary client-side ID for list rendering
                 relationships: (Array.isArray(character.relationships) ? character.relationships : []).map(r => ({...r, id: r.id || `rel-${Math.random()}`})),
+                pumpkins: character.pumpkins || 0,
+                bankAccount: character.bankAccount || 0,
             };
             setFormData(initializedCharacter);
         } else {
@@ -117,8 +127,8 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
 
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { id, value } = e.target;
-        setFormData(prev => ({ ...prev, [id]: value }));
+        const { id, value, type } = e.target;
+        setFormData(prev => ({ ...prev, [id]: type === 'number' ? parseFloat(value) || 0 : value }));
     };
 
     const handleMultiSelectChange = (id: keyof Omit<Character, 'relationships'>, values: string[]) => {
@@ -162,13 +172,17 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        // Ensure data consistency before submitting
         const finalData = {
             ...formData,
+            // Make sure inventory.familiarCards is the source of truth
             inventory: {
                 ...formData.inventory,
                 familiarCards: formData.inventory.familiarCards || [],
             },
-            // Remove temporary client-side ID before submitting
+            // Also update the root familiarCards for any legacy logic that might still use it
+            familiarCards: formData.inventory.familiarCards || [],
+            // Remove temporary client-side ID from relationships before submitting
             relationships: formData.relationships.map(({ id, ...rest }) => rest) as Omit<Relationship, 'id'>[],
         };
         onSubmit(finalData as Character);
@@ -194,6 +208,16 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
                      <div>
                         <Label htmlFor="birthDate">Дата рождения</Label>
                         <Input id="birthDate" value={formData.birthDate ?? ''} onChange={handleChange} placeholder="например, 15.06.2680" required />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <Label htmlFor="pumpkins">Тыквины</Label>
+                            <Input id="pumpkins" type="number" value={formData.pumpkins ?? 0} onChange={handleChange} />
+                        </div>
+                        <div>
+                            <Label htmlFor="bankAccount">Счет в банке</Label>
+                            <Input id="bankAccount" type="number" value={formData.bankAccount ?? 0} onChange={handleChange} />
+                        </div>
                     </div>
                     <div>
                         <Label htmlFor="currentFameLevel">Текущая известность</Label>
