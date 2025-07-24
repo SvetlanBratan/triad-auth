@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -46,6 +47,30 @@ service cloud.firestore {
       // An admin can do anything.
       allow update, delete: if request.auth != null && (
         (resource.data.creatorUserId == request.auth.uid) ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+    }
+
+    // --- FAMILIAR TRADE REQUESTS RULES ---
+    match /familiar_trade_requests/{requestId} {
+      // Any authenticated user can read trade requests.
+      allow read: if request.auth != null;
+
+      // A user can create a request if they are the initiator.
+      allow create: if request.auth != null && request.resource.data.initiatorUserId == request.auth.uid;
+
+      // The target of the request can update it (accept/decline).
+      // The initiator of the request can update it (cancel).
+      // Admins can do anything.
+      allow update: if request.auth != null && (
+        (resource.data.targetUserId == request.auth.uid) ||
+        (resource.data.initiatorUserId == request.auth.uid) ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+
+       // The initiator of the request can delete it (cancel). Admins too.
+      allow delete: if request.auth != null && (
+        (resource.data.initiatorUserId == request.auth.uid) ||
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
       );
     }
