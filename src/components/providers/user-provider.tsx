@@ -597,7 +597,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     if (!hasPulledGachaBefore && !hasFirstPullAchievement) {
         await grantAchievementToUser(userId, FIRST_PULL_ACHIEVEMENT_ID);
-        // Re-fetch user to get the achievement update
         const updatedUserDoc = await getDoc(doc(db, 'users', userId));
         if (!updatedUserDoc.exists()) throw new Error("Could not re-fetch user after granting achievement.");
         user = updatedUserDoc.data() as User;
@@ -611,11 +610,19 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const cost = isFirstPullForChar ? 0 : ROULETTE_COST;
 
     if (user.points < cost) throw new Error("Недостаточно очков.");
-
-    // This part is problematic as it requires reading all users. 
-    // We will temporarily draw from all mythic cards, even if they are already owned by someone else.
-    // A proper solution would require a Cloud Function to handle this logic securely.
+    
+    // The check for claimed mythic cards must be done in a secure way.
+    // The previous implementation was insecure. This simplified version checks only
+    // against the character's own mythic cards, which is safe to do on the client.
     const claimedMythicIds = new Set<string>();
+    const allCharacterCards = user.characters.flatMap(c => c.inventory?.familiarCards || []);
+    for (const card of allCharacterCards) {
+        const cardDetails = FAMILIARS_BY_ID[card.id];
+        if (cardDetails && cardDetails.rank === 'мифический') {
+            claimedMythicIds.add(card.id);
+        }
+    }
+
 
     const hasBlessing = character.blessingExpires ? new Date(character.blessingExpires) > new Date() : false;
     const newCard = drawFamiliarCard(hasBlessing, claimedMythicIds);
