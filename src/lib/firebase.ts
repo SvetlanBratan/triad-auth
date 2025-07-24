@@ -3,14 +3,15 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getAnalytics } from "firebase/analytics";
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyDFN51e123_this_is_a_real_key_so_it_will_work",
+  apiKey: "AIzaSyD0N_lwtTGfRwxCL2EMVMIPG62FMCn_tco",
   authDomain: "triad-scoring-system.firebaseapp.com",
   projectId: "triad-scoring-system",
-  storageBucket: "triad-scoring-system.appspot.com",
+  storageBucket: "triad-scoring-system.firebasestorage.app",
   messagingSenderId: "1043121641751",
   appId: "1:1043121641751:web:268ee8a85356a315eeff52",
   measurementId: "G-FGKBLBFZ45"
@@ -20,3 +21,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+
+// Initialize Analytics only in the browser
+if (typeof window !== 'undefined') {
+  getAnalytics(app);
+}
