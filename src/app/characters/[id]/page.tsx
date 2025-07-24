@@ -281,15 +281,19 @@ export default function CharacterPage() {
                             {(character.relationships && character.relationships.length > 0) ? (
                                 <div className="space-y-4">
                                     {character.relationships.map(rel => {
-                                        const { level, progressToNextLevel } = calculateRelationshipLevel(rel.points);
+                                        const { level, progressToNextLevel, maxPointsForCurrentLevel } = calculateRelationshipLevel(rel.points);
+                                        const pointsInCurrentLevel = rel.points - (level * 100);
                                         return (
                                         <div key={rel.targetCharacterId}>
                                             <div className="flex justify-between items-center mb-1">
                                                 <Link href={`/characters/${rel.targetCharacterId}`} className="font-semibold hover:underline">{rel.targetCharacterName}</Link>
                                                 <Badge variant="secondary" className={cn('capitalize', relationshipColors[rel.type], 'text-white')}>{relationshipLabels[rel.type]}</Badge>
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                                <Progress value={progressToNextLevel} className={cn("w-full h-2", relationshipColors[rel.type])} indicatorClassName={relationshipColors[rel.type]}/>
+                                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                <span>{pointsInCurrentLevel}/{maxPointsForCurrentLevel}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <Progress value={progressToNextLevel} className={cn("w-full h-2")} indicatorClassName={relationshipColors[rel.type]}/>
                                                 <span className="text-xs font-bold w-8 text-right">{level}/10</span>
                                             </div>
                                         </div>

@@ -61,12 +61,13 @@ export function calculateAge(birthDateString: string, gameDate: Date): number | 
   }
 }
 
-export function calculateRelationshipLevel(points: number): { level: number; progressToNextLevel: number } {
+export function calculateRelationshipLevel(points: number): { level: number; progressToNextLevel: number; maxPointsForCurrentLevel: number; } {
     const level = Math.min(10, Math.floor(points / 100));
+    const maxPointsForCurrentLevel = level >= 10 ? 1000 : 100;
     if (level >= 10) {
-        return { level: 10, progressToNextLevel: 100 };
+        return { level: 10, progressToNextLevel: 100, maxPointsForCurrentLevel: 1000 };
     }
     const pointsInCurrentLevel = points % 100;
     const progressToNextLevel = pointsInCurrentLevel; // as it's out of 100
-    return { level, progressToNextLevel };
+    return { level, progressToNextLevel, maxPointsForCurrentLevel };
 }
