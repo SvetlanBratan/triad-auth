@@ -599,7 +599,32 @@ export default function AdminTab() {
                 </form>
             </CardContent>
         </Card>
-       <Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Clock /> Автоматические действия</CardTitle>
+            <CardDescription>Симулируйте автоматические расчеты баллов.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+              <div>
+                  <h3 className="font-semibold mb-2 flex items-center gap-2"><Users /> Еженедельный бонус за активность</h3>
+                  <p className="text-sm text-muted-foreground mb-3">Начисляет 800 баллов всем 'активным' игрокам.</p>
+                  <Button onClick={handleWeeklyCalculations} variant="outline">Запустить еженедельный расчет</Button>
+              </div>
+              <Separator />
+              <div>
+                  <h3 className="font-semibold mb-2 flex items-center gap-2"><Trophy /> Награда за известность</h3>
+                  <p className="text-sm text-muted-foreground mb-3">Начисляет баллы всем игрокам в зависимости от известности их персонажей.</p>
+                  <Button onClick={handleFameAwards} variant="outline">Начислить награды</Button>
+              </div>
+              <Separator />
+              <div>
+                  <h3 className="font-semibold mb-2 flex items-center gap-2"><Users /> Еженедельный штраф за неактивность</h3>
+                  <p className="text-sm text-muted-foreground mb-3">Списывает 1000 баллов со всех 'неактивных' игроков.</p>
+                  <Button onClick={handleInactivityPenalty} variant="destructive">Применить штраф</Button>
+              </div>
+          </CardContent>
+        </Card>
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><UserCog /> Изменить статус</CardTitle>
             <CardDescription>Измените статус активности пользователя.</CardDescription>
@@ -672,6 +697,9 @@ export default function AdminTab() {
             </form>
           </CardContent>
         </Card>
+      </div>
+
+      <div className="space-y-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><Gift /> Выдать ивентового фамильяра</CardTitle>
@@ -722,34 +750,6 @@ export default function AdminTab() {
             </form>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Clock /> Автоматические действия</CardTitle>
-            <CardDescription>Симулируйте автоматические расчеты баллов.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-              <div>
-                  <h3 className="font-semibold mb-2 flex items-center gap-2"><Users /> Еженедельный бонус за активность</h3>
-                  <p className="text-sm text-muted-foreground mb-3">Начисляет 800 баллов всем 'активным' игрокам.</p>
-                  <Button onClick={handleWeeklyCalculations} variant="outline">Запустить еженедельный расчет</Button>
-              </div>
-              <Separator />
-              <div>
-                  <h3 className="font-semibold mb-2 flex items-center gap-2"><Trophy /> Награда за известность</h3>
-                  <p className="text-sm text-muted-foreground mb-3">Начисляет баллы всем игрокам в зависимости от известности их персонажей.</p>
-                  <Button onClick={handleFameAwards} variant="outline">Начислить награды</Button>
-              </div>
-              <Separator />
-              <div>
-                  <h3 className="font-semibold mb-2 flex items-center gap-2"><Users /> Еженедельный штраф за неактивность</h3>
-                  <p className="text-sm text-muted-foreground mb-3">Списывает 1000 баллов со всех 'неактивных' игроков.</p>
-                  <Button onClick={handleInactivityPenalty} variant="destructive">Применить штраф</Button>
-              </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="space-y-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><Trophy /> Выдать ачивку</CardTitle>
