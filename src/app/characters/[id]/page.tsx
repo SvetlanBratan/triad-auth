@@ -16,7 +16,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import CharacterForm from '@/components/dashboard/character-form';
 import { useToast } from '@/hooks/use-toast';
-import { cn, formatTimeLeft, calculateAge } from '@/lib/utils';
+import { cn, formatTimeLeft, calculateAge, calculateRelationshipLevel } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import * as LucideIcons from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -267,18 +267,20 @@ export default function CharacterPage() {
                         <CardContent>
                             {(character.relationships && character.relationships.length > 0) ? (
                                 <div className="space-y-4">
-                                    {character.relationships.map(rel => (
+                                    {character.relationships.map(rel => {
+                                        const { level, progressToNextLevel } = calculateRelationshipLevel(rel.points);
+                                        return (
                                         <div key={rel.targetCharacterId}>
                                             <div className="flex justify-between items-center mb-1">
                                                 <Link href={`/characters/${rel.targetCharacterId}`} className="font-semibold hover:underline">{rel.targetCharacterName}</Link>
                                                 <Badge variant="secondary" className={cn('capitalize', relationshipColors[rel.type], 'text-white')}>{relationshipLabels[rel.type]}</Badge>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <Progress value={rel.level * 10} className={cn("w-full h-2", relationshipColors[rel.type])} indicatorClassName={relationshipColors[rel.type]}/>
-                                                <span className="text-xs font-bold w-8 text-right">{rel.level}/10</span>
+                                                <Progress value={progressToNextLevel} className={cn("w-full h-2", relationshipColors[rel.type])} indicatorClassName={relationshipColors[rel.type]}/>
+                                                <span className="text-xs font-bold w-8 text-right">{level}/10</span>
                                             </div>
                                         </div>
-                                    ))}
+                                    )})}
                                 </div>
                             ) : (
                                 <p className="text-muted-foreground text-sm">Отношений пока нет.</p>

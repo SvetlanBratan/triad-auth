@@ -5,6 +5,7 @@ export type RewardRequestStatus = 'в ожидании' | 'одобрено' | '
 export type FamiliarRank = 'обычный' | 'редкий' | 'легендарный' | 'мифический' | 'ивентовый';
 export type InventoryCategory = 'оружие' | 'гардероб' | 'еда' | 'подарки' | 'артефакты' | 'зелья' | 'недвижимость' | 'транспорт';
 export type RelationshipType = 'романтика' | 'дружба' | 'вражда' | 'конкуренция' | 'нейтралитет';
+export type RelationshipActionType = 'подарок' | 'письмо' | 'пост';
 
 export interface GameSettings {
   gameDateString: string;
@@ -57,12 +58,22 @@ export interface Inventory {
     familiarCards: OwnedFamiliarCard[];
 }
 
+export interface RelationshipAction {
+  id: string;
+  type: RelationshipActionType;
+  date: string; // ISO string
+  description: string;
+}
+
 export interface Relationship {
   id: string; // Temporary client-side ID for list rendering
   targetCharacterId: string;
   targetCharacterName: string;
   type: RelationshipType;
-  level: number; // 1-10
+  points: number; // 0-1000, where 100 points = 1 level
+  history: RelationshipAction[];
+  lastGiftSentAt?: string; // ISO string date
+  lastLetterSentAt?: string; // ISO string date
 }
 
 

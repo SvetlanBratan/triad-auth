@@ -141,9 +141,10 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
             targetCharacterId: '',
             targetCharacterName: '',
             type: 'нейтралитет',
-            level: 1,
+            points: 0,
+            history: [],
         };
-        setFormData(prev => ({ ...prev, relationships: [...prev.relationships, newRelationship] }));
+        setFormData(prev => ({ ...prev, relationships: [...(prev.relationships || []), newRelationship] }));
     };
 
     const removeRelationship = (index: number) => {
@@ -288,16 +289,6 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
                                             </SelectContent>
                                         </Select>
                                     </div>
-                                    <div>
-                                        <Label>Уровень ({rel.level})</Label>
-                                        <Slider
-                                            value={[rel.level]}
-                                            onValueChange={(value) => handleRelationshipChange(index, 'level', value[0])}
-                                            min={1}
-                                            max={10}
-                                            step={1}
-                                        />
-                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -320,7 +311,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
                         <Label htmlFor="training">Обучение</Label>
                         <MultiSelect
                             options={TRAINING_OPTIONS}
-                            selected={formData.training}
+                            selected={formData.training ?? []}
                             onChange={(selectedValues) => handleMultiSelectChange('training', selectedValues)}
                             placeholder="Выберите учебные заведения..."
                         />
