@@ -1256,12 +1256,9 @@ const processMonthlySalary = useCallback(async () => {
 
   const fetchOpenExchangeRequests = useCallback(async (): Promise<ExchangeRequest[]> => {
     const requestsCollection = collection(db, "exchange_requests");
-    const q = query(requestsCollection, where('status', '==', 'open'));
+    const q = query(requestsCollection, where('status', '==', 'open'), orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
-    let requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ExchangeRequest));
-    // Sort in-memory to avoid composite index requirement
-    requests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    return requests;
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ExchangeRequest));
   }, []);
 
   const acceptExchangeRequest = useCallback(async (acceptorUserId: string, request: ExchangeRequest) => {
@@ -1401,3 +1398,4 @@ const processMonthlySalary = useCallback(async () => {
     
 
     
+
