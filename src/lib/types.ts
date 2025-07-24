@@ -92,6 +92,7 @@ export interface BankAccount {
 export interface ExchangeRequest {
     id: string;
     creatorUserId: string;
+    creatorName: string;
     creatorCharacterId: string;
     creatorCharacterName: string;
     fromCurrency: Currency;

@@ -1242,6 +1242,7 @@ const processMonthlySalary = useCallback(async () => {
 
         const newRequest: Omit<ExchangeRequest, 'id'> = {
             creatorUserId,
+            creatorName: userData.name,
             creatorCharacterId,
             creatorCharacterName: character.name,
             fromCurrency,
