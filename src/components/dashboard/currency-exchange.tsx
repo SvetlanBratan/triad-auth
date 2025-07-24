@@ -20,12 +20,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowRightLeft, Coins, Trash2, Repeat } from 'lucide-react';
+import { ArrowRightLeft, Coins, Trash2, Repeat, Info } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { BankAccount, Currency, ExchangeRequest } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import { Separator } from '../ui/separator';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 const CURRENCY_OPTIONS: { value: Currency, label: string }[] = [
     { value: 'platinum', label: 'Платина' },
@@ -74,8 +75,8 @@ export default function CurrencyExchange() {
     if (fromAmount > 0 && fromCurrency && toCurrency) {
         const rate = EXCHANGE_RATE[fromCurrency][toCurrency];
         const result = fromAmount * rate;
-        // Format to avoid floating point issues and excessive decimals
-        setToAmount(parseFloat(result.toFixed(6)));
+        // Floor the result to ensure whole numbers and avoid fractions
+        setToAmount(Math.floor(result));
     } else {
         setToAmount(0);
     }
@@ -86,13 +87,13 @@ export default function CurrencyExchange() {
   }, [currentUser, fromCharacterId]);
   
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseFloat(e.target.value);
-    setFromAmount(isNaN(value) ? 0 : value);
+    const value = parseInt(e.target.value, 10);
+    setFromAmount(isNaN(value) || value < 0 ? 0 : value);
   };
   
   const handleSubmit = async () => {
       if (!currentUser || !fromCharacterId || fromAmount <= 0 || toAmount <= 0) {
-          toast({ variant: 'destructive', title: 'Ошибка', description: 'Пожалуйста, заполните все поля корректно.' });
+          toast({ variant: 'destructive', title: 'Ошибка', description: 'Пожалуйста, заполните все поля корректно. Сумма обмена должна быть больше нуля.' });
           return;
       }
       setIsLoading(true);
@@ -153,9 +154,19 @@ export default function CurrencyExchange() {
             <Card className="w-full">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><ArrowRightLeft /> Васильковый Банк</CardTitle>
-                    <CardDescription>Создайте запрос на обмен валюты, который будет виден всем игрокам.</CardDescription>
+                    <CardDescription>Создайте запрос на обмен тыквинов, который будет виден всем игрокам.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                    <Alert>
+                        <Info className="h-4 w-4" />
+                        <AlertTitle>Курс обмена</AlertTitle>
+                        <AlertDescription className="text-xs">
+                            1 платина = 100 золота<br/>
+                            1 золото = 100 серебра<br/>
+                            1 серебро = 100 меди
+                        </AlertDescription>
+                    </Alert>
+
                     <div>
                         <Label>Ваш персонаж и его счет</Label>
                         <Select value={fromCharacterId} onValueChange={setFromCharacterId}>
@@ -197,7 +208,7 @@ export default function CurrencyExchange() {
 
                     <div className="flex items-end gap-4">
                         <div className="flex-1 space-y-1.5">
-                            <Label htmlFor="toAmount">Получаю</Label>
+                            <Label htmlFor="toAmount">Получаю (целое число)</Label>
                             <Input id="toAmount" type="number" value={toAmount || ''} readOnly disabled />
                         </div>
                         <div className="w-32 space-y-1.5">
@@ -211,7 +222,7 @@ export default function CurrencyExchange() {
                     </div>
                 </CardContent>
                 <CardFooter>
-                    <Button className="w-full" onClick={handleSubmit} disabled={isLoading || !fromCharacterId || !hasSufficientFunds || fromAmount <= 0}>
+                    <Button className="w-full" onClick={handleSubmit} disabled={isLoading || !fromCharacterId || !hasSufficientFunds || fromAmount <= 0 || toAmount <= 0}>
                         Создать запрос на обмен
                     </Button>
                 </CardFooter>
