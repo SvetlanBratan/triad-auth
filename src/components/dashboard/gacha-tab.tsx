@@ -61,22 +61,6 @@ export default function RouletteTab() {
 
   const currentCost = isFirstSpinForChar ? 0 : ROULETTE_COST;
 
-  const resetRoulette = () => {
-    setIsFlipping(false);
-    setRevealedCard(null);
-  }
-
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (revealedCard && !isLoading) {
-      // Automatically reset the roulette after a delay
-      timer = setTimeout(() => {
-        resetRoulette();
-      }, 4000); // 4 seconds delay
-    }
-    return () => clearTimeout(timer);
-  }, [revealedCard, isLoading]);
-
 
   const handlePull = async () => {
     if (!currentUser || !selectedCharacterId) {
@@ -98,7 +82,7 @@ export default function RouletteTab() {
     }
 
     setIsLoading(true);
-    setRevealedCard(null);
+    setRevealedCard(null); // Hide previous card
 
     // Start animation
     setIsFlipping(true);
@@ -222,7 +206,7 @@ export default function RouletteTab() {
       </Card>
 
       <div className="w-full max-w-md min-h-[480px] flex items-center justify-center">
-        {isFlipping ? (
+        {isFlipping || revealedCard ? (
            <div className="flex flex-col items-center gap-4">
                <div className="w-[300px] h-[420px] perspective-1000">
                  <div
