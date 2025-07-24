@@ -170,6 +170,11 @@ export default function CharacterPage() {
         return spouseChars;
     }, [character, allUsers]);
 
+    const formattedCurrency = useMemo(() => {
+        if (!character) return [];
+        return formatCurrency(character.bankAccount);
+    }, [character]);
+
     if (isLoading) {
         return <div className="container mx-auto p-4 md:p-8"><p>Загрузка данных персонажа...</p></div>;
     }
@@ -340,9 +345,20 @@ export default function CharacterPage() {
                                 <span>Уровень достатка:</span>
                                 <Badge variant="outline">{character.wealthLevel || 'Бедный'}</Badge>
                             </div>
-                             <div className="flex justify-between items-start">
+                             <div className="flex justify-between items-start pt-2">
                                 <span>Счет в банке:</span>
-                                <span className="text-right font-medium text-primary whitespace-pre-line">{formatCurrency(character.bankAccount).replace(/ /g, '\n')}</span>
+                                <div className="text-right font-medium text-primary">
+                                    {formattedCurrency.length > 0 ? (
+                                        formattedCurrency.map(([amount, name]) => (
+                                            <div key={name} className="flex justify-end items-baseline gap-1.5">
+                                                <span>{amount}</span>
+                                                <span className="text-xs text-muted-foreground font-normal">{name}</span>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <span>0 тыквин</span>
+                                    )}
+                                </div>
                             </div>
                         </CardContent>
                     </Card>

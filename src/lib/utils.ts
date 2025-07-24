@@ -73,22 +73,18 @@ export function calculateRelationshipLevel(points: number): { level: number; pro
     return { level, progressToNextLevel, maxPointsForCurrentLevel };
 }
 
-export function formatCurrency(bankAccount: BankAccount): string {
+export function formatCurrency(bankAccount: BankAccount): [string, string][] {
   if (!bankAccount) {
-    return "0 тыквин";
+    return [];
   }
 
   const { platinum, gold, silver, copper } = bankAccount;
-  const parts: string[] = [];
+  const parts: [string, string][] = [];
 
-  if (platinum > 0) parts.push(`${platinum.toLocaleString()} пл.`);
-  if (gold > 0) parts.push(`${gold.toLocaleString()} з.`);
-  if (silver > 0) parts.push(`${silver.toLocaleString()} с.`);
-  if (copper > 0) parts.push(`${copper.toLocaleString()} м.`);
+  if (platinum > 0) parts.push([platinum.toLocaleString(), 'платины']);
+  if (gold > 0) parts.push([gold.toLocaleString(), 'золота']);
+  if (silver > 0) parts.push([silver.toLocaleString(), 'серебра']);
+  if (copper > 0) parts.push([copper.toLocaleString(), 'меди']);
   
-  if (parts.length === 0) {
-    return "0 тыквин";
-  }
-
-  return parts.join(' ');
+  return parts;
 }
