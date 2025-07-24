@@ -41,16 +41,16 @@ export function Dashboard() {
     ...(isAdmin ? [{ value: 'requests', label: 'Запросы', icon: GitPullRequest }] : []),
     ...(isAdmin ? [{ value: 'admin', label: 'Админ', icon: Shield }] : []),
   ];
-
-  const gridColsClass = `grid-cols-${tabs.length}`;
+  
+  const gridColsClass = isAdmin ? 'grid-cols-6' : 'grid-cols-4';
 
   return (
       <Tabs defaultValue="profile" className="w-full">
         <TabsList className={`grid w-full ${gridColsClass}`}>
           {tabs.map(({ value, label, icon: Icon }) => (
-            <TabsTrigger key={value} value={value} className="flex-row items-center justify-center p-1.5 sm:p-2 gap-1.5">
+            <TabsTrigger key={value} value={value} className="flex-row items-center justify-center p-1 sm:p-2 sm:gap-1.5 text-xs sm:text-sm">
               <Icon className="w-4 h-4" />
-              <span className="text-xs hidden sm:inline">{label}</span>
+              <span className="hidden sm:inline">{label}</span>
             </TabsTrigger>
           ))}
         </TabsList>
