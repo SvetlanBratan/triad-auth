@@ -59,6 +59,7 @@ interface UserContextType {
     actionType: RelationshipActionType,
     description: string
   ) => Promise<void>;
+  recoverFamiliarsFromHistory: (userId: string, characterId: string) => Promise<number>;
 }
 
 export const UserContext = createContext<UserContextType | null>(null);
@@ -1068,6 +1069,67 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   }, [currentUser, fetchUserById]);
 
+  const recoverFamiliarsFromHistory = useCallback(async (userId: string, characterId: string): Promise<number> => {
+    const user = await fetchUserById(userId);
+    if (!user) throw new Error("User not found for recovery");
+
+    const character = user.characters.find(c => c.id === characterId);
+    if (!character) throw new Error("Character not found for recovery");
+
+    // Find all historical names for this character
+    const historicalNames = new Set<string>([character.name]);
+    user.pointHistory.forEach(log => {
+        if (log.characterId === characterId && log.characterName) {
+            historicalNames.add(log.characterName);
+        }
+    });
+
+    // Find all gacha wins in history for this character
+    const historicalCardWins = new Set<string>();
+    const gachaLogRegex = /Рулетка: получена карта (.+?) \((.+?)\)/;
+
+    user.pointHistory.forEach(log => {
+        if (log.characterName && historicalNames.has(log.characterName)) {
+            const match = log.reason.match(gachaLogRegex);
+            if (match) {
+                const cardName = match[1].trim();
+                const foundCard = ALL_FAMILIARS.find(c => c.name === cardName);
+                if (foundCard) {
+                    historicalCardWins.add(foundCard.id);
+                }
+            }
+        }
+    });
+    
+    // Compare with current inventory and add missing cards
+    const inventory = character.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: [] };
+    const currentOwnedCardIds = new Set((inventory.familiarCards || []).map(c => c.id));
+    const cardsToAdd: { id: string }[] = [];
+
+    historicalCardWins.forEach(cardId => {
+        if (!currentOwnedCardIds.has(cardId)) {
+            cardsToAdd.push({ id: cardId });
+        }
+    });
+
+    if (cardsToAdd.length > 0) {
+        const characterIndex = user.characters.findIndex(c => c.id === characterId);
+        if (characterIndex !== -1) {
+            const updatedCharacter = { ...character };
+            const updatedInventory = { ...inventory };
+            updatedInventory.familiarCards = [...(updatedInventory.familiarCards || []), ...cardsToAdd];
+            updatedCharacter.inventory = updatedInventory;
+
+            const updatedCharacters = [...user.characters];
+            updatedCharacters[characterIndex] = updatedCharacter;
+            
+            await updateUser(user.id, { characters: updatedCharacters });
+        }
+    }
+
+    return cardsToAdd.length;
+}, [fetchUserById, updateUser]);
+
 
   const signOutUser = useCallback(() => {
     signOut(auth);
@@ -1110,8 +1172,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       updateGameDate,
       checkExtraCharacterSlots,
       performRelationshipAction,
+      recoverFamiliarsFromHistory,
     }),
-    [currentUser, gameSettings, fetchUsersForAdmin, fetchAllRewardRequests, fetchAvailableMythicCardsCount, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateGameDate, checkExtraCharacterSlots, performRelationshipAction]
+    [currentUser, gameSettings, fetchUsersForAdmin, fetchAllRewardRequests, fetchAvailableMythicCardsCount, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateGameDate, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory]
   );
 
   return (
@@ -1122,3 +1185,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     </AuthContext.Provider>
   );
 }
+
+
+  
