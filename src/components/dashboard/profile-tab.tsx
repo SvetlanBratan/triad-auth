@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Star, Trash2, Pencil, UserSquare, Sparkles, Anchor, KeyRound } from 'lucide-react';
+import { PlusCircle, Star, Trash2, Pencil, UserSquare, Sparkles, Anchor, KeyRound, ChevronDown } from 'lucide-react';
 import type { PointLog, UserStatus, Character, User, FamiliarCard, FamiliarRank } from '@/lib/types';
 import Link from 'next/link';
 import {
@@ -83,12 +83,12 @@ const CharacterDisplay = ({ character, onDelete }: { character: Character, onDel
     return (
         <AccordionItem value={character.id} className="border rounded-md px-2 mb-2">
              <div className="flex justify-between items-center w-full">
-                <AccordionTrigger className="flex-1 py-3 hover:no-underline">
+                 <AccordionTrigger className="flex-1 py-3 hover:no-underline group">
                    <div className="flex items-center gap-3">
                         <UserSquare className="w-8 h-8 text-primary" />
                         <div>
                             <div className="flex items-center gap-2 flex-wrap">
-                                <Link href={`/characters/${character.id}`} className="font-bold text-base hover:underline">{character.name}</Link>
+                                <Link href={`/characters/${character.id}`} className="font-bold text-base hover:underline" onClick={e => e.stopPropagation()}>{character.name}</Link>
                                  {isBlessed && (
                                    <Sparkles className="h-4 w-4 text-yellow-500" />
                                  )}
@@ -105,7 +105,7 @@ const CharacterDisplay = ({ character, onDelete }: { character: Character, onDel
                 </AccordionTrigger>
                  <AlertDialog>
                     <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="shrink-0 hover:bg-destructive/10">
+                        <Button variant="ghost" size="icon" className="shrink-0 hover:bg-destructive/10" onClick={e => e.stopPropagation()}>
                             <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                     </AlertDialogTrigger>

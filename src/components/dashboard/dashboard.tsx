@@ -32,7 +32,7 @@ export function Dashboard() {
   }
 
   const isAdmin = currentUser.role === 'admin';
-  const gridColsClass = isAdmin ? "grid-cols-6" : "grid-cols-5";
+  const gridColsClass = isAdmin ? "grid-cols-3 sm:grid-cols-6" : "grid-cols-3 sm:grid-cols-5";
   
   const tabs = [
     { value: 'profile', label: 'Профиль', icon: User },
@@ -47,9 +47,9 @@ export function Dashboard() {
       <Tabs defaultValue="profile" className="w-full">
         <TabsList className={`grid w-full ${gridColsClass}`}>
           {tabs.map(({ value, label, icon: Icon }) => (
-            <TabsTrigger key={value} value={value} className="flex-col sm:flex-row h-auto sm:h-10 p-2 sm:p-3 gap-1 sm:gap-2">
-              <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="text-xs sm:text-sm">{label}</span>
+            <TabsTrigger key={value} value={value} className="flex-row items-center justify-center p-1.5 sm:p-2 gap-1.5">
+              <Icon className="w-4 h-4" />
+              <span className="text-xs hidden sm:inline">{label}</span>
             </TabsTrigger>
           ))}
         </TabsList>

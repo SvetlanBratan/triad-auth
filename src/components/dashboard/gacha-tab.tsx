@@ -37,15 +37,12 @@ export default function RouletteTab() {
   const { toast } = useToast();
   const [selectedCharacterId, setSelectedCharacterId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isFlipping, setIsFlipping] = useState(false);
   const [revealedCard, setRevealedCard] = useState<FamiliarCard | null>(null);
   const [availableMythicCount, setAvailableMythicCount] = useState<number | null>(null);
   
   useEffect(() => {
-    if (currentUser?.role === 'admin') {
-      fetchAvailableMythicCardsCount().then(setAvailableMythicCount);
-    }
-  }, [fetchAvailableMythicCardsCount, currentUser?.role]);
+    fetchAvailableMythicCardsCount().then(setAvailableMythicCount);
+  }, [fetchAvailableMythicCardsCount]);
 
   const isFirstSpinForChar = useMemo(() => {
     if (!currentUser || !selectedCharacterId) return false;
@@ -84,19 +81,13 @@ export default function RouletteTab() {
     setIsLoading(true);
     setRevealedCard(null); // Hide previous card
 
-    // Start animation
-    setIsFlipping(true);
-
     try {
       const { newCard, isDuplicate } = await pullGachaForCharacter(
         currentUser.id,
         selectedCharacterId
       );
-
-      // Wait for flip animation to progress before showing the card
-      setTimeout(() => {
-        setRevealedCard(newCard);
-      }, 300); // half of the animation duration
+      
+      setRevealedCard(newCard);
 
       if (isDuplicate) {
         toast({
@@ -110,8 +101,8 @@ export default function RouletteTab() {
         });
       }
 
-      // Refetch mythic count if admin
-      if (currentUser.role === 'admin' && newCard.rank === 'мифический' && !isDuplicate) {
+      // Refetch mythic count if new mythic card was pulled
+      if (newCard.rank === 'мифический' && !isDuplicate) {
         fetchAvailableMythicCardsCount().then(setAvailableMythicCount);
       }
 
@@ -123,12 +114,8 @@ export default function RouletteTab() {
         title: 'Ошибка рулетки',
         description: errorMessage,
       });
-      setIsFlipping(false);
     } finally {
-      // Let the animation finish
-      setTimeout(() => {
-        setIsLoading(false);
-      }, 1000);
+      setIsLoading(false);
     }
   };
   
@@ -157,7 +144,7 @@ export default function RouletteTab() {
             </span>
           </div>
 
-          {currentUser?.role === 'admin' && availableMythicCount !== null && (
+          {availableMythicCount !== null && (
             <div className="flex justify-between items-center p-3 rounded-lg bg-amber-500/10 text-amber-800 text-sm">
                  <span className="font-semibold flex items-center gap-2"><ShieldAlert className="w-4 h-4" /> Мифические карты:</span>
                  <span className="font-bold">{availableMythicCount} / {totalMythicCount} доступно</span>
@@ -171,7 +158,7 @@ export default function RouletteTab() {
             <Select
               onValueChange={setSelectedCharacterId}
               value={selectedCharacterId}
-              disabled={isLoading || isFlipping}
+              disabled={isLoading}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Выберите персонажа..." />
@@ -193,7 +180,6 @@ export default function RouletteTab() {
             disabled={
               !selectedCharacterId ||
               isLoading ||
-              isFlipping ||
               (currentUser?.points ?? 0) < currentCost ||
               currentUser?.characters.length === 0
             }
@@ -206,34 +192,13 @@ export default function RouletteTab() {
       </Card>
 
       <div className="w-full max-w-md min-h-[480px] flex items-center justify-center">
-        {isFlipping || revealedCard ? (
+        {revealedCard ? (
            <div className="flex flex-col items-center gap-4">
                <div className="w-[300px] h-[420px] perspective-1000">
                  <div
-                   className={cn(
-                     'relative w-full h-full preserve-3d transition-transform duration-700',
-                     revealedCard ? 'rotate-y-180' : ''
-                   )}
+                   className={'relative w-full h-full preserve-3d transition-transform duration-700'}
                  >
-                    {/* Card Back */}
-                   <div className="absolute w-full h-full backface-hidden">
-                     <Image
-                       src="https://res.cloudinary.com/dxac8lq4f/image/upload/v1753198005/ChatGPT_Image_22_%D0%B8%D1%8E%D0%BB._2025_%D0%B3._18_26_28_isdxt3.png"
-                       alt="Card Back"
-                       width={300}
-                       height={420}
-                       className="rounded-xl object-cover shadow-2xl"
-                     />
-                   </div>
-                    {/* Card Front */}
-                    <div className="absolute w-full h-full backface-hidden rotate-y-180">
-                       {revealedCard ? (
-                           <FamiliarCardDisplay cardId={revealedCard.id} isRevealed />
-                       ) : (
-                        // Preload the back of the card here as well to avoid flashing
-                         <div className="w-full h-full bg-background rounded-xl"></div>
-                       )}
-                    </div>
+                   <FamiliarCardDisplay cardId={revealedCard.id} isRevealed />
                  </div>
                </div>
            </div>
