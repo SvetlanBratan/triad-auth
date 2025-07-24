@@ -73,18 +73,29 @@ export function calculateRelationshipLevel(points: number): { level: number; pro
     return { level, progressToNextLevel, maxPointsForCurrentLevel };
 }
 
-export function formatCurrency(bankAccount: BankAccount): [string, string][] {
+export function formatCurrency(bankAccount: BankAccount | undefined): string | [string, string][] {
   if (!bankAccount) {
-    return [];
+    return '0 тыквин';
   }
 
-  const { platinum, gold, silver, copper } = bankAccount;
+  // Check if we are in a context that needs the array for multi-line display
+  const isForMultiLine = (arguments[1] === true);
+
+  const { platinum = 0, gold = 0, silver = 0, copper = 0 } = bankAccount;
   const parts: [string, string][] = [];
 
-  if (platinum > 0) parts.push([platinum.toLocaleString(), 'платины']);
-  if (gold > 0) parts.push([gold.toLocaleString(), 'золота']);
-  if (silver > 0) parts.push([silver.toLocaleString(), 'серебра']);
-  if (copper > 0) parts.push([copper.toLocaleString(), 'меди']);
+  if (platinum > 0) parts.push([platinum.toLocaleString(), isForMultiLine ? 'платины' : 'пл.']);
+  if (gold > 0) parts.push([gold.toLocaleString(), isForMultiLine ? 'золота' : 'з.']);
+  if (silver > 0) parts.push([silver.toLocaleString(), isForMultiLine ? 'серебра' : 'с.']);
+  if (copper > 0) parts.push([copper.toLocaleString(), isForMultiLine ? 'меди' : 'м.']);
   
-  return parts;
+  if (parts.length === 0) {
+    return '0 тыквин';
+  }
+
+  if (isForMultiLine) {
+      return parts;
+  }
+  
+  return parts.map(part => part.join(' ')).join(' ');
 }

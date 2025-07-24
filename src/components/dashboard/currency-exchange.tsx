@@ -86,7 +86,8 @@ export default function CurrencyExchange() {
 
   const hasSufficientFunds = useMemo(() => {
       if (!selectedCharacter || !fromCurrency) return false;
-      return selectedCharacter.bankAccount[fromCurrency] >= fromAmount;
+      const account = selectedCharacter.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 };
+      return account[fromCurrency] >= fromAmount;
   }, [selectedCharacter, fromCurrency, fromAmount]);
 
 
@@ -109,7 +110,7 @@ export default function CurrencyExchange() {
                 </Select>
                 {selectedCharacter && (
                     <div className="mt-2 p-2 bg-muted rounded-md text-sm text-muted-foreground">
-                        {formatCurrency(selectedCharacter.bankAccount)}
+                       {formatCurrency(selectedCharacter.bankAccount)}
                     </div>
                 )}
             </div>

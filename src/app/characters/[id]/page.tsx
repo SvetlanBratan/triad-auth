@@ -172,7 +172,8 @@ export default function CharacterPage() {
 
     const formattedCurrency = useMemo(() => {
         if (!character) return [];
-        return formatCurrency(character.bankAccount);
+        const result = formatCurrency(character.bankAccount, true);
+        return typeof result === 'string' ? [[result, '']] : result;
     }, [character]);
 
     if (isLoading) {
