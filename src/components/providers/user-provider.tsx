@@ -1256,7 +1256,7 @@ const processMonthlySalary = useCallback(async () => {
     if (updatedUser) setCurrentUser(updatedUser);
   }, [fetchUserById]);
 
-  const fetchOpenExchangeRequests = useCallback(async (): Promise<ExchangeRequest[]> => {
+ const fetchOpenExchangeRequests = useCallback(async (): Promise<ExchangeRequest[]> => {
     const requestsCollection = collection(db, "exchange_requests");
     const q = query(requestsCollection, where('status', '==', 'open'), orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
@@ -1408,5 +1408,7 @@ const processMonthlySalary = useCallback(async () => {
     </AuthContext.Provider>
   );
 }
+
+    
 
     
