@@ -83,7 +83,7 @@ const EXTRA_CHARACTER_REWARD_ID = 'r-extra-char';
 const RELATIONSHIP_POINTS_CONFIG = {
     подарок: 25,
     письмо: 10,
-    пост: 2,
+    пост: 50,
 };
 
 const drawFamiliarCard = (hasBlessing: boolean, unavailableMythicIds: Set<string>): FamiliarCard => {
@@ -115,16 +115,17 @@ const drawFamiliarCard = (hasBlessing: boolean, unavailableMythicIds: Set<string
         chosenPool = availableLegendary;
     } else if (rand < mythicChance + legendaryChance + rareChance && availableRare.length > 0) {
         chosenPool = availableRare;
-    } else if (availableCommon.length > 0) {
-        chosenPool = availableCommon;
     } else {
-      // Fallback pool if a specific rarity pool is empty
-      chosenPool = availableCards.filter(c => c.rank !== 'мифический' || (c.rank === 'мифический' && !unavailableMythicIds.has(c.id)));
+        chosenPool = availableCommon;
     }
     
-    // Final fallback if all pools are somehow empty (e.g., all mythics taken, and other pools are empty)
+    // Final fallback if all pools are somehow empty
     if (chosenPool.length === 0) {
       chosenPool = availableCards.filter(c => c.rank !== 'мифический' || (c.rank === 'мифический' && !unavailableMythicIds.has(c.id)));
+      if (chosenPool.length === 0) {
+          // Absolute fallback: if even non-mythics are gone, pick any non-event card
+          chosenPool = ALL_FAMILIARS.filter(c => c.rank !== 'ивентовый');
+      }
     }
 
     return chosenPool[Math.floor(Math.random() * chosenPool.length)];
@@ -852,35 +853,33 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     description: string
   ) => {
     await runTransaction(db, async (transaction) => {
-        // Find owner of target character
         const allUsersSnapshot = await getDocs(collection(db, "users"));
-        let targetUser: User | null = null;
+        let targetUserDoc: any = null;
         let targetUserId: string | null = null;
 
         allUsersSnapshot.forEach(doc => {
             const user = doc.data() as User;
-            if (user.characters.some(c => c.id === targetCharacterId)) {
-                targetUser = user;
+            if ((user.characters || []).some(c => c.id === targetCharacterId)) {
+                targetUserDoc = doc;
                 targetUserId = doc.id;
             }
         });
 
-        if (!targetUser || !targetUserId) {
+        if (!targetUserDoc || !targetUserId) {
             throw new Error("Владелец целевого персонажа не найден.");
         }
 
         const sourceUserRef = doc(db, "users", sourceUserId);
-        const targetUserRef = doc(db, "users", targetUserId);
-
         const sourceUserDoc = await transaction.get(sourceUserRef);
-        const targetUserDoc = await transaction.get(targetUserRef);
+        const targetUserFromTx = await transaction.get(targetUserDoc.ref);
 
-        if (!sourceUserDoc.exists() || !targetUserDoc.exists()) {
+
+        if (!sourceUserDoc.exists() || !targetUserFromTx.exists()) {
             throw new Error("Один из пользователей не найден.");
         }
 
         const sourceUserData = sourceUserDoc.data() as User;
-        const targetUserData = targetUserDoc.data() as User;
+        const targetUserData = targetUserFromTx.data() as User;
 
         // --- Update Source Character's relationship TO Target ---
         const sourceCharacterIndex = sourceUserData.characters.findIndex(c => c.id === sourceCharacterId);
@@ -926,6 +925,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (targetCharacterIndex === -1) throw new Error("Целевой персонаж не найден.");
         
         const targetCharacter = targetUserData.characters[targetCharacterIndex];
+        // Ensure relationships array exists
+        targetCharacter.relationships = targetCharacter.relationships || [];
         const relationshipFromSourceIndex = targetCharacter.relationships.findIndex(r => r.targetCharacterId === sourceCharacterId);
         if (relationshipFromSourceIndex === -1) throw new Error("Обратное отношение не найдено у целевого персонажа.");
         
@@ -935,7 +936,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         // --- Commit changes ---
         transaction.update(sourceUserRef, { characters: sourceUserData.characters });
-        transaction.update(targetUserRef, { characters: targetUserData.characters });
+        transaction.update(targetUserDoc.ref, { characters: targetUserData.characters });
     });
 
     // Optimistically update local state for the current user
@@ -999,3 +1000,5 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     </AuthContext.Provider>
   );
 }
+
+    
