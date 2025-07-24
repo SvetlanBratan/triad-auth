@@ -224,9 +224,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
            userData.characters = userData.characters?.map(char => ({
                 ...initialFormData,
                 ...char,
-                bankAccount: typeof char.bankAccount === 'number' 
+                bankAccount: typeof char.bankAccount !== 'object' || char.bankAccount === null 
                     ? { platinum: 0, gold: 0, silver: 0, copper: 0 } 
-                    : (char.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 }),
+                    : char.bankAccount,
                 currentFameLevel: Array.isArray(char.currentFameLevel) ? char.currentFameLevel : (char.currentFameLevel ? [char.currentFameLevel] : []),
                 skillLevel: Array.isArray(char.skillLevel) ? char.skillLevel : (char.skillLevel ? [char.skillLevel] : []),
                 training: Array.isArray(char.training) ? char.training : [],
@@ -311,9 +311,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             userData.characters = userData.characters?.map(char => ({
                 ...initialFormData,
                 ...char,
-                bankAccount: typeof char.bankAccount === 'number' 
+                bankAccount: typeof char.bankAccount !== 'object' || char.bankAccount === null 
                     ? { platinum: 0, gold: 0, silver: 0, copper: 0 } 
-                    : (char.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 }),
+                    : char.bankAccount,
                 inventory: char.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: char.familiarCards || [] },
                 moodlets: char.moodlets || [],
             })) || [];
@@ -1258,7 +1258,9 @@ const processMonthlySalary = useCallback(async () => {
     const requestsCollection = collection(db, "exchange_requests");
     const q = query(requestsCollection, where('status', '==', 'open'));
     const snapshot = await getDocs(q);
-    const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ExchangeRequest));
+    let requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ExchangeRequest));
+    // Sort in-memory to avoid composite index requirement
+    requests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return requests;
   }, []);
 
