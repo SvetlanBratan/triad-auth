@@ -56,8 +56,17 @@ export default function FamiliarExchange() {
     try {
         const users = await fetchUsersForAdmin();
         const requests = await fetchFamiliarTradeRequestsForUser();
+        
+        // Ensure uniqueness of requests
+        const uniqueRequests = requests.reduce((acc, current) => {
+            if (!acc.find(item => item.id === current.id)) {
+                acc.push(current);
+            }
+            return acc;
+        }, [] as FamiliarTradeRequest[]);
+
         setAllUsers(users);
-        setTradeRequests(requests);
+        setTradeRequests(uniqueRequests);
     } catch (e) {
         toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось загрузить данные для обмена.' });
     } finally {
