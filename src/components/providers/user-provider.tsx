@@ -226,7 +226,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 ...char,
                 bankAccount: typeof char.bankAccount !== 'object' || char.bankAccount === null 
                     ? { platinum: 0, gold: 0, silver: 0, copper: 0 } 
-                    : char.bankAccount,
+                    : { platinum: 0, gold: 0, silver: 0, copper: 0, ...char.bankAccount },
                 currentFameLevel: Array.isArray(char.currentFameLevel) ? char.currentFameLevel : (char.currentFameLevel ? [char.currentFameLevel] : []),
                 skillLevel: Array.isArray(char.skillLevel) ? char.skillLevel : (char.skillLevel ? [char.skillLevel] : []),
                 training: Array.isArray(char.training) ? char.training : [],
@@ -311,9 +311,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             userData.characters = userData.characters?.map(char => ({
                 ...initialFormData,
                 ...char,
-                bankAccount: typeof char.bankAccount !== 'object' || char.bankAccount === null 
+                 bankAccount: typeof char.bankAccount !== 'object' || char.bankAccount === null 
                     ? { platinum: 0, gold: 0, silver: 0, copper: 0 } 
-                    : char.bankAccount,
+                    : { platinum: 0, gold: 0, silver: 0, copper: 0, ...char.bankAccount },
                 inventory: char.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: char.familiarCards || [] },
                 moodlets: char.moodlets || [],
             })) || [];
@@ -1163,15 +1163,14 @@ const addBankPointsToCharacter = useCallback(async (userId: string, characterId:
     const character = { ...updatedCharacters[characterIndex] };
     
     let currentBalance = character.bankAccount;
-    // This is the critical fix: ensure currentBalance is an object.
     if (typeof currentBalance !== 'object' || currentBalance === null) {
       currentBalance = { platinum: 0, gold: 0, silver: 0, copper: 0 };
     }
     
-    currentBalance.platinum += amount.platinum || 0;
-    currentBalance.gold += amount.gold || 0;
-    currentBalance.silver += amount.silver || 0;
-    currentBalance.copper += amount.copper || 0;
+    currentBalance.platinum = (currentBalance.platinum || 0) + (amount.platinum || 0);
+    currentBalance.gold = (currentBalance.gold || 0) + (amount.gold || 0);
+    currentBalance.silver = (currentBalance.silver || 0) + (amount.silver || 0);
+    currentBalance.copper = (currentBalance.copper || 0) + (amount.copper || 0);
 
     character.bankAccount = currentBalance;
     updatedCharacters[characterIndex] = character;
@@ -1191,15 +1190,15 @@ const processMonthlySalary = useCallback(async () => {
 
             const salaryCopper = Math.floor(Math.random() * (wealthInfo.maxSalary - wealthInfo.minSalary + 1)) + wealthInfo.minSalary;
             
-            let newBalance = { ...character.bankAccount };
-            newBalance.copper += salaryCopper;
+            let newBalance = { ...(character.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 }) };
+            newBalance.copper = (newBalance.copper || 0) + salaryCopper;
 
             // Convert up
-            newBalance.silver += Math.floor(newBalance.copper / 100);
+            newBalance.silver = (newBalance.silver || 0) + Math.floor(newBalance.copper / 100);
             newBalance.copper %= 100;
-            newBalance.gold += Math.floor(newBalance.silver / 100);
+            newBalance.gold = (newBalance.gold || 0) + Math.floor(newBalance.silver / 100);
             newBalance.silver %= 100;
-            newBalance.platinum += Math.floor(newBalance.gold / 100);
+            newBalance.platinum = (newBalance.platinum || 0) + Math.floor(newBalance.gold / 100);
             newBalance.gold %= 100;
             
             hasChanges = true;
@@ -1228,11 +1227,13 @@ const processMonthlySalary = useCallback(async () => {
         if (charIndex === -1) throw new Error("Персонаж не найден.");
         
         const character = userData.characters[charIndex];
-        if (character.bankAccount[fromCurrency] < fromAmount) {
+        const bankAccount = character.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 };
+        if (bankAccount[fromCurrency] < fromAmount) {
             throw new Error("Недостаточно средств для создания запроса.");
         }
         
-        character.bankAccount[fromCurrency] -= fromAmount;
+        bankAccount[fromCurrency] -= fromAmount;
+        character.bankAccount = bankAccount;
 
         const newRequest: Omit<ExchangeRequest, 'id'> = {
             creatorUserId,
@@ -1247,7 +1248,8 @@ const processMonthlySalary = useCallback(async () => {
         };
 
         const requestsCollection = collection(db, "exchange_requests");
-        transaction.add(requestsCollection, newRequest);
+        const newDocRef = doc(requestsCollection); // Firestore generates ID
+        transaction.set(newDocRef, newRequest);
         transaction.update(userRef, { characters: userData.characters });
     });
     const updatedUser = await fetchUserById(creatorUserId);
@@ -1273,9 +1275,13 @@ const processMonthlySalary = useCallback(async () => {
         const acceptorUserRef = doc(db, "users", acceptorUserId);
         const acceptorUserDoc = await transaction.get(acceptorUserRef);
         if (!acceptorUserDoc.exists()) throw new Error("Принимающий пользователь не найден.");
+        
         const acceptorUserData = acceptorUserDoc.data() as User;
-        const acceptorChar = acceptorUserData.characters.find(c => c.bankAccount[request.toCurrency] >= request.toAmount);
-        if (!acceptorChar) throw new Error("У вас нет персонажа с достаточным количеством средств для этой сделки.");
+        const acceptorChar = acceptorUserData.characters.find(c => (c.bankAccount?.[request.toCurrency] ?? 0) >= request.toAmount);
+        
+        if (!acceptorChar) {
+            throw new Error("У вас нет персонажа с достаточным количеством средств для этой сделки.");
+        }
         
         // Get creator
         const creatorUserRef = doc(db, "users", request.creatorUserId);
@@ -1286,10 +1292,15 @@ const processMonthlySalary = useCallback(async () => {
         if (creatorCharIndex === -1) throw new Error("Персонаж создателя запроса не найден.");
 
         // Perform transaction
-        acceptorChar.bankAccount[request.toCurrency] -= request.toAmount;
-        acceptorChar.bankAccount[request.fromCurrency] += request.fromAmount;
+        const acceptorBankAccount = acceptorChar.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 };
+        acceptorBankAccount[request.toCurrency] -= request.toAmount;
+        acceptorBankAccount[request.fromCurrency] = (acceptorBankAccount[request.fromCurrency] || 0) + request.fromAmount;
+        acceptorChar.bankAccount = acceptorBankAccount;
 
-        creatorUserData.characters[creatorCharIndex].bankAccount[request.toCurrency] += request.toAmount;
+        const creatorChar = creatorUserData.characters[creatorCharIndex];
+        const creatorBankAccount = creatorChar.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 };
+        creatorBankAccount[request.toCurrency] = (creatorBankAccount[request.toCurrency] || 0) + request.toAmount;
+        creatorChar.bankAccount = creatorBankAccount;
         
         // Commit changes
         transaction.update(acceptorUserRef, { characters: acceptorUserData.characters });
@@ -1320,7 +1331,10 @@ const processMonthlySalary = useCallback(async () => {
         if (creatorCharIndex === -1) throw new Error("Персонаж создателя запроса не найден.");
 
         // Refund money
-        creatorUserData.characters[creatorCharIndex].bankAccount[request.fromCurrency] += request.fromAmount;
+        const creatorChar = creatorUserData.characters[creatorCharIndex];
+        const bankAccount = creatorChar.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 };
+        bankAccount[request.fromCurrency] = (bankAccount[request.fromCurrency] || 0) + request.fromAmount;
+        creatorChar.bankAccount = bankAccount;
         
         transaction.update(creatorUserRef, { characters: creatorUserData.characters });
         transaction.delete(requestRef);
@@ -1394,5 +1408,7 @@ const processMonthlySalary = useCallback(async () => {
     </AuthContext.Provider>
   );
 }
+
+    
 
     
