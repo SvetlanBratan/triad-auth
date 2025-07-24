@@ -2,11 +2,11 @@
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
-import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType } from '@/lib/types';
+import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, collectionGroup, runTransaction } from "firebase/firestore";
-import { ALL_FAMILIARS, FAMILIARS_BY_ID, MOODLETS_DATA, DEFAULT_GAME_SETTINGS } from '@/lib/data';
+import { ALL_FAMILIARS, FAMILIARS_BY_ID, MOODLETS_DATA, DEFAULT_GAME_SETTINGS, WEALTH_LEVELS } from '@/lib/data';
 
 interface AuthContextType {
     user: FirebaseUser | null;
@@ -60,6 +60,9 @@ interface UserContextType {
     description: string
   ) => Promise<void>;
   recoverFamiliarsFromHistory: (userId: string, characterId: string, oldCharacterName?: string) => Promise<number>;
+  addBankPointsToCharacter: (userId: string, characterId: string, amount: Partial<BankAccount>, reason: string) => Promise<void>;
+  processMonthlySalary: () => Promise<void>;
+  updateCharacterWealthLevel: (userId: string, characterId: string, wealthLevel: WealthLevel) => Promise<void>;
 }
 
 export const UserContext = createContext<UserContextType | null>(null);
@@ -172,8 +175,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     await fetchGameSettings();
   }, [fetchGameSettings]);
 
-  const initialFormData: Character = useMemo(() => ({
-    id: '',
+  const initialFormData: Omit<Character, 'id'> = useMemo(() => ({
     name: '',
     activity: '',
     race: '',
@@ -205,7 +207,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         недвижимость: [],
         транспорт: [],
         familiarCards: [],
-    }
+    },
+    bankAccount: { platinum: 0, gold: 0, silver: 0, copper: 0 },
+    wealthLevel: 'Бедный',
   }), []);
 
   const fetchUserById = useCallback(async (userId: string): Promise<User | null> => {
@@ -216,6 +220,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
            userData.characters = userData.characters?.map(char => ({
                 ...initialFormData,
                 ...char,
+                bankAccount: typeof char.bankAccount === 'number' 
+                    ? { platinum: 0, gold: 0, silver: 0, copper: char.bankAccount } 
+                    : (char.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 }),
                 currentFameLevel: Array.isArray(char.currentFameLevel) ? char.currentFameLevel : (char.currentFameLevel ? [char.currentFameLevel] : []),
                 skillLevel: Array.isArray(char.skillLevel) ? char.skillLevel : (char.skillLevel ? [char.skillLevel] : []),
                 training: Array.isArray(char.training) ? char.training : [],
@@ -300,6 +307,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             userData.characters = userData.characters?.map(char => ({
                 ...initialFormData,
                 ...char,
+                bankAccount: typeof char.bankAccount === 'number' 
+                    ? { platinum: 0, gold: 0, silver: 0, copper: 0 } 
+                    : (char.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 }),
                 inventory: char.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: char.familiarCards || [] },
                 moodlets: char.moodlets || [],
             })) || [];
@@ -1125,6 +1135,78 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     return cardsToAdd.length;
 }, [fetchUserById, updateUser]);
 
+const updateCharacterWealthLevel = useCallback(async (userId: string, characterId: string, wealthLevel: WealthLevel) => {
+    const user = await fetchUserById(userId);
+    if (!user) return;
+
+    const characterIndex = user.characters.findIndex(c => c.id === characterId);
+    if (characterIndex === -1) return;
+
+    const updatedCharacters = [...user.characters];
+    updatedCharacters[characterIndex] = { ...updatedCharacters[characterIndex], wealthLevel };
+    
+    await updateUser(userId, { characters: updatedCharacters });
+}, [fetchUserById, updateUser]);
+
+const addBankPointsToCharacter = useCallback(async (userId: string, characterId: string, amount: Partial<BankAccount>, reason: string) => {
+    const user = await fetchUserById(userId);
+    if (!user) throw new Error("User not found");
+
+    const characterIndex = user.characters.findIndex(c => c.id === characterId);
+    if (characterIndex === -1) throw new Error("Character not found");
+
+    const updatedCharacters = [...user.characters];
+    const character = { ...updatedCharacters[characterIndex] };
+    
+    const currentBalance = character.bankAccount;
+    
+    currentBalance.platinum += amount.platinum || 0;
+    currentBalance.gold += amount.gold || 0;
+    currentBalance.silver += amount.silver || 0;
+    currentBalance.copper += amount.copper || 0;
+
+    character.bankAccount = currentBalance;
+    updatedCharacters[characterIndex] = character;
+    
+    await updateUser(userId, { characters: updatedCharacters });
+}, [fetchUserById, updateUser]);
+
+const processMonthlySalary = useCallback(async () => {
+    const allUsers = await fetchUsersForAdmin();
+    const batch = writeBatch(db);
+
+    for (const user of allUsers) {
+        let hasChanges = false;
+        const updatedCharacters = user.characters.map(character => {
+            const wealthInfo = WEALTH_LEVELS.find(w => w.name === character.wealthLevel);
+            if (!wealthInfo) return character;
+
+            const salaryCopper = Math.floor(Math.random() * (wealthInfo.maxSalary - wealthInfo.minSalary + 1)) + wealthInfo.minSalary;
+            
+            let newBalance = { ...character.bankAccount };
+            newBalance.copper += salaryCopper;
+
+            // Convert up
+            newBalance.silver += Math.floor(newBalance.copper / 100);
+            newBalance.copper %= 100;
+            newBalance.gold += Math.floor(newBalance.silver / 100);
+            newBalance.silver %= 100;
+            newBalance.platinum += Math.floor(newBalance.gold / 100);
+            newBalance.gold %= 100;
+            
+            hasChanges = true;
+            return { ...character, bankAccount: newBalance };
+        });
+
+        if (hasChanges) {
+            const userRef = doc(db, "users", user.id);
+            batch.update(userRef, { characters: updatedCharacters });
+        }
+    }
+    await batch.commit();
+
+}, [fetchUsersForAdmin]);
+
 
   const signOutUser = useCallback(() => {
     signOut(auth);
@@ -1168,8 +1250,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       checkExtraCharacterSlots,
       performRelationshipAction,
       recoverFamiliarsFromHistory,
+      addBankPointsToCharacter,
+      processMonthlySalary,
+      updateCharacterWealthLevel
     }),
-    [currentUser, gameSettings, fetchUsersForAdmin, fetchAllRewardRequests, fetchAvailableMythicCardsCount, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateGameDate, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory]
+    [currentUser, gameSettings, fetchUsersForAdmin, fetchAllRewardRequests, fetchAvailableMythicCardsCount, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateGameDate, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel]
   );
 
   return (
