@@ -42,8 +42,6 @@ export default function RouletteTab() {
   const [availableMythicCount, setAvailableMythicCount] = useState<number | null>(null);
   
   useEffect(() => {
-    // Only fetch count if the user is an admin, to avoid permission issues for regular users.
-    // The actual gacha logic on the backend (user provider) is secure.
     if (currentUser?.role === 'admin') {
       fetchAvailableMythicCardsCount().then(setAvailableMythicCount);
     }
@@ -209,40 +207,40 @@ export default function RouletteTab() {
         </CardContent>
       </Card>
 
-      <div className="w-full max-w-md h-[450px] flex items-center justify-center">
+      <div className="w-full max-w-md min-h-[480px] flex items-center justify-center">
         {isFlipping ? (
-           <div className="w-[300px] h-[420px] perspective-1000">
-             <div
-               className={cn(
-                 'relative w-full h-full preserve-3d transition-transform duration-700',
-                 revealedCard ? 'rotate-y-180' : ''
-               )}
-             >
-                {/* Card Back */}
-               <div className="absolute w-full h-full backface-hidden">
-                 <Image
-                   src="https://res.cloudinary.com/dxac8lq4f/image/upload/v1753198005/ChatGPT_Image_22_%D0%B8%D1%8E%D0%BB._2025_%D0%B3._18_26_28_isdxt3.png"
-                   alt="Card Back"
-                   width={300}
-                   height={420}
-                   className="rounded-xl object-cover shadow-2xl"
-                 />
-               </div>
-                {/* Card Front */}
-                <div className="absolute w-full h-full backface-hidden rotate-y-180">
-                   {revealedCard ? (
-                       <FamiliarCardDisplay cardId={revealedCard.id} isRevealed />
-                   ) : (
-                    // Preload the back of the card here as well to avoid flashing
-                     <div className="w-full h-full bg-background rounded-xl"></div>
+           <div className="flex flex-col items-center gap-4">
+               <div className="w-[300px] h-[420px] perspective-1000">
+                 <div
+                   className={cn(
+                     'relative w-full h-full preserve-3d transition-transform duration-700',
+                     revealedCard ? 'rotate-y-180' : ''
                    )}
-                </div>
-             </div>
-             {revealedCard && (
-                <div className="text-center mt-4">
+                 >
+                    {/* Card Back */}
+                   <div className="absolute w-full h-full backface-hidden">
+                     <Image
+                       src="https://res.cloudinary.com/dxac8lq4f/image/upload/v1753198005/ChatGPT_Image_22_%D0%B8%D1%8E%D0%BB._2025_%D0%B3._18_26_28_isdxt3.png"
+                       alt="Card Back"
+                       width={300}
+                       height={420}
+                       className="rounded-xl object-cover shadow-2xl"
+                     />
+                   </div>
+                    {/* Card Front */}
+                    <div className="absolute w-full h-full backface-hidden rotate-y-180">
+                       {revealedCard ? (
+                           <FamiliarCardDisplay cardId={revealedCard.id} isRevealed />
+                       ) : (
+                        // Preload the back of the card here as well to avoid flashing
+                         <div className="w-full h-full bg-background rounded-xl"></div>
+                       )}
+                    </div>
+                 </div>
+               </div>
+               {revealedCard && (
                     <Button onClick={resetRoulette} variant="outline">Крутить еще раз</Button>
-                </div>
-             )}
+               )}
            </div>
         ) : (
              <div className="text-center text-muted-foreground">
