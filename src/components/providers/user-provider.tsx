@@ -5,7 +5,7 @@ import React, { createContext, useState, useMemo, useCallback, useEffect, useCon
 import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
-import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, collectionGroup, runTransaction, addDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc } from "firebase/firestore";
 import { ALL_FAMILIARS, FAMILIARS_BY_ID, MOODLETS_DATA, DEFAULT_GAME_SETTINGS, WEALTH_LEVELS } from '@/lib/data';
 
 interface AuthContextType {
@@ -328,16 +328,21 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, [initialFormData]);
 
   const fetchAllRewardRequests = useCallback(async (): Promise<RewardRequest[]> => {
+    const requests: RewardRequest[] = [];
     try {
-        const requestsQuery = collectionGroup(db, 'reward_requests');
-        const q = query(requestsQuery, orderBy('createdAt', 'desc'));
-        const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map(doc => doc.data() as RewardRequest);
+      const usersSnapshot = await getDocs(collection(db, 'users'));
+      for (const userDoc of usersSnapshot.docs) {
+        const requestsSnapshot = await getDocs(collection(userDoc.ref, 'reward_requests'));
+        requestsSnapshot.forEach(reqDoc => {
+          requests.push(reqDoc.data() as RewardRequest);
+        });
+      }
+      return requests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     } catch (error) {
-        console.error("Error fetching reward requests with collectionGroup. This might be a Firestore rules or index issue. Check the browser console.", error);
-        throw error;
+      console.error("Error fetching all reward requests:", error);
+      throw error;
     }
-}, []);
+  }, []);
 
 
   const updateUser = useCallback(async (userId: string, updates: Partial<User>) => {
@@ -1408,7 +1413,3 @@ const processMonthlySalary = useCallback(async () => {
     </AuthContext.Provider>
   );
 }
-
-    
-
-    
