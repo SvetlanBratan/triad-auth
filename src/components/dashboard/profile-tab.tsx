@@ -33,6 +33,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { ACHIEVEMENTS_BY_ID } from '@/lib/data';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { TooltipProvider } from '../ui/tooltip';
 import * as LucideIcons from 'lucide-react';
 import CharacterForm from './character-form';
 
