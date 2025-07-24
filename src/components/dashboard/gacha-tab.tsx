@@ -61,6 +61,23 @@ export default function RouletteTab() {
 
   const currentCost = isFirstSpinForChar ? 0 : ROULETTE_COST;
 
+  const resetRoulette = () => {
+    setIsFlipping(false);
+    setRevealedCard(null);
+  }
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (revealedCard && !isLoading) {
+      // Automatically reset the roulette after a delay
+      timer = setTimeout(() => {
+        resetRoulette();
+      }, 4000); // 4 seconds delay
+    }
+    return () => clearTimeout(timer);
+  }, [revealedCard, isLoading]);
+
+
   const handlePull = async () => {
     if (!currentUser || !selectedCharacterId) {
       toast({
@@ -131,10 +148,6 @@ export default function RouletteTab() {
     }
   };
   
-  const resetRoulette = () => {
-    setIsFlipping(false);
-    setRevealedCard(null);
-  }
 
   return (
     <div className="flex flex-col items-center gap-8">
@@ -174,7 +187,7 @@ export default function RouletteTab() {
             <Select
               onValueChange={setSelectedCharacterId}
               value={selectedCharacterId}
-              disabled={isLoading}
+              disabled={isLoading || isFlipping}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Выберите персонажа..." />
@@ -196,6 +209,7 @@ export default function RouletteTab() {
             disabled={
               !selectedCharacterId ||
               isLoading ||
+              isFlipping ||
               (currentUser?.points ?? 0) < currentCost ||
               currentUser?.characters.length === 0
             }
@@ -238,9 +252,6 @@ export default function RouletteTab() {
                     </div>
                  </div>
                </div>
-               {revealedCard && (
-                    <Button onClick={resetRoulette} variant="outline">Крутить еще раз</Button>
-               )}
            </div>
         ) : (
              <div className="text-center text-muted-foreground">
