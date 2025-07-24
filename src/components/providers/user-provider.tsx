@@ -115,8 +115,10 @@ const drawFamiliarCard = (hasBlessing: boolean, unavailableMythicIds: Set<string
         chosenPool = availableLegendary;
     } else if (rand < mythicChance + legendaryChance + rareChance && availableRare.length > 0) {
         chosenPool = availableRare;
-    } else {
+    } else if (availableCommon.length > 0) {
         chosenPool = availableCommon;
+    } else {
+        chosenPool = availableRare;
     }
     
     // Final fallback if all pools are somehow empty
@@ -387,25 +389,126 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, [fetchUserById, updateUser]);
 
   const updateCharacterInUser = useCallback(async (userId: string, characterToUpdate: Character) => {
-    const user = await fetchUserById(userId);
-    if (!user) return;
+    await runTransaction(db, async (transaction) => {
+        const userRef = doc(db, "users", userId);
+        const userDoc = await transaction.get(userRef);
 
-    const sanitizedCharacter = {
-        ...characterToUpdate,
-        relationships: characterToUpdate.relationships.map(({ id, ...rest }) => rest as Omit<Relationship, 'id'>[]),
-    };
-    
-    const characterIndex = user.characters.findIndex(char => char.id === sanitizedCharacter.id);
-    const updatedCharacters = [...user.characters];
+        if (!userDoc.exists()) {
+            throw new Error("Source user not found!");
+        }
 
-    if (characterIndex > -1) {
-      updatedCharacters[characterIndex] = sanitizedCharacter;
-    } else {
-      updatedCharacters.push(sanitizedCharacter);
+        const sourceUserData = userDoc.data() as User;
+        const oldCharacterState = sourceUserData.characters.find(c => c.id === characterToUpdate.id);
+        const oldRelationships = new Map((oldCharacterState?.relationships || []).map(r => [r.targetCharacterId, r]));
+
+        const updatedCharacters = [...sourceUserData.characters];
+        const characterIndex = updatedCharacters.findIndex(char => char.id === characterToUpdate.id);
+
+        if (characterIndex > -1) {
+            updatedCharacters[characterIndex] = characterToUpdate;
+        } else {
+            updatedCharacters.push(characterToUpdate);
+        }
+
+        // --- Relationship Synchronization ---
+        const allUsersSnapshot = await getDocs(collection(db, "users"));
+        const allUsersMap = new Map(allUsersSnapshot.docs.map(d => [d.id, d.data() as User]));
+        const usersToUpdate = new Map<string, User>();
+        usersToUpdate.set(userId, { ...sourceUserData, characters: updatedCharacters });
+
+        const newRelationships = new Map(characterToUpdate.relationships.map(r => [r.targetCharacterId, r]));
+
+        // Check for new/updated relationships
+        for (const [targetCharId, newRel] of newRelationships.entries()) {
+            const oldRel = oldRelationships.get(targetCharId);
+            if (JSON.stringify(oldRel) === JSON.stringify(newRel)) continue; // No change
+
+            // Find target user and character
+            let targetUser: User | undefined;
+            let targetUserId: string | undefined;
+            allUsersMap.forEach((user, id) => {
+                if (user.characters.some(c => c.id === targetCharId)) {
+                    targetUser = user;
+                    targetUserId = id;
+                }
+            });
+
+            if (targetUser && targetUserId) {
+                const userToUpdate = usersToUpdate.get(targetUserId) || { ...targetUser };
+                const targetCharIndex = userToUpdate.characters.findIndex(c => c.id === targetCharId);
+                
+                if (targetCharIndex !== -1) {
+                    const targetChar = { ...userToUpdate.characters[targetCharIndex] };
+                    targetChar.relationships = targetChar.relationships || [];
+                    const reciprocalRelIndex = targetChar.relationships.findIndex(r => r.targetCharacterId === characterToUpdate.id);
+
+                    const reciprocalRel: Relationship = {
+                        targetCharacterId: characterToUpdate.id,
+                        targetCharacterName: characterToUpdate.name,
+                        type: newRel.type,
+                        points: reciprocalRelIndex !== -1 ? targetChar.relationships[reciprocalRelIndex].points : 0,
+                        history: reciprocalRelIndex !== -1 ? targetChar.relationships[reciprocalRelIndex].history : [],
+                    };
+                    
+                    if (reciprocalRelIndex !== -1) {
+                        targetChar.relationships[reciprocalRelIndex] = reciprocalRel;
+                    } else {
+                        targetChar.relationships.push(reciprocalRel);
+                    }
+                    
+                    userToUpdate.characters[targetCharIndex] = targetChar;
+                    usersToUpdate.set(targetUserId, userToUpdate);
+                }
+            }
+        }
+
+        // Check for removed relationships
+        for (const [targetCharId] of oldRelationships.entries()) {
+            if (!newRelationships.has(targetCharId)) {
+                // Find target user and character
+                 let targetUser: User | undefined;
+                 let targetUserId: string | undefined;
+                 allUsersMap.forEach((user, id) => {
+                     if (user.characters.some(c => c.id === targetCharId)) {
+                         targetUser = user;
+                         targetUserId = id;
+                     }
+                 });
+
+                 if (targetUser && targetUserId) {
+                    const userToUpdate = usersToUpdate.get(targetUserId) || { ...targetUser };
+                    const targetCharIndex = userToUpdate.characters.findIndex(c => c.id === targetCharId);
+                    
+                    if (targetCharIndex !== -1) {
+                         const targetChar = { ...userToUpdate.characters[targetCharIndex] };
+                         targetChar.relationships = (targetChar.relationships || []).filter(r => r.targetCharacterId !== characterToUpdate.id);
+                         userToUpdate.characters[targetCharIndex] = targetChar;
+                         usersToUpdate.set(targetUserId, userToUpdate);
+                    }
+                 }
+            }
+        }
+        
+        // Commit all updates
+        for (const [id, user] of usersToUpdate.entries()) {
+            // Sanitize relationships before writing to remove temporary client-side IDs
+            const sanitizedUser = {
+                ...user,
+                characters: user.characters.map(c => ({
+                    ...c,
+                    relationships: c.relationships.map(({ id: tempId, ...rest }) => rest)
+                }))
+            };
+            transaction.set(doc(db, "users", id), sanitizedUser);
+        }
+    });
+
+    const updatedUser = await fetchUserById(userId);
+    if (updatedUser) {
+      setCurrentUser(updatedUser);
     }
-    
-    await updateUser(userId, { characters: updatedCharacters });
-  }, [fetchUserById, updateUser]);
+}, [fetchUserById]);
+
 
 
   const deleteCharacterFromUser = useCallback(async (userId: string, characterId: string) => {
@@ -597,8 +700,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, [fetchUserById, currentUser?.id, grantAchievementToUser]);
 
   const fetchAvailableMythicCardsCount = useCallback(async (): Promise<number> => {
-    // This function can be called by an admin.
-    // It reads all users to determine which mythic cards are taken.
     const allUsers = await fetchUsersForAdmin();
     const allMythicCards = ALL_FAMILIARS.filter(c => c.rank === 'мифический');
     const claimedMythicIds = new Set<string>();
@@ -903,7 +1004,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (actionType === 'письмо') {
-            const lastLetter = relationshipToTarget.lastLetterSentAt ? new Date(relationshipToTarget.lastLetterSentAt) : null;
+            const lastLetter = relationshipToTarget.lastLetterSentAt ? new Date(relationshipTo.lastLetterSentAt) : null;
             if (lastLetter && (now.getTime() - lastLetter.getTime()) < 7 * 24 * 60 * 60 * 1000) {
                 throw new Error("Вы можете отправлять письмо только раз в неделю.");
             }
@@ -925,7 +1026,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (targetCharacterIndex === -1) throw new Error("Целевой персонаж не найден.");
         
         const targetCharacter = targetUserData.characters[targetCharacterIndex];
-        // Ensure relationships array exists
         targetCharacter.relationships = targetCharacter.relationships || [];
         const relationshipFromSourceIndex = targetCharacter.relationships.findIndex(r => r.targetCharacterId === sourceCharacterId);
         if (relationshipFromSourceIndex === -1) throw new Error("Обратное отношение не найдено у целевого персонажа.");
@@ -1002,3 +1102,5 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 }
 
     
+
+      
