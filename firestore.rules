@@ -30,6 +30,15 @@ service cloud.firestore {
       allow read: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
     
+    // Rules for the 'exchange_requests' collection
+    match /exchange_requests/{requestId} {
+      // Allow any authenticated user to read all requests and create new ones.
+      allow read, create: if request.auth != null;
+      // Allow a user to update or delete only their own requests.
+      // Admins can update or delete any request.
+      allow update, delete: if request.auth != null && (request.resource.data.creatorUserId == request.auth.uid || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+    }
+
     // Allow anyone to read game settings, but only admins to write.
     match /game_settings/{settingId} {
       allow read: if true;
