@@ -71,10 +71,12 @@ const CharacterDisplay = ({ character }: { character: Character }) => {
         <AccordionItem value={character.id} className="border-b">
             <div className="flex justify-between items-center w-full hover:bg-muted/50 rounded-md">
             <AccordionTrigger className="flex-1 py-4 px-2 hover:no-underline">
-                <Link href={`/characters/${character.id}`} className="text-left flex items-start gap-2 flex-wrap hover:underline">
-                    <p className="font-bold text-base">{character.name}</p>
+                 <div className="text-left flex items-start gap-2 flex-wrap">
+                    <Link href={`/characters/${character.id}`} className="font-bold text-base hover:underline" onClick={(e) => e.stopPropagation()}>
+                        {character.name}
+                    </Link>
                     <p className="text-sm text-muted-foreground">({character.activity})</p>
-                </Link>
+                </div>
             </AccordionTrigger>
              <div className="flex items-center gap-1.5 pr-4">
                     {isBlessed && (
