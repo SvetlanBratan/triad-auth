@@ -116,6 +116,7 @@ export interface PointLog {
   amount: number;
   reason: string;
   characterName?: string;
+  characterId?: string;
 }
 
 export interface User {

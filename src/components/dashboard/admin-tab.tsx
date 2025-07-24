@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
-import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock } from 'lucide-react';
+import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap } from 'lucide-react';
 import type { UserStatus, UserRole, User, FamiliarCard } from '@/lib/types';
 import { FAME_LEVELS_POINTS, EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, FAMILIARS_BY_ID } from '@/lib/data';
 import {
@@ -25,6 +25,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 
 
 export default function AdminTab() {
@@ -41,9 +42,15 @@ export default function AdminTab() {
     removeFamiliarFromCharacter,
     updateGameDate,
     gameDateString: initialGameDate,
+    recoverFamiliarsFromHistory
   } = useUser();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Recovery state
+  const [recoveryUserId, setRecoveryUserId] = useState('');
+  const [recoveryCharId, setRecoveryCharId] = useState('');
+  const [isRecovering, setIsRecovering] = useState(false);
 
   const [awardSelectedUserId, setAwardSelectedUserId] = useState<string>('');
   const [statusSelectedUserId, setStatusSelectedUserId] = useState<string>('');
@@ -114,6 +121,34 @@ export default function AdminTab() {
   useEffect(() => {
       setNewGameDateString(initialGameDate || '');
   }, [initialGameDate]);
+
+    const charactersForRecovery = useMemo(() => {
+    if (!recoveryUserId) return [];
+    return users.find(u => u.id === recoveryUserId)?.characters || [];
+  }, [recoveryUserId, users]);
+
+  const handleRecovery = async () => {
+    if (!recoveryUserId || !recoveryCharId) {
+        toast({ variant: 'destructive', title: 'Ошибка', description: 'Выберите пользователя и персонажа.' });
+        return;
+    }
+    setIsRecovering(true);
+    try {
+        const recoveredCount = await recoverFamiliarsFromHistory(recoveryUserId, recoveryCharId);
+        toast({
+            title: 'Восстановление завершено',
+            description: `Восстановлено ${recoveredCount} фамильяров.`
+        });
+        await refetchUsers();
+        setRecoveryUserId('');
+        setRecoveryCharId('');
+    } catch (error) {
+        console.error("Recovery failed:", error);
+        toast({ variant: 'destructive', title: 'Ошибка восстановления', description: 'Не удалось завершить процесс.' });
+    } finally {
+        setIsRecovering(false);
+    }
+};
 
   const handleUpdateGameDate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -438,7 +473,13 @@ export default function AdminTab() {
   }
   
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
+    <Tabs defaultValue="general" className="w-full">
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="general">Общее</TabsTrigger>
+        <TabsTrigger value="trade">Торговля</TabsTrigger>
+      </TabsList>
+      <TabsContent value="general" className="mt-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
       <div className="space-y-6">
         <Card>
           <CardHeader>
@@ -570,6 +611,33 @@ export default function AdminTab() {
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>
+            </CardContent>
+        </Card>
+         <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><DatabaseZap /> Восстановление фамильяров</CardTitle>
+                <CardDescription>Восстановить утерянных фамильяров для персонажа на основе истории баллов.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-4">
+                    <div>
+                        <Label htmlFor="recovery-user">Пользователь</Label>
+                        <Select value={recoveryUserId} onValueChange={uid => { setRecoveryUserId(uid); setRecoveryCharId(''); }}>
+                            <SelectTrigger id="recovery-user"><SelectValue placeholder="Выберите пользователя" /></SelectTrigger>
+                            <SelectContent>{users.map(user => (<SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>))}</SelectContent>
+                        </Select>
+                    </div>
+                    <div>
+                        <Label htmlFor="recovery-char">Персонаж</Label>
+                        <Select value={recoveryCharId} onValueChange={setRecoveryCharId} disabled={!recoveryUserId}>
+                            <SelectTrigger id="recovery-char"><SelectValue placeholder="Выберите персонажа" /></SelectTrigger>
+                            <SelectContent>{charactersForRecovery.map(c => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}</SelectContent>
+                        </Select>
+                    </div>
+                    <Button onClick={handleRecovery} disabled={!recoveryCharId || isRecovering}>
+                        {isRecovering ? 'Восстановление...' : <><History className="mr-2 h-4 w-4" />Начать восстановление</>}
+                    </Button>
+                </div>
             </CardContent>
         </Card>
       </div>
@@ -951,5 +1019,20 @@ export default function AdminTab() {
         </Card>
       </div>
     </div>
+      </TabsContent>
+      <TabsContent value="trade" className="mt-4">
+        <Card>
+            <CardHeader>
+                <CardTitle>Торговля</CardTitle>
+                <CardDescription>
+                    Настройки для будущей системы магазинов. Этот раздел в разработке.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <p className="text-muted-foreground">Здесь скоро появятся новые инструменты.</p>
+            </CardContent>
+        </Card>
+      </TabsContent>
+    </Tabs>
   );
 }
