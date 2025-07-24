@@ -11,6 +11,7 @@ export type RelationshipActionStatus = 'pending' | 'confirmed';
 export type WealthLevel = 'Бедный' | 'Просветленный' | 'Средний' | 'Выше среднего' | 'Высокий';
 export type Currency = keyof BankAccount;
 export type ExchangeRequestStatus = 'open' | 'closed';
+export type FamiliarTradeRequestStatus = 'в ожидании' | 'принято' | 'отклонено' | 'отменено';
 
 export interface GameSettings {
   gameDateString: string;
@@ -100,6 +101,23 @@ export interface ExchangeRequest {
     toCurrency: Currency;
     toAmount: number;
     status: ExchangeRequestStatus;
+    createdAt: string; // ISO string date
+}
+
+export interface FamiliarTradeRequest {
+    id: string;
+    initiatorUserId: string;
+    initiatorCharacterId: string;
+    initiatorCharacterName: string;
+    initiatorFamiliarId: string;
+    initiatorFamiliarName: string;
+    targetUserId: string;
+    targetCharacterId: string;
+    targetCharacterName: string;
+    targetFamiliarId: string;
+    targetFamiliarName: string;
+    rank: FamiliarRank;
+    status: FamiliarTradeRequestStatus;
     createdAt: string; // ISO string date
 }
 

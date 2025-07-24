@@ -1,0 +1,266 @@
+
+'use client';
+
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useUser } from '@/hooks/use-user';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import { ArrowRightLeft, Repeat, Check, X, Trash2, Send } from 'lucide-react';
+import type { Character, FamiliarCard, FamiliarTradeRequest, User, FamiliarRank } from '@/lib/types';
+import { FAMILIARS_BY_ID } from '@/lib/data';
+import Image from 'next/image';
+
+const rankNames: Record<FamiliarRank, string> = {
+    'мифический': 'Мифический',
+    'ивентовый': 'Ивентовый',
+    'легендарный': 'Легендарный',
+    'редкий': 'Редкий',
+    'обычный': 'Обычный'
+};
+
+const MiniFamiliarCard = ({ cardId }: { cardId: string }) => {
+    const card = FAMILIARS_BY_ID[cardId];
+    if (!card) return null;
+    return (
+        <div className="flex items-center gap-2 p-2 bg-muted rounded-md text-sm">
+            <Image src={card.imageUrl} alt={card.name} width={32} height={48} className="rounded-sm" data-ai-hint={card['data-ai-hint']} />
+            <div>
+                <p className="font-semibold">{card.name}</p>
+                <p className="text-xs text-muted-foreground">{rankNames[card.rank]}</p>
+            </div>
+        </div>
+    );
+};
+
+
+export default function FamiliarExchange() {
+  const { currentUser, fetchUsersForAdmin, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest } = useUser();
+  const { toast } = useToast();
+
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [tradeRequests, setTradeRequests] = useState<FamiliarTradeRequest[]>([]);
+  
+  // Form state
+  const [initiatorCharId, setInitiatorCharId] = useState('');
+  const [initiatorFamiliarId, setInitiatorFamiliarId] = useState('');
+  const [targetCharId, setTargetCharId] = useState('');
+  const [targetFamiliarId, setTargetFamiliarId] = useState('');
+  
+  const [isLoading, setIsLoading] = useState(false);
+  const [isProcessingId, setIsProcessingId] = useState<string | null>(null);
+
+  const fetchAllData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+        const users = await fetchUsersForAdmin();
+        const requests = await fetchFamiliarTradeRequestsForUser();
+        setAllUsers(users);
+        setTradeRequests(requests);
+    } catch (e) {
+        toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось загрузить данные для обмена.' });
+    } finally {
+        setIsLoading(false);
+    }
+  }, [fetchUsersForAdmin, fetchFamiliarTradeRequestsForUser, toast]);
+
+  useEffect(() => {
+    fetchAllData();
+  }, [fetchAllData]);
+
+  // --- Memos for form options ---
+  const myCharacters = useMemo(() => currentUser?.characters || [], [currentUser]);
+  
+  const mySelectedChar = useMemo(() => myCharacters.find(c => c.id === initiatorCharId), [myCharacters, initiatorCharId]);
+  
+  const myFamiliars = useMemo(() => {
+    if (!mySelectedChar) return [];
+    return (mySelectedChar.inventory?.familiarCards || []).map(owned => FAMILIARS_BY_ID[owned.id]).filter(Boolean);
+  }, [mySelectedChar]);
+
+  const selectedFamiliarRank = useMemo(() => {
+    if (!initiatorFamiliarId) return null;
+    return FAMILIARS_BY_ID[initiatorFamiliarId]?.rank;
+  }, [initiatorFamiliarId]);
+
+  const otherCharacters = useMemo(() => {
+    if (!selectedFamiliarRank) return [];
+    return allUsers.flatMap(u => u.characters.filter(c => 
+        c.id !== initiatorCharId && (c.inventory?.familiarCards || []).some(f => FAMILIARS_BY_ID[f.id]?.rank === selectedFamiliarRank)
+    ));
+  }, [allUsers, initiatorCharId, selectedFamiliarRank]);
+  
+  const targetSelectedChar = useMemo(() => otherCharacters.find(c => c.id === targetCharId), [otherCharacters, targetCharId]);
+
+  const targetFamiliars = useMemo(() => {
+      if (!targetSelectedChar || !selectedFamiliarRank) return [];
+      return (targetSelectedChar.inventory?.familiarCards || [])
+          .map(owned => FAMILIARS_BY_ID[owned.id])
+          .filter((card): card is FamiliarCard => !!card && card.rank === selectedFamiliarRank);
+  }, [targetSelectedChar, selectedFamiliarRank]);
+
+
+  const handleSubmit = async () => {
+    if (!initiatorCharId || !initiatorFamiliarId || !targetCharId || !targetFamiliarId) {
+        toast({ variant: 'destructive', title: 'Ошибка', description: 'Пожалуйста, заполните все поля для обмена.' });
+        return;
+    }
+    setIsLoading(true);
+    try {
+        await createFamiliarTradeRequest(initiatorCharId, initiatorFamiliarId, targetCharId, targetFamiliarId);
+        toast({ title: 'Успех!', description: 'Запрос на обмен отправлен.' });
+        // Reset form
+        setInitiatorFamiliarId('');
+        setTargetCharId('');
+        setTargetFamiliarId('');
+        await fetchAllData();
+    } catch(e) {
+        const msg = e instanceof Error ? e.message : 'Произошла неизвестная ошибка.';
+        toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
+  const handleAccept = async (req: FamiliarTradeRequest) => {
+      setIsProcessingId(req.id);
+      try {
+        await acceptFamiliarTradeRequest(req);
+        toast({ title: 'Обмен состоялся!', description: 'Фамильяры успешно обменены.' });
+        await fetchAllData();
+      } catch(e) {
+          const msg = e instanceof Error ? e.message : 'Произошла неизвестная ошибка.';
+          toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+      } finally {
+          setIsProcessingId(null);
+      }
+  };
+
+  const handleDecline = async (req: FamiliarTradeRequest) => {
+      setIsProcessingId(req.id);
+      try {
+        await declineOrCancelFamiliarTradeRequest(req, 'отклонено');
+        toast({ title: 'Запрос отклонен', variant: 'destructive' });
+        await fetchAllData();
+      } catch(e) {
+          const msg = e instanceof Error ? e.message : 'Произошла неизвестная ошибка.';
+          toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+      } finally {
+          setIsProcessingId(null);
+      }
+  };
+
+  const handleCancel = async (req: FamiliarTradeRequest) => {
+      setIsProcessingId(req.id);
+      try {
+        await declineOrCancelFamiliarTradeRequest(req, 'отменено');
+        toast({ title: 'Запрос отменен' });
+        await fetchAllData();
+      } catch(e) {
+          const msg = e instanceof Error ? e.message : 'Произошла неизвестная ошибка.';
+          toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+      } finally {
+          setIsProcessingId(null);
+      }
+  }
+
+
+  const incomingRequests = tradeRequests.filter(r => r.targetUserId === currentUser?.id && r.status === 'в ожидании');
+  const outgoingRequests = tradeRequests.filter(r => r.initiatorUserId === currentUser?.id && r.status === 'в ожидании');
+
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        <Card className="lg:col-span-1">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Repeat /> Обмен Фамильярами</CardTitle>
+                <CardDescription>Создайте запрос на обмен фамильярами одного ранга с другим игроком.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                {/* Step 1: My side */}
+                <div className="space-y-2 p-3 border rounded-md">
+                    <h4 className="font-semibold text-sm">Ваше предложение</h4>
+                    <Select value={initiatorCharId} onValueChange={id => { setInitiatorCharId(id); setInitiatorFamiliarId(''); setTargetCharId(''); setTargetFamiliarId(''); }}>
+                        <SelectTrigger><SelectValue placeholder="Выберите вашего персонажа..." /></SelectTrigger>
+                        <SelectContent>
+                            {myCharacters.map(char => <SelectItem key={char.id} value={char.id}>{char.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                    <Select value={initiatorFamiliarId} onValueChange={id => { setInitiatorFamiliarId(id); setTargetCharId(''); setTargetFamiliarId(''); }} disabled={!initiatorCharId}>
+                        <SelectTrigger><SelectValue placeholder="Выберите вашего фамильяра..." /></SelectTrigger>
+                        <SelectContent>
+                            {myFamiliars.map(fam => <SelectItem key={fam.id} value={fam.id}>{fam.name} ({rankNames[fam.rank]})</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
+                 {/* Step 2: Their side */}
+                <div className="space-y-2 p-3 border rounded-md">
+                     <h4 className="font-semibold text-sm">Предложение игроку</h4>
+                    <Select value={targetCharId} onValueChange={id => { setTargetCharId(id); setTargetFamiliarId(''); }} disabled={!selectedFamiliarRank}>
+                        <SelectTrigger><SelectValue placeholder="Выберите персонажа для обмена..." /></SelectTrigger>
+                        <SelectContent>
+                            {otherCharacters.map(char => <SelectItem key={char.id} value={char.id}>{char.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                     <Select value={targetFamiliarId} onValueChange={setTargetFamiliarId} disabled={!targetCharId}>
+                        <SelectTrigger><SelectValue placeholder="Выберите их фамильяра..." /></SelectTrigger>
+                        <SelectContent>
+                            {targetFamiliars.map(fam => <SelectItem key={fam.id} value={fam.id}>{fam.name} ({rankNames[fam.rank]})</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+            </CardContent>
+            <CardFooter>
+                <Button className="w-full" onClick={handleSubmit} disabled={isLoading || !targetFamiliarId}><Send className="mr-2"/>Отправить запрос</Button>
+            </CardFooter>
+        </Card>
+        
+        <div className="lg:col-span-2 space-y-6">
+            <div>
+                <h2 className="text-2xl font-bold mb-4">Входящие запросы</h2>
+                <div className="space-y-4">
+                    {incomingRequests.length > 0 ? incomingRequests.map(req => (
+                        <Card key={req.id}>
+                            <CardContent className="p-4 space-y-3">
+                                <p className="text-sm text-muted-foreground">Запрос от <span className="font-bold text-foreground">{req.initiatorCharacterName}</span>:</p>
+                                <div className="flex items-center justify-center gap-4">
+                                    <MiniFamiliarCard cardId={req.initiatorFamiliarId} />
+                                    <ArrowRightLeft className="text-primary"/>
+                                    <MiniFamiliarCard cardId={req.targetFamiliarId} />
+                                </div>
+                            </CardContent>
+                             <CardFooter className="flex gap-2">
+                                <Button className="flex-1" onClick={() => handleAccept(req)} disabled={isProcessingId === req.id}><Check className="mr-2"/>Принять</Button>
+                                <Button className="flex-1" variant="destructive" onClick={() => handleDecline(req)} disabled={isProcessingId === req.id}><X className="mr-2"/>Отклонить</Button>
+                            </CardFooter>
+                        </Card>
+                    )) : <p className="text-muted-foreground">Нет входящих запросов.</p>}
+                </div>
+            </div>
+             <div>
+                <h2 className="text-2xl font-bold mb-4">Исходящие запросы</h2>
+                <div className="space-y-4">
+                    {outgoingRequests.length > 0 ? outgoingRequests.map(req => (
+                        <Card key={req.id}>
+                            <CardContent className="p-4 space-y-3">
+                                 <p className="text-sm text-muted-foreground">Запрос для <span className="font-bold text-foreground">{req.targetCharacterName}</span>:</p>
+                                 <div className="flex items-center justify-center gap-4">
+                                    <MiniFamiliarCard cardId={req.initiatorFamiliarId} />
+                                    <ArrowRightLeft className="text-primary"/>
+                                    <MiniFamiliarCard cardId={req.targetFamiliarId} />
+                                </div>
+                            </CardContent>
+                             <CardFooter>
+                                <Button className="w-full" variant="outline" onClick={() => handleCancel(req)} disabled={isProcessingId === req.id}><Trash2 className="mr-2"/>Отменить запрос</Button>
+                            </CardFooter>
+                        </Card>
+                    )) : <p className="text-muted-foreground">Нет исходящих запросов.</p>}
+                </div>
+            </div>
+        </div>
+
+    </div>
+  );
+}
