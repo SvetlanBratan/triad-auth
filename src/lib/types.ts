@@ -6,6 +6,7 @@ export type FamiliarRank = 'обычный' | 'редкий' | 'легендар
 export type InventoryCategory = 'оружие' | 'гардероб' | 'еда' | 'подарки' | 'артефакты' | 'зелья' | 'недвижимость' | 'транспорт';
 export type RelationshipType = 'романтика' | 'дружба' | 'вражда' | 'конкуренция' | 'нейтралитет';
 export type RelationshipActionType = 'подарок' | 'письмо' | 'пост';
+export type RelationshipActionStatus = 'pending' | 'confirmed';
 
 export interface GameSettings {
   gameDateString: string;
@@ -63,6 +64,7 @@ export interface RelationshipAction {
   type: RelationshipActionType;
   date: string; // ISO string
   description: string;
+  status: RelationshipActionStatus;
 }
 
 export interface Relationship {

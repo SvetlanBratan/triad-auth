@@ -73,11 +73,13 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
         setIsLoading(true);
         try {
             await performRelationshipAction(currentUser.id, sourceCharacterId, targetCharacter.id, actionType, description);
-            toast({ title: 'Успех!', description: `Действие "${actionType}" выполнено. Отношения обновлены.` });
+            let successMessage = `Действие "${actionType}" выполнено. Отношения обновлены.`;
             if (actionType === 'пост') {
+                successMessage = "Заявка на пост отправлена. Получатель должен будет её подтвердить.";
                 setIsPostDialogOpen(false);
                 setPostLocation('');
             }
+            toast({ title: 'Успех!', description: successMessage });
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Произошла неизвестная ошибка.';
             toast({ variant: 'destructive', title: 'Ошибка', description: errorMessage });
@@ -86,7 +88,7 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
         }
     };
     
-    if (!currentUser?.characters.some(c => c.relationships.some(r => r.targetCharacterId === targetCharacter.id))) {
+    if (!currentUser?.characters.some(c => c.relationships?.some(r => r.targetCharacterId === targetCharacter.id))) {
         return null;
     }
 
@@ -106,7 +108,7 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
                         </SelectTrigger>
                         <SelectContent>
                             {currentUser.characters
-                                .filter(c => c.relationships.some(r => r.targetCharacterId === targetCharacter.id))
+                                .filter(c => c.relationships?.some(r => r.targetCharacterId === targetCharacter.id))
                                 .map(char => (
                                     <SelectItem key={char.id} value={char.id}>
                                         {char.name}
@@ -166,23 +168,23 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
                                         </DialogTrigger>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                        <p>Написать пост (+2)</p>
+                                        <p>Заявить о посте</p>
                                     </TooltipContent>
                                 </Tooltip>
                                 <DialogContent>
                                     <DialogHeader>
-                                        <DialogTitle>Подтверждение поста</DialogTitle>
+                                        <DialogTitle>Заявка о посте</DialogTitle>
                                         <DialogDescription>
-                                           Чтобы подтвердить написание поста для персонажа {targetCharacter.name}, укажите локацию, где он был написан. Это действие не имеет кулдауна, но дает меньше очков.
+                                           Укажите, где был написан пост для персонажа {targetCharacter.name}. После вашего заявления, получатель должен будет подтвердить его для начисления очков.
                                         </DialogDescription>
                                     </DialogHeader>
                                     <div className="space-y-2 py-4">
-                                        <Label htmlFor="post-location">Локация поста</Label>
+                                        <Label htmlFor="post-location">Локация или ссылка на пост</Label>
                                         <Textarea 
                                             id="post-location" 
                                             value={postLocation} 
                                             onChange={e => setPostLocation(e.target.value)} 
-                                            placeholder='например, "Площадь города", "Таверна «Пьяный лис»"'
+                                            placeholder='например, "Площадь города", "Таверна «Пьяный лис»" или ссылка на пост'
                                         />
                                     </div>
                                     <DialogFooter>
@@ -191,10 +193,10 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
                                         </DialogClose>
                                         <Button 
                                             type="button" 
-                                            onClick={() => handleAction('пост', `Написан пост в локации: ${postLocation}`)}
+                                            onClick={() => handleAction('пост', `Заявка на пост: ${postLocation}`)}
                                             disabled={!postLocation || isLoading}
                                         >
-                                            {isLoading ? 'Подтверждение...' : 'Подтвердить'}
+                                            {isLoading ? 'Отправка...' : 'Отправить заявку'}
                                         </Button>
                                     </DialogFooter>
                                 </DialogContent>

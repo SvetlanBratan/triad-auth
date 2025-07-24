@@ -83,7 +83,7 @@ const EXTRA_CHARACTER_REWARD_ID = 'r-extra-char';
 const RELATIONSHIP_POINTS_CONFIG: Record<RelationshipActionType, number> = {
     подарок: 25,
     письмо: 10,
-    пост: 50,
+    пост: 0, // Points are now awarded upon confirmation
 };
 
 const drawFamiliarCard = (hasBlessing: boolean, unavailableMythicIds: Set<string>): FamiliarCard => {
@@ -957,42 +957,41 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     description: string
   ) => {
     await runTransaction(db, async (transaction) => {
-        const allUsersSnapshot = await getDocs(collection(db, "users"));
-        let targetUserDoc: any = null;
-        let targetUserId: string | null = null;
-        let targetUser: User | null = null;
+        const sourceUserRef = doc(db, "users", sourceUserId);
+        const sourceUserDoc = await transaction.get(sourceUserRef);
+        if (!sourceUserDoc.exists()) {
+            throw new Error("Исходный пользователь не найден.");
+        }
+        const sourceUserData = sourceUserDoc.data() as User;
 
+        let targetUserDoc: any = null;
+        let targetUserData: User | null = null;
+
+        const allUsersSnapshot = await getDocs(collection(db, "users"));
         allUsersSnapshot.forEach(doc => {
             const user = doc.data() as User;
-            if ((user.characters || []).some(c => c.id === targetCharacterId)) {
+            if (user.characters?.some(c => c.id === targetCharacterId)) {
                 targetUserDoc = doc;
-                targetUserId = doc.id;
-                targetUser = user;
+                targetUserData = user;
             }
         });
 
-        if (!targetUserDoc || !targetUserId || !targetUser) {
+        if (!targetUserDoc || !targetUserData) {
             throw new Error("Владелец целевого персонажа не найден.");
         }
-
-        const sourceUserRef = doc(db, "users", sourceUserId);
-        const sourceUserDoc = await transaction.get(sourceUserRef);
         const targetUserFromTx = await transaction.get(targetUserDoc.ref);
-
-
-        if (!sourceUserDoc.exists() || !targetUserFromTx.exists()) {
-            throw new Error("Один из пользователей не найден.");
+        if (!targetUserFromTx.exists()) {
+            throw new Error("Целевой пользователь не найден в транзакции.");
         }
+        targetUserData = targetUserFromTx.data() as User;
 
-        const sourceUserData = sourceUserDoc.data() as User;
-        const targetUserData = targetUserFromTx.data() as User;
 
         // --- Update Source Character's relationship TO Target ---
         const sourceCharacterIndex = sourceUserData.characters.findIndex(c => c.id === sourceCharacterId);
         if (sourceCharacterIndex === -1) throw new Error("Исходный персонаж не найден.");
         
         const sourceCharacter = sourceUserData.characters[sourceCharacterIndex];
-        const relationshipToTargetIndex = sourceCharacter.relationships.findIndex(r => r.targetCharacterId === targetCharacterId);
+        const relationshipToTargetIndex = (sourceCharacter.relationships || []).findIndex(r => r.targetCharacterId === targetCharacterId);
         if (relationshipToTargetIndex === -1) throw new Error("Отношение не найдено у исходного персонажа.");
 
         const relationshipToTarget = sourceCharacter.relationships[relationshipToTargetIndex];
@@ -1024,11 +1023,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             type: actionType,
             date: nowISO,
             description,
+            status: actionType === 'пост' ? 'pending' : 'confirmed',
         };
         relationshipToTarget.history = [...(relationshipToTarget.history || []), newAction];
 
         // --- Update Target Character's relationship FROM Source ---
-        const targetCharacterIndex = targetUserData.characters.findIndex(c => c.id === targetCharacterId);
+        const targetCharacterIndex = (targetUserData.characters || []).findIndex(c => c.id === targetCharacterId);
         if (targetCharacterIndex === -1) throw new Error("Целевой персонаж не найден.");
         
         const targetCharacter = targetUserData.characters[targetCharacterIndex];
