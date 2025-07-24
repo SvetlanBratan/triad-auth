@@ -1,4 +1,5 @@
 
+
 export type UserRole = 'admin' | 'user';
 export type UserStatus = 'активный' | 'неактивный' | 'отпуск';
 export type RewardRequestStatus = 'в ожидании' | 'одобрено' | 'отклонено';
@@ -8,6 +9,8 @@ export type RelationshipType = 'романтика' | 'дружба' | 'враж
 export type RelationshipActionType = 'подарок' | 'письмо' | 'пост';
 export type RelationshipActionStatus = 'pending' | 'confirmed';
 export type WealthLevel = 'Бедный' | 'Просветленный' | 'Средний' | 'Выше среднего' | 'Высокий';
+export type Currency = keyof BankAccount;
+export type ExchangeRequestStatus = 'open' | 'closed';
 
 export interface GameSettings {
   gameDateString: string;
@@ -84,6 +87,19 @@ export interface BankAccount {
   gold: number;
   silver: number;
   copper: number;
+}
+
+export interface ExchangeRequest {
+    id: string;
+    creatorUserId: string;
+    creatorCharacterId: string;
+    creatorCharacterName: string;
+    fromCurrency: Currency;
+    fromAmount: number;
+    toCurrency: Currency;
+    toAmount: number;
+    status: ExchangeRequestStatus;
+    createdAt: string; // ISO string date
 }
 
 export interface Character {

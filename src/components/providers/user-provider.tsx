@@ -1,11 +1,12 @@
 
+
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
-import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel } from '@/lib/types';
+import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
-import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, collectionGroup, runTransaction } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, collectionGroup, runTransaction, addDoc } from "firebase/firestore";
 import { ALL_FAMILIARS, FAMILIARS_BY_ID, MOODLETS_DATA, DEFAULT_GAME_SETTINGS, WEALTH_LEVELS } from '@/lib/data';
 
 interface AuthContextType {
@@ -63,6 +64,10 @@ interface UserContextType {
   addBankPointsToCharacter: (userId: string, characterId: string, amount: Partial<BankAccount>, reason: string) => Promise<void>;
   processMonthlySalary: () => Promise<void>;
   updateCharacterWealthLevel: (userId: string, characterId: string, wealthLevel: WealthLevel) => Promise<void>;
+  createExchangeRequest: (creatorUserId: string, creatorCharacterId: string, fromCurrency: Currency, fromAmount: number, toCurrency: Currency, toAmount: number) => Promise<void>;
+  fetchOpenExchangeRequests: () => Promise<ExchangeRequest[]>;
+  acceptExchangeRequest: (acceptorUserId: string, request: ExchangeRequest) => Promise<void>;
+  cancelExchangeRequest: (request: ExchangeRequest) => Promise<void>;
 }
 
 export const UserContext = createContext<UserContextType | null>(null);
@@ -221,7 +226,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 ...initialFormData,
                 ...char,
                 bankAccount: typeof char.bankAccount === 'number' 
-                    ? { platinum: 0, gold: 0, silver: 0, copper: char.bankAccount } 
+                    ? { platinum: 0, gold: 0, silver: 0, copper: 0 } 
                     : (char.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 }),
                 currentFameLevel: Array.isArray(char.currentFameLevel) ? char.currentFameLevel : (char.currentFameLevel ? [char.currentFameLevel] : []),
                 skillLevel: Array.isArray(char.skillLevel) ? char.skillLevel : (char.skillLevel ? [char.skillLevel] : []),
@@ -1208,6 +1213,123 @@ const processMonthlySalary = useCallback(async () => {
 }, [fetchUsersForAdmin]);
 
 
+  // --- Currency Exchange ---
+  const createExchangeRequest = useCallback(async (creatorUserId: string, creatorCharacterId: string, fromCurrency: Currency, fromAmount: number, toCurrency: Currency, toAmount: number) => {
+    await runTransaction(db, async (transaction) => {
+        const userRef = doc(db, "users", creatorUserId);
+        const userDoc = await transaction.get(userRef);
+        if (!userDoc.exists()) throw new Error("Пользователь не найден.");
+        
+        const userData = userDoc.data() as User;
+        const charIndex = userData.characters.findIndex(c => c.id === creatorCharacterId);
+        if (charIndex === -1) throw new Error("Персонаж не найден.");
+        
+        const character = userData.characters[charIndex];
+        if (character.bankAccount[fromCurrency] < fromAmount) {
+            throw new Error("Недостаточно средств для создания запроса.");
+        }
+        
+        character.bankAccount[fromCurrency] -= fromAmount;
+
+        const newRequest: Omit<ExchangeRequest, 'id'> = {
+            creatorUserId,
+            creatorCharacterId,
+            creatorCharacterName: character.name,
+            fromCurrency,
+            fromAmount,
+            toCurrency,
+            toAmount,
+            status: 'open',
+            createdAt: new Date().toISOString(),
+        };
+
+        const requestsCollection = collection(db, "exchange_requests");
+        transaction.add(requestsCollection, newRequest);
+        transaction.update(userRef, { characters: userData.characters });
+    });
+    const updatedUser = await fetchUserById(creatorUserId);
+    if (updatedUser) setCurrentUser(updatedUser);
+  }, [fetchUserById]);
+
+  const fetchOpenExchangeRequests = useCallback(async (): Promise<ExchangeRequest[]> => {
+    const requestsCollection = collection(db, "exchange_requests");
+    const q = query(requestsCollection, where('status', '==', 'open'), orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ExchangeRequest));
+  }, []);
+
+  const acceptExchangeRequest = useCallback(async (acceptorUserId: string, request: ExchangeRequest) => {
+    await runTransaction(db, async (transaction) => {
+        const requestRef = doc(db, "exchange_requests", request.id);
+        const requestDoc = await transaction.get(requestRef);
+        if (!requestDoc.exists() || requestDoc.data().status !== 'open') {
+            throw new Error("Запрос больше не действителен.");
+        }
+        
+        // Get acceptor
+        const acceptorUserRef = doc(db, "users", acceptorUserId);
+        const acceptorUserDoc = await transaction.get(acceptorUserRef);
+        if (!acceptorUserDoc.exists()) throw new Error("Принимающий пользователь не найден.");
+        const acceptorUserData = acceptorUserDoc.data() as User;
+        const acceptorChar = acceptorUserData.characters.find(c => c.bankAccount[request.toCurrency] >= request.toAmount);
+        if (!acceptorChar) throw new Error("У вас нет персонажа с достаточным количеством средств для этой сделки.");
+        
+        // Get creator
+        const creatorUserRef = doc(db, "users", request.creatorUserId);
+        const creatorUserDoc = await transaction.get(creatorUserRef);
+        if (!creatorUserDoc.exists()) throw new Error("Создатель запроса не найден.");
+        const creatorUserData = creatorUserDoc.data() as User;
+        const creatorCharIndex = creatorUserData.characters.findIndex(c => c.id === request.creatorCharacterId);
+        if (creatorCharIndex === -1) throw new Error("Персонаж создателя запроса не найден.");
+
+        // Perform transaction
+        acceptorChar.bankAccount[request.toCurrency] -= request.toAmount;
+        acceptorChar.bankAccount[request.fromCurrency] += request.fromAmount;
+
+        creatorUserData.characters[creatorCharIndex].bankAccount[request.toCurrency] += request.toAmount;
+        
+        // Commit changes
+        transaction.update(acceptorUserRef, { characters: acceptorUserData.characters });
+        transaction.update(creatorUserRef, { characters: creatorUserData.characters });
+        transaction.update(requestRef, { status: 'closed' });
+    });
+    
+    // Refresh both users' data locally if they are the current user
+    if(currentUser?.id === acceptorUserId || currentUser?.id === request.creatorUserId) {
+        const updatedUser = await fetchUserById(currentUser.id);
+        if(updatedUser) setCurrentUser(updatedUser);
+    }
+  }, [currentUser, fetchUserById]);
+
+  const cancelExchangeRequest = useCallback(async (request: ExchangeRequest) => {
+    await runTransaction(db, async (transaction) => {
+        const requestRef = doc(db, "exchange_requests", request.id);
+        const requestDoc = await transaction.get(requestRef);
+        if (!requestDoc.exists() || requestDoc.data().status !== 'open') {
+            throw new Error("Запрос уже не действителен.");
+        }
+
+        const creatorUserRef = doc(db, "users", request.creatorUserId);
+        const creatorUserDoc = await transaction.get(creatorUserRef);
+        if (!creatorUserDoc.exists()) throw new Error("Создатель запроса не найден.");
+        const creatorUserData = creatorUserDoc.data() as User;
+        const creatorCharIndex = creatorUserData.characters.findIndex(c => c.id === request.creatorCharacterId);
+        if (creatorCharIndex === -1) throw new Error("Персонаж создателя запроса не найден.");
+
+        // Refund money
+        creatorUserData.characters[creatorCharIndex].bankAccount[request.fromCurrency] += request.fromAmount;
+        
+        transaction.update(creatorUserRef, { characters: creatorUserData.characters });
+        transaction.delete(requestRef);
+    });
+    
+    if (currentUser?.id === request.creatorUserId) {
+       const updatedUser = await fetchUserById(request.creatorUserId);
+       if(updatedUser) setCurrentUser(updatedUser);
+    }
+  }, [currentUser, fetchUserById]);
+
+
   const signOutUser = useCallback(() => {
     signOut(auth);
   }, []);
@@ -1252,9 +1374,13 @@ const processMonthlySalary = useCallback(async () => {
       recoverFamiliarsFromHistory,
       addBankPointsToCharacter,
       processMonthlySalary,
-      updateCharacterWealthLevel
+      updateCharacterWealthLevel,
+      createExchangeRequest,
+      fetchOpenExchangeRequests,
+      acceptExchangeRequest,
+      cancelExchangeRequest,
     }),
-    [currentUser, gameSettings, fetchUsersForAdmin, fetchAllRewardRequests, fetchAvailableMythicCardsCount, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateGameDate, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel]
+    [currentUser, gameSettings, fetchUsersForAdmin, fetchAllRewardRequests, fetchAvailableMythicCardsCount, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateGameDate, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest]
   );
 
   return (
@@ -1268,3 +1394,4 @@ const processMonthlySalary = useCallback(async () => {
 
 
   
+
