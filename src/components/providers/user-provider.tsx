@@ -51,6 +51,7 @@ interface UserContextType {
   removeFamiliarFromCharacter: (userId: string, characterId: string, cardId: string) => Promise<void>;
   updateUser: (userId: string, updates: Partial<User>) => Promise<void>;
   updateGameDate: (newDateString: string) => Promise<void>;
+  checkExtraCharacterSlots: (userId: string) => Promise<number>;
 }
 
 export const UserContext = createContext<UserContextType | null>(null);
@@ -70,6 +71,7 @@ const PUMPKIN_SPOUSE_ACHIEVEMENT_ID = 'ach-pumpkin-spouse';
 const PUMPKIN_HUSBAND_ACHIEVEMENT_ID = 'ach-pumpkin-husband';
 const FORBES_LIST_ACHIEVEMENT_ID = 'ach-forbes-list';
 const GODS_FAVORITE_ACHIEVEMENT_ID = 'ach-gods-favorite';
+const EXTRA_CHARACTER_REWARD_ID = 'r-extra-char';
 
 
 const drawFamiliarCard = (hasBlessing: boolean, unavailableMythicIds: Set<string>): FamiliarCard => {
@@ -203,6 +205,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 moodlets: char.moodlets || [],
             })) || [];
            userData.achievementIds = userData.achievementIds || [];
+           userData.extraCharacterSlots = userData.extraCharacterSlots || 0;
           return userData;
       }
       return null;
@@ -225,6 +228,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             reason: 'Приветственный бонус!',
         }],
         achievementIds: [],
+        extraCharacterSlots: 0,
     };
     try {
       await setDoc(doc(db, "users", uid), newUser);
@@ -294,7 +298,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   const fetchAllRewardRequests = useCallback(async (): Promise<RewardRequest[]> => {
     try {
-        // This query requires a composite index. Firestore will provide a link to create it in the error message in the console.
         const requestsQuery = collectionGroup(db, 'reward_requests');
         const q = query(requestsQuery, orderBy('createdAt', 'desc'));
         const querySnapshot = await getDocs(q);
@@ -303,7 +306,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         console.error("Error fetching reward requests with collectionGroup. This might be a Firestore rules or index issue. Check the browser console.", error);
         throw error;
     }
-  }, []);
+}, []);
 
 
   const updateUser = useCallback(async (userId: string, updates: Partial<User>) => {
@@ -510,6 +513,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 updatedUser.achievementIds = [...currentAchievements, achievementIdToGrant];
                 updatesForUser.achievementIds = updatedUser.achievementIds;
             }
+        }
+
+        if(request.rewardId === EXTRA_CHARACTER_REWARD_ID) {
+            const currentSlots = updatedUser.extraCharacterSlots || 0;
+            updatesForUser.extraCharacterSlots = currentSlots + 1;
+            updatedUser.extraCharacterSlots = currentSlots + 1;
         }
 
         if (characterToUpdateIndex !== -1) {
@@ -803,6 +812,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     await updateUser(userId, { characters: updatedCharacters });
   }, [fetchUserById, updateUser]);
 
+  const checkExtraCharacterSlots = useCallback(async (userId: string): Promise<number> => {
+    const requestsRef = collection(db, 'users', userId, 'reward_requests');
+    const q = query(requestsRef, where('rewardId', '==', EXTRA_CHARACTER_REWARD_ID), where('status', '==', 'одобрено'));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.size;
+  }, []);
+
 
   const signOutUser = useCallback(() => {
     signOut(auth);
@@ -843,8 +859,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       removeFamiliarFromCharacter,
       updateUser,
       updateGameDate,
+      checkExtraCharacterSlots,
     }),
-    [currentUser, gameSettings, fetchUsersForAdmin, fetchAllRewardRequests, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, fetchAvailableMythicCardsCount, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateGameDate]
+    [currentUser, gameSettings, fetchUsersForAdmin, fetchAllRewardRequests, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, fetchAvailableMythicCardsCount, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateGameDate, checkExtraCharacterSlots]
   );
 
   return (

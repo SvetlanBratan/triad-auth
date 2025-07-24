@@ -50,7 +50,7 @@ const DynamicIcon = ({ name, className }: { name: string, className?: string }) 
 };
 
 
-const CharacterDisplay = ({ character, onEdit, onDelete }: { character: Character, onEdit: (character: Character) => void, onDelete: (characterId: string) => void }) => {
+const CharacterDisplay = ({ character, onDelete }: { character: Character, onDelete: (characterId: string) => void }) => {
     const isBlessed = character.blessingExpires && new Date(character.blessingExpires) > new Date();
 
     return (
@@ -104,27 +104,48 @@ const CharacterDisplay = ({ character, onEdit, onDelete }: { character: Characte
 
 
 export default function ProfileTab() {
-  const { currentUser, updateCharacterInUser, deleteCharacterFromUser, fetchUsersForAdmin } = useUser();
+  const { currentUser, updateCharacterInUser, deleteCharacterFromUser, fetchUsersForAdmin, checkExtraCharacterSlots, setCurrentUser } = useUser();
   const [isFormDialogOpen, setFormDialogOpen] = React.useState(false);
   const [editingCharacter, setEditingCharacter] = React.useState<Character | null>(null);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const { toast } = useToast();
 
-  useEffect(() => {
+  const freeSlots = 6;
+  const totalSlots = freeSlots + (currentUser?.extraCharacterSlots || 0);
+  const canAddCharacter = currentUser ? currentUser.characters.length < totalSlots : false;
+
+   useEffect(() => {
     if (isFormDialogOpen) {
       fetchUsersForAdmin().then(setAllUsers);
     }
   }, [isFormDialogOpen, fetchUsersForAdmin]);
 
+  useEffect(() => {
+    // Check and update extra slots when component mounts or currentUser changes
+    const updateUserSlots = async () => {
+        if (currentUser) {
+            const slots = await checkExtraCharacterSlots(currentUser.id);
+            if(currentUser.extraCharacterSlots !== slots) {
+                setCurrentUser({...currentUser, extraCharacterSlots: slots});
+            }
+        }
+    };
+    updateUserSlots();
+  }, [currentUser, checkExtraCharacterSlots, setCurrentUser]);
+
+
   if (!currentUser) return null;
   
   const handleAddClick = () => {
+    if (!canAddCharacter) {
+        toast({
+            variant: "destructive",
+            title: "Достигнут лимит персонажей",
+            description: "Чтобы добавить больше персонажей, приобретите награду 'Дополнительный персонаж' в магазине.",
+        });
+        return;
+    }
     setEditingCharacter(null);
-    setFormDialogOpen(true);
-  };
-
-  const handleEditClick = (character: Character) => {
-    setEditingCharacter(character);
     setFormDialogOpen(true);
   };
 
@@ -228,18 +249,29 @@ export default function ProfileTab() {
             <div className="flex justify-between items-center">
                 <div>
                     <CardTitle>Персонажи</CardTitle>
-                    <CardDescription>Ваш список персонажей-ремесленников</CardDescription>
+                    <CardDescription>
+                        ({currentUser.characters.length} / {totalSlots})
+                    </CardDescription>
                 </div>
-                <Button variant="outline" size="sm" onClick={handleAddClick}>
-                    <PlusCircle className="mr-2 h-4 w-4" /> Добавить
-                </Button>
+                <TooltipProvider>
+                    <Popover open={!canAddCharacter ? undefined : false}>
+                        <PopoverTrigger asChild>
+                             <Button variant="outline" size="sm" onClick={handleAddClick} disabled={!canAddCharacter}>
+                                <PlusCircle className="mr-2 h-4 w-4" /> Добавить
+                            </Button>
+                        </PopoverTrigger>
+                         <PopoverContent className="w-auto max-w-xs text-sm" side="top">
+                             Чтобы добавить больше персонажей, приобретите награду 'Дополнительный персонаж' в магазине.
+                         </PopoverContent>
+                    </Popover>
+                </TooltipProvider>
             </div>
           </CardHeader>
           <CardContent>
             {currentUser.characters.length > 0 ? (
                 <div className="space-y-2">
                     {currentUser.characters.map(char => (
-                        <CharacterDisplay key={char.id} character={char} onEdit={handleEditClick} onDelete={handleDeleteCharacter} />
+                        <CharacterDisplay key={char.id} character={char} onDelete={handleDeleteCharacter} />
                     ))}
                 </div>
             ) : (

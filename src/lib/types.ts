@@ -106,6 +106,7 @@ export interface User {
   characters: Character[];
   pointHistory: PointLog[];
   achievementIds?: string[];
+  extraCharacterSlots?: number;
 }
 
 export interface Reward {
