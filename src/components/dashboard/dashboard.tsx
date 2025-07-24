@@ -8,12 +8,11 @@ import LeaderboardTab from "./leaderboard-tab";
 import RewardsTab from "./rewards-tab";
 import AdminTab from "./admin-tab";
 import RequestsTab from "./requests-tab";
-import RouletteTab from "./gacha-tab";
-import { User, Trophy, Award, Shield, GitPullRequest, Dices, LandPlot, Repeat } from "lucide-react";
+import { User, Trophy, Award, Shield, GitPullRequest, Dices, LandPlot, Repeat, ShieldAlert } from "lucide-react";
 import AuthPage from "../auth/auth-page";
 import { useAuth } from "../providers/user-provider";
 import CurrencyExchange from "./currency-exchange";
-import FamiliarExchange from "./familiar-exchange";
+import FamiliarsTab from "./familiars-tab";
 
 export function Dashboard() {
   const { currentUser } = useUser();
@@ -38,15 +37,14 @@ export function Dashboard() {
   const tabs = [
     { value: 'profile', label: 'Профиль', icon: User },
     { value: 'leaderboard', label: 'Лидеры', icon: Trophy },
-    { value: 'roulette', label: 'Рулетка', icon: Dices },
+    { value: 'familiars', label: 'Фамильяры', icon: ShieldAlert },
     { value: 'rewards', label: 'Награды', icon: Award },
     { value: 'bank', label: 'Банк', icon: LandPlot },
-    { value: 'exchange', label: 'Обмен', icon: Repeat },
     ...(isAdmin ? [{ value: 'requests', label: 'Запросы', icon: GitPullRequest }] : []),
     ...(isAdmin ? [{ value: 'admin', label: 'Админ', icon: Shield }] : []),
   ];
   
-  const gridColsClass = isAdmin ? 'grid-cols-8' : 'grid-cols-6';
+  const gridColsClass = isAdmin ? 'grid-cols-7' : 'grid-cols-5';
 
   return (
       <Tabs defaultValue="profile" className="w-full">
@@ -65,17 +63,14 @@ export function Dashboard() {
         <TabsContent value="leaderboard" className="mt-4">
           <LeaderboardTab />
         </TabsContent>
-        <TabsContent value="roulette" className="mt-4">
-          <RouletteTab />
+        <TabsContent value="familiars" className="mt-4">
+          <FamiliarsTab />
         </TabsContent>
         <TabsContent value="rewards" className="mt-4">
           <RewardsTab />
         </TabsContent>
         <TabsContent value="bank" className="mt-4">
           <CurrencyExchange />
-        </TabsContent>
-        <TabsContent value="exchange" className="mt-4">
-          <FamiliarExchange />
         </TabsContent>
         {isAdmin && (
           <TabsContent value="requests" className="mt-4">
