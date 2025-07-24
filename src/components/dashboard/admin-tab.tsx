@@ -484,7 +484,8 @@ export default function AdminTab() {
       </TabsList>
 
       <TabsContent value="points" className="mt-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
+        <div className="gap-6 column-1 md:column-2 lg:column-3">
+          <div className="break-inside-avoid mb-6">
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><DollarSign /> Начислить баллы</CardTitle>
@@ -528,6 +529,8 @@ export default function AdminTab() {
                     </form>
                 </CardContent>
             </Card>
+           </div>
+           <div className="break-inside-avoid mb-6">
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-destructive"><MinusCircle /> Списать баллы</CardTitle>
@@ -571,6 +574,8 @@ export default function AdminTab() {
                     </form>
                 </CardContent>
             </Card>
+          </div>
+          <div className="break-inside-avoid mb-6">
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><Clock /> Автоматические действия</CardTitle>
@@ -596,11 +601,13 @@ export default function AdminTab() {
                     </div>
                 </CardContent>
             </Card>
+          </div>
         </div>
       </TabsContent>
 
       <TabsContent value="general" className="mt-4">
-         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
+         <div className="gap-6 column-1 md:column-2 lg:column-3">
+           <div className="break-inside-avoid mb-6">
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><CalendarClock /> Управление игровой датой</CardTitle>
@@ -625,6 +632,8 @@ export default function AdminTab() {
                     </form>
                 </CardContent>
             </Card>
+            </div>
+            <div className="break-inside-avoid mb-6">
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><Trophy /> Выдать ачивку</CardTitle>
@@ -667,6 +676,8 @@ export default function AdminTab() {
                     </form>
                 </CardContent>
             </Card>
+            </div>
+            <div className="break-inside-avoid mb-6">
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><Wand2 /> Управление мудлетами</CardTitle>
@@ -746,6 +757,8 @@ export default function AdminTab() {
                     )}
                 </CardContent>
             </Card>
+            </div>
+            <div className="break-inside-avoid mb-6">
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><UserCog /> Управление ролями</CardTitle>
@@ -782,6 +795,8 @@ export default function AdminTab() {
                     </form>
                 </CardContent>
             </Card>
+            </div>
+            <div className="break-inside-avoid mb-6">
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><UserCog /> Изменить статус</CardTitle>
@@ -819,6 +834,8 @@ export default function AdminTab() {
                     </form>
                 </CardContent>
             </Card>
+            </div>
+            <div className="break-inside-avoid mb-6">
             <Card className="border-destructive/50">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-destructive"><ShieldAlert /> Опасная зона</CardTitle>
@@ -865,11 +882,13 @@ export default function AdminTab() {
                     </div>
                 </CardContent>
             </Card>
+            </div>
          </div>
       </TabsContent>
 
       <TabsContent value="familiars" className="mt-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
+        <div className="gap-6 column-1 md:column-2 lg:column-3">
+          <div className="break-inside-avoid mb-6">
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><Gift /> Выдать ивентового фамильяра</CardTitle>
@@ -920,6 +939,8 @@ export default function AdminTab() {
                     </form>
                 </CardContent>
             </Card>
+            </div>
+            <div className="break-inside-avoid mb-6">
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><VenetianMask /> Управление Фамильярами</CardTitle>
@@ -996,6 +1017,8 @@ export default function AdminTab() {
                     </div>
                 </CardContent>
             </Card>
+            </div>
+            <div className="break-inside-avoid mb-6">
              <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><DatabaseZap /> Восстановление фамильяров</CardTitle>
@@ -1033,6 +1056,7 @@ export default function AdminTab() {
                     </div>
                 </CardContent>
             </Card>
+            </div>
         </div>
       </TabsContent>
 
@@ -1052,5 +1076,7 @@ export default function AdminTab() {
     </Tabs>
   );
 }
+
+    
 
     
