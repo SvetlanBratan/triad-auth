@@ -21,6 +21,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import * as LucideIcons from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
+import RelationshipActions from '@/components/dashboard/relationship-actions';
 
 
 type IconName = keyof typeof LucideIcons;
@@ -105,7 +106,7 @@ const FamiliarsSection = ({ character }: { character: Character }) => {
 
 export default function CharacterPage() {
     const { id } = useParams();
-    const { currentUser, fetchUsersForAdmin, updateCharacterInUser, gameDate } = useUser();
+    const { currentUser, fetchUsersForAdmin, updateCharacterInUser, gameDate, setCurrentUser } = useUser();
     const [character, setCharacter] = useState<Character | null>(null);
     const [owner, setOwner] = useState<User | null>(null);
     const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -125,6 +126,17 @@ export default function CharacterPage() {
                     setCharacter(foundChar);
                     setOwner(user);
                     found = true;
+                    // If the currently viewed character belongs to the current user,
+                    // we might need to update the currentUser's context as well
+                    // to ensure relationship data is in sync.
+                     if (currentUser && user.id === currentUser.id) {
+                        const charInContext = currentUser.characters.find(c => c.id === id);
+                        // Deep comparison is tricky, so we do a simpler check.
+                        // A more robust way might be needed if there are frequent sync issues.
+                        if (JSON.stringify(charInContext) !== JSON.stringify(foundChar)) {
+                           setCurrentUser({ ...currentUser, characters: currentUser.characters.map(c => c.id === id ? foundChar : c) });
+                        }
+                    }
                     break;
                 }
             }
@@ -134,7 +146,7 @@ export default function CharacterPage() {
         if(id) {
           findCharacterAndUsers();
         }
-    }, [id, fetchUsersForAdmin, currentUser]); // Added currentUser to dependencies to refetch if user data changes (e.g. after an edit)
+    }, [id, fetchUsersForAdmin, currentUser, setCurrentUser]); 
 
     const handleFormSubmit = (characterData: Character) => {
         if (!owner) return;
@@ -188,6 +200,7 @@ export default function CharacterPage() {
     const isBlessed = character.blessingExpires && new Date(character.blessingExpires) > new Date();
     const activeMoodlets = (character.moodlets || []).filter(m => new Date(m.expiresAt) > new Date());
     const age = gameDate ? calculateAge(character.birthDate, gameDate) : null;
+    const isViewingOwnProfile = currentUser?.id === owner.id;
 
 
     return (
@@ -315,6 +328,8 @@ export default function CharacterPage() {
                              {character.weaknesses && <div className="flex justify-between"><span>Слабости:</span> <span className="text-right">{character.weaknesses}</span></div>}
                         </CardContent>
                     </Card>
+                    
+                    {!isViewingOwnProfile && currentUser && <RelationshipActions targetCharacter={character} />}
 
                     {spouses.length > 0 && (
                         <Card>
