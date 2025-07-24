@@ -8,7 +8,7 @@ import LeaderboardTab from "./leaderboard-tab";
 import RewardsTab from "./rewards-tab";
 import AdminTab from "./admin-tab";
 import RequestsTab from "./requests-tab";
-import { User, Trophy, Award, Shield, GitPullRequest, Landmark, VenetianMask } from "lucide-react";
+import { User, Trophy, Award, Shield, GitPullRequest, Landmark, Cat } from "lucide-react";
 import AuthPage from "../auth/auth-page";
 import { useAuth } from "../providers/user-provider";
 import CurrencyExchange from "./currency-exchange";
@@ -37,7 +37,7 @@ export function Dashboard() {
   const tabs = [
     { value: 'profile', label: 'Профиль', icon: User },
     { value: 'leaderboard', label: 'Лидеры', icon: Trophy },
-    { value: 'familiars', label: 'Фамильяры', icon: VenetianMask },
+    { value: 'familiars', label: 'Фамильяры', icon: Cat },
     { value: 'rewards', label: 'Награды', icon: Award },
     { value: 'bank', label: 'Банк', icon: Landmark },
     ...(isAdmin ? [{ value: 'requests', label: 'Запросы', icon: GitPullRequest }] : []),
