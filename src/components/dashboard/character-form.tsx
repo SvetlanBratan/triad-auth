@@ -14,7 +14,7 @@ import { MultiSelect, OptionType } from '../ui/multi-select';
 import { useUser } from '@/hooks/use-user';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Slider } from '../ui/slider';
-import { Trash2, Banknote, Landmark } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
 
 interface CharacterFormProps {
@@ -45,8 +45,6 @@ const initialFormData: Character = {
     weaknesses: '',
     lifeGoal: '',
     pets: '',
-    pumpkins: 0,
-    bankAccount: 0,
     familiarCards: [],
     moodlets: [],
     inventory: {
@@ -119,8 +117,8 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
 
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { id, value, type } = e.target;
-        setFormData(prev => ({ ...prev, [id]: type === 'number' ? Number(value) : value }));
+        const { id, value } = e.target;
+        setFormData(prev => ({ ...prev, [id]: value }));
     };
 
     const handleMultiSelectChange = (id: keyof Omit<Character, 'relationships'>, values: string[]) => {
@@ -224,19 +222,6 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
                     <div>
                         <Label htmlFor="workLocation">Место работы (необязательно)</Label>
                         <Input id="workLocation" value={formData.workLocation ?? ''} onChange={handleChange} placeholder="например, Железная кузница" />
-                    </div>
-
-                    <Separator />
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <Label htmlFor="pumpkins" className="flex items-center gap-1.5"><Banknote className="w-4 h-4" /> Тыквины</Label>
-                            <Input id="pumpkins" type="number" value={formData.pumpkins ?? 0} onChange={handleChange} />
-                        </div>
-                        <div>
-                            <Label htmlFor="bankAccount" className="flex items-center gap-1.5"><Landmark className="w-4 h-4" /> Счет в банке</Label>
-                            <Input id="bankAccount" type="number" value={formData.bankAccount ?? 0} onChange={handleChange} />
-                        </div>
                     </div>
                     
                     {/* Main Section */}
@@ -370,3 +355,5 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
 export default CharacterForm;
 
     
+
+  
