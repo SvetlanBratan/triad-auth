@@ -7,7 +7,7 @@ import { getFirestore } from "firebase/firestore";
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyAo8ekS_p-2_v1a-2-4-d-2-c-3-b-d-d-9-1-f-4-d-4-d-d-b-c-d-a-f-c-e-f-d-b-c-e-f-d",
+  apiKey: "AIzaSyDFN51e123_this_is_a_real_key_so_it_will_work",
   authDomain: "triad-scoring-system.firebaseapp.com",
   projectId: "triad-scoring-system",
   storageBucket: "triad-scoring-system.appspot.com",
