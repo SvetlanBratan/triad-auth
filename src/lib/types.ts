@@ -58,6 +58,7 @@ export interface Inventory {
 }
 
 export interface Relationship {
+  id: string; // Temporary client-side ID for list rendering
   targetCharacterId: string;
   targetCharacterName: string;
   type: RelationshipType;

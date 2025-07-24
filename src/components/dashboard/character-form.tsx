@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import type { Character, User, Relationship } from '@/lib/types';
+import type { Character, User, Relationship, RelationshipType } from '@/lib/types';
 import { SKILL_LEVELS, FAME_LEVELS, TRAINING_OPTIONS } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { DialogClose } from '@/components/ui/dialog';
@@ -12,6 +12,10 @@ import { Textarea } from '../ui/textarea';
 import { ScrollArea } from '../ui/scroll-area';
 import { MultiSelect, OptionType } from '../ui/multi-select';
 import { useUser } from '@/hooks/use-user';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Slider } from '../ui/slider';
+import { Trash2 } from 'lucide-react';
+import { Separator } from '../ui/separator';
 
 interface CharacterFormProps {
     character: Character | null;
@@ -58,6 +62,13 @@ const initialFormData: Character = {
 
 const fameLevelOptions: OptionType[] = FAME_LEVELS.map(level => ({ value: level, label: level }));
 const skillLevelOptions: OptionType[] = SKILL_LEVELS.map(level => ({ value: level, label: level }));
+const relationshipTypeOptions: { value: RelationshipType, label: string }[] = [
+    { value: 'романтика', label: 'Романтика' },
+    { value: 'дружба', label: 'Дружба' },
+    { value: 'вражда', label: 'Вражда' },
+    { value: 'конкуренция', label: 'Конкуренция' },
+    { value: 'нейтралитет', label: 'Нейтралитет' },
+];
 
 
 const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: CharacterFormProps) => {
@@ -74,7 +85,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
                 skillLevel: Array.isArray(character.skillLevel) ? character.skillLevel : (character.skillLevel ? [character.skillLevel] : []),
                 training: Array.isArray(character.training) ? character.training : [],
                 marriedTo: Array.isArray(character.marriedTo) ? character.marriedTo : [],
-                relationships: Array.isArray(character.relationships) ? character.relationships : [],
+                relationships: (Array.isArray(character.relationships) ? character.relationships : []).map(r => ({...r, id: r.id || `rel-${Math.random()}`})),
             };
             setFormData(initializedCharacter);
         } else {
@@ -87,7 +98,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
         if (!allUsers) return [];
         return allUsers.flatMap(user =>
             user.characters
-                // Exclude the current character from their own spouse list
+                // Exclude the current character from their own relationship/spouse list
                 .filter(c => c.id !== formData.id)
                 .map(c => ({
                     value: c.id,
@@ -110,9 +121,44 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
          setFormData(prev => ({ ...prev, [id]: value ? [value] : [] }));
     };
 
+    const handleRelationshipChange = (index: number, field: keyof Relationship, value: any) => {
+        const newRelationships = [...formData.relationships];
+        const updatedRelationship = { ...newRelationships[index], [field]: value };
+        
+        // If target character changes, update the name
+        if (field === 'targetCharacterId') {
+            const targetChar = characterOptions.find(opt => opt.value === value);
+            updatedRelationship.targetCharacterName = targetChar ? targetChar.label.split(' (')[0] : 'Неизвестно';
+        }
+
+        newRelationships[index] = updatedRelationship;
+        setFormData(prev => ({ ...prev, relationships: newRelationships }));
+    };
+
+    const addRelationship = () => {
+        const newRelationship: Relationship = {
+            id: `rel-${Date.now()}`,
+            targetCharacterId: '',
+            targetCharacterName: '',
+            type: 'нейтралитет',
+            level: 1,
+        };
+        setFormData(prev => ({ ...prev, relationships: [...prev.relationships, newRelationship] }));
+    };
+
+    const removeRelationship = (index: number) => {
+        const newRelationships = formData.relationships.filter((_, i) => i !== index);
+        setFormData(prev => ({ ...prev, relationships: newRelationships }));
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSubmit(formData);
+        const finalData = {
+            ...formData,
+            // Remove temporary client-side ID before submitting
+            relationships: formData.relationships.map(({ id, ...rest }) => rest) as Omit<Relationship, 'id'>[],
+        };
+        onSubmit(finalData as Character);
     };
     
     return (
@@ -186,7 +232,80 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
                         <Label htmlFor="weaknesses">Слабости</Label>
                         <Textarea id="weaknesses" value={formData.weaknesses ?? ''} onChange={handleChange} placeholder="Физические или психологические уязвимости..." rows={4}/>
                     </div>
-                    
+
+                    {/* Relationships Section */}
+                    <div className="space-y-4 rounded-lg border p-4">
+                        <h3 className="text-lg font-medium">Отношения</h3>
+                        <Separator />
+                        <div className="space-y-6">
+                            {formData.relationships.map((rel, index) => (
+                                <div key={rel.id} className="space-y-3 rounded-md border p-3 relative">
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="absolute top-1 right-1 h-7 w-7"
+                                        onClick={() => removeRelationship(index)}
+                                    >
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                    
+                                    <div>
+                                        <Label>Персонаж</Label>
+                                        <Select
+                                            value={rel.targetCharacterId}
+                                            onValueChange={(value) => handleRelationshipChange(index, 'targetCharacterId', value)}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Выберите персонажа..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectGroup>
+                                                    {characterOptions.map(opt => (
+                                                        <SelectItem key={opt.value} value={opt.value}>
+                                                            {opt.label}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectGroup>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div>
+                                        <Label>Тип отношений</Label>
+                                        <Select
+                                            value={rel.type}
+                                            onValueChange={(value: RelationshipType) => handleRelationshipChange(index, 'type', value)}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Выберите тип..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {relationshipTypeOptions.map(opt => (
+                                                    <SelectItem key={opt.value} value={opt.value}>
+                                                        {opt.label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div>
+                                        <Label>Уровень ({rel.level})</Label>
+                                        <Slider
+                                            value={[rel.level]}
+                                            onValueChange={(value) => handleRelationshipChange(index, 'level', value[0])}
+                                            min={1}
+                                            max={10}
+                                            step={1}
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <Button type="button" variant="outline" onClick={addRelationship}>
+                            Добавить отношение
+                        </Button>
+                    </div>
+
                     {/* Additional Section */}
                      <div>
                         <Label htmlFor="marriedTo">В браке с</Label>

@@ -2,7 +2,7 @@
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
-import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings } from '@/lib/types';
+import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, collectionGroup } from "firebase/firestore";
@@ -201,7 +201,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 skillLevel: Array.isArray(char.skillLevel) ? char.skillLevel : (char.skillLevel ? [char.skillLevel] : []),
                 training: Array.isArray(char.training) ? char.training : [],
                 marriedTo: Array.isArray(char.marriedTo) ? char.marriedTo : [],
-                relationships: Array.isArray(char.relationships) ? char.relationships : [],
+                relationships: (Array.isArray(char.relationships) ? char.relationships : []).map(r => ({ ...r, id: `rel-${Math.random()}` })),
                 inventory: char.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: char.familiarCards || [] },
                 moodlets: char.moodlets || [],
             })) || [];
@@ -377,14 +377,20 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const updateCharacterInUser = useCallback(async (userId: string, characterToUpdate: Character) => {
     const user = await fetchUserById(userId);
     if (!user) return;
+
+    // Sanitize relationships by removing temporary client-side ID before saving to Firestore
+    const sanitizedCharacter = {
+        ...characterToUpdate,
+        relationships: characterToUpdate.relationships.map(({ id, ...rest }) => rest) as Omit<Relationship, 'id'>[],
+    };
     
-    const characterIndex = user.characters.findIndex(char => char.id === characterToUpdate.id);
+    const characterIndex = user.characters.findIndex(char => char.id === sanitizedCharacter.id);
     const updatedCharacters = [...user.characters];
 
     if (characterIndex > -1) {
-      updatedCharacters[characterIndex] = characterToUpdate;
+      updatedCharacters[characterIndex] = sanitizedCharacter;
     } else {
-      updatedCharacters.push(characterToUpdate);
+      updatedCharacters.push(sanitizedCharacter);
     }
     
     await updateUser(userId, { characters: updatedCharacters });
