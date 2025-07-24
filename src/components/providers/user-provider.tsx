@@ -113,14 +113,16 @@ const drawFamiliarCard = (hasBlessing: boolean, unavailableMythicIds: Set<string
         chosenPool = availableMythic;
     } else if (rand < mythicChance + legendaryChance && availableLegendary.length > 0) {
         chosenPool = availableLegendary;
-    } else if (rand < mythicChance + legendaryChance + rareChance && availableCommon.length > 0) {
-        chosenPool = availableCommon;
+    } else if (rand < mythicChance + legendaryChance + rareChance && availableRare.length > 0) {
+        chosenPool = availableRare;
     } else if (availableCommon.length > 0) {
         chosenPool = availableCommon;
     } else {
-      chosenPool = availableCards.filter(c => c.rank !== 'мифический');
+      // Fallback pool if a specific rarity pool is empty
+      chosenPool = availableCards.filter(c => c.rank !== 'мифический' || (c.rank === 'мифический' && !unavailableMythicIds.has(c.id)));
     }
     
+    // Final fallback if all pools are somehow empty (e.g., all mythics taken, and other pools are empty)
     if (chosenPool.length === 0) {
       chosenPool = availableCards.filter(c => c.rank !== 'мифический' || (c.rank === 'мифический' && !unavailableMythicIds.has(c.id)));
     }
