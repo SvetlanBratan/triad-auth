@@ -4,6 +4,7 @@ export type UserStatus = 'активный' | 'неактивный' | 'отпу
 export type RewardRequestStatus = 'в ожидании' | 'одобрено' | 'отклонено';
 export type FamiliarRank = 'обычный' | 'редкий' | 'легендарный' | 'мифический' | 'ивентовый';
 export type InventoryCategory = 'оружие' | 'гардероб' | 'еда' | 'подарки' | 'артефакты' | 'зелья' | 'недвижимость' | 'транспорт';
+export type RelationshipType = 'романтика' | 'дружба' | 'вражда' | 'конкуренция' | 'нейтралитет';
 
 export interface GameSettings {
   gameDateString: string;
@@ -56,6 +57,14 @@ export interface Inventory {
     familiarCards: OwnedFamiliarCard[];
 }
 
+export interface Relationship {
+  targetCharacterId: string;
+  targetCharacterName: string;
+  type: RelationshipType;
+  level: number; // 1-10
+}
+
+
 export interface Character {
   id: string;
   name: string;
@@ -76,7 +85,7 @@ export interface Character {
   biography: string;
   diary: string; // "Личный дневник"
   training: string[]; // "Обучение" - Changed to array of strings
-  relationships: string; // Placeholder for now
+  relationships: Relationship[];
   marriedTo?: string[]; // IDs of other characters
   inventory: Inventory;
   // Old fields that are now part of inventory or deprecated at top level

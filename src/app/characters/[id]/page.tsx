@@ -4,13 +4,13 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, notFound } from 'next/navigation';
 import { useUser } from '@/hooks/use-user';
-import { User, Character, FamiliarCard, FamiliarRank, Moodlet } from '@/lib/types';
+import { User, Character, FamiliarCard, FamiliarRank, Moodlet, Relationship, RelationshipType } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FAMILIARS_BY_ID, MOODLETS_DATA, TRAINING_OPTIONS } from '@/lib/data';
 import FamiliarCardDisplay from '@/components/dashboard/familiar-card';
-import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users } from 'lucide-react';
+import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users, HeartHandshake } from 'lucide-react';
 import Link from 'next/link';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -20,6 +20,7 @@ import { cn, formatTimeLeft, calculateAge } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import * as LucideIcons from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Progress } from '@/components/ui/progress';
 
 
 type IconName = keyof typeof LucideIcons;
@@ -43,6 +44,21 @@ const rankNames: Record<FamiliarRank, string> = {
     'редкий': 'Редкие',
     'обычный': 'Обычные'
 };
+
+const relationshipColors: Record<RelationshipType, string> = {
+    'романтика': 'bg-pink-500',
+    'дружба': 'bg-green-500',
+    'вражда': 'bg-red-500',
+    'конкуренция': 'bg-yellow-500',
+    'нейтралитет': 'bg-gray-500',
+};
+const relationshipLabels: Record<RelationshipType, string> = {
+    'романтика': 'Романтика',
+    'дружба': 'Дружба',
+    'вражда': 'Вражда',
+    'конкуренция': 'Конкуренция',
+    'нейтралитет': 'Нейтралитет',
+}
 
 const FamiliarsSection = ({ character }: { character: Character }) => {
     const familiarCards = character.inventory?.familiarCards || [];
@@ -184,7 +200,7 @@ export default function CharacterPage() {
             <header className="flex flex-col md:flex-row justify-between md:items-start mb-6 gap-4">
                 <div className="flex-1">
                     <div className="flex items-center gap-3 flex-wrap">
-                        <h1 className="text-2xl md:text-3xl font-bold font-headline text-primary">{character.name}</h1>
+                        <h1 className="text-xl md:text-2xl font-bold font-headline text-primary">{character.name}</h1>
                         <div className="flex items-center gap-1.5">
                             {isBlessed && (
                                 <Popover>
@@ -242,6 +258,31 @@ export default function CharacterPage() {
                             <ScrollArea className="h-64 w-full">
                                 <p className="whitespace-pre-wrap pr-4">{character.biography || 'Описание отсутствует.'}</p>
                             </ScrollArea>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><HeartHandshake /> Отношения</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {(character.relationships && character.relationships.length > 0) ? (
+                                <div className="space-y-4">
+                                    {character.relationships.map(rel => (
+                                        <div key={rel.targetCharacterId}>
+                                            <div className="flex justify-between items-center mb-1">
+                                                <Link href={`/characters/${rel.targetCharacterId}`} className="font-semibold hover:underline">{rel.targetCharacterName}</Link>
+                                                <Badge variant="secondary" className={cn('capitalize', relationshipColors[rel.type], 'text-white')}>{relationshipLabels[rel.type]}</Badge>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <Progress value={rel.level * 10} className={cn("w-full h-2", relationshipColors[rel.type])} indicatorClassName={relationshipColors[rel.type]}/>
+                                                <span className="text-xs font-bold w-8 text-right">{rel.level}/10</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-muted-foreground text-sm">Отношений пока нет.</p>
+                            )}
                         </CardContent>
                     </Card>
                 </div>
@@ -405,12 +446,6 @@ export default function CharacterPage() {
                                         ) : (
                                             <p className="whitespace-pre-wrap">Описание отсутствует.</p>
                                         )}
-                                    </AccordionContent>
-                                </AccordionItem>
-                                <AccordionItem value="relationships">
-                                    <AccordionTrigger>Отношения</AccordionTrigger>
-                                    <AccordionContent>
-                                        <p className="whitespace-pre-wrap">{character.relationships || 'Описание отсутствует.'}</p>
                                     </AccordionContent>
                                 </AccordionItem>
                                 {character.lifeGoal && (

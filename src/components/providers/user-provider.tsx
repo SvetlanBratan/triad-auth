@@ -168,7 +168,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     biography: '',
     diary: '',
     training: [],
-    relationships: '',
+    relationships: [],
     marriedTo: [],
     abilities: '',
     weaknesses: '',
@@ -201,6 +201,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 skillLevel: Array.isArray(char.skillLevel) ? char.skillLevel : (char.skillLevel ? [char.skillLevel] : []),
                 training: Array.isArray(char.training) ? char.training : [],
                 marriedTo: Array.isArray(char.marriedTo) ? char.marriedTo : [],
+                relationships: Array.isArray(char.relationships) ? char.relationships : [],
                 inventory: char.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: char.familiarCards || [] },
                 moodlets: char.moodlets || [],
             })) || [];

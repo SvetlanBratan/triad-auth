@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import type { Character, User } from '@/lib/types';
+import type { Character, User, Relationship } from '@/lib/types';
 import { SKILL_LEVELS, FAME_LEVELS, TRAINING_OPTIONS } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { DialogClose } from '@/components/ui/dialog';
@@ -35,7 +35,7 @@ const initialFormData: Character = {
     biography: '',
     diary: '',
     training: [],
-    relationships: '',
+    relationships: [],
     marriedTo: [],
     abilities: '',
     weaknesses: '',
@@ -74,6 +74,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
                 skillLevel: Array.isArray(character.skillLevel) ? character.skillLevel : (character.skillLevel ? [character.skillLevel] : []),
                 training: Array.isArray(character.training) ? character.training : [],
                 marriedTo: Array.isArray(character.marriedTo) ? character.marriedTo : [],
+                relationships: Array.isArray(character.relationships) ? character.relationships : [],
             };
             setFormData(initializedCharacter);
         } else {
@@ -101,7 +102,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
         setFormData(prev => ({ ...prev, [id]: value }));
     };
 
-    const handleMultiSelectChange = (id: keyof Character, values: string[]) => {
+    const handleMultiSelectChange = (id: keyof Omit<Character, 'relationships'>, values: string[]) => {
         setFormData(prev => ({ ...prev, [id]: values }));
     };
     
@@ -204,10 +205,6 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
                             onChange={(selectedValues) => handleMultiSelectChange('training', selectedValues)}
                             placeholder="Выберите учебные заведения..."
                         />
-                    </div>
-                     <div>
-                        <Label htmlFor="relationships">Отношения</Label>
-                        <Textarea id="relationships" value={formData.relationships ?? ''} onChange={handleChange} placeholder="Значимые связи и отношения с другими персонажами..." rows={4}/>
                     </div>
                      <div>
                         <Label htmlFor="lifeGoal">Жизненная цель</Label>
