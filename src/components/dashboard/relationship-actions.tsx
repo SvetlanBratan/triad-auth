@@ -133,7 +133,7 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
                                     </span>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                    <p>Отправить подарок</p>
+                                    <p>Отправить подарок (+25)</p>
                                     {!canSendGift && <p className="text-xs text-muted-foreground">{giftTimeLeft}</p>}
                                 </TooltipContent>
                             </Tooltip>
@@ -151,7 +151,7 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
                                     </span>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                    <p>Отправить письмо</p>
+                                    <p>Отправить письмо (+10)</p>
                                     {!canSendLetter && <p className="text-xs text-muted-foreground">{letterTimeLeft}</p>}
                                 </TooltipContent>
                             </Tooltip>
@@ -166,7 +166,7 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
                                         </DialogTrigger>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                        <p>Написать пост</p>
+                                        <p>Написать пост (+2)</p>
                                     </TooltipContent>
                                 </Tooltip>
                                 <DialogContent>
@@ -206,4 +206,3 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
         </Card>
     );
 }
-
