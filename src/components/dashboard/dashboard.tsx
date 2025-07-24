@@ -32,7 +32,6 @@ export function Dashboard() {
   }
 
   const isAdmin = currentUser.role === 'admin';
-  const gridColsClass = isAdmin ? "grid-cols-3 sm:grid-cols-6" : "grid-cols-3 sm:grid-cols-5";
   
   const tabs = [
     { value: 'profile', label: 'Профиль', icon: User },
@@ -42,6 +41,8 @@ export function Dashboard() {
     ...(isAdmin ? [{ value: 'requests', label: 'Запросы', icon: GitPullRequest }] : []),
     ...(isAdmin ? [{ value: 'admin', label: 'Админ', icon: Shield }] : []),
   ];
+
+  const gridColsClass = `grid-cols-${tabs.length}`;
 
   return (
       <Tabs defaultValue="profile" className="w-full">
