@@ -64,7 +64,9 @@ const fameLevelOptions: OptionType[] = FAME_LEVELS.map(level => ({ value: level,
 const skillLevelOptions: OptionType[] = SKILL_LEVELS.map(level => ({ value: level, label: level }));
 const relationshipTypeOptions: { value: RelationshipType, label: string }[] = [
     { value: 'романтика', label: 'Романтика' },
+    { value: 'любовь', label: 'Любовь' },
     { value: 'дружба', label: 'Дружба' },
+    { value: 'семья', label: 'Семья' },
     { value: 'вражда', label: 'Вражда' },
     { value: 'конкуренция', label: 'Конкуренция' },
     { value: 'нейтралитет', label: 'Нейтралитет' },

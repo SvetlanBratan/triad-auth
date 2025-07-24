@@ -966,6 +966,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         let targetUserDoc: any = null;
         let targetUserData: User | null = null;
+        let targetUserId: string | null = null;
 
         const allUsersSnapshot = await getDocs(collection(db, "users"));
         allUsersSnapshot.forEach(doc => {
@@ -973,18 +974,27 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             if (user.characters?.some(c => c.id === targetCharacterId)) {
                 targetUserDoc = doc;
                 targetUserData = user;
+                targetUserId = doc.id;
             }
         });
-
-        if (!targetUserDoc || !targetUserData) {
+        
+        if (!targetUserDoc || !targetUserData || !targetUserId) {
             throw new Error("Владелец целевого персонажа не найден.");
         }
+
         const targetUserFromTx = await transaction.get(targetUserDoc.ref);
         if (!targetUserFromTx.exists()) {
             throw new Error("Целевой пользователь не найден в транзакции.");
         }
         targetUserData = targetUserFromTx.data() as User;
 
+        const processRelationship = (rel: Relationship) => {
+            if (rel.points < 1000) return; // No progression needed
+
+            if (rel.type === 'нейтралитет') rel.type = 'дружба';
+            else if (rel.type === 'вражда') rel.type = 'нейтралитет';
+            else if (rel.type === 'романтика') rel.type = 'любовь';
+        };
 
         // --- Update Source Character's relationship TO Target ---
         const sourceCharacterIndex = sourceUserData.characters.findIndex(c => c.id === sourceCharacterId);
@@ -1017,6 +1027,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         const pointsToAdd = RELATIONSHIP_POINTS_CONFIG[actionType];
         relationshipToTarget.points += pointsToAdd;
+        processRelationship(relationshipToTarget);
         
         const newAction: RelationshipAction = {
             id: `act-${Date.now()}`,
@@ -1038,7 +1049,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         
         const relationshipFromSource = targetCharacter.relationships[relationshipFromSourceIndex];
         relationshipFromSource.points += pointsToAdd;
+        processRelationship(relationshipFromSource);
         relationshipFromSource.history = [...(relationshipFromSource.history || []), newAction];
+        
+        // --- Sync types in case one progressed and the other didn't ---
+        relationshipFromSource.type = relationshipToTarget.type;
+
 
         // --- Commit changes ---
         transaction.update(sourceUserRef, { characters: sourceUserData.characters });
@@ -1106,7 +1122,3 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     </AuthContext.Provider>
   );
 }
-
-    
-
-      

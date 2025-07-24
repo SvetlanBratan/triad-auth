@@ -52,6 +52,8 @@ const relationshipColors: Record<RelationshipType, string> = {
     'вражда': 'bg-red-500',
     'конкуренция': 'bg-yellow-500',
     'нейтралитет': 'bg-gray-500',
+    'любовь': 'bg-red-700',
+    'семья': 'bg-blue-700',
 };
 const relationshipLabels: Record<RelationshipType, string> = {
     'романтика': 'Романтика',
@@ -59,6 +61,8 @@ const relationshipLabels: Record<RelationshipType, string> = {
     'вражда': 'Вражда',
     'конкуренция': 'Конкуренция',
     'нейтралитет': 'Нейтралитет',
+    'любовь': 'Любовь',
+    'семья': 'Семья',
 }
 
 const FamiliarsSection = ({ character }: { character: Character }) => {
