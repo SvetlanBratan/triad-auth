@@ -2,10 +2,10 @@
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
-import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency } from '@/lib/types';
+import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
-import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup } from "firebase/firestore";
 import { ALL_FAMILIARS, FAMILIARS_BY_ID, MOODLETS_DATA, DEFAULT_GAME_SETTINGS, WEALTH_LEVELS } from '@/lib/data';
 
 interface AuthContextType {
@@ -67,6 +67,10 @@ interface UserContextType {
   fetchOpenExchangeRequests: () => Promise<ExchangeRequest[]>;
   acceptExchangeRequest: (acceptorUserId: string, request: ExchangeRequest) => Promise<void>;
   cancelExchangeRequest: (request: ExchangeRequest) => Promise<void>;
+  createFamiliarTradeRequest: (initiatorCharacterId: string, initiatorFamiliarId: string, targetCharacterId: string, targetFamiliarId: string) => Promise<void>;
+  fetchFamiliarTradeRequestsForUser: () => Promise<FamiliarTradeRequest[]>;
+  acceptFamiliarTradeRequest: (request: FamiliarTradeRequest) => Promise<void>;
+  declineOrCancelFamiliarTradeRequest: (request: FamiliarTradeRequest, status: 'отклонено' | 'отменено') => Promise<void>;
 }
 
 export const UserContext = createContext<UserContextType | null>(null);
@@ -330,13 +334,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const fetchAllRewardRequests = useCallback(async (): Promise<RewardRequest[]> => {
     const requests: RewardRequest[] = [];
     try {
-      const usersSnapshot = await getDocs(collection(db, 'users'));
-      for (const userDoc of usersSnapshot.docs) {
-        const requestsSnapshot = await getDocs(collection(userDoc.ref, 'reward_requests'));
-        requestsSnapshot.forEach(reqDoc => {
-          requests.push(reqDoc.data() as RewardRequest);
-        });
-      }
+      const q = query(collectionGroup(db, 'reward_requests'));
+      const querySnapshot = await getDocs(q);
+      querySnapshot.forEach((doc) => {
+        requests.push(doc.data() as RewardRequest);
+      });
       return requests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     } catch (error) {
       console.error("Error fetching all reward requests:", error);
@@ -1353,6 +1355,156 @@ const processMonthlySalary = useCallback(async () => {
   }, [currentUser, fetchUserById]);
 
 
+    // --- Familiar Exchange ---
+
+  const createFamiliarTradeRequest = useCallback(async (initiatorCharacterId: string, initiatorFamiliarId: string, targetCharacterId: string, targetFamiliarId: string) => {
+    if (!currentUser) throw new Error("Пользователь не авторизован.");
+    
+    const allUsers = await fetchUsersForAdmin();
+    
+    const initiatorChar = currentUser.characters.find(c => c.id === initiatorCharacterId);
+    if (!initiatorChar) throw new Error("Персонаж-инициатор не найден.");
+
+    const initiatorFamiliar = FAMILIARS_BY_ID[initiatorFamiliarId];
+    if (!initiatorFamiliar) throw new Error("Фамильяр инициатора не найден.");
+
+    let targetUser: User | undefined;
+    let targetChar: Character | undefined;
+
+    for (const user of allUsers) {
+        const foundChar = user.characters.find(c => c.id === targetCharacterId);
+        if (foundChar) {
+            targetUser = user;
+            targetChar = foundChar;
+            break;
+        }
+    }
+    if (!targetUser || !targetChar) throw new Error("Целевой персонаж или его владелец не найдены.");
+    
+    const targetFamiliar = FAMILIARS_BY_ID[targetFamiliarId];
+    if (!targetFamiliar) throw new Error("Целевой фамильяр не найден.");
+
+    if (initiatorFamiliar.rank !== targetFamiliar.rank) {
+        throw new Error("Фамильяры должны быть одного ранга.");
+    }
+    
+    const newRequest: Omit<FamiliarTradeRequest, 'id'> = {
+        initiatorUserId: currentUser.id,
+        initiatorCharacterId,
+        initiatorCharacterName: initiatorChar.name,
+        initiatorFamiliarId,
+        initiatorFamiliarName: initiatorFamiliar.name,
+        targetUserId: targetUser.id,
+        targetCharacterId,
+        targetCharacterName: targetChar.name,
+        targetFamiliarId,
+        targetFamiliarName: targetFamiliar.name,
+        rank: initiatorFamiliar.rank,
+        status: 'в ожидании',
+        createdAt: new Date().toISOString(),
+    };
+
+    const requestsCollection = collection(db, "familiar_trade_requests");
+    await addDoc(requestsCollection, newRequest);
+
+  }, [currentUser, fetchUsersForAdmin]);
+
+  const fetchFamiliarTradeRequestsForUser = useCallback(async (): Promise<FamiliarTradeRequest[]> => {
+    if (!currentUser) return [];
+    
+    const requestsCollection = collection(db, "familiar_trade_requests");
+
+    // Query for outgoing requests
+    const outgoingQuery = query(
+      requestsCollection,
+      where('initiatorUserId', '==', currentUser.id),
+      where('status', '==', 'в ожидании')
+    );
+    
+    // Query for incoming requests
+    const incomingQuery = query(
+      requestsCollection,
+      where('targetUserId', '==', currentUser.id),
+      where('status', '==', 'в ожидании')
+    );
+
+    const [outgoingSnapshot, incomingSnapshot] = await Promise.all([
+      getDocs(outgoingQuery),
+      getDocs(incomingQuery)
+    ]);
+
+    const requests: FamiliarTradeRequest[] = [];
+    outgoingSnapshot.forEach(doc => requests.push({ id: doc.id, ...doc.data() } as FamiliarTradeRequest));
+    incomingSnapshot.forEach(doc => requests.push({ id: doc.id, ...doc.data() } as FamiliarTradeRequest));
+
+    return requests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [currentUser]);
+
+  const acceptFamiliarTradeRequest = useCallback(async (request: FamiliarTradeRequest) => {
+     await runTransaction(db, async (transaction) => {
+        const requestRef = doc(db, "familiar_trade_requests", request.id);
+        const requestDoc = await transaction.get(requestRef);
+        if (!requestDoc.exists() || requestDoc.data().status !== 'в ожидании') {
+            throw new Error("Запрос больше не действителен.");
+        }
+
+        const initiatorUserRef = doc(db, "users", request.initiatorUserId);
+        const targetUserRef = doc(db, "users", request.targetUserId);
+
+        const [initiatorDoc, targetDoc] = await Promise.all([
+            transaction.get(initiatorUserRef),
+            transaction.get(targetUserRef)
+        ]);
+        
+        if (!initiatorDoc.exists() || !targetDoc.exists()) {
+            throw new Error("Один из пользователей не найден.");
+        }
+        
+        const initiatorData = initiatorDoc.data() as User;
+        const targetData = targetDoc.data() as User;
+
+        // --- Remove cards ---
+        const initiatorCharIndex = initiatorData.characters.findIndex(c => c.id === request.initiatorCharacterId);
+        const targetCharIndex = targetData.characters.findIndex(c => c.id === request.targetCharacterId);
+
+        if (initiatorCharIndex === -1 || targetCharIndex === -1) {
+            throw new Error("Один из персонажей не найден.");
+        }
+
+        const initiatorChar = initiatorData.characters[initiatorCharIndex];
+        const initiatorCardIndex = (initiatorChar.inventory.familiarCards || []).findIndex(c => c.id === request.initiatorFamiliarId);
+        if (initiatorCardIndex === -1) throw new Error(`Фамильяр ${request.initiatorFamiliarName} не найден у ${request.initiatorCharacterName}.`);
+        initiatorChar.inventory.familiarCards.splice(initiatorCardIndex, 1);
+
+        const targetChar = targetData.characters[targetCharIndex];
+        const targetCardIndex = (targetChar.inventory.familiarCards || []).findIndex(c => c.id === request.targetFamiliarId);
+        if (targetCardIndex === -1) throw new Error(`Фамильяр ${request.targetFamiliarName} не найден у ${request.targetCharacterName}.`);
+        targetChar.inventory.familiarCards.splice(targetCardIndex, 1);
+
+        // --- Add cards ---
+        initiatorChar.inventory.familiarCards.push({ id: request.targetFamiliarId });
+        targetChar.inventory.familiarCards.push({ id: request.initiatorFamiliarId });
+
+        // --- Commit ---
+        transaction.update(initiatorUserRef, { characters: initiatorData.characters });
+        transaction.update(targetUserRef, { characters: targetData.characters });
+        transaction.update(requestRef, { status: 'принято' });
+    });
+
+    // Refresh data for both users if one of them is the current user
+    if (currentUser && (currentUser.id === request.initiatorUserId || currentUser.id === request.targetUserId)) {
+        const updatedUser = await fetchUserById(currentUser.id);
+        if (updatedUser) setCurrentUser(updatedUser);
+    }
+  }, [currentUser, fetchUserById]);
+
+  const declineOrCancelFamiliarTradeRequest = useCallback(async (request: FamiliarTradeRequest, status: 'отклонено' | 'отменено') => {
+      const requestRef = doc(db, "familiar_trade_requests", request.id);
+      await updateDoc(requestRef, { status });
+  }, []);
+
+
+
   const signOutUser = useCallback(() => {
     signOut(auth);
   }, []);
@@ -1402,8 +1554,12 @@ const processMonthlySalary = useCallback(async () => {
       fetchOpenExchangeRequests,
       acceptExchangeRequest,
       cancelExchangeRequest,
+      createFamiliarTradeRequest,
+      fetchFamiliarTradeRequestsForUser,
+      acceptFamiliarTradeRequest,
+      declineOrCancelFamiliarTradeRequest,
     }),
-    [currentUser, gameSettings, fetchUsersForAdmin, fetchAllRewardRequests, fetchAvailableMythicCardsCount, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateGameDate, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest]
+    [currentUser, gameSettings, fetchUsersForAdmin, fetchAllRewardRequests, fetchAvailableMythicCardsCount, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateGameDate, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest]
   );
 
   return (
