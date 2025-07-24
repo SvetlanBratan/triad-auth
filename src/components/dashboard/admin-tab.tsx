@@ -50,6 +50,7 @@ export default function AdminTab() {
   // Recovery state
   const [recoveryUserId, setRecoveryUserId] = useState('');
   const [recoveryCharId, setRecoveryCharId] = useState('');
+  const [recoveryOldName, setRecoveryOldName] = useState('');
   const [isRecovering, setIsRecovering] = useState(false);
 
   const [awardSelectedUserId, setAwardSelectedUserId] = useState<string>('');
@@ -134,7 +135,7 @@ export default function AdminTab() {
     }
     setIsRecovering(true);
     try {
-        const recoveredCount = await recoverFamiliarsFromHistory(recoveryUserId, recoveryCharId);
+        const recoveredCount = await recoverFamiliarsFromHistory(recoveryUserId, recoveryCharId, recoveryOldName || undefined);
         toast({
             title: 'Восстановление завершено',
             description: `Восстановлено ${recoveredCount} фамильяров.`
@@ -142,6 +143,7 @@ export default function AdminTab() {
         await refetchUsers();
         setRecoveryUserId('');
         setRecoveryCharId('');
+        setRecoveryOldName('');
     } catch (error) {
         console.error("Recovery failed:", error);
         toast({ variant: 'destructive', title: 'Ошибка восстановления', description: 'Не удалось завершить процесс.' });
@@ -633,6 +635,16 @@ export default function AdminTab() {
                             <SelectTrigger id="recovery-char"><SelectValue placeholder="Выберите персонажа" /></SelectTrigger>
                             <SelectContent>{charactersForRecovery.map(c => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}</SelectContent>
                         </Select>
+                    </div>
+                    <div>
+                        <Label htmlFor="recovery-old-name">Старое имя персонажа (если менялось)</Label>
+                        <Input
+                            id="recovery-old-name"
+                            value={recoveryOldName}
+                            onChange={e => setRecoveryOldName(e.target.value)}
+                            placeholder="например, Милти Слоя"
+                            disabled={!recoveryCharId}
+                        />
                     </div>
                     <Button onClick={handleRecovery} disabled={!recoveryCharId || isRecovering}>
                         {isRecovering ? 'Восстановление...' : <><History className="mr-2 h-4 w-4" />Начать восстановление</>}

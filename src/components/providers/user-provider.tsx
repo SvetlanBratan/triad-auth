@@ -59,7 +59,7 @@ interface UserContextType {
     actionType: RelationshipActionType,
     description: string
   ) => Promise<void>;
-  recoverFamiliarsFromHistory: (userId: string, characterId: string) => Promise<number>;
+  recoverFamiliarsFromHistory: (userId: string, characterId: string, oldCharacterName?: string) => Promise<number>;
 }
 
 export const UserContext = createContext<UserContextType | null>(null);
@@ -1069,27 +1069,23 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   }, [currentUser, fetchUserById]);
 
-  const recoverFamiliarsFromHistory = useCallback(async (userId: string, characterId: string): Promise<number> => {
+  const recoverFamiliarsFromHistory = useCallback(async (userId: string, characterId: string, oldCharacterName?: string): Promise<number> => {
     const user = await fetchUserById(userId);
     if (!user) throw new Error("User not found for recovery");
 
     const character = user.characters.find(c => c.id === characterId);
     if (!character) throw new Error("Character not found for recovery");
 
-    // Find all historical names for this character
-    const historicalNames = new Set<string>([character.name]);
-    user.pointHistory.forEach(log => {
-        if (log.characterId === characterId && log.characterName) {
-            historicalNames.add(log.characterName);
-        }
-    });
+    const namesToSearch = new Set<string>([character.name]);
+    if (oldCharacterName) {
+        namesToSearch.add(oldCharacterName);
+    }
 
-    // Find all gacha wins in history for this character
     const historicalCardWins = new Set<string>();
     const gachaLogRegex = /Рулетка: получена карта (.+?) \((.+?)\)/;
 
     user.pointHistory.forEach(log => {
-        if (log.characterName && historicalNames.has(log.characterName)) {
+        if (log.characterName && namesToSearch.has(log.characterName)) {
             const match = log.reason.match(gachaLogRegex);
             if (match) {
                 const cardName = match[1].trim();
@@ -1101,7 +1097,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
     });
     
-    // Compare with current inventory and add missing cards
     const inventory = character.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: [] };
     const currentOwnedCardIds = new Set((inventory.familiarCards || []).map(c => c.id));
     const cardsToAdd: { id: string }[] = [];
