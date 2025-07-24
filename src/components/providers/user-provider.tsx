@@ -1259,8 +1259,6 @@ const processMonthlySalary = useCallback(async () => {
     const q = query(requestsCollection, where('status', '==', 'open'));
     const snapshot = await getDocs(q);
     const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ExchangeRequest));
-    // Manual sort because orderBy requires an index
-    requests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return requests;
   }, []);
 
@@ -1397,5 +1395,7 @@ const processMonthlySalary = useCallback(async () => {
     </AuthContext.Provider>
   );
 }
+
+    
 
     
