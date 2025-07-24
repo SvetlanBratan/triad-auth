@@ -475,569 +475,573 @@ export default function AdminTab() {
   }
   
   return (
-    <Tabs defaultValue="general" className="w-full">
-      <TabsList className="grid w-full grid-cols-2">
+    <Tabs defaultValue="points" className="w-full">
+      <TabsList className="grid w-full grid-cols-4">
+        <TabsTrigger value="points">Баллы</TabsTrigger>
         <TabsTrigger value="general">Общее</TabsTrigger>
-        <TabsTrigger value="trade">Торговля</TabsTrigger>
+        <TabsTrigger value="familiars">Фамильяры</TabsTrigger>
+        <TabsTrigger value="economy">Экономика</TabsTrigger>
       </TabsList>
-      <TabsContent value="general" className="mt-4">
+
+      <TabsContent value="points" className="mt-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><DollarSign /> Начислить баллы</CardTitle>
-            <CardDescription>Вручную начислите баллы пользователю за определенные действия.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleAwardPoints} className="space-y-4">
-              <div>
-                <Label htmlFor="user-select-award">Пользователь</Label>
-                <Select value={awardSelectedUserId} onValueChange={setAwardSelectedUserId}>
-                  <SelectTrigger id="user-select-award">
-                    <SelectValue placeholder="Выберите пользователя" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {users.map(user => (
-                      <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="points-input">Баллы</Label>
-                <Input
-                  id="points-input"
-                  type="number"
-                  value={points}
-                  onChange={(e) => setPoints(e.target.value)}
-                  placeholder="Введите количество"
-                />
-              </div>
-              <div>
-                <Label htmlFor="reason-input">Причина</Label>
-                <Textarea
-                  id="reason-input"
-                  placeholder="например, Участие в мини-ивенте"
-                  value={reason}
-                  onChange={e => setReason(e.target.value)}
-                />
-              </div>
-              <Button type="submit">Начислить баллы</Button>
-            </form>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-destructive"><MinusCircle /> Списать баллы</CardTitle>
-            <CardDescription>Вручную спишите баллы с пользователя за нарушения.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleDeductPoints} className="space-y-4">
-              <div>
-                <Label htmlFor="user-select-deduct">Пользователь</Label>
-                <Select value={deductSelectedUserId} onValueChange={setDeductSelectedUserId}>
-                  <SelectTrigger id="user-select-deduct">
-                    <SelectValue placeholder="Выберите пользователя" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {users.map(user => (
-                      <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="points-input-deduct">Баллы</Label>
-                <Input
-                  id="points-input-deduct"
-                  type="number"
-                  value={deductPoints}
-                  onChange={(e) => setDeductPoints(e.target.value)}
-                  placeholder="Введите количество"
-                />
-              </div>
-              <div>
-                <Label htmlFor="reason-input-deduct">Причина</Label>
-                <Textarea
-                  id="reason-input-deduct"
-                  placeholder="например, Нарушение правил"
-                  value={deductReason}
-                  onChange={e => setDeductReason(e.target.value)}
-                />
-              </div>
-              <Button type="submit" variant="destructive">Списать баллы</Button>
-            </form>
-          </CardContent>
-        </Card>
-        <Card className="border-destructive/50">
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-destructive"><ShieldAlert /> Опасная зона</CardTitle>
-                <CardDescription>Действия в этой секции необратимы.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div>
-                    <Label htmlFor="user-select-clear-history">Пользователь</Label>
-                     <Select value={clearHistoryUserId} onValueChange={setClearHistoryUserId}>
-                        <SelectTrigger id="user-select-clear-history" className="border-destructive/50 text-destructive focus:ring-destructive">
-                            <SelectValue placeholder="Выберите пользователя для очистки" />
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><DollarSign /> Начислить баллы</CardTitle>
+                    <CardDescription>Вручную начислите баллы пользователю за определенные действия.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleAwardPoints} className="space-y-4">
+                    <div>
+                        <Label htmlFor="user-select-award">Пользователь</Label>
+                        <Select value={awardSelectedUserId} onValueChange={setAwardSelectedUserId}>
+                        <SelectTrigger id="user-select-award">
+                            <SelectValue placeholder="Выберите пользователя" />
                         </SelectTrigger>
                         <SelectContent>
                             {users.map(user => (
                             <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
                             ))}
                         </SelectContent>
-                    </Select>
-                </div>
-
-                <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                        <Button variant="destructive" disabled={!clearHistoryUserId}>
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Очистить историю баллов
-                        </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                        <AlertDialogTitle>Вы абсолютно уверены?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Это действие необратимо. Вся история начисления и списания баллов для пользователя 
-                            <span className="font-bold"> {users.find(u => u.id === clearHistoryUserId)?.name} </span>
-                            будет навсегда удалена.
-                        </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                        <AlertDialogCancel>Отмена</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleClearHistory} className="bg-destructive hover:bg-destructive/90">
-                           Да, я понимаю, очистить
-                        </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-            </CardContent>
-        </Card>
-         <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2"><DatabaseZap /> Восстановление фамильяров</CardTitle>
-                <CardDescription>Восстановить утерянных фамильяров для персонажа на основе истории баллов.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="space-y-4">
-                    <div>
-                        <Label htmlFor="recovery-user">Пользователь</Label>
-                        <Select value={recoveryUserId} onValueChange={uid => { setRecoveryUserId(uid); setRecoveryCharId(''); }}>
-                            <SelectTrigger id="recovery-user"><SelectValue placeholder="Выберите пользователя" /></SelectTrigger>
-                            <SelectContent>{users.map(user => (<SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>))}</SelectContent>
                         </Select>
                     </div>
                     <div>
-                        <Label htmlFor="recovery-char">Персонаж</Label>
-                        <Select value={recoveryCharId} onValueChange={setRecoveryCharId} disabled={!recoveryUserId}>
-                            <SelectTrigger id="recovery-char"><SelectValue placeholder="Выберите персонажа" /></SelectTrigger>
-                            <SelectContent>{charactersForRecovery.map(c => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}</SelectContent>
-                        </Select>
-                    </div>
-                    <div>
-                        <Label htmlFor="recovery-old-name">Старое имя персонажа (если менялось)</Label>
+                        <Label htmlFor="points-input">Баллы</Label>
                         <Input
-                            id="recovery-old-name"
-                            value={recoveryOldName}
-                            onChange={e => setRecoveryOldName(e.target.value)}
-                            placeholder="например, Милти Слоя"
-                            disabled={!recoveryCharId}
+                        id="points-input"
+                        type="number"
+                        value={points}
+                        onChange={(e) => setPoints(e.target.value)}
+                        placeholder="Введите количество"
                         />
                     </div>
-                    <Button onClick={handleRecovery} disabled={!recoveryCharId || isRecovering}>
-                        {isRecovering ? 'Восстановление...' : <><History className="mr-2 h-4 w-4" />Начать восстановление</>}
-                    </Button>
-                </div>
-            </CardContent>
-        </Card>
-      </div>
-      
-      <div className="space-y-6">
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2"><CalendarClock /> Управление игровой датой</CardTitle>
-                <CardDescription>Измените текущую дату в игровом мире.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <form onSubmit={handleUpdateGameDate} className="space-y-4">
                     <div>
-                        <Label htmlFor="game-date-input">Текущая дата</Label>
-                        <Input
-                        id="game-date-input"
-                        type="text"
-                        value={newGameDateString}
-                        onChange={(e) => setNewGameDateString(e.target.value)}
-                        placeholder="например, 21 марта 2709 год"
-                        disabled={isUpdatingDate}
+                        <Label htmlFor="reason-input">Причина</Label>
+                        <Textarea
+                        id="reason-input"
+                        placeholder="например, Участие в мини-ивенте"
+                        value={reason}
+                        onChange={e => setReason(e.target.value)}
                         />
                     </div>
-                    <Button type="submit" disabled={isUpdatingDate || newGameDateString === initialGameDate}>
-                        {isUpdatingDate ? 'Сохранение...' : 'Сохранить дату'}
-                    </Button>
-                </form>
-            </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Clock /> Автоматические действия</CardTitle>
-            <CardDescription>Симулируйте автоматические расчеты баллов.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-              <div>
-                  <h3 className="font-semibold mb-2 flex items-center gap-2"><Users /> Еженедельный бонус за активность</h3>
-                  <p className="text-sm text-muted-foreground mb-3">Начисляет 800 баллов всем 'активным' игрокам.</p>
-                  <Button onClick={handleWeeklyCalculations} variant="outline">Запустить еженедельный расчет</Button>
-              </div>
-              <Separator />
-              <div>
-                  <h3 className="font-semibold mb-2 flex items-center gap-2"><Trophy /> Награда за известность</h3>
-                  <p className="text-sm text-muted-foreground mb-3">Начисляет баллы всем игрокам в зависимости от известности их персонажей.</p>
-                  <Button onClick={handleFameAwards} variant="outline">Начислить награды</Button>
-              </div>
-              <Separator />
-              <div>
-                  <h3 className="font-semibold mb-2 flex items-center gap-2"><Users /> Еженедельный штраф за неактивность</h3>
-                  <p className="text-sm text-muted-foreground mb-3">Списывает 1000 баллов со всех 'неактивных' игроков.</p>
-                  <Button onClick={handleInactivityPenalty} variant="destructive">Применить штраф</Button>
-              </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><UserCog /> Изменить статус</CardTitle>
-            <CardDescription>Измените статус активности пользователя.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleChangeStatus} className="space-y-4">
-              <div>
-                <Label htmlFor="user-select-status">Пользователь</Label>
-                <Select value={statusSelectedUserId} onValueChange={setStatusSelectedUserId}>
-                  <SelectTrigger id="user-select-status">
-                    <SelectValue placeholder="Выберите пользователя" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {users.map(user => (
-                      <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="status-select">Новый статус</Label>
-                <Select value={selectedStatus} onValueChange={(value) => setSelectedStatus(value as UserStatus)}>
-                  <SelectTrigger id="status-select">
-                    <SelectValue placeholder="Выберите статус" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="активный">активный</SelectItem>
-                    <SelectItem value="неактивный">неактивный</SelectItem>
-                    <SelectItem value="отпуск">отпуск</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button type="submit">Изменить статус</Button>
-            </form>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><UserCog /> Управление ролями</CardTitle>
-            <CardDescription>Назначайте или снимайте права администратора.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleChangeRole} className="space-y-4">
-              <div>
-                <Label htmlFor="user-select-role">Пользователь</Label>
-                <Select value={roleSelectedUserId} onValueChange={setRoleSelectedUserId}>
-                  <SelectTrigger id="user-select-role">
-                    <SelectValue placeholder="Выберите пользователя" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {users.map(user => (
-                      <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="role-select">Новая роль</Label>
-                <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as UserRole)}>
-                  <SelectTrigger id="role-select">
-                    <SelectValue placeholder="Выберите роль" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Администратор</SelectItem>
-                    <SelectItem value="user">Пользователь</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button type="submit">Изменить роль</Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Gift /> Выдать ивентового фамильяра</CardTitle>
-            <CardDescription>Наградите игрока эксклюзивным фамильяром.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleAwardEventFamiliar} className="space-y-4">
-              <div>
-                <Label htmlFor="user-select-event">Пользователь</Label>
-                <Select value={eventAwardUserId} onValueChange={uid => { setEventAwardUserId(uid); setEventAwardCharacterId(''); }}>
-                  <SelectTrigger id="user-select-event">
-                    <SelectValue placeholder="Выберите пользователя" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {users.map(user => (
-                      <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="character-select-event">Персонаж</Label>
-                <Select value={eventAwardCharacterId} onValueChange={setEventAwardCharacterId} disabled={!eventAwardUserId}>
-                  <SelectTrigger id="character-select-event">
-                    <SelectValue placeholder="Выберите персонажа" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {charactersForSelectedUser.map(character => (
-                      <SelectItem key={character.id} value={character.id}>{character.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="familiar-select-event">Фамильяр</Label>
-                <Select value={eventAwardFamiliarId} onValueChange={setEventAwardFamiliarId}>
-                  <SelectTrigger id="familiar-select-event">
-                    <SelectValue placeholder="Выберите фамильяра" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {EVENT_FAMILIARS.map(familiar => (
-                      <SelectItem key={familiar.id} value={familiar.id}>{familiar.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button type="submit">Выдать фамильяра</Button>
-            </form>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Trophy /> Выдать ачивку</CardTitle>
-            <CardDescription>Наградите игрока уникальным достижением.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleGrantAchievement} className="space-y-4">
-              <div>
-                <Label htmlFor="user-select-achieve">Пользователь</Label>
-                <Select value={achieveUserId} onValueChange={setAchieveUserId}>
-                  <SelectTrigger id="user-select-achieve">
-                    <SelectValue placeholder="Выберите пользователя" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {users.map(user => (
-                      <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="achieve-select">Ачивка</Label>
-                <Select value={achieveId} onValueChange={setAchieveId}>
-                    <SelectTrigger id="achieve-select" className="w-full">
-                        <SelectValue placeholder="Выберите ачивку..." />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-[300px] w-[var(--radix-select-trigger-width)]">
-                        {ALL_ACHIEVEMENTS.map((ach) => (
-                            <SelectItem key={ach.id} value={ach.id} className="whitespace-normal">
-                                <div className="flex flex-col items-start py-1">
-                                  <p className="font-semibold">{ach.name}</p>
-                                  <p className="text-xs text-muted-foreground">{ach.description}</p>
-                                </div>
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-              </div>
-              <Button type="submit">Выдать ачивку</Button>
-            </form>
-          </CardContent>
-        </Card>
-                
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Wand2 /> Управление мудлетами</CardTitle>
-                <CardDescription>Наложите временные эффекты на персонажей.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <form onSubmit={handleAddMoodlet} className="space-y-4">
-                     <div>
-                        <Label htmlFor="moodlet-user">Пользователь</Label>
-                        <Select value={moodletUserId} onValueChange={uid => { setMoodletUserId(uid); setMoodletCharId(''); }}>
-                          <SelectTrigger id="moodlet-user">
+                    <Button type="submit">Начислить баллы</Button>
+                    </form>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-destructive"><MinusCircle /> Списать баллы</CardTitle>
+                    <CardDescription>Вручную спишите баллы с пользователя за нарушения.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleDeductPoints} className="space-y-4">
+                    <div>
+                        <Label htmlFor="user-select-deduct">Пользователь</Label>
+                        <Select value={deductSelectedUserId} onValueChange={setDeductSelectedUserId}>
+                        <SelectTrigger id="user-select-deduct">
                             <SelectValue placeholder="Выберите пользователя" />
-                          </SelectTrigger>
-                          <SelectContent>
+                        </SelectTrigger>
+                        <SelectContent>
                             {users.map(user => (
-                              <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                            <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
                             ))}
-                          </SelectContent>
+                        </SelectContent>
                         </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="moodlet-char">Персонаж</Label>
-                        <Select value={moodletCharId} onValueChange={setMoodletCharId} disabled={!moodletUserId}>
-                          <SelectTrigger id="moodlet-char">
-                            <SelectValue placeholder="Выберите персонажа" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {charactersForMoodletUser.map(character => (
-                              <SelectItem key={character.id} value={character.id}>{character.name}</SelectItem>
+                    </div>
+                    <div>
+                        <Label htmlFor="points-input-deduct">Баллы</Label>
+                        <Input
+                        id="points-input-deduct"
+                        type="number"
+                        value={deductPoints}
+                        onChange={(e) => setDeductPoints(e.target.value)}
+                        placeholder="Введите количество"
+                        />
+                    </div>
+                    <div>
+                        <Label htmlFor="reason-input-deduct">Причина</Label>
+                        <Textarea
+                        id="reason-input-deduct"
+                        placeholder="например, Нарушение правил"
+                        value={deductReason}
+                        onChange={e => setDeductReason(e.target.value)}
+                        />
+                    </div>
+                    <Button type="submit" variant="destructive">Списать баллы</Button>
+                    </form>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Clock /> Автоматические действия</CardTitle>
+                    <CardDescription>Симулируйте автоматические расчеты баллов.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div>
+                        <h3 className="font-semibold mb-2 flex items-center gap-2"><Users /> Еженедельный бонус за активность</h3>
+                        <p className="text-sm text-muted-foreground mb-3">Начисляет 800 баллов всем 'активным' игрокам.</p>
+                        <Button onClick={handleWeeklyCalculations} variant="outline">Запустить еженедельный расчет</Button>
+                    </div>
+                    <Separator />
+                    <div>
+                        <h3 className="font-semibold mb-2 flex items-center gap-2"><Trophy /> Награда за известность</h3>
+                        <p className="text-sm text-muted-foreground mb-3">Начисляет баллы всем игрокам в зависимости от известности их персонажей.</p>
+                        <Button onClick={handleFameAwards} variant="outline">Начислить награды</Button>
+                    </div>
+                    <Separator />
+                    <div>
+                        <h3 className="font-semibold mb-2 flex items-center gap-2"><Users /> Еженедельный штраф за неактивность</h3>
+                        <p className="text-sm text-muted-foreground mb-3">Списывает 1000 баллов со всех 'неактивных' игроков.</p>
+                        <Button onClick={handleInactivityPenalty} variant="destructive">Применить штраф</Button>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+      </TabsContent>
+
+      <TabsContent value="general" className="mt-4">
+         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><CalendarClock /> Управление игровой датой</CardTitle>
+                    <CardDescription>Измените текущую дату в игровом мире.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleUpdateGameDate} className="space-y-4">
+                        <div>
+                            <Label htmlFor="game-date-input">Текущая дата</Label>
+                            <Input
+                            id="game-date-input"
+                            type="text"
+                            value={newGameDateString}
+                            onChange={(e) => setNewGameDateString(e.target.value)}
+                            placeholder="например, 21 марта 2709 год"
+                            disabled={isUpdatingDate}
+                            />
+                        </div>
+                        <Button type="submit" disabled={isUpdatingDate || newGameDateString === initialGameDate}>
+                            {isUpdatingDate ? 'Сохранение...' : 'Сохранить дату'}
+                        </Button>
+                    </form>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Trophy /> Выдать ачивку</CardTitle>
+                    <CardDescription>Наградите игрока уникальным достижением.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleGrantAchievement} className="space-y-4">
+                    <div>
+                        <Label htmlFor="user-select-achieve">Пользователь</Label>
+                        <Select value={achieveUserId} onValueChange={setAchieveUserId}>
+                        <SelectTrigger id="user-select-achieve">
+                            <SelectValue placeholder="Выберите пользователя" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {users.map(user => (
+                            <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
                             ))}
-                          </SelectContent>
+                        </SelectContent>
                         </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="moodlet-type">Мудлет</Label>
-                         <Select value={moodletId} onValueChange={setMoodletId}>
-                          <SelectTrigger id="moodlet-type">
-                            <SelectValue placeholder="Выберите мудлет" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Object.entries(MOODLETS_DATA).map(([id, data]) => (
-                              <SelectItem key={id} value={id}>{data.name}</SelectItem>
-                            ))}
-                          </SelectContent>
+                    </div>
+                    <div>
+                        <Label htmlFor="achieve-select">Ачивка</Label>
+                        <Select value={achieveId} onValueChange={setAchieveId}>
+                            <SelectTrigger id="achieve-select" className="w-full">
+                                <SelectValue placeholder="Выберите ачивку..." />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-[300px] w-[var(--radix-select-trigger-width)]">
+                                {ALL_ACHIEVEMENTS.map((ach) => (
+                                    <SelectItem key={ach.id} value={ach.id} className="whitespace-normal">
+                                        <div className="flex flex-col items-start py-1">
+                                        <p className="font-semibold">{ach.name}</p>
+                                        <p className="text-xs text-muted-foreground">{ach.description}</p>
+                                        </div>
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
                         </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="moodlet-duration">Длительность (в днях)</Label>
-                        <Input id="moodlet-duration" type="number" value={moodletDuration} onChange={(e) => setMoodletDuration(Number(e.target.value))} />
-                      </div>
-                      <div>
-                        <Label htmlFor="moodlet-source">Источник эффекта (необязательно)</Label>
-                        <Input id="moodlet-source" list="moodlet-sources" value={moodletSource} onChange={e => setMoodletSource(e.target.value)} placeholder="Имя персонажа или божество..." />
-                        <datalist id="moodlet-sources">
-                            {moodletSourceOptions.map(name => <option key={name} value={name} />)}
-                        </datalist>
-                      </div>
-                      <Button type="submit"><PlusCircle className="mr-2 h-4 w-4" />Добавить мудлет</Button>
-                </form>
-                {selectedCharacterForMoodlet && (selectedCharacterForMoodlet.moodlets || []).filter(m => new Date(m.expiresAt) > new Date()).length > 0 && (
-                    <div className="mt-4 pt-4 border-t">
-                        <h4 className="font-semibold text-sm mb-2">Активные мудлеты:</h4>
-                        <div className="space-y-2">
-                           {(selectedCharacterForMoodlet.moodlets || []).filter(m => new Date(m.expiresAt) > new Date()).map(moodlet => (
-                                <div key={moodlet.id} className="flex items-center justify-between text-sm p-2 bg-muted rounded-md">
-                                    <div>
-                                      <span>{moodlet.name}</span>
-                                      {moodlet.source && <span className="text-xs text-muted-foreground italic ml-2">(от {moodlet.source})</span>}
+                    </div>
+                    <Button type="submit">Выдать ачивку</Button>
+                    </form>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Wand2 /> Управление мудлетами</CardTitle>
+                    <CardDescription>Наложите временные эффекты на персонажей.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleAddMoodlet} className="space-y-4">
+                        <div>
+                            <Label htmlFor="moodlet-user">Пользователь</Label>
+                            <Select value={moodletUserId} onValueChange={uid => { setMoodletUserId(uid); setMoodletCharId(''); }}>
+                            <SelectTrigger id="moodlet-user">
+                                <SelectValue placeholder="Выберите пользователя" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {users.map(user => (
+                                <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <Label htmlFor="moodlet-char">Персонаж</Label>
+                            <Select value={moodletCharId} onValueChange={setMoodletCharId} disabled={!moodletUserId}>
+                            <SelectTrigger id="moodlet-char">
+                                <SelectValue placeholder="Выберите персонажа" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {charactersForMoodletUser.map(character => (
+                                <SelectItem key={character.id} value={character.id}>{character.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <Label htmlFor="moodlet-type">Мудлет</Label>
+                            <Select value={moodletId} onValueChange={setMoodletId}>
+                            <SelectTrigger id="moodlet-type">
+                                <SelectValue placeholder="Выберите мудлет" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {Object.entries(MOODLETS_DATA).map(([id, data]) => (
+                                <SelectItem key={id} value={id}>{data.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <Label htmlFor="moodlet-duration">Длительность (в днях)</Label>
+                            <Input id="moodlet-duration" type="number" value={moodletDuration} onChange={(e) => setMoodletDuration(Number(e.target.value))} />
+                        </div>
+                        <div>
+                            <Label htmlFor="moodlet-source">Источник эффекта (необязательно)</Label>
+                            <Input id="moodlet-source" list="moodlet-sources" value={moodletSource} onChange={e => setMoodletSource(e.target.value)} placeholder="Имя персонажа или божество..." />
+                            <datalist id="moodlet-sources">
+                                {moodletSourceOptions.map(name => <option key={name} value={name} />)}
+                            </datalist>
+                        </div>
+                        <Button type="submit"><PlusCircle className="mr-2 h-4 w-4" />Добавить мудлет</Button>
+                    </form>
+                    {selectedCharacterForMoodlet && (selectedCharacterForMoodlet.moodlets || []).filter(m => new Date(m.expiresAt) > new Date()).length > 0 && (
+                        <div className="mt-4 pt-4 border-t">
+                            <h4 className="font-semibold text-sm mb-2">Активные мудлеты:</h4>
+                            <div className="space-y-2">
+                            {(selectedCharacterForMoodlet.moodlets || []).filter(m => new Date(m.expiresAt) > new Date()).map(moodlet => (
+                                    <div key={moodlet.id} className="flex items-center justify-between text-sm p-2 bg-muted rounded-md">
+                                        <div>
+                                        <span>{moodlet.name}</span>
+                                        {moodlet.source && <span className="text-xs text-muted-foreground italic ml-2">(от {moodlet.source})</span>}
+                                        </div>
+                                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleRemoveMoodlet(moodletUserId, moodletCharId, moodlet.id)}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
                                     </div>
-                                    <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleRemoveMoodlet(moodletUserId, moodletCharId, moodlet.id)}>
+                            ))}
+                            </div>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><UserCog /> Управление ролями</CardTitle>
+                    <CardDescription>Назначайте или снимайте права администратора.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleChangeRole} className="space-y-4">
+                    <div>
+                        <Label htmlFor="user-select-role">Пользователь</Label>
+                        <Select value={roleSelectedUserId} onValueChange={setRoleSelectedUserId}>
+                        <SelectTrigger id="user-select-role">
+                            <SelectValue placeholder="Выберите пользователя" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {users.map(user => (
+                            <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                        </Select>
+                    </div>
+                    <div>
+                        <Label htmlFor="role-select">Новая роль</Label>
+                        <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as UserRole)}>
+                        <SelectTrigger id="role-select">
+                            <SelectValue placeholder="Выберите роль" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="admin">Администратор</SelectItem>
+                            <SelectItem value="user">Пользователь</SelectItem>
+                        </SelectContent>
+                        </Select>
+                    </div>
+                    <Button type="submit">Изменить роль</Button>
+                    </form>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><UserCog /> Изменить статус</CardTitle>
+                    <CardDescription>Измените статус активности пользователя.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleChangeStatus} className="space-y-4">
+                    <div>
+                        <Label htmlFor="user-select-status">Пользователь</Label>
+                        <Select value={statusSelectedUserId} onValueChange={setStatusSelectedUserId}>
+                        <SelectTrigger id="user-select-status">
+                            <SelectValue placeholder="Выберите пользователя" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {users.map(user => (
+                            <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                        </Select>
+                    </div>
+                    <div>
+                        <Label htmlFor="status-select">Новый статус</Label>
+                        <Select value={selectedStatus} onValueChange={(value) => setSelectedStatus(value as UserStatus)}>
+                        <SelectTrigger id="status-select">
+                            <SelectValue placeholder="Выберите статус" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="активный">активный</SelectItem>
+                            <SelectItem value="неактивный">неактивный</SelectItem>
+                            <SelectItem value="отпуск">отпуск</SelectItem>
+                        </SelectContent>
+                        </Select>
+                    </div>
+                    <Button type="submit">Изменить статус</Button>
+                    </form>
+                </CardContent>
+            </Card>
+            <Card className="border-destructive/50">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-destructive"><ShieldAlert /> Опасная зона</CardTitle>
+                    <CardDescription>Действия в этой секции необратимы.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div>
+                        <Label htmlFor="user-select-clear-history">Очистка истории баллов</Label>
+                        <div className="flex gap-2 items-center">
+                            <Select value={clearHistoryUserId} onValueChange={setClearHistoryUserId}>
+                                <SelectTrigger id="user-select-clear-history" className="border-destructive/50 text-destructive focus:ring-destructive">
+                                    <SelectValue placeholder="Выберите пользователя" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {users.map(user => (
+                                    <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="destructive" size="icon" disabled={!clearHistoryUserId}>
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
-                                </div>
-                           ))}
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                    <AlertDialogTitle>Вы абсолютно уверены?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Это действие необратимо. Вся история начисления и списания баллов для пользователя 
+                                        <span className="font-bold"> {users.find(u => u.id === clearHistoryUserId)?.name} </span>
+                                        будет навсегда удалена.
+                                    </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                    <AlertDialogCancel>Отмена</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleClearHistory} className="bg-destructive hover:bg-destructive/90">
+                                    Да, я понимаю, очистить
+                                    </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
                         </div>
                     </div>
-                )}
-            </CardContent>
-        </Card>
-
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2"><VenetianMask /> Управление Фамильярами</CardTitle>
-                <CardDescription>Удалить карту фамильяра у персонажа.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="space-y-4">
-                     <div>
-                        <Label htmlFor="remove-fam-user">Пользователь</Label>
-                        <Select value={removeFamiliarUserId} onValueChange={uid => { setRemoveFamiliarUserId(uid); setRemoveFamiliarCharId(''); setRemoveFamiliarCardId(''); }}>
-                          <SelectTrigger id="remove-fam-user">
-                            <SelectValue placeholder="Выберите пользователя" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {users.map(user => (
-                              <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="remove-fam-char">Персонаж</Label>
-                        <Select value={removeFamiliarCharId} onValueChange={cid => { setRemoveFamiliarCharId(cid); setRemoveFamiliarCardId(''); }} disabled={!removeFamiliarUserId}>
-                          <SelectTrigger id="remove-fam-char">
-                            <SelectValue placeholder="Выберите персонажа" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {charactersForFamiliarRemoval.map(character => (
-                              <SelectItem key={character.id} value={character.id}>{character.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="remove-fam-card">Карта для удаления</Label>
-                         <Select value={removeFamiliarCardId} onValueChange={setRemoveFamiliarCardId} disabled={!removeFamiliarCharId}>
-                          <SelectTrigger id="remove-fam-card">
-                            <SelectValue placeholder="Выберите карту" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {familiarsForSelectedCharacter.map((card) => (
-                              <SelectItem key={card.ownedId} value={card.id}>{card.name} ({card.rank})</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                           <Button 
-                              variant="destructive" 
-                              disabled={!removeFamiliarCardId}
-                            >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Удалить карту
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                            <AlertDialogTitle>Вы уверены?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                Это действие удалит карту 
-                                <span className="font-bold"> {FAMILIARS_BY_ID[removeFamiliarCardId]?.name} </span> 
-                                у персонажа. Если карта мифическая, она вернется в рулетку. Это действие необратимо.
-                            </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                            <AlertDialogCancel>Отмена</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleRemoveFamiliar} className="bg-destructive hover:bg-destructive/90">
-                                Да, удалить
-                            </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                </div>
-            </CardContent>
-        </Card>
-      </div>
-    </div>
+                </CardContent>
+            </Card>
+         </div>
       </TabsContent>
-      <TabsContent value="trade" className="mt-4">
+
+      <TabsContent value="familiars" className="mt-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Gift /> Выдать ивентового фамильяра</CardTitle>
+                    <CardDescription>Наградите игрока эксклюзивным фамильяром.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleAwardEventFamiliar} className="space-y-4">
+                    <div>
+                        <Label htmlFor="user-select-event">Пользователь</Label>
+                        <Select value={eventAwardUserId} onValueChange={uid => { setEventAwardUserId(uid); setEventAwardCharacterId(''); }}>
+                        <SelectTrigger id="user-select-event">
+                            <SelectValue placeholder="Выберите пользователя" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {users.map(user => (
+                            <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                        </Select>
+                    </div>
+                    <div>
+                        <Label htmlFor="character-select-event">Персонаж</Label>
+                        <Select value={eventAwardCharacterId} onValueChange={setEventAwardCharacterId} disabled={!eventAwardUserId}>
+                        <SelectTrigger id="character-select-event">
+                            <SelectValue placeholder="Выберите персонажа" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {charactersForSelectedUser.map(character => (
+                            <SelectItem key={character.id} value={character.id}>{character.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                        </Select>
+                    </div>
+                    <div>
+                        <Label htmlFor="familiar-select-event">Фамильяр</Label>
+                        <Select value={eventAwardFamiliarId} onValueChange={setEventAwardFamiliarId}>
+                        <SelectTrigger id="familiar-select-event">
+                            <SelectValue placeholder="Выберите фамильяра" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {EVENT_FAMILIARS.map(familiar => (
+                            <SelectItem key={familiar.id} value={familiar.id}>{familiar.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                        </Select>
+                    </div>
+                    <Button type="submit">Выдать фамильяра</Button>
+                    </form>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><VenetianMask /> Управление Фамильярами</CardTitle>
+                    <CardDescription>Удалить карту фамильяра у персонажа.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-4">
+                        <div>
+                            <Label htmlFor="remove-fam-user">Пользователь</Label>
+                            <Select value={removeFamiliarUserId} onValueChange={uid => { setRemoveFamiliarUserId(uid); setRemoveFamiliarCharId(''); setRemoveFamiliarCardId(''); }}>
+                            <SelectTrigger id="remove-fam-user">
+                                <SelectValue placeholder="Выберите пользователя" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {users.map(user => (
+                                <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <Label htmlFor="remove-fam-char">Персонаж</Label>
+                            <Select value={removeFamiliarCharId} onValueChange={cid => { setRemoveFamiliarCharId(cid); setRemoveFamiliarCardId(''); }} disabled={!removeFamiliarUserId}>
+                            <SelectTrigger id="remove-fam-char">
+                                <SelectValue placeholder="Выберите персонажа" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {charactersForFamiliarRemoval.map(character => (
+                                <SelectItem key={character.id} value={character.id}>{character.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <Label htmlFor="remove-fam-card">Карта для удаления</Label>
+                            <Select value={removeFamiliarCardId} onValueChange={setRemoveFamiliarCardId} disabled={!removeFamiliarCharId}>
+                            <SelectTrigger id="remove-fam-card">
+                                <SelectValue placeholder="Выберите карту" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {familiarsForSelectedCharacter.map((card) => (
+                                <SelectItem key={card.ownedId} value={card.id}>{card.name} ({card.rank})</SelectItem>
+                                ))}
+                            </SelectContent>
+                            </Select>
+                        </div>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                            <Button 
+                                variant="destructive" 
+                                disabled={!removeFamiliarCardId}
+                                >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Удалить карту
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                <AlertDialogTitle>Вы уверены?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Это действие удалит карту 
+                                    <span className="font-bold"> {FAMILIARS_BY_ID[removeFamiliarCardId]?.name} </span> 
+                                    у персонажа. Если карта мифическая, она вернется в рулетку. Это действие необратимо.
+                                </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                <AlertDialogCancel>Отмена</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleRemoveFamiliar} className="bg-destructive hover:bg-destructive/90">
+                                    Да, удалить
+                                </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </div>
+                </CardContent>
+            </Card>
+             <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><DatabaseZap /> Восстановление фамильяров</CardTitle>
+                    <CardDescription>Восстановить утерянных фамильяров для персонажа на основе истории баллов.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-4">
+                        <div>
+                            <Label htmlFor="recovery-user">Пользователь</Label>
+                            <Select value={recoveryUserId} onValueChange={uid => { setRecoveryUserId(uid); setRecoveryCharId(''); }}>
+                                <SelectTrigger id="recovery-user"><SelectValue placeholder="Выберите пользователя" /></SelectTrigger>
+                                <SelectContent>{users.map(user => (<SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>))}</SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <Label htmlFor="recovery-char">Персонаж</Label>
+                            <Select value={recoveryCharId} onValueChange={setRecoveryCharId} disabled={!recoveryUserId}>
+                                <SelectTrigger id="recovery-char"><SelectValue placeholder="Выберите персонажа" /></SelectTrigger>
+                                <SelectContent>{charactersForRecovery.map(c => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}</SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <Label htmlFor="recovery-old-name">Старое имя персонажа (если менялось)</Label>
+                            <Input
+                                id="recovery-old-name"
+                                value={recoveryOldName}
+                                onChange={e => setRecoveryOldName(e.target.value)}
+                                placeholder="например, Милти Слоя"
+                                disabled={!recoveryCharId}
+                            />
+                        </div>
+                        <Button onClick={handleRecovery} disabled={!recoveryCharId || isRecovering}>
+                            {isRecovering ? 'Восстановление...' : <><History className="mr-2 h-4 w-4" />Начать восстановление</>}
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+      </TabsContent>
+
+      <TabsContent value="economy" className="mt-4">
         <Card>
             <CardHeader>
-                <CardTitle>Торговля</CardTitle>
+                <CardTitle>Экономика</CardTitle>
                 <CardDescription>
-                    Настройки для будущей системы магазинов. Этот раздел в разработке.
+                    Настройки для будущей системы магазинов и экономики. Этот раздел в разработке.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -1048,3 +1052,5 @@ export default function AdminTab() {
     </Tabs>
   );
 }
+
+    
