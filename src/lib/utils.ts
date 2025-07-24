@@ -2,6 +2,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { intervalToDuration, isPast, differenceInYears, parse } from 'date-fns';
+import { BankAccount } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -70,4 +71,24 @@ export function calculateRelationshipLevel(points: number): { level: number; pro
     const pointsInCurrentLevel = points % 100;
     const progressToNextLevel = pointsInCurrentLevel; // as it's out of 100
     return { level, progressToNextLevel, maxPointsForCurrentLevel };
+}
+
+export function formatCurrency(bankAccount: BankAccount): string {
+  if (!bankAccount) {
+    return "0 тыквин";
+  }
+
+  const { platinum, gold, silver, copper } = bankAccount;
+  const parts: string[] = [];
+
+  if (platinum > 0) parts.push(`${platinum.toLocaleString()} пл.`);
+  if (gold > 0) parts.push(`${gold.toLocaleString()} з.`);
+  if (silver > 0) parts.push(`${silver.toLocaleString()} с.`);
+  if (copper > 0) parts.push(`${copper.toLocaleString()} м.`);
+  
+  if (parts.length === 0) {
+    return "0 тыквин";
+  }
+
+  return parts.join(' ');
 }

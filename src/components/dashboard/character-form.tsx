@@ -2,8 +2,8 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import type { Character, User, Relationship, RelationshipType } from '@/lib/types';
-import { SKILL_LEVELS, FAME_LEVELS, TRAINING_OPTIONS } from '@/lib/data';
+import type { Character, User, Relationship, RelationshipType, WealthLevel } from '@/lib/types';
+import { SKILL_LEVELS, FAME_LEVELS, TRAINING_OPTIONS, WEALTH_LEVELS } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -13,7 +13,6 @@ import { ScrollArea } from '../ui/scroll-area';
 import { MultiSelect, OptionType } from '../ui/multi-select';
 import { useUser } from '@/hooks/use-user';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Slider } from '../ui/slider';
 import { Trash2 } from 'lucide-react';
 import { Separator } from '../ui/separator';
 
@@ -24,8 +23,7 @@ interface CharacterFormProps {
     closeDialog: () => void;
 }
 
-const initialFormData: Character = {
-    id: '',
+const initialFormData: Omit<Character, 'id'> = {
     name: '',
     activity: '',
     race: '',
@@ -45,9 +43,6 @@ const initialFormData: Character = {
     weaknesses: '',
     lifeGoal: '',
     pets: '',
-    pumpkins: 0,
-    bankAccount: 0,
-    // familiarCards is deprecated at top level, use inventory.familiarCards
     familiarCards: [],
     moodlets: [],
     inventory: {
@@ -60,7 +55,9 @@ const initialFormData: Character = {
         недвижимость: [],
         транспорт: [],
         familiarCards: [],
-    }
+    },
+    bankAccount: { platinum: 0, gold: 0, silver: 0, copper: 0 },
+    wealthLevel: 'Бедный',
 };
 
 const fameLevelOptions: OptionType[] = FAME_LEVELS.map(level => ({ value: level, label: level }));
@@ -77,33 +74,28 @@ const relationshipTypeOptions: { value: RelationshipType, label: string }[] = [
 
 
 const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: CharacterFormProps) => {
-    const [formData, setFormData] = useState<Character>(initialFormData);
+    const [formData, setFormData] = useState<Character>(character || { ...initialFormData, id: `c-${Date.now()}`});
     const { currentUser } = useUser();
+    const isAdmin = currentUser?.role === 'admin';
 
      useEffect(() => {
         if (character) {
-            // Create a deeply merged character object to ensure no data is lost
             const initializedCharacter = {
                 ...initialFormData,
                 ...character,
-                // Ensure nested inventory object is merged, not overwritten
                 inventory: {
                     ...initialFormData.inventory,
                     ...(character.inventory || {}),
-                    // Prioritize inventory.familiarCards, fallback to root-level for backward compatibility
                     familiarCards: character.inventory?.familiarCards || character.familiarCards || [],
                 },
-                // The root-level familiarCards should also be consistent
                 familiarCards: character.inventory?.familiarCards || character.familiarCards || [],
-                // Ensure fields that are now arrays are correctly initialized
                 currentFameLevel: Array.isArray(character.currentFameLevel) ? character.currentFameLevel : (character.currentFameLevel ? [character.currentFameLevel] : []),
                 skillLevel: Array.isArray(character.skillLevel) ? character.skillLevel : (character.skillLevel ? [character.skillLevel] : []),
                 training: Array.isArray(character.training) ? character.training : [],
                 marriedTo: Array.isArray(character.marriedTo) ? character.marriedTo : [],
-                // Ensure relationships have a temporary client-side ID for list rendering
                 relationships: (Array.isArray(character.relationships) ? character.relationships : []).map(r => ({...r, id: r.id || `rel-${Math.random()}`})),
-                pumpkins: character.pumpkins || 0,
-                bankAccount: character.bankAccount || 0,
+                bankAccount: character.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 },
+                wealthLevel: character.wealthLevel || 'Бедный',
             };
             setFormData(initializedCharacter);
         } else {
@@ -116,7 +108,6 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
         if (!allUsers) return [];
         return allUsers.flatMap(user =>
             user.characters
-                // Exclude the current character from their own relationship/spouse list
                 .filter(c => c.id !== formData.id)
                 .map(c => ({
                     value: c.id,
@@ -127,8 +118,8 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
 
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { id, value, type } = e.target;
-        setFormData(prev => ({ ...prev, [id]: type === 'number' ? parseFloat(value) || 0 : value }));
+        const { id, value } = e.target;
+        setFormData(prev => ({ ...prev, [id]: value }));
     };
 
     const handleMultiSelectChange = (id: keyof Omit<Character, 'relationships'>, values: string[]) => {
@@ -143,7 +134,6 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
         const newRelationships = [...formData.relationships];
         const updatedRelationship = { ...newRelationships[index], [field]: value };
         
-        // If target character changes, update the name
         if (field === 'targetCharacterId') {
             const targetChar = characterOptions.find(opt => opt.value === value);
             updatedRelationship.targetCharacterName = targetChar ? targetChar.label.split(' (')[0] : 'Неизвестно';
@@ -172,17 +162,13 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        // Ensure data consistency before submitting
         const finalData = {
             ...formData,
-            // Make sure inventory.familiarCards is the source of truth
             inventory: {
                 ...formData.inventory,
                 familiarCards: formData.inventory.familiarCards || [],
             },
-            // Also update the root familiarCards for any legacy logic that might still use it
             familiarCards: formData.inventory.familiarCards || [],
-            // Remove temporary client-side ID from relationships before submitting
             relationships: formData.relationships.map(({ id, ...rest }) => rest) as Omit<Relationship, 'id'>[],
         };
         onSubmit(finalData as Character);
@@ -208,16 +194,6 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
                      <div>
                         <Label htmlFor="birthDate">Дата рождения</Label>
                         <Input id="birthDate" value={formData.birthDate ?? ''} onChange={handleChange} placeholder="например, 15.06.2680" required />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <Label htmlFor="pumpkins">Тыквины</Label>
-                            <Input id="pumpkins" type="number" value={formData.pumpkins ?? 0} onChange={handleChange} />
-                        </div>
-                        <div>
-                            <Label htmlFor="bankAccount">Счет в банке</Label>
-                            <Input id="bankAccount" type="number" value={formData.bankAccount ?? 0} onChange={handleChange} />
-                        </div>
                     </div>
                     <div>
                         <Label htmlFor="currentFameLevel">Текущая известность</Label>
@@ -377,7 +353,3 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
 };
 
 export default CharacterForm;
-
-    
-
-  

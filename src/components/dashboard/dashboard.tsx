@@ -9,9 +9,10 @@ import RewardsTab from "./rewards-tab";
 import AdminTab from "./admin-tab";
 import RequestsTab from "./requests-tab";
 import RouletteTab from "./gacha-tab";
-import { User, Trophy, Award, Shield, GitPullRequest, Dices } from "lucide-react";
+import { User, Trophy, Award, Shield, GitPullRequest, Dices, LandPlot } from "lucide-react";
 import AuthPage from "../auth/auth-page";
 import { useAuth } from "../providers/user-provider";
+import CurrencyExchange from "./currency-exchange";
 
 export function Dashboard() {
   const { currentUser } = useUser();
@@ -38,11 +39,12 @@ export function Dashboard() {
     { value: 'leaderboard', label: 'Лидеры', icon: Trophy },
     { value: 'roulette', label: 'Рулетка', icon: Dices },
     { value: 'rewards', label: 'Награды', icon: Award },
+    { value: 'bank', label: 'Банк', icon: LandPlot },
     ...(isAdmin ? [{ value: 'requests', label: 'Запросы', icon: GitPullRequest }] : []),
     ...(isAdmin ? [{ value: 'admin', label: 'Админ', icon: Shield }] : []),
   ];
   
-  const gridColsClass = isAdmin ? 'grid-cols-6' : 'grid-cols-4';
+  const gridColsClass = isAdmin ? 'grid-cols-7' : 'grid-cols-5';
 
   return (
       <Tabs defaultValue="profile" className="w-full">
@@ -66,6 +68,9 @@ export function Dashboard() {
         </TabsContent>
         <TabsContent value="rewards" className="mt-4">
           <RewardsTab />
+        </TabsContent>
+        <TabsContent value="bank" className="mt-4">
+          <CurrencyExchange />
         </TabsContent>
         {isAdmin && (
           <TabsContent value="requests" className="mt-4">

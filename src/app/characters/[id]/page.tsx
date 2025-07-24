@@ -4,19 +4,19 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, notFound } from 'next/navigation';
 import { useUser } from '@/hooks/use-user';
-import { User, Character, FamiliarCard, FamiliarRank, Moodlet, Relationship, RelationshipType } from '@/lib/types';
+import { User, Character, FamiliarCard, FamiliarRank, Moodlet, Relationship, RelationshipType, WealthLevel, BankAccount } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FAMILIARS_BY_ID, MOODLETS_DATA, TRAINING_OPTIONS } from '@/lib/data';
 import FamiliarCardDisplay from '@/components/dashboard/familiar-card';
-import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users, HeartHandshake } from 'lucide-react';
+import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users, HeartHandshake, Wallet, Coins } from 'lucide-react';
 import Link from 'next/link';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import CharacterForm from '@/components/dashboard/character-form';
 import { useToast } from '@/hooks/use-toast';
-import { cn, formatTimeLeft, calculateAge, calculateRelationshipLevel } from '@/lib/utils';
+import { cn, formatTimeLeft, calculateAge, calculateRelationshipLevel, formatCurrency } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import * as LucideIcons from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -130,13 +130,8 @@ export default function CharacterPage() {
                     setCharacter(foundChar);
                     setOwner(user);
                     found = true;
-                    // If the currently viewed character belongs to the current user,
-                    // we might need to update the currentUser's context as well
-                    // to ensure relationship data is in sync.
                      if (currentUser && user.id === currentUser.id) {
                         const charInContext = currentUser.characters.find(c => c.id === id);
-                        // Deep comparison is tricky, so we do a simpler check.
-                        // A more robust way might be needed if there are frequent sync issues.
                         if (JSON.stringify(charInContext) !== JSON.stringify(foundChar)) {
                            setCurrentUser({ ...currentUser, characters: currentUser.characters.map(c => c.id === id ? foundChar : c) });
                         }
@@ -334,6 +329,21 @@ export default function CharacterPage() {
                              {character.workLocation && <div className="flex justify-between"><span>Место работы:</span> <span className="text-right">{character.workLocation}</span></div>}
                              {character.abilities && <div className="flex justify-between"><span>Способности:</span> <span className="text-right">{character.abilities}</span></div>}
                              {character.weaknesses && <div className="flex justify-between"><span>Слабости:</span> <span className="text-right">{character.weaknesses}</span></div>}
+                        </CardContent>
+                    </Card>
+                     <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><Wallet /> Финансы</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-2 text-sm">
+                             <div className="flex justify-between items-center">
+                                <span>Уровень достатка:</span>
+                                <Badge variant="outline">{character.wealthLevel || 'Бедный'}</Badge>
+                            </div>
+                             <div className="flex justify-between items-start">
+                                <span>Счет в банке:</span>
+                                <span className="text-right font-medium text-primary whitespace-pre-line">{formatCurrency(character.bankAccount).replace(/ /g, '\n')}</span>
+                            </div>
                         </CardContent>
                     </Card>
                     

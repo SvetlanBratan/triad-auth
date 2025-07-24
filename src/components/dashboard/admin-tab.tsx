@@ -11,9 +11,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
-import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap } from 'lucide-react';
-import type { UserStatus, UserRole, User, FamiliarCard } from '@/lib/types';
-import { FAME_LEVELS_POINTS, EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, FAMILIARS_BY_ID } from '@/lib/data';
+import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark } from 'lucide-react';
+import type { UserStatus, UserRole, User, FamiliarCard, BankAccount, WealthLevel } from '@/lib/types';
+import { FAME_LEVELS_POINTS, EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, FAMILIARS_BY_ID, WEALTH_LEVELS } from '@/lib/data';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,7 +42,10 @@ export default function AdminTab() {
     removeFamiliarFromCharacter,
     updateGameDate,
     gameDateString: initialGameDate,
-    recoverFamiliarsFromHistory
+    recoverFamiliarsFromHistory,
+    addBankPointsToCharacter,
+    processMonthlySalary,
+    updateCharacterWealthLevel
   } = useUser();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -53,6 +56,7 @@ export default function AdminTab() {
   const [recoveryOldName, setRecoveryOldName] = useState('');
   const [isRecovering, setIsRecovering] = useState(false);
 
+  // Points state
   const [awardSelectedUserId, setAwardSelectedUserId] = useState<string>('');
   const [statusSelectedUserId, setStatusSelectedUserId] = useState<string>('');
   const [roleSelectedUserId, setRoleSelectedUserId] = useState<string>('');
@@ -60,10 +64,12 @@ export default function AdminTab() {
   const [selectedStatus, setSelectedStatus] = useState<UserStatus | ''>('');
   const [selectedRole, setSelectedRole] = useState<UserRole | ''>('');
   
+  // Familiar state
   const [eventAwardUserId, setEventAwardUserId] = useState<string>('');
   const [eventAwardCharacterId, setEventAwardCharacterId] = useState<string>('');
   const [eventAwardFamiliarId, setEventAwardFamiliarId] = useState<string>('');
 
+  // Achievement state
   const [achieveUserId, setAchieveUserId] = useState<string>('');
   const [achieveId, setAchieveId] = useState<string>('');
 
@@ -89,6 +95,14 @@ export default function AdminTab() {
   // Game date state
   const [newGameDateString, setNewGameDateString] = useState(initialGameDate || '');
   const [isUpdatingDate, setIsUpdatingDate] = useState(false);
+
+  // Economy state
+  const [ecoUserId, setEcoUserId] = useState('');
+  const [ecoCharId, setEcoCharId] = useState('');
+  const [isDeductingEco, setIsDeductingEco] = useState(false);
+  const [ecoAmount, setEcoAmount] = useState<Partial<BankAccount>>({ platinum: 0, gold: 0, silver: 0, copper: 0});
+  const [ecoReason, setEcoReason] = useState('');
+  const [ecoWealthLevel, setEcoWealthLevel] = useState<WealthLevel | ''>('');
 
 
   const { toast } = useToast();
@@ -150,7 +164,7 @@ export default function AdminTab() {
     } finally {
         setIsRecovering(false);
     }
-};
+  };
 
   const handleUpdateGameDate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -427,6 +441,58 @@ export default function AdminTab() {
     }
   };
 
+  // --- Economy Handlers ---
+
+  const handleEcoAmountChange = (currency: keyof BankAccount, value: string) => {
+      const numValue = parseInt(value, 10) || 0;
+      setEcoAmount(prev => ({ ...prev, [currency]: numValue }));
+  };
+
+  const handleEconomySubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!ecoUserId || !ecoCharId || !ecoReason) {
+          toast({ variant: 'destructive', title: 'Ошибка', description: 'Выберите пользователя, персонажа и укажите причину.' });
+          return;
+      }
+      
+      const finalAmount = { ...ecoAmount };
+      if (isDeductingEco) {
+          finalAmount.platinum = -Math.abs(finalAmount.platinum || 0);
+          finalAmount.gold = -Math.abs(finalAmount.gold || 0);
+          finalAmount.silver = -Math.abs(finalAmount.silver || 0);
+          finalAmount.copper = -Math.abs(finalAmount.copper || 0);
+      }
+      
+      await addBankPointsToCharacter(ecoUserId, ecoCharId, finalAmount, ecoReason);
+      await refetchUsers();
+      toast({ title: 'Успешно!', description: `Счет персонажа обновлен.` });
+
+      // Reset form
+      setEcoAmount({ platinum: 0, gold: 0, silver: 0, copper: 0});
+      setEcoReason('');
+  };
+
+  const handleSalaryPayout = async () => {
+      await processMonthlySalary();
+      await refetchUsers();
+      toast({ title: 'Зарплаты начислены!', description: 'Ежемесячные выплаты были произведены всем персонажам.' });
+  };
+  
+  const handleWealthLevelUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ecoUserId || !ecoCharId || !ecoWealthLevel) {
+        toast({ variant: 'destructive', title: 'Ошибка', description: 'Выберите пользователя, персонажа и уровень достатка.' });
+        return;
+    }
+
+    await updateCharacterWealthLevel(ecoUserId, ecoCharId, ecoWealthLevel);
+    await refetchUsers();
+    toast({ title: 'Уровень достатка обновлен!', description: `Новый уровень: ${ecoWealthLevel}.` });
+
+    setEcoWealthLevel('');
+  };
+
+  // --- Memos ---
 
   const charactersForSelectedUser = useMemo(() => {
     if (!eventAwardUserId) return [];
@@ -443,6 +509,11 @@ export default function AdminTab() {
     return users.find(u => u.id === removeFamiliarUserId)?.characters || [];
   }, [removeFamiliarUserId, users]);
 
+  const charactersForEconomy = useMemo(() => {
+    if (!ecoUserId) return [];
+    return users.find(u => u.id === ecoUserId)?.characters || [];
+  }, [ecoUserId, users]);
+
   const familiarsForSelectedCharacter = useMemo((): (FamiliarCard & { ownedId: string })[] => {
     if (!removeFamiliarUserId || !removeFamiliarCharId) return [];
     const user = users.find(u => u.id === removeFamiliarUserId);
@@ -450,7 +521,6 @@ export default function AdminTab() {
     if (!character || !character.inventory?.familiarCards) return [];
     return character.inventory.familiarCards.map((ownedCard, index) => {
       const cardDetails = FAMILIARS_BY_ID[ownedCard.id];
-      // Ensure we don't return undefined if cardDetails isn't found
       if (!cardDetails) return null;
       return { ...cardDetails, ownedId: `${ownedCard.id}-${index}` }; // Create a unique ID for the list key
     }).filter((card): card is FamiliarCard & { ownedId: string } => card !== null);
@@ -1061,22 +1131,103 @@ export default function AdminTab() {
       </TabsContent>
 
       <TabsContent value="economy" className="mt-4">
-        <Card>
-            <CardHeader>
-                <CardTitle>Экономика</CardTitle>
-                <CardDescription>
-                    Настройки для будущей системы магазинов и экономики. Этот раздел в разработке.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <p className="text-muted-foreground">Здесь скоро появятся новые инструменты.</p>
-            </CardContent>
-        </Card>
+        <div className="gap-6 column-1 md:column-2 lg:column-3">
+            <div className="break-inside-avoid mb-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Banknote/> Управление счетом</CardTitle>
+                        <CardDescription>Начисление или списание тыквинов со счета персонажа.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <form onSubmit={handleEconomySubmit} className="space-y-4">
+                             <div>
+                                <Label>Пользователь и персонаж</Label>
+                                <div className="flex gap-2">
+                                    <Select value={ecoUserId} onValueChange={uid => { setEcoUserId(uid); setEcoCharId(''); }}>
+                                        <SelectTrigger><SelectValue placeholder="Пользователь" /></SelectTrigger>
+                                        <SelectContent>{users.map(user => (<SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>))}</SelectContent>
+                                    </Select>
+                                    <Select value={ecoCharId} onValueChange={setEcoCharId} disabled={!ecoUserId}>
+                                        <SelectTrigger><SelectValue placeholder="Персонаж" /></SelectTrigger>
+                                        <SelectContent>{charactersForEconomy.map(c => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}</SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                             <div>
+                                <Label>Сумма</Label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <Input type="number" placeholder="Платина" value={ecoAmount.platinum || ''} onChange={e => handleEcoAmountChange('platinum', e.target.value)} />
+                                    <Input type="number" placeholder="Золото" value={ecoAmount.gold || ''} onChange={e => handleEcoAmountChange('gold', e.target.value)} />
+                                    <Input type="number" placeholder="Серебро" value={ecoAmount.silver || ''} onChange={e => handleEcoAmountChange('silver', e.target.value)} />
+                                    <Input type="number" placeholder="Медь" value={ecoAmount.copper || ''} onChange={e => handleEcoAmountChange('copper', e.target.value)} />
+                                </div>
+                             </div>
+                              <div>
+                                <Label htmlFor="eco-reason">Причина</Label>
+                                <Textarea id="eco-reason" placeholder="например, Награда за квест" value={ecoReason} onChange={e => setEcoReason(e.target.value)} />
+                            </div>
+                            <div className="flex gap-2">
+                                <Button type="submit" onClick={() => setIsDeductingEco(false)} className="flex-1">Начислить</Button>
+                                <Button type="submit" variant="destructive" onClick={() => setIsDeductingEco(true)} className="flex-1">Списать</Button>
+                            </div>
+                        </form>
+                    </CardContent>
+                </Card>
+            </div>
+             <div className="break-inside-avoid mb-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Landmark/> Изменить уровень достатка</CardTitle>
+                        <CardDescription>Установите уровень финансового благосостояния для персонажа.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <form onSubmit={handleWealthLevelUpdate} className="space-y-4">
+                            <div>
+                                <Label>Пользователь и персонаж</Label>
+                                <div className="flex gap-2">
+                                    <Select value={ecoUserId} onValueChange={uid => { setEcoUserId(uid); setEcoCharId(''); }}>
+                                        <SelectTrigger><SelectValue placeholder="Пользователь" /></SelectTrigger>
+                                        <SelectContent>{users.map(user => (<SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>))}</SelectContent>
+                                    </Select>
+                                    <Select value={ecoCharId} onValueChange={setEcoCharId} disabled={!ecoUserId}>
+                                        <SelectTrigger><SelectValue placeholder="Персонаж" /></SelectTrigger>
+                                        <SelectContent>{charactersForEconomy.map(c => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}</SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                            <div>
+                                <Label htmlFor="wealth-level">Уровень достатка</Label>
+                                <Select value={ecoWealthLevel} onValueChange={v => setEcoWealthLevel(v as WealthLevel)}>
+                                    <SelectTrigger id="wealth-level"><SelectValue placeholder="Выберите уровень" /></SelectTrigger>
+                                    <SelectContent>
+                                        {WEALTH_LEVELS.map(level => (
+                                            <SelectItem key={level.name} value={level.name}>{level.name} ({level.description})</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <Button type="submit">Сохранить уровень</Button>
+                        </form>
+                    </CardContent>
+                </Card>
+            </div>
+            <div className="break-inside-avoid mb-6">
+                <Card>
+                     <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Clock /> Экономические действия</CardTitle>
+                        <CardDescription>Массовые операции с экономикой.</CardDescription>
+                    </CardHeader>
+                     <CardContent className="space-y-4">
+                        <div>
+                            <h3 className="font-semibold mb-2 flex items-center gap-2"><Users /> Ежемесячная зарплата</h3>
+                            <p className="text-sm text-muted-foreground mb-3">Начисляет зарплату всем персонажам в зависимости от их уровня достатка.</p>
+                            <Button onClick={handleSalaryPayout} variant="outline">Начислить зарплату</Button>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
       </TabsContent>
     </Tabs>
   );
 }
-
-    
-
-    

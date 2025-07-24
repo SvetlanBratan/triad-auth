@@ -1,5 +1,5 @@
 
-import type { Reward, FamiliarCard, Achievement, GameSettings } from './types';
+import type { Reward, FamiliarCard, Achievement, GameSettings, WealthLevel } from './types';
 import type { OptionType } from '@/components/ui/multi-select';
 
 // Game Date is now fetched from Firestore. See UserProvider.
@@ -8,6 +8,14 @@ export const DEFAULT_GAME_SETTINGS: GameSettings = {
     gameDateString: "21 марта 2709 год",
     gameDate: new Date(2709, 2, 21), // Month is 0-indexed (2 = March)
 }
+
+export const WEALTH_LEVELS: { name: WealthLevel; minSalary: number; maxSalary: number; description: string }[] = [
+    { name: 'Бедный', minSalary: 1000, maxSalary: 3000, description: '10-30 серебряных монет' },
+    { name: 'Просветленный', minSalary: 3000, maxSalary: 10000, description: '30 сер. - 1 зол. монета' },
+    { name: 'Средний', minSalary: 50000, maxSalary: 150000, description: '5-15 золотых монет' },
+    { name: 'Выше среднего', minSalary: 150000, maxSalary: 300000, description: '15-30 золотых монет' },
+    { name: 'Высокий', minSalary: 300000, maxSalary: 1000000, description: 'от 30 золотых монет и выше' }
+];
 
 
 // The 'id' for users now corresponds to the Firebase Auth UID.

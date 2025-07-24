@@ -7,6 +7,7 @@ export type InventoryCategory = 'оружие' | 'гардероб' | 'еда' |
 export type RelationshipType = 'романтика' | 'дружба' | 'вражда' | 'конкуренция' | 'нейтралитет' | 'любовь' | 'семья';
 export type RelationshipActionType = 'подарок' | 'письмо' | 'пост';
 export type RelationshipActionStatus = 'pending' | 'confirmed';
+export type WealthLevel = 'Бедный' | 'Просветленный' | 'Средний' | 'Выше среднего' | 'Высокий';
 
 export interface GameSettings {
   gameDateString: string;
@@ -78,6 +79,12 @@ export interface Relationship {
   lastLetterSentAt?: string; // ISO string date
 }
 
+export interface BankAccount {
+  platinum: number;
+  gold: number;
+  silver: number;
+  copper: number;
+}
 
 export interface Character {
   id: string;
@@ -89,7 +96,6 @@ export interface Character {
   skillDescription?: string;
   currentFameLevel: string[];
   workLocation: string;
-  // New questionnaire fields
   abilities?: string;
   weaknesses?: string;
   lifeGoal?: string;
@@ -97,17 +103,18 @@ export interface Character {
   appearance: string;
   personality: string;
   biography: string;
-  diary: string; // "Личный дневник"
-  training: string[]; // "Обучение" - Changed to array of strings
+  diary: string; 
+  training: string[]; 
   relationships: Relationship[];
-  marriedTo?: string[]; // IDs of other characters
+  marriedTo?: string[];
   inventory: Inventory;
-  // Old fields that are now part of inventory or deprecated at top level
-  familiarCards: OwnedFamiliarCard[]; // Kept for backwards compatibility, should be migrated to inventory
+  familiarCards: OwnedFamiliarCard[];
   moodlets?: Moodlet[];
-  blessingExpires?: string; // ISO string date
+  blessingExpires?: string; 
   hasLeviathanFriendship?: boolean;
   hasCrimeConnections?: boolean;
+  bankAccount: BankAccount;
+  wealthLevel: WealthLevel;
 }
 
 export interface PointLog {
