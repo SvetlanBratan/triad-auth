@@ -80,7 +80,7 @@ const FORBES_LIST_ACHIEVEMENT_ID = 'ach-forbes-list';
 const GODS_FAVORITE_ACHIEVEMENT_ID = 'ach-gods-favorite';
 const EXTRA_CHARACTER_REWARD_ID = 'r-extra-char';
 
-const RELATIONSHIP_POINTS_CONFIG = {
+const RELATIONSHIP_POINTS_CONFIG: Record<RelationshipActionType, number> = {
     подарок: 25,
     письмо: 10,
     пост: 50,
@@ -118,6 +118,7 @@ const drawFamiliarCard = (hasBlessing: boolean, unavailableMythicIds: Set<string
     } else if (availableCommon.length > 0) {
         chosenPool = availableCommon;
     } else {
+        // Fallback to rare if common is empty for some reason
         chosenPool = availableRare;
     }
     
@@ -496,7 +497,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 ...user,
                 characters: user.characters.map(c => ({
                     ...c,
-                    relationships: c.relationships.map(({ id: tempId, ...rest }) => rest)
+                    relationships: (c.relationships || []).map(({ id: tempId, ...rest }) => rest)
                 }))
             };
             transaction.set(doc(db, "users", id), sanitizedUser);
@@ -505,9 +506,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     const updatedUser = await fetchUserById(userId);
     if (updatedUser) {
-      setCurrentUser(updatedUser);
+      if (currentUser?.id === userId) {
+        setCurrentUser(updatedUser);
+      }
     }
-}, [fetchUserById]);
+}, [currentUser?.id, fetchUserById]);
 
 
 
@@ -957,16 +960,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const allUsersSnapshot = await getDocs(collection(db, "users"));
         let targetUserDoc: any = null;
         let targetUserId: string | null = null;
+        let targetUser: User | null = null;
 
         allUsersSnapshot.forEach(doc => {
             const user = doc.data() as User;
             if ((user.characters || []).some(c => c.id === targetCharacterId)) {
                 targetUserDoc = doc;
                 targetUserId = doc.id;
+                targetUser = user;
             }
         });
 
-        if (!targetUserDoc || !targetUserId) {
+        if (!targetUserDoc || !targetUserId || !targetUser) {
             throw new Error("Владелец целевого персонажа не найден.");
         }
 
@@ -1004,14 +1009,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (actionType === 'письмо') {
-            const lastLetter = relationshipToTarget.lastLetterSentAt ? new Date(relationshipTo.lastLetterSentAt) : null;
+            const lastLetter = relationshipToTarget.lastLetterSentAt ? new Date(relationshipToTarget.lastLetterSentAt) : null;
             if (lastLetter && (now.getTime() - lastLetter.getTime()) < 7 * 24 * 60 * 60 * 1000) {
                 throw new Error("Вы можете отправлять письмо только раз в неделю.");
             }
              relationshipToTarget.lastLetterSentAt = nowISO;
         }
 
-        relationshipToTarget.points += RELATIONSHIP_POINTS_CONFIG[actionType];
+        const pointsToAdd = RELATIONSHIP_POINTS_CONFIG[actionType];
+        relationshipToTarget.points += pointsToAdd;
         
         const newAction: RelationshipAction = {
             id: `act-${Date.now()}`,
@@ -1031,7 +1037,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (relationshipFromSourceIndex === -1) throw new Error("Обратное отношение не найдено у целевого персонажа.");
         
         const relationshipFromSource = targetCharacter.relationships[relationshipFromSourceIndex];
-        relationshipFromSource.points += RELATIONSHIP_POINTS_CONFIG[actionType];
+        relationshipFromSource.points += pointsToAdd;
         relationshipFromSource.history = [...(relationshipFromSource.history || []), newAction];
 
         // --- Commit changes ---
