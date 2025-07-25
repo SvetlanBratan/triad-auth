@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Trophy } from 'lucide-react';
 import type { User, UserStatus } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { Dialog, DialogContent, DialogTrigger } from '../ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '../ui/dialog';
 import UserProfileDialog from './user-profile-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
@@ -130,6 +130,7 @@ export default function LeaderboardTab() {
             </TableBody>
             </Table>
              <DialogContent className="max-w-6xl">
+                 <DialogTitle className="sr-only">Профиль пользователя</DialogTitle>
                  {isUserLoading && <div className="flex justify-center items-center h-64"><p>Загрузка данных пользователя...</p></div>}
                  {!isUserLoading && selectedUser && <UserProfileDialog user={selectedUser} />}
              </DialogContent>
