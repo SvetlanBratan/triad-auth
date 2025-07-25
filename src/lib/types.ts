@@ -126,15 +126,20 @@ export interface FamiliarTradeRequest {
     createdAt: string; // ISO string date
 }
 
+export interface CharacterLevel {
+    id: string;
+    level: string;
+    description: string;
+}
+
 export interface Character {
   id: string;
   name: string;
   activity: string;
   race: string;
   birthDate: string;
-  skillLevel: string[];
-  skillDescription?: string;
-  currentFameLevel: string[];
+  skillLevels: CharacterLevel[];
+  fameLevels: CharacterLevel[];
   workLocation: string;
   abilities?: string;
   weaknesses?: string;
@@ -155,6 +160,10 @@ export interface Character {
   hasCrimeConnections?: boolean;
   bankAccount: BankAccount;
   wealthLevel: WealthLevel;
+  // Deprecated fields, kept for migration
+  skillLevel?: string[];
+  skillDescription?: string;
+  currentFameLevel?: string[];
 }
 
 export interface PointLog {
@@ -162,7 +171,6 @@ export interface PointLog {
   date: string;
   amount: number;
   reason: string;
-  characterName?: string;
   characterId?: string;
 }
 

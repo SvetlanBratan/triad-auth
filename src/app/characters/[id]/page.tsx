@@ -186,14 +186,6 @@ export default function CharacterPage() {
 
     const canEdit = currentUser?.id === owner.id || currentUser?.role === 'admin';
     const inventory = character.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: [] };
-
-    const fameLevelText = Array.isArray(character.currentFameLevel)
-        ? character.currentFameLevel.join(', ')
-        : character.currentFameLevel;
-
-    const skillLevelText = Array.isArray(character.skillLevel)
-        ? character.skillLevel.join(', ')
-        : character.skillLevel;
     
     const trainingValues = Array.isArray(character.training) ? character.training : [];
     const uniqueTrainingValues = [...new Set(trainingValues)];
@@ -324,14 +316,28 @@ export default function CharacterPage() {
                                     {age !== null && <span className="text-muted-foreground ml-1">({age} лет)</span>}
                                 </span>
                             </div>
-                            <div className="flex justify-between"><span>Известность:</span> <Badge variant="secondary">{fameLevelText || 'N/A'}</Badge></div>
-                             <div className="flex justify-between items-start">
-                                <span>Уровень навыка:</span> 
-                                <div className="text-right">
-                                    <Badge variant="secondary">{skillLevelText || 'N/A'}</Badge>
-                                    {character.skillDescription && <p className="text-muted-foreground text-xs mt-1">{character.skillDescription}</p>}
+                           
+                            <div>
+                                <span className="font-medium text-muted-foreground">Известность:</span>
+                                <div className="mt-1 space-y-1">
+                                {character.fameLevels && character.fameLevels.length > 0 ? (
+                                    character.fameLevels.map(fame => (
+                                    <p key={fame.id}><Badge variant="secondary">{fame.level}</Badge> <span className="text-muted-foreground">{fame.description}</span></p>
+                                    ))
+                                ) : ( <Badge variant="secondary">N/A</Badge> )}
                                 </div>
                             </div>
+                             <div>
+                                <span className="font-medium text-muted-foreground">Уровень навыка:</span>
+                                 <div className="mt-1 space-y-1">
+                                {character.skillLevels && character.skillLevels.length > 0 ? (
+                                    character.skillLevels.map(skill => (
+                                    <p key={skill.id}><Badge variant="secondary">{skill.level}</Badge> <span className="text-muted-foreground">{skill.description}</span></p>
+                                    ))
+                                ) : ( <Badge variant="secondary">N/A</Badge> )}
+                                </div>
+                            </div>
+
                              {character.workLocation && <div className="flex justify-between"><span>Место работы:</span> <span className="text-right">{character.workLocation}</span></div>}
                              {character.abilities && <div className="flex justify-between"><span>Способности:</span> <span className="text-right">{character.abilities}</span></div>}
                              {character.weaknesses && <div className="flex justify-between"><span>Слабости:</span> <span className="text-right">{character.weaknesses}</span></div>}
