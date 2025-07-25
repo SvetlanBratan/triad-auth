@@ -53,17 +53,6 @@ export default function AuthPage() {
         toast({ title: 'Вход выполнен', description: `Добро пожаловать!` });
       } else {
         // Register
-        // Check if a user with this nickname (and thus, fake email) already exists in Firestore
-        const usersRef = collection(db, "users");
-        const q = query(usersRef, where("name", "==", data.nickname));
-        const querySnapshot = await getDocs(q);
-        
-        if (!querySnapshot.empty) {
-             toast({ variant: 'destructive', title: 'Ошибка', description: 'Этот никнейм уже занят.' });
-             setIsLoading(false);
-             return;
-        }
-
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, fakeEmail, data.password);
             
