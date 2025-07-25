@@ -13,7 +13,7 @@ import FamiliarCardDisplay from '@/components/dashboard/familiar-card';
 import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users, HeartHandshake, Wallet, Coins, Award, Zap, ShieldOff, History } from 'lucide-react';
 import Link from 'next/link';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogPortal } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import CharacterForm from '@/components/dashboard/character-form';
 import { useToast } from '@/hooks/use-toast';
 import { cn, formatTimeLeft, calculateAge, calculateRelationshipLevel, formatCurrency } from '@/lib/utils';
@@ -615,7 +615,6 @@ export default function CharacterPage() {
             </div>
 
             <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-              <DialogPortal>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Редактировать анкету: {character.name}</DialogTitle>
@@ -630,7 +629,6 @@ export default function CharacterPage() {
                         closeDialog={() => setIsFormOpen(false)}
                     />
                 </DialogContent>
-              </DialogPortal>
             </Dialog>
 
         </div>
