@@ -191,9 +191,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     activity: '',
     race: '',
     birthDate: '',
-    skillLevel: [],
-    skillDescription: '',
-    currentFameLevel: [],
+    accomplishments: [],
     workLocation: '',
     appearance: '',
     personality: '',
@@ -234,8 +232,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 bankAccount: typeof char.bankAccount !== 'object' || char.bankAccount === null 
                     ? { platinum: 0, gold: 0, silver: 0, copper: 0 } 
                     : { platinum: 0, gold: 0, silver: 0, copper: 0, ...char.bankAccount },
-                currentFameLevel: Array.isArray(char.currentFameLevel) ? char.currentFameLevel : (char.currentFameLevel ? [char.currentFameLevel] : []),
-                skillLevel: Array.isArray(char.skillLevel) ? char.skillLevel : (char.skillLevel ? [char.skillLevel] : []),
+                accomplishments: char.accomplishments || [],
                 training: Array.isArray(char.training) ? char.training : [],
                 marriedTo: Array.isArray(char.marriedTo) ? char.marriedTo : [],
                 relationships: (Array.isArray(char.relationships) ? char.relationships : []).map(r => ({ ...r, id: r.id || `rel-${Math.random()}` })),
@@ -309,25 +306,19 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     const fetchLeaderboardUsers = useCallback(async (): Promise<User[]> => {
         const usersCollection = collection(db, "users");
-        // Using a query with a limit for pagination, but for now, fetching all sorted.
-        // For larger datasets, pagination would be essential.
         const userSnapshot = await getDocs(query(usersCollection, orderBy("points", "desc")));
         const users = userSnapshot.docs.map(doc => {
             const userData = doc.data() as User;
-            // Only return the necessary public fields for the leaderboard
             return {
                 id: userData.id,
                 name: userData.name,
                 avatar: userData.avatar,
                 points: userData.points,
                 status: userData.status,
-                // These fields are needed for the user profile dialog to work from the leaderboard,
-                // but we keep some fields minimal to optimize the initial load of the leaderboard.
-                // The full user data (including point history) is fetched when a profile is opened.
                 email: userData.email,
                 role: userData.role,
                 characters: userData.characters || [],
-                pointHistory: [], // Don't expose full history on leaderboard to save bandwidth
+                pointHistory: [], 
                 achievementIds: userData.achievementIds || [],
             };
         });
@@ -386,8 +377,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         });
         return requests;
     } catch (error) {
-        console.error("Error fetching reward requests for user:", error);
-        throw error;
+      console.error("Error fetching reward requests for user:", error);
+      throw error;
     }
   }, []);
 
@@ -1108,7 +1099,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const gachaLogRegex = /Рулетка: получена карта (.+?) \((.+?)\)/;
 
     user.pointHistory.forEach(log => {
-        if (log.characterName && namesToSearch.has(log.characterName)) {
+        if (log.characterId && character.id === log.characterId) {
             const match = log.reason.match(gachaLogRegex);
             if (match) {
                 const cardName = match[1].trim();
