@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -10,10 +11,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if request.auth != null;
       allow create: if request.auth.uid == userId || isAdmin();
-      // Allow any authenticated user to update any other user's profile.
-      // This is necessary for relationship actions (gifts, posts) to work correctly,
-      // as they need to update both the sender's and receiver's character data.
-      allow update: if request.auth != null;
+      allow update: if request.auth != null || isAdmin(); // Allow any authenticated user to update
       allow delete: if request.auth.uid == userId || isAdmin();
 
       match /reward_requests/{requestId} {
@@ -22,27 +20,30 @@ service cloud.firestore {
       }
     }
 
-    match /post_requests/{requestId} {
-        allow read: if request.auth != null;
-        allow create: if request.auth.uid == request.resource.data.sourceUserId;
-        allow update: if request.auth.uid == request.resource.data.targetUserId || isAdmin();
-        allow delete: if isAdmin();
-    }
-
     match /{path=**}/reward_requests/{requestId} {
       allow read: if isAdmin();
+    }
+    
+    match /post_requests/{requestId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth.uid == request.resource.data.sourceUserId;
+      allow update: if request.auth.uid == request.resource.data.targetUserId || request.auth.uid == request.resource.data.sourceUserId || isAdmin();
+      allow delete: if isAdmin();
     }
 
     match /exchange_requests/{requestId} {
       allow read: if request.auth != null;
       allow create: if request.auth.uid == request.resource.data.creatorUserId;
-      allow update, delete: if request.auth != null; // Simplified rule
+      // Allow update if the user is the creator OR the acceptor (any other auth'd user), or an admin
+      allow update: if request.auth.uid == resource.data.creatorUserId || request.auth.uid != resource.data.creatorUserId || isAdmin();
+      // Allow delete for creator or admin
+      allow delete: if request.auth.uid == resource.data.creatorUserId || isAdmin();
     }
 
     match /familiar_trade_requests/{requestId} {
       allow read: if request.auth != null;
       allow create: if request.auth.uid == request.resource.data.initiatorUserId;
-      allow update, delete: if request.auth.uid == request.resource.data.initiatorUserId || request.auth.uid == request.resource.data.targetUserId || isAdmin();
+      allow update, delete: if request.auth.uid == resource.data.initiatorUserId || request.auth.uid == resource.data.targetUserId || isAdmin();
     }
     
     match /game_settings/{settingsId} {
