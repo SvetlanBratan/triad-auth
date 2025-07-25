@@ -2,7 +2,7 @@
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
-import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank } from '@/lib/types';
+import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, PostRequest, PostRequestStatus } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter } from "firebase/firestore";
@@ -73,6 +73,11 @@ interface UserContextType {
   fetchFamiliarTradeRequestsForUser: () => Promise<FamiliarTradeRequest[]>;
   acceptFamiliarTradeRequest: (request: FamiliarTradeRequest) => Promise<void>;
   declineOrCancelFamiliarTradeRequest: (request: FamiliarTradeRequest, status: 'отклонено' | 'отменено') => Promise<void>;
+  createPostRequest: (sourceCharacterId: string, targetCharacterId: string, location: string) => Promise<void>;
+  fetchPostRequestsForUser: () => Promise<PostRequest[]>;
+  fetchAllPostRequests: () => Promise<PostRequest[]>;
+  updatePostRequest: (request: PostRequest, status: PostRequestStatus) => Promise<void>;
+
 }
 
 export const UserContext = createContext<UserContextType | null>(null);
@@ -97,7 +102,7 @@ const EXTRA_CHARACTER_REWARD_ID = 'r-extra-char';
 const RELATIONSHIP_POINTS_CONFIG: Record<RelationshipActionType, number> = {
     подарок: 25,
     письмо: 10,
-    пост: 0, // Points are now awarded upon confirmation
+    пост: 50,
 };
 
 const drawFamiliarCard = (hasBlessing: boolean, unavailableMythicIds: Set<string>): FamiliarCard => {
@@ -310,6 +315,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     const fetchLeaderboardUsers = useCallback(async (): Promise<User[]> => {
         const usersCollection = collection(db, "users");
+        // Using a query with a limit for pagination, but for now, fetching all sorted.
+        // For larger datasets, pagination would be essential.
         const userSnapshot = await getDocs(query(usersCollection, orderBy("points", "desc")));
         const users = userSnapshot.docs.map(doc => {
             const userData = doc.data() as User;
@@ -428,7 +435,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     await updateDoc(userRef, updates);
 
     // After updating points, check for Forbes list achievement
-    const allUsers = await fetchUsersForAdmin(); // Using the safe, indexed query
+    const allUsers = await fetchLeaderboardUsers(); 
     const top3Users = allUsers.slice(0, 3);
     
     for (const topUser of top3Users) {
@@ -442,7 +449,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       setCurrentUser(finalUser);
     }
     return finalUser;
-  }, [fetchUserById, currentUser?.id, grantAchievementToUser, fetchUsersForAdmin]);
+  }, [fetchUserById, currentUser?.id, grantAchievementToUser, fetchLeaderboardUsers]);
 
   const addCharacterToUser = useCallback(async (userId: string, characterData: Character) => {
     const user = await fetchUserById(userId);
@@ -1016,18 +1023,22 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     actionType: RelationshipActionType,
     description: string
   ) => {
+    // This function now only handles non-post actions
+    if (actionType === 'пост') {
+        throw new Error("Use createPostRequest for 'post' actions.");
+    }
+
     await runTransaction(db, async (transaction) => {
         const sourceUserRef = doc(db, "users", sourceUserId);
         const sourceUserDoc = await transaction.get(sourceUserRef);
-        if (!sourceUserDoc.exists()) {
-            throw new Error("Исходный пользователь не найден.");
-        }
+        if (!sourceUserDoc.exists()) throw new Error("Исходный пользователь не найден.");
         const sourceUserData = sourceUserDoc.data() as User;
 
         let targetUserDoc: any = null;
         let targetUserData: User | null = null;
         let targetUserId: string | null = null;
-
+        
+        // This query is inefficient but necessary without a direct mapping
         const allUsersSnapshot = await getDocs(collection(db, "users"));
         allUsersSnapshot.forEach(doc => {
             const user = doc.data() as User;
@@ -1038,90 +1049,50 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             }
         });
         
-        if (!targetUserDoc || !targetUserData || !targetUserId) {
-            throw new Error("Владелец целевого персонажа не найден.");
-        }
-
+        if (!targetUserDoc || !targetUserData || !targetUserId) throw new Error("Владелец целевого персонажа не найден.");
+        
         const targetUserFromTx = await transaction.get(targetUserDoc.ref);
-        if (!targetUserFromTx.exists()) {
-            throw new Error("Целевой пользователь не найден в транзакции.");
-        }
+        if (!targetUserFromTx.exists()) throw new Error("Целевой пользователь не найден в транзакции.");
         targetUserData = targetUserFromTx.data() as User;
 
-        const processRelationship = (rel: Relationship) => {
-            if (rel.points < 1000) return; // No progression needed
+        const updateRelationship = (character: Character, otherCharId: string, points: number, action: RelationshipAction) => {
+            const relIndex = (character.relationships || []).findIndex(r => r.targetCharacterId === otherCharId);
+            if (relIndex === -1) return; // Relationship must exist
 
-            if (rel.type === 'нейтралитет') rel.type = 'дружба';
-            else if (rel.type === 'вражда') rel.type = 'нейтралитет';
-            else if (rel.type === 'романтика') rel.type = 'любовь';
+            const relationship = character.relationships[relIndex];
+            relationship.points += points;
+
+            const now = new Date();
+            if (action.type === 'подарок') relationship.lastGiftSentAt = now.toISOString();
+            if (action.type === 'письмо') relationship.lastLetterSentAt = now.toISOString();
+
+            relationship.history = [...(relationship.history || []), action];
         };
 
-        // --- Update Source Character's relationship TO Target ---
-        const sourceCharacterIndex = sourceUserData.characters.findIndex(c => c.id === sourceCharacterId);
-        if (sourceCharacterIndex === -1) throw new Error("Исходный персонаж не найден.");
-        
-        const sourceCharacter = sourceUserData.characters[sourceCharacterIndex];
-        const relationshipToTargetIndex = (sourceCharacter.relationships || []).findIndex(r => r.targetCharacterId === targetCharacterId);
-        if (relationshipToTargetIndex === -1) throw new Error("Отношение не найдено у исходного персонажа.");
-
-        const relationshipToTarget = sourceCharacter.relationships[relationshipToTargetIndex];
-
-        const now = new Date();
-        const nowISO = now.toISOString();
-
-        if (actionType === 'подарок') {
-            const lastGift = relationshipToTarget.lastGiftSentAt ? new Date(relationshipToTarget.lastGiftSentAt) : null;
-            if (lastGift && (now.getTime() - lastGift.getTime()) < 24 * 60 * 60 * 1000) {
-                throw new Error("Вы можете отправлять подарок только раз в 24 часа.");
-            }
-            relationshipToTarget.lastGiftSentAt = nowISO;
-        }
-
-        if (actionType === 'письмо') {
-            const lastLetter = relationshipToTarget.lastLetterSentAt ? new Date(relationshipToTarget.lastLetterSentAt) : null;
-            if (lastLetter && (now.getTime() - lastLetter.getTime()) < 7 * 24 * 60 * 60 * 1000) {
-                throw new Error("Вы можете отправлять письмо только раз в неделю.");
-            }
-             relationshipToTarget.lastLetterSentAt = nowISO;
-        }
-
-        const pointsToAdd = RELATIONSHIP_POINTS_CONFIG[actionType];
-        relationshipToTarget.points += pointsToAdd;
-        processRelationship(relationshipToTarget);
-        
+        const nowISO = new Date().toISOString();
         const newAction: RelationshipAction = {
             id: `act-${Date.now()}`,
             type: actionType,
             date: nowISO,
             description,
-            status: actionType === 'пост' ? 'pending' : 'confirmed',
+            status: 'confirmed',
         };
-        relationshipToTarget.history = [...(relationshipToTarget.history || []), newAction];
+        const pointsToAdd = RELATIONSHIP_POINTS_CONFIG[actionType];
 
-        // --- Update Target Character's relationship FROM Source ---
-        const targetCharacterIndex = (targetUserData.characters || []).findIndex(c => c.id === targetCharacterId);
-        if (targetCharacterIndex === -1) throw new Error("Целевой персонаж не найден.");
-        
-        const targetCharacter = targetUserData.characters[targetCharacterIndex];
-        targetCharacter.relationships = targetCharacter.relationships || [];
-        const relationshipFromSourceIndex = targetCharacter.relationships.findIndex(r => r.targetCharacterId === sourceCharacterId);
-        if (relationshipFromSourceIndex === -1) throw new Error("Обратное отношение не найдено у целевого персонажа.");
-        
-        const relationshipFromSource = targetCharacter.relationships[relationshipFromSourceIndex];
-        relationshipFromSource.points += pointsToAdd;
-        processRelationship(relationshipFromSource);
-        relationshipFromSource.history = [...(relationshipFromSource.history || []), newAction];
-        
-        // --- Sync types in case one progressed and the other didn't ---
-        relationshipFromSource.type = relationshipToTarget.type;
+        // Update Source Character
+        const sourceCharIndex = sourceUserData.characters.findIndex(c => c.id === sourceCharacterId);
+        if (sourceCharIndex === -1) throw new Error("Исходный персонаж не найден.");
+        updateRelationship(sourceUserData.characters[sourceCharIndex], targetCharacterId, pointsToAdd, newAction);
 
+        // Update Target Character
+        const targetCharIndex = targetUserData.characters.findIndex(c => c.id === targetCharacterId);
+        if (targetCharIndex === -1) throw new Error("Целевой персонаж не найден.");
+        updateRelationship(targetUserData.characters[targetCharIndex], sourceCharacterId, pointsToAdd, newAction);
 
-        // --- Commit changes ---
         transaction.update(sourceUserRef, { characters: sourceUserData.characters });
         transaction.update(targetUserDoc.ref, { characters: targetUserData.characters });
     });
 
-    // Optimistically update local state for the current user
     if (currentUser && currentUser.id === sourceUserId) {
         const updatedUser = await fetchUserById(sourceUserId);
         if(updatedUser) setCurrentUser(updatedUser);
@@ -1541,6 +1512,119 @@ const processMonthlySalary = useCallback(async () => {
       await updateDoc(requestRef, { status });
   }, []);
 
+  // --- Post Requests ---
+  const createPostRequest = useCallback(async (sourceCharacterId: string, targetCharacterId: string, location: string) => {
+    if (!currentUser) throw new Error("Пользователь не авторизован.");
+    
+    const allUsers = await fetchUsersForAdmin();
+
+    const sourceCharacter = currentUser.characters.find(c => c.id === sourceCharacterId);
+    if (!sourceCharacter) throw new Error("Исходный персонаж не найден.");
+
+    let targetUser: User | undefined;
+    let targetCharacter: Character | undefined;
+
+    for (const user of allUsers) {
+        const foundChar = user.characters.find(c => c.id === targetCharacterId);
+        if (foundChar) {
+            targetUser = user;
+            targetCharacter = foundChar;
+            break;
+        }
+    }
+    if (!targetUser || !targetCharacter) throw new Error("Целевой персонаж или его владелец не найдены.");
+    
+    const newRequestData: Omit<PostRequest, 'id'> = {
+        sourceUserId: currentUser.id,
+        sourceUserName: currentUser.name,
+        sourceCharacterId,
+        sourceCharacterName: sourceCharacter.name,
+        targetUserId: targetUser.id,
+        targetUserName: targetUser.name,
+        targetCharacterId,
+        targetCharacterName: targetCharacter.name,
+        location,
+        status: 'в ожидании',
+        createdAt: new Date().toISOString(),
+    };
+
+    const requestsCollection = collection(db, "post_requests");
+    await addDoc(requestsCollection, newRequestData);
+  }, [currentUser, fetchUsersForAdmin]);
+
+  const fetchPostRequestsForUser = useCallback(async (): Promise<PostRequest[]> => {
+      if (!currentUser) return [];
+      const requestsCollection = collection(db, "post_requests");
+      const q = query(requestsCollection, 
+        where('targetUserId', '==', currentUser.id),
+        where('status', '==', 'в ожидании'),
+        orderBy('createdAt', 'desc')
+      );
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PostRequest));
+  }, [currentUser]);
+
+  const fetchAllPostRequests = useCallback(async (): Promise<PostRequest[]> => {
+    const requestsCollection = collection(db, "post_requests");
+    const q = query(requestsCollection, orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PostRequest));
+  }, []);
+
+  const updatePostRequest = useCallback(async (request: PostRequest, status: PostRequestStatus) => {
+    await runTransaction(db, async (transaction) => {
+        const requestRef = doc(db, "post_requests", request.id);
+        const requestDoc = await transaction.get(requestRef);
+        if (!requestDoc.exists() || requestDoc.data().status !== 'в ожидании') {
+            throw new Error("Запрос больше не действителен.");
+        }
+
+        if (status === 'подтверждено') {
+            const points = RELATIONSHIP_POINTS_CONFIG['пост'];
+            const description = `Подтвержденный пост: ${request.location}`;
+            const nowISO = new Date().toISOString();
+            const action: RelationshipAction = { id: `act-${Date.now()}`, type: 'пост', date: nowISO, description, status: 'confirmed' };
+            
+            // Update source user
+            const sourceUserRef = doc(db, "users", request.sourceUserId);
+            const sourceUserDoc = await transaction.get(sourceUserRef);
+            if (sourceUserDoc.exists()) {
+                const userData = sourceUserDoc.data() as User;
+                const charIndex = userData.characters.findIndex(c => c.id === request.sourceCharacterId);
+                if (charIndex !== -1) {
+                    const relIndex = userData.characters[charIndex].relationships.findIndex(r => r.targetCharacterId === request.targetCharacterId);
+                    if (relIndex !== -1) {
+                        userData.characters[charIndex].relationships[relIndex].points += points;
+                        userData.characters[charIndex].relationships[relIndex].history.push(action);
+                        transaction.update(sourceUserRef, { characters: userData.characters });
+                    }
+                }
+            }
+
+            // Update target user
+            const targetUserRef = doc(db, "users", request.targetUserId);
+            const targetUserDoc = await transaction.get(targetUserRef);
+            if (targetUserDoc.exists()) {
+                const userData = targetUserDoc.data() as User;
+                const charIndex = userData.characters.findIndex(c => c.id === request.targetCharacterId);
+                 if (charIndex !== -1) {
+                    const relIndex = userData.characters[charIndex].relationships.findIndex(r => r.targetCharacterId === request.sourceCharacterId);
+                     if (relIndex !== -1) {
+                        userData.characters[charIndex].relationships[relIndex].points += points;
+                        userData.characters[charIndex].relationships[relIndex].history.push(action);
+                        transaction.update(targetUserRef, { characters: userData.characters });
+                    }
+                }
+            }
+        }
+        transaction.update(requestRef, { status: status });
+    });
+
+    if (currentUser && (currentUser.id === request.sourceUserId || currentUser.id === request.targetUserId)) {
+        const updatedUser = await fetchUserById(currentUser.id);
+        if (updatedUser) setCurrentUser(updatedUser);
+    }
+  }, [currentUser, fetchUserById]);
 
 
   const signOutUser = useCallback(() => {
@@ -1598,8 +1682,12 @@ const processMonthlySalary = useCallback(async () => {
       fetchFamiliarTradeRequestsForUser,
       acceptFamiliarTradeRequest,
       declineOrCancelFamiliarTradeRequest,
+      createPostRequest,
+      fetchPostRequestsForUser,
+      fetchAllPostRequests,
+      updatePostRequest,
     }),
-    [currentUser, gameSettings, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateGameDate, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest]
+    [currentUser, gameSettings, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateGameDate, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, createPostRequest, fetchPostRequestsForUser, fetchAllPostRequests, updatePostRequest]
   );
 
   return (

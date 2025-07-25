@@ -26,7 +26,7 @@ const Cooldowns = {
 }
 
 export default function RelationshipActions({ targetCharacter }: RelationshipActionsProps) {
-    const { currentUser, performRelationshipAction } = useUser();
+    const { currentUser, performRelationshipAction, createPostRequest } = useUser();
     const { toast } = useToast();
 
     const [sourceCharacterId, setSourceCharacterId] = useState('');
@@ -64,22 +64,28 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
     }, [relationship, canSendLetter]);
 
 
-    const handleAction = async (actionType: RelationshipActionType, description: string) => {
-        if (!currentUser || !sourceCharacterId) {
-            toast({ variant: 'destructive', title: 'Ошибка', description: 'Не выбран исходный персонаж.' });
-            return;
-        }
-
+    const handleSimpleAction = async (actionType: 'подарок' | 'письмо') => {
+        if (!currentUser || !sourceCharacterId) return;
         setIsLoading(true);
         try {
-            await performRelationshipAction(currentUser.id, sourceCharacterId, targetCharacter.id, actionType, description);
-            let successMessage = `Действие "${actionType}" выполнено. Отношения обновлены.`;
-            if (actionType === 'пост') {
-                successMessage = "Заявка на пост отправлена. Получатель должен будет её подтвердить.";
-                setIsPostDialogOpen(false);
-                setPostLocation('');
-            }
-            toast({ title: 'Успех!', description: successMessage });
+            await performRelationshipAction(currentUser.id, sourceCharacterId, targetCharacter.id, actionType, `Отправлен ${actionType === 'подарок' ? 'подарок' : 'письмо'}`);
+            toast({ title: 'Успех!', description: 'Действие выполнено, отношения обновлены.' });
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Произошла неизвестная ошибка.';
+            toast({ variant: 'destructive', title: 'Ошибка', description: errorMessage });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handlePostRequest = async () => {
+        if (!currentUser || !sourceCharacterId || !postLocation) return;
+        setIsLoading(true);
+        try {
+            await createPostRequest(sourceCharacterId, targetCharacter.id, postLocation);
+            toast({ title: 'Запрос отправлен!', description: 'Заявка на пост отправлена. Получатель должен будет её подтвердить.' });
+            setIsPostDialogOpen(false);
+            setPostLocation('');
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Произошла неизвестная ошибка.';
             toast({ variant: 'destructive', title: 'Ошибка', description: errorMessage });
@@ -127,7 +133,7 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
                                         <Button
                                             variant="outline"
                                             className="w-full"
-                                            onClick={() => handleAction('подарок', 'Отправлен подарок')}
+                                            onClick={() => handleSimpleAction('подарок')}
                                             disabled={!canSendGift || isLoading}
                                         >
                                             <Gift className="w-4 h-4" />
@@ -145,7 +151,7 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
                                         <Button
                                             variant="outline"
                                             className="w-full"
-                                            onClick={() => handleAction('письмо', 'Отправлено письмо')}
+                                            onClick={() => handleSimpleAction('письмо')}
                                             disabled={!canSendLetter || isLoading}
                                         >
                                             <Mail className="w-4 h-4" />
@@ -168,7 +174,7 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
                                         </DialogTrigger>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                        <p>Заявить о посте</p>
+                                        <p>Заявить о посте (+50)</p>
                                     </TooltipContent>
                                 </Tooltip>
                                 <DialogContent>
@@ -193,7 +199,7 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
                                         </DialogClose>
                                         <Button 
                                             type="button" 
-                                            onClick={() => handleAction('пост', `Заявка на пост: ${postLocation}`)}
+                                            onClick={handlePostRequest}
                                             disabled={!postLocation || isLoading}
                                         >
                                             {isLoading ? 'Отправка...' : 'Отправить заявку'}

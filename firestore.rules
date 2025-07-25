@@ -3,83 +3,63 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
-    // Default deny all reads and writes unless explicitly allowed
-    match /{document=**} {
-      allow read, write: if false;
+    
+    function isAdmin() {
+      return request.auth.uid in ['Td5P02zpyaMR3IxCY9eCf7gcYky1', 'yawuIwXKVbNhsBQSqWfGZyAzZ3A3'];
     }
 
-    // --- USER DATA RULES ---
-    // Allow authenticated users to read user profiles for leaderboards, etc.
-    // Allow users to write ONLY to their own document.
-    // Allow admins to write to ANY user document.
+    // Function to check if only the 'characters' field is being updated.
+    // This is used for relationship updates between users.
+    function isUpdatingOnlyCharacters() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['characters']);
+    }
+
     match /users/{userId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null && (request.auth.uid == userId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      allow create: if request.auth.uid == userId;
+      // Allow a user to update their own document OR
+      // allow any authenticated user to update another user's document IF
+      // they are only changing the 'characters' field (for relationship sync).
+      allow update: if request.auth.uid == userId || 
+                      (request.auth != null && isUpdatingOnlyCharacters()) ||
+                      isAdmin();
+      allow delete: if request.auth.uid == userId || isAdmin();
 
-      // Rules for the 'reward_requests' subcollection
       match /reward_requests/{requestId} {
-        // Users can create and read their own requests
-        allow create, read: if request.auth != null && request.auth.uid == userId;
-        // Admins can update/delete any request
-        allow update, delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+        allow write: if request.auth.uid == userId || isAdmin();
+        allow read: if request.auth.uid == userId || isAdmin();
       }
     }
-    
-    // --- COLLECTION GROUP RULES ---
-    // Admins can list all reward requests from the 'reward_requests' collection group.
-    match /{path=**}/reward_requests/{requestId} {
-      allow read: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-    
-    // --- EXCHANGE REQUESTS RULES ---
-    match /exchange_requests/{requestId} {
-      // Any authenticated user can read the list of open requests.
-      allow get, list: if request.auth != null;
-      
-      // A user can create a request if they are the owner of the data.
-      allow create: if request.auth != null
-                    && request.resource.data.creatorUserId == request.auth.uid
-                    && request.resource.data.creatorName == request.auth.token.name;
 
-      // The creator can delete (cancel) their own request.
-      // An acceptor can update the request to 'closed'.
-      // An admin can do anything.
-      allow update, delete: if request.auth != null && (
-        (resource.data.creatorUserId == request.auth.uid) ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
-      );
-    }
-
-    // --- FAMILIAR TRADE REQUESTS RULES ---
-    match /familiar_trade_requests/{requestId} {
-      // Any authenticated user can read trade requests.
+    match /post_requests/{requestId} {
       allow read: if request.auth != null;
+      allow create: if request.auth.uid == request.resource.data.sourceUserId;
+      allow update, delete: if isAdmin() || 
+                              request.auth.uid == request.resource.data.sourceUserId ||
+                              request.auth.uid == request.resource.data.targetUserId;
+    }
 
-      // A user can create a request if they are the initiator.
-      allow create: if request.auth != null && request.resource.data.initiatorUserId == request.auth.uid;
+    match /{path=**}/reward_requests/{requestId} {
+      allow read: if isAdmin();
+    }
 
-      // The target of the request can update it (accept/decline).
-      // The initiator of the request can update it (cancel).
-      // Admins can do anything.
-      allow update: if request.auth != null && (
-        (resource.data.targetUserId == request.auth.uid) ||
-        (resource.data.initiatorUserId == request.auth.uid) ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
-      );
+    match /exchange_requests/{requestId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth.uid == request.resource.data.creatorUserId;
+      // Allow creator to delete/cancel, allow any other user to update (to accept)
+      allow update, delete: if request.auth.uid == resource.data.creatorUserId || 
+                              (request.resource.data.status == 'closed' && request.auth.uid != resource.data.creatorUserId);
+    }
 
-       // The initiator of the request can delete it (cancel). Admins too.
-      allow delete: if request.auth != null && (
-        (resource.data.initiatorUserId == request.auth.uid) ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
-      );
+    match /familiar_trade_requests/{requestId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth.uid == request.resource.data.initiatorUserId;
+      allow update, delete: if request.auth.uid == resource.data.initiatorUserId || request.auth.uid == resource.data.targetUserId || isAdmin();
     }
     
-    // --- GLOBAL SETTINGS RULES ---
-    // Allow anyone to read game settings, but only admins to write.
-    match /game_settings/{settingId} {
-      allow read: if true;
-      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    match /game_settings/{settingsId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
     }
   }
 }

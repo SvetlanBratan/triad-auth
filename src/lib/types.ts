@@ -1,10 +1,11 @@
 
 
+
 export type UserRole = 'admin' | 'user';
 export type UserStatus = 'активный' | 'неактивный' | 'отпуск';
 export type RewardRequestStatus = 'в ожидании' | 'одобрено' | 'отклонено';
 export type FamiliarRank = 'обычный' | 'редкий' | 'легендарный' | 'мифический' | 'ивентовый';
-export type InventoryCategory = 'оружие' | 'гардероб' | 'еда' | 'подарки' | 'артефакты' | 'зелья' | 'недвижимость' | 'транспорт';
+export type InventoryCategory = 'оружие' | 'гардоб' | 'еда' | 'подарки' | 'артефакты' | 'зелья' | 'недвижимость' | 'транспорт';
 export type RelationshipType = 'романтика' | 'дружба' | 'вражда' | 'конкуренция' | 'нейтралитет' | 'любовь' | 'семья';
 export type RelationshipActionType = 'подарок' | 'письмо' | 'пост';
 export type RelationshipActionStatus = 'pending' | 'confirmed';
@@ -12,6 +13,23 @@ export type WealthLevel = 'Бедный' | 'Просветленный' | 'Ср�
 export type Currency = keyof BankAccount;
 export type ExchangeRequestStatus = 'open' | 'closed';
 export type FamiliarTradeRequestStatus = 'в ожидании' | 'принято' | 'отклонено' | 'отменено';
+export type PostRequestStatus = 'в ожидании' | 'подтверждено' | 'отклонено';
+
+export interface PostRequest {
+  id: string;
+  sourceUserId: string;
+  sourceUserName: string;
+  sourceCharacterId: string;
+  sourceCharacterName: string;
+  targetUserId: string;
+  targetUserName: string;
+  targetCharacterId: string;
+  targetCharacterName: string;
+  location: string;
+  status: PostRequestStatus;
+  createdAt: string; // ISO string
+}
+
 
 export interface GameSettings {
   gameDateString: string;
