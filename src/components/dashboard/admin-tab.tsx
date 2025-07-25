@@ -323,9 +323,13 @@ export default function AdminTab() {
       if (user.characters && user.characters.length > 0) {
         let pointsForUser = 0;
         user.characters.forEach(character => {
-          const fameLevel = Array.isArray(character.currentFameLevel) ? character.currentFameLevel[0] : character.currentFameLevel as (keyof typeof FAME_LEVELS_POINTS);
-          if (FAME_LEVELS_POINTS[fameLevel]) {
-            pointsForUser += FAME_LEVELS_POINTS[fameLevel];
+          if (character.fameLevels && character.fameLevels.length > 0) {
+            character.fameLevels.forEach(fame => {
+              const fameLevelKey = fame.level as keyof typeof FAME_LEVELS_POINTS;
+              if (FAME_LEVELS_POINTS[fameLevelKey]) {
+                pointsForUser += FAME_LEVELS_POINTS[fameLevelKey];
+              }
+            });
           }
         });
 
@@ -1373,3 +1377,5 @@ export default function AdminTab() {
     </Tabs>
   );
 }
+
+    
