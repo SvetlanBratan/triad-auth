@@ -21,9 +21,11 @@ import { auth, db } from '@/lib/firebase';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { useUser } from '@/hooks/use-user';
 import { FirebaseError } from 'firebase/app';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, setDoc } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Terminal } from 'lucide-react';
+import type { User } from '@/lib/types';
+
 
 const formSchema = z.object({
   nickname: z.string().min(3, 'Никнейм должен содержать не менее 3 символов.'),
@@ -36,8 +38,7 @@ export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const { createNewUser } = useUser();
-
+  
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(formSchema),
   });
@@ -57,12 +58,13 @@ export default function AuthPage() {
             const userCredential = await createUserWithEmailAndPassword(auth, fakeEmail, data.password);
             
             // This profile update is crucial for associating the nickname with the Firebase user
+            // and triggering the onAuthStateChanged listener which will then create the user doc.
             await updateProfile(userCredential.user, { displayName: data.nickname });
 
-            // Create the user document in Firestore
-            await createNewUser(userCredential.user.uid, data.nickname);
+            toast({ title: 'Регистрация успешна', description: 'Ваш аккаунт создан. Сейчас вы будете авторизованы.' });
             
-            toast({ title: 'Регистрация успешна', description: 'Ваш аккаунт создан.' });
+            // The onAuthStateChanged listener in UserProvider will handle creating the user document.
+            // This component will unmount and the main app will load.
 
         } catch (error) {
             if (error instanceof FirebaseError && error.code === 'auth/email-already-in-use') {

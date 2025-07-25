@@ -1,50 +1,9 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    function isAdmin() {
-      return request.auth.uid in ['Td5P02zpyaMR3IxCY9eCf7gcYky1', 'yawuIwXKVbNhsBQSqWfGZyAzZ3A3'];
-    }
-
-    match /users/{userId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth.uid == userId || isAdmin();
-      allow update: if request.auth != null;
-      allow delete: if request.auth.uid == userId || isAdmin();
-
-      match /reward_requests/{requestId} {
-        allow write: if request.auth.uid == userId || isAdmin();
-        allow read: if request.auth.uid == userId || isAdmin();
-      }
-    }
-
-    match /{path=**}/reward_requests/{requestId} {
-      allow read: if isAdmin();
-    }
-    
-    match /post_requests/{requestId} {
-        allow read: if request.auth != null;
-        allow create: if request.auth.uid == request.resource.data.sourceUserId;
-        allow update: if request.auth.uid == request.resource.data.targetUserId || isAdmin();
-    }
-
-    match /exchange_requests/{requestId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth.uid == request.resource.data.creatorUserId;
-      allow update, delete: if request.auth != null;
-    }
-
-    match /familiar_trade_requests/{requestId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth.uid == request.resource.data.initiatorUserId;
-      allow update, delete: if request.auth.uid == resource.data.initiatorUserId || request.auth.uid == resource.data.targetUserId || isAdmin();
-    }
-    
-    match /game_settings/{settingsId} {
-      allow read: if request.auth != null;
-      allow write: if isAdmin();
+    match /{document=**} {
+      allow read, write: if request.auth != null;
     }
   }
 }
