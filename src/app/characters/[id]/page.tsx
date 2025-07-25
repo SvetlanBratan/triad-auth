@@ -557,7 +557,7 @@ export default function CharacterPage() {
             </div>
 
             <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                <DialogContent className="max-w-3xl">
+                <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Редактировать анкету: {character.name}</DialogTitle>
                         <DialogDescription>
