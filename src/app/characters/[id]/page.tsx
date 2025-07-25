@@ -65,6 +65,13 @@ const relationshipLabels: Record<RelationshipType, string> = {
     'семья': 'Семья',
 }
 
+const currencyNames: Record<string, string> = {
+    platinum: 'платины',
+    gold: 'золота',
+    silver: 'серебра',
+    copper: 'меди'
+};
+
 const FamiliarsSection = ({ character }: { character: Character }) => {
     const familiarCards = character.inventory?.familiarCards || [];
 
@@ -424,7 +431,7 @@ export default function CharacterPage() {
                                                             <div className={cn("font-mono font-semibold", colorClass)}>
                                                                 {amounts.map(([currency, value]) => (
                                                                     <div key={currency}>
-                                                                        {value > 0 ? '+' : ''}{value.toLocaleString()} {currency}
+                                                                        {value > 0 ? '+' : ''}{value.toLocaleString()} {currencyNames[currency] || currency}
                                                                     </div>
                                                                 ))}
                                                             </div>
