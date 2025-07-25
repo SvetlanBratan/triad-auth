@@ -1,7 +1,7 @@
 
 "use client";
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import type { User, UserStatus, PointLog, Character, FamiliarCard, FamiliarRank, Moodlet } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -187,6 +187,12 @@ export default function UserProfileDialog({ user }: { user: User }) {
   const sortedPointHistory = [...(user.pointHistory || [])].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   const userAchievements = (user.achievementIds || []).map(id => ACHIEVEMENTS_BY_ID[id]).filter(Boolean);
 
+  const characterMap = useMemo(() => {
+    const map = new Map<string, string>();
+    user.characters.forEach(c => map.set(c.id, c.name));
+    return map;
+  }, [user.characters]);
+
   return (
     <>
       <DialogHeader>
@@ -292,7 +298,7 @@ export default function UserProfileDialog({ user }: { user: User }) {
                                 <TableCell className="text-muted-foreground">{formatDate(log.date)}</TableCell>
                                 <TableCell>
                                     <p>{log.reason}</p>
-                                    {log.characterName && <p className="text-xs text-muted-foreground">Персонаж: {log.characterName}</p>}
+                                    {log.characterId && <p className="text-xs text-muted-foreground">Персонаж: {characterMap.get(log.characterId) || 'Неизвестно'}</p>}
                                 </TableCell>
                                 <TableCell className={`text-right font-semibold ${log.amount > 0 ? 'text-green-600' : 'text-destructive'}`}>
                                     {log.amount > 0 ? '+' : ''}{log.amount.toLocaleString()}

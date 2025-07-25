@@ -28,7 +28,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { cn, formatTimeLeft } from '@/lib/utils';
 import { ACHIEVEMENTS_BY_ID, FAMILIARS_BY_ID } from '@/lib/data';
@@ -271,6 +271,12 @@ export default function ProfileTab() {
   const sortedPointHistory = currentUser.pointHistory.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   const userAchievements = (currentUser.achievementIds || []).map(id => ACHIEVEMENTS_BY_ID[id]).filter(Boolean);
 
+  const characterMap = useMemo(() => {
+    const map = new Map<string, string>();
+    currentUser.characters.forEach(c => map.set(c.id, c.name));
+    return map;
+  }, [currentUser.characters]);
+
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -385,7 +391,7 @@ export default function ProfileTab() {
                     <TableCell className="text-muted-foreground">{formatDate(log.date)}</TableCell>
                     <TableCell>
                       <p>{log.reason}</p>
-                      {log.characterName && <p className="text-xs text-muted-foreground">Персонаж: {log.characterName}</p>}
+                      {log.characterId && <p className="text-xs text-muted-foreground">Персонаж: {characterMap.get(log.characterId) || 'Неизвестно'}</p>}
                     </TableCell>
                     <TableCell className={`text-right font-semibold ${log.amount > 0 ? 'text-green-600' : 'text-destructive'}`}>
                       {log.amount > 0 ? '+' : ''}{log.amount.toLocaleString()}

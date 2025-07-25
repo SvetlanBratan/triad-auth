@@ -35,7 +35,7 @@ interface UserContextType {
   fetchAllRewardRequests: () => Promise<RewardRequest[]>;
   fetchRewardRequestsForUser: (userId: string) => Promise<RewardRequest[]>;
   fetchAvailableMythicCardsCount: () => Promise<number>;
-  addPointsToUser: (userId: string, amount: number, reason: string, characterName?: string) => Promise<User | null>;
+  addPointsToUser: (userId: string, amount: number, reason: string, characterId?: string) => Promise<User | null>;
   addCharacterToUser: (userId: string, character: Character) => Promise<void>;
   updateCharacterInUser: (userId: string, character: Character) => Promise<void>;
   deleteCharacterFromUser: (userId: string, characterId: string) => Promise<void>;
@@ -412,7 +412,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   }, [fetchUserById, updateUser]);
 
-  const addPointsToUser = useCallback(async (userId: string, amount: number, reason: string, characterName?: string): Promise<User | null> => {
+  const addPointsToUser = useCallback(async (userId: string, amount: number, reason: string, characterId?: string): Promise<User | null> => {
     const user = await fetchUserById(userId);
     if (!user) return null;
 
@@ -421,7 +421,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       date: new Date().toISOString(),
       amount,
       reason,
-      ...(characterName && { characterName }),
+      ...(characterId && { characterId }),
     };
     const newPoints = user.points + amount;
     const newHistory = [newPointLog, ...user.pointHistory].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -618,6 +618,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       date: new Date().toISOString(),
       amount: -rewardRequestData.rewardCost,
       reason: `Запрос награды: ${rewardRequestData.rewardTitle}`,
+      characterId: rewardRequestData.characterId,
     };
     const updatedPoints = user.points - rewardRequestData.rewardCost;
     const updatedHistory = [newPointLog, ...user.pointHistory].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -804,7 +805,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (characterIndex === -1) throw new Error("Персонаж не найден.");
         const character = user.characters[characterIndex];
 
-        const isFirstPullForChar = !user.pointHistory.some(log => log.characterName === character.name && log.reason.includes('Рулетка'));
+        const isFirstPullForChar = !user.pointHistory.some(log => log.characterId === characterId && log.reason.includes('Рулетка'));
         const cost = isFirstPullForChar ? 0 : ROULETTE_COST;
         if (user.points < cost) throw new Error("Недостаточно очков.");
         finalPointChange = -cost;
@@ -862,7 +863,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             date: new Date().toISOString(),
             amount: finalPointChange,
             reason: reason,
-            characterName: character.name,
+            characterId: character.id,
         };
         updatedUser.pointHistory.unshift(newPointLog);
         
@@ -908,7 +909,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         date: new Date().toISOString(),
         amount: 0,
         reason: `Администратор выдал фамильяра: "${familiar.name}"`,
-        characterName: character.name,
+        characterId: character.id,
     };
     const newHistory = [newPointLog, ...user.pointHistory];
 
