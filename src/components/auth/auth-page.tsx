@@ -45,6 +45,12 @@ export default function AuthPage() {
 
   const handleAuth = async (data: FormData) => {
     setIsLoading(true);
+    
+    const formattedNickname = data.nickname
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+
     const fakeEmail = `${data.nickname.toLowerCase().replace(/\s/g, '')}@pumpkin.com`;
 
     try {
@@ -59,7 +65,7 @@ export default function AuthPage() {
             
             // This profile update is crucial for associating the nickname with the Firebase user
             // and triggering the onAuthStateChanged listener which will then create the user doc.
-            await updateProfile(userCredential.user, { displayName: data.nickname });
+            await updateProfile(userCredential.user, { displayName: formattedNickname });
 
             toast({ title: 'Регистрация успешна', description: 'Ваш аккаунт создан. Сейчас вы будете авторизованы.' });
             
