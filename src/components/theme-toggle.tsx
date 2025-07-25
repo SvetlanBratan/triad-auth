@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -31,9 +30,6 @@ export function ThemeToggle() {
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme("dark")}>
           Тёмная
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("system")}>
-          Системная
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
