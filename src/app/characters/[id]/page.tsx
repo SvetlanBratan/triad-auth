@@ -562,7 +562,7 @@ export default function CharacterPage() {
                     <DialogHeader>
                         <DialogTitle>Редактировать анкету: {character.name}</DialogTitle>
                         <DialogDescription>
-                            Внесите изменения в анкету персонажа. Все изменения сохраняются автоматически.
+                            Внесите изменения в анкету персонажа.
                         </DialogDescription>
                     </DialogHeader>
                     <CharacterForm
