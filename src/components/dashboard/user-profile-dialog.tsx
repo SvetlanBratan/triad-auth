@@ -59,13 +59,8 @@ const CharacterDisplay = ({ character }: { character: Character }) => {
         return acc;
     }, {} as Record<FamiliarRank, FamiliarCard[]>);
 
-    const fameLevelText = Array.isArray(character.currentFameLevel)
-        ? character.currentFameLevel.join(', ')
-        : character.currentFameLevel;
+    const accomplishments = character.accomplishments || [];
 
-    const skillLevelText = Array.isArray(character.skillLevel)
-        ? character.skillLevel.join(', ')
-        : character.skillLevel;
 
     return (
         <AccordionItem value={character.id} className="border-b">
@@ -100,9 +95,21 @@ const CharacterDisplay = ({ character }: { character: Character }) => {
                 </div>
             </div>
             <AccordionContent>
-            <div className="text-sm space-y-1 pl-2 pb-2">
-                <p><span className="font-semibold">Навык:</span> {skillLevelText || 'N/A'}</p>
-                <p><span className="font-semibold">Известность:</span> {fameLevelText || 'N/A'}</p>
+            <div className="text-sm space-y-2 pl-2 pb-2">
+                 {accomplishments.length > 0 ? (
+                    <div className="space-y-1">
+                        <p className="font-semibold">Достижения:</p>
+                        <ul className="list-disc pl-5">
+                        {accomplishments.map(acc => (
+                            <li key={acc.id} className="text-muted-foreground">
+                                <span className="font-semibold text-foreground">{acc.fameLevel}</span> <span className="text-primary font-semibold">{acc.skillLevel}</span> <span>{acc.description}</span>
+                            </li>
+                        ))}
+                        </ul>
+                    </div>
+                ) : (
+                    <p className="italic text-muted-foreground">Достижений пока нет.</p>
+                )}
                 {character.workLocation && <p><span className="font-semibold">Место работы:</span> {character.workLocation}</p>}
             </div>
 
