@@ -531,9 +531,7 @@ export default function AdminTab() {
     await refetchUsers();
     toast({ title: 'Стартовый капитал начислен!', description: `Счет персонажа пополнен.` });
 
-    // Reset form
-    setCapitalUserId('');
-    setCapitalCharId('');
+    // Reset only the level
     setCapitalLevel('');
   };
 
@@ -1378,5 +1376,7 @@ export default function AdminTab() {
     </Tabs>
   );
 }
+
+    
 
     
