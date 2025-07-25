@@ -11,9 +11,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
-import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark } from 'lucide-react';
+import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info } from 'lucide-react';
 import type { UserStatus, UserRole, User, FamiliarCard, BankAccount, WealthLevel, FamiliarRank } from '@/lib/types';
-import { FAME_LEVELS_POINTS, EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, FAMILIARS_BY_ID, WEALTH_LEVELS } from '@/lib/data';
+import { FAME_LEVELS_POINTS, EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, FAMILIARS_BY_ID, WEALTH_LEVELS, ALL_FAMILIARS } from '@/lib/data';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,12 +36,14 @@ const rankNames: Record<FamiliarRank, string> = {
     'обычный': 'Обычный'
 };
 
+const rankOrder: FamiliarRank[] = ['мифический', 'ивентовый', 'легендарный', 'редкий', 'обычный'];
+
+
 export default function AdminTab() {
   const { 
     addPointsToUser, 
     updateUserStatus, 
     updateUserRole, 
-    giveEventFamiliarToCharacter, 
     grantAchievementToUser, 
     fetchUsersForAdmin, 
     clearPointHistoryForUser, 
@@ -53,7 +55,8 @@ export default function AdminTab() {
     recoverFamiliarsFromHistory,
     addBankPointsToCharacter,
     processMonthlySalary,
-    updateCharacterWealthLevel
+    updateCharacterWealthLevel,
+    giveAnyFamiliarToCharacter
   } = useUser();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -73,9 +76,10 @@ export default function AdminTab() {
   const [selectedRole, setSelectedRole] = useState<UserRole | ''>('');
   
   // Familiar state
-  const [eventAwardUserId, setEventAwardUserId] = useState<string>('');
-  const [eventAwardCharacterId, setEventAwardCharacterId] = useState<string>('');
-  const [eventAwardFamiliarId, setEventAwardFamiliarId] = useState<string>('');
+  const [giveFamiliarUserId, setGiveFamiliarUserId] = useState('');
+  const [giveFamiliarCharId, setGiveFamiliarCharId] = useState('');
+  const [giveFamiliarId, setGiveFamiliarId] = useState('');
+
 
   // Achievement state
   const [achieveUserId, setAchieveUserId] = useState<string>('');
@@ -343,9 +347,9 @@ export default function AdminTab() {
     }
   };
 
-  const handleAwardEventFamiliar = async (e: React.FormEvent) => {
+  const handleGiveFamiliar = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!eventAwardUserId || !eventAwardCharacterId || !eventAwardFamiliarId) {
+    if (!giveFamiliarUserId || !giveFamiliarCharId || !giveFamiliarId) {
       toast({
         variant: "destructive",
         title: "Отсутствует информация",
@@ -354,19 +358,19 @@ export default function AdminTab() {
       return;
     }
     
-    await giveEventFamiliarToCharacter(eventAwardUserId, eventAwardCharacterId, eventAwardFamiliarId);
+    await giveAnyFamiliarToCharacter(giveFamiliarUserId, giveFamiliarCharId, giveFamiliarId);
     await refetchUsers();
 
-    const familiarName = EVENT_FAMILIARS.find(f => f.id === eventAwardFamiliarId)?.name;
+    const familiarName = FAMILIARS_BY_ID[giveFamiliarId]?.name;
 
     toast({
-      title: "Ивентовый фамильяр выдан!",
-      description: `Фамильяр "${familiarName}" выдан.`,
+      title: "Фамильяр выдан!",
+      description: `Фамильяр "${familiarName}" выдан персонажу.`,
     });
     
-    setEventAwardUserId('');
-    setEventAwardCharacterId('');
-    setEventAwardFamiliarId('');
+    setGiveFamiliarUserId('');
+    setGiveFamiliarCharId('');
+    setGiveFamiliarId('');
   }
 
   const handleGrantAchievement = async (e: React.FormEvent) => {
@@ -502,10 +506,10 @@ export default function AdminTab() {
 
   // --- Memos ---
 
-  const charactersForSelectedUser = useMemo(() => {
-    if (!eventAwardUserId) return [];
-    return users.find(u => u.id === eventAwardUserId)?.characters || [];
-  }, [eventAwardUserId, users]);
+  const charactersForGiveFamiliar = useMemo(() => {
+    if (!giveFamiliarUserId) return [];
+    return users.find(u => u.id === giveFamiliarUserId)?.characters || [];
+  }, [giveFamiliarUserId, users]);
 
   const charactersForMoodletUser = useMemo(() => {
     if (!moodletUserId) return [];
@@ -548,8 +552,36 @@ export default function AdminTab() {
     });
   }, [removeFamiliarUserId, removeFamiliarCharId, users]);
 
-  const eventFamiliarsOptions = useMemo(() => {
-    return EVENT_FAMILIARS.map(fam => ({ value: fam.id, label: fam.name }));
+  const allFamiliarsGroupedOptions = useMemo(() => {
+    const allCards = [...ALL_FAMILIARS, ...EVENT_FAMILIARS];
+    const grouped: { [key in FamiliarRank]?: { value: string, label: string }[] } = {};
+
+    allCards.forEach(fam => {
+      if (!grouped[fam.rank]) {
+        grouped[fam.rank] = [];
+      }
+      grouped[fam.rank]?.push({ value: fam.id, label: fam.name });
+    });
+    
+    return rankOrder
+        .filter(rank => grouped[rank])
+        .map(rank => ({
+            label: rankNames[rank],
+            options: grouped[rank]!,
+        }));
+  }, []);
+
+  const familiarStats = useMemo(() => {
+    const allCards = [...ALL_FAMILIARS, ...EVENT_FAMILIARS];
+    const stats = {
+      total: allCards.length,
+      мифический: allCards.filter(c => c.rank === 'мифический').length,
+      ивентовый: allCards.filter(c => c.rank === 'ивентовый').length,
+      легендарный: allCards.filter(c => c.rank === 'легендарный').length,
+      редкий: allCards.filter(c => c.rank === 'редкий').length,
+      обычный: allCards.filter(c => c.rank === 'обычный').length,
+    };
+    return stats;
   }, []);
 
 
@@ -984,53 +1016,74 @@ export default function AdminTab() {
 
       <TabsContent value="familiars" className="mt-4">
         <div className="gap-6 column-1 md:column-2 lg:column-3">
-          <div className="break-inside-avoid mb-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Gift /> Выдать ивентового фамильяра</CardTitle>
-                    <CardDescription>Наградите игрока эксклюзивным фамильяром.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form onSubmit={handleAwardEventFamiliar} className="space-y-4">
-                    <div>
-                        <Label htmlFor="user-select-event">Пользователь</Label>
-                        <Select value={eventAwardUserId} onValueChange={uid => { setEventAwardUserId(uid); setEventAwardCharacterId(''); }}>
-                        <SelectTrigger id="user-select-event">
-                            <SelectValue placeholder="Выберите пользователя" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {users.map(user => (
-                            <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                        </Select>
-                    </div>
-                    <div>
-                        <Label htmlFor="character-select-event">Персонаж</Label>
-                        <Select value={eventAwardCharacterId} onValueChange={setEventAwardCharacterId} disabled={!eventAwardUserId}>
-                        <SelectTrigger id="character-select-event">
-                            <SelectValue placeholder="Выберите персонажа" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {charactersForSelectedUser.map(character => (
-                            <SelectItem key={character.id} value={character.id}>{character.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                        </Select>
-                    </div>
-                    <div>
-                        <Label htmlFor="familiar-select-event">Фамильяр</Label>
-                        <SearchableSelect
-                            options={eventFamiliarsOptions}
-                            value={eventAwardFamiliarId}
-                            onValueChange={setEventAwardFamiliarId}
-                            placeholder="Выберите фамильяра..."
-                        />
-                    </div>
-                    <Button type="submit">Выдать фамильяра</Button>
-                    </form>
-                </CardContent>
-            </Card>
+            <div className="break-inside-avoid mb-6">
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><PieChart /> Статистика Фамильяров</CardTitle>
+                         <CardDescription>Общее количество уникальных карт в игре.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-sm">
+                        <div className="flex justify-between font-bold text-base">
+                            <span>Всего карт:</span>
+                            <span>{familiarStats.total}</span>
+                        </div>
+                        <Separator />
+                        <div className="flex justify-between"><span>Мифические:</span> <span>{familiarStats.мифический}</span></div>
+                        <div className="flex justify-between"><span>Ивентовые:</span> <span>{familiarStats.ивентовый}</span></div>
+                        <div className="flex justify-between"><span>Легендарные:</span> <span>{familiarStats.легендарный}</span></div>
+                        <div className="flex justify-between"><span>Редкие:</span> <span>{familiarStats.редкий}</span></div>
+                        <div className="flex justify-between"><span>Обычные:</span> <span>{familiarStats.обычный}</span></div>
+                    </CardContent>
+                </Card>
+            </div>
+             <div className="break-inside-avoid mb-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Gift /> Выдать любого фамильяра</CardTitle>
+                        <CardDescription>Наградите персонажа любой картой из существующих.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <form onSubmit={handleGiveFamiliar} className="space-y-4">
+                        <div>
+                            <Label htmlFor="user-select-give">Пользователь</Label>
+                            <Select value={giveFamiliarUserId} onValueChange={uid => { setGiveFamiliarUserId(uid); setGiveFamiliarCharId(''); }}>
+                            <SelectTrigger id="user-select-give">
+                                <SelectValue placeholder="Выберите пользователя" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {users.map(user => (
+                                <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <Label htmlFor="character-select-give">Персонаж</Label>
+                            <Select value={giveFamiliarCharId} onValueChange={setGiveFamiliarCharId} disabled={!giveFamiliarUserId}>
+                            <SelectTrigger id="character-select-give">
+                                <SelectValue placeholder="Выберите персонажа" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {charactersForGiveFamiliar.map(character => (
+                                <SelectItem key={character.id} value={character.id}>{character.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <Label htmlFor="familiar-select-give">Фамильяр</Label>
+                            <SearchableSelect
+                                options={allFamiliarsGroupedOptions}
+                                value={giveFamiliarId}
+                                onValueChange={setGiveFamiliarId}
+                                placeholder="Выберите фамильяра..."
+                                disabled={!giveFamiliarCharId}
+                            />
+                        </div>
+                        <Button type="submit">Выдать фамильяра</Button>
+                        </form>
+                    </CardContent>
+                </Card>
             </div>
             <div className="break-inside-avoid mb-6">
             <Card>

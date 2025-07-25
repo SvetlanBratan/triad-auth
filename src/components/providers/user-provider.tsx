@@ -44,7 +44,7 @@ interface UserContextType {
   createRewardRequest: (rewardRequest: Omit<RewardRequest, 'id' | 'status' | 'createdAt'>) => Promise<void>;
   updateRewardRequestStatus: (request: RewardRequest, newStatus: RewardRequestStatus) => Promise<RewardRequest | null>;
   pullGachaForCharacter: (userId: string, characterId: string) => Promise<{newCard: FamiliarCard, isDuplicate: boolean}>;
-  giveEventFamiliarToCharacter: (userId: string, characterId: string, familiarId: string) => Promise<void>;
+  giveAnyFamiliarToCharacter: (userId: string, characterId: string, familiarId: string) => Promise<void>;
   clearPointHistoryForUser: (userId: string) => Promise<void>;
   addMoodletToCharacter: (userId: string, characterId: string, moodletId: string, durationInDays: number, source?: string) => Promise<void>;
   removeMoodletFromCharacter: (userId: string, characterId: string, moodletId: string) => Promise<void>;
@@ -854,7 +854,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, [currentUser?.id]);
   
 
-  const giveEventFamiliarToCharacter = useCallback(async (userId: string, characterId: string, familiarId: string) => {
+  const giveAnyFamiliarToCharacter = useCallback(async (userId: string, characterId: string, familiarId: string) => {
     const user = await fetchUserById(userId);
     if (!user) return;
 
@@ -867,11 +867,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const character = { ...user.characters[characterIndex] };
     const inventory = character.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: [] };
     
-    if ((inventory.familiarCards || []).some(card => card.id === familiarId)) {
-      console.warn(`Character ${character.name} already owns familiar ${familiar.name}`);
-      return;
-    }
-
+    // Unlike event familiars, we can allow duplicates from admin panel if needed
+    // For now, let's just add it.
     inventory.familiarCards = [...(inventory.familiarCards || []), { id: familiarId }];
     character.inventory = inventory;
 
@@ -879,10 +876,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     updatedCharacters[characterIndex] = character;
     
     const newPointLog: PointLog = {
-        id: `h-${Date.now()}-event`,
+        id: `h-${Date.now()}-admin-give`,
         date: new Date().toISOString(),
         amount: 0,
-        reason: `Ивентовая награда: получен фамильяр "${familiar.name}"`,
+        reason: `Администратор выдал фамильяра: "${familiar.name}"`,
         characterName: character.name,
     };
     const newHistory = [newPointLog, ...user.pointHistory];
@@ -1554,7 +1551,7 @@ const processMonthlySalary = useCallback(async () => {
       createRewardRequest,
       updateRewardRequestStatus,
       pullGachaForCharacter,
-      giveEventFamiliarToCharacter,
+      giveAnyFamiliarToCharacter,
       clearPointHistoryForUser,
       addMoodletToCharacter,
       removeMoodletFromCharacter,
@@ -1577,7 +1574,7 @@ const processMonthlySalary = useCallback(async () => {
       acceptFamiliarTradeRequest,
       declineOrCancelFamiliarTradeRequest,
     }),
-    [currentUser, gameSettings, fetchUsersForAdmin, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateGameDate, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest]
+    [currentUser, gameSettings, fetchUsersForAdmin, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateGameDate, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest]
   );
 
   return (
