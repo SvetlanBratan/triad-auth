@@ -8,7 +8,7 @@ export type RelationshipType = 'романтика' | 'дружба' | 'враж
 export type RelationshipActionType = 'подарок' | 'письмо';
 export type RelationshipActionStatus = 'pending' | 'confirmed';
 export type WealthLevel = 'Бедный' | 'Просветленный' | 'Средний' | 'Выше среднего' | 'Высокий';
-export type Currency = keyof BankAccount;
+export type Currency = keyof Omit<BankAccount, 'history'>;
 export type ExchangeRequestStatus = 'open' | 'closed';
 export type FamiliarTradeRequestStatus = 'в ожидании' | 'принято' | 'отклонено' | 'отменено';
 
@@ -83,11 +83,20 @@ export interface Relationship {
   lastLetterSentAt?: string; // ISO string date
 }
 
+export interface BankTransaction {
+  id: string;
+  date: string; // ISO string date
+  reason: string;
+  amount: Partial<Omit<BankAccount, 'history'>>;
+}
+
+
 export interface BankAccount {
   platinum: number;
   gold: number;
   silver: number;
   copper: number;
+  history?: BankTransaction[];
 }
 
 export interface CapitalLevel {

@@ -2,7 +2,7 @@
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
-import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank } from '@/lib/types';
+import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter } from "firebase/firestore";
@@ -217,7 +217,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         транспорт: [],
         familiarCards: [],
     },
-    bankAccount: { platinum: 0, gold: 0, silver: 0, copper: 0 },
+    bankAccount: { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] },
     wealthLevel: 'Бедный',
   }), []);
 
@@ -230,8 +230,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 ...initialFormData,
                 ...char,
                 bankAccount: typeof char.bankAccount !== 'object' || char.bankAccount === null 
-                    ? { platinum: 0, gold: 0, silver: 0, copper: 0 } 
-                    : { platinum: 0, gold: 0, silver: 0, copper: 0, ...char.bankAccount },
+                    ? { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] } 
+                    : { platinum: 0, gold: 0, silver: 0, copper: 0, history: [], ...char.bankAccount },
                 accomplishments: char.accomplishments || [],
                 training: Array.isArray(char.training) ? char.training : [],
                 marriedTo: Array.isArray(char.marriedTo) ? char.marriedTo : [],
@@ -335,8 +335,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 ...initialFormData,
                 ...char,
                  bankAccount: typeof char.bankAccount !== 'object' || char.bankAccount === null 
-                    ? { platinum: 0, gold: 0, silver: 0, copper: 0 } 
-                    : { platinum: 0, gold: 0, silver: 0, copper: 0, ...char.bankAccount },
+                    ? { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] } 
+                    : { platinum: 0, gold: 0, silver: 0, copper: 0, history: [], ...char.bankAccount },
                 inventory: char.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: char.familiarCards || [] },
                 moodlets: char.moodlets || [],
             })) || [];
@@ -460,13 +460,22 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const oldCharacterState = sourceUserData.characters.find(c => c.id === characterToUpdate.id);
         const oldRelationships = new Map((oldCharacterState?.relationships || []).map(r => [r.targetCharacterId, r]));
 
+        // Ensure bankAccount.history is an array
+        const sanitizedCharacterToUpdate = {
+            ...characterToUpdate,
+            bankAccount: {
+                ...characterToUpdate.bankAccount,
+                history: Array.isArray(characterToUpdate.bankAccount?.history) ? characterToUpdate.bankAccount.history : [],
+            },
+        };
+
         const updatedCharacters = [...sourceUserData.characters];
-        const characterIndex = updatedCharacters.findIndex(char => char.id === characterToUpdate.id);
+        const characterIndex = updatedCharacters.findIndex(char => char.id === sanitizedCharacterToUpdate.id);
 
         if (characterIndex > -1) {
-            updatedCharacters[characterIndex] = characterToUpdate;
+            updatedCharacters[characterIndex] = sanitizedCharacterToUpdate;
         } else {
-            updatedCharacters.push(characterToUpdate);
+            updatedCharacters.push(sanitizedCharacterToUpdate);
         }
 
         // --- Relationship Synchronization ---
@@ -475,7 +484,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const usersToUpdate = new Map<string, User>();
         usersToUpdate.set(userId, { ...sourceUserData, characters: updatedCharacters });
 
-        const newRelationships = new Map(characterToUpdate.relationships.map(r => [r.targetCharacterId, r]));
+        const newRelationships = new Map(sanitizedCharacterToUpdate.relationships.map(r => [r.targetCharacterId, r]));
 
         // Check for new/updated relationships
         for (const [targetCharId, newRel] of newRelationships.entries()) {
@@ -499,11 +508,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 if (targetCharIndex !== -1) {
                     const targetChar = { ...userToUpdate.characters[targetCharIndex] };
                     targetChar.relationships = targetChar.relationships || [];
-                    const reciprocalRelIndex = targetChar.relationships.findIndex(r => r.targetCharacterId === characterToUpdate.id);
+                    const reciprocalRelIndex = targetChar.relationships.findIndex(r => r.targetCharacterId === sanitizedCharacterToUpdate.id);
 
                     const reciprocalRel: Relationship = {
-                        targetCharacterId: characterToUpdate.id,
-                        targetCharacterName: characterToUpdate.name,
+                        targetCharacterId: sanitizedCharacterToUpdate.id,
+                        targetCharacterName: sanitizedCharacterToUpdate.name,
                         type: newRel.type,
                         points: reciprocalRelIndex !== -1 ? targetChar.relationships[reciprocalRelIndex].points : 0,
                         history: reciprocalRelIndex !== -1 ? targetChar.relationships[reciprocalRelIndex].history : [],
@@ -540,7 +549,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                     
                     if (targetCharIndex !== -1) {
                          const targetChar = { ...userToUpdate.characters[targetCharIndex] };
-                         targetChar.relationships = (targetChar.relationships || []).filter(r => r.targetCharacterId !== characterToUpdate.id);
+                         targetChar.relationships = (targetChar.relationships || []).filter(r => r.targetCharacterId !== sanitizedCharacterToUpdate.id);
                          userToUpdate.characters[targetCharIndex] = targetChar;
                          usersToUpdate.set(targetUserId, userToUpdate);
                     }
@@ -1152,7 +1161,7 @@ const updateCharacterWealthLevel = useCallback(async (userId: string, characterI
     await updateUser(userId, { characters: updatedCharacters });
 }, [fetchUserById, updateUser]);
 
-const addBankPointsToCharacter = useCallback(async (userId: string, characterId: string, amount: Partial<BankAccount>, reason: string) => {
+const addBankPointsToCharacter = useCallback(async (userId: string, characterId: string, amount: Partial<Omit<BankAccount, 'history'>>, reason: string) => {
     const user = await fetchUserById(userId);
     if (!user) throw new Error("User not found");
 
@@ -1162,15 +1171,20 @@ const addBankPointsToCharacter = useCallback(async (userId: string, characterId:
     const updatedCharacters = [...user.characters];
     const character = { ...updatedCharacters[characterIndex] };
     
-    let currentBalance = character.bankAccount;
-    if (typeof currentBalance !== 'object' || currentBalance === null) {
-      currentBalance = { platinum: 0, gold: 0, silver: 0, copper: 0 };
-    }
+    const currentBalance = character.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
     
     currentBalance.platinum = (currentBalance.platinum || 0) + (amount.platinum || 0);
     currentBalance.gold = (currentBalance.gold || 0) + (amount.gold || 0);
     currentBalance.silver = (currentBalance.silver || 0) + (amount.silver || 0);
     currentBalance.copper = (currentBalance.copper || 0) + (amount.copper || 0);
+
+    const newTransaction: BankTransaction = {
+        id: `txn-${Date.now()}`,
+        date: new Date().toISOString(),
+        reason,
+        amount,
+    };
+    currentBalance.history = [newTransaction, ...(currentBalance.history || [])];
 
     character.bankAccount = currentBalance;
     updatedCharacters[characterIndex] = character;
@@ -1190,12 +1204,20 @@ const processMonthlySalary = useCallback(async () => {
 
             const salary = wealthInfo.salary;
             
-            let newBalance = { ...(character.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 }) };
+            let newBalance = { ...(character.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] }) };
             newBalance.platinum = (newBalance.platinum || 0) + (salary.platinum || 0);
             newBalance.gold = (newBalance.gold || 0) + (salary.gold || 0);
             newBalance.silver = (newBalance.silver || 0) + (salary.silver || 0);
             newBalance.copper = (newBalance.copper || 0) + (salary.copper || 0);
             
+            const newTransaction: BankTransaction = {
+                id: `txn-salary-${Date.now()}`,
+                date: new Date().toISOString(),
+                reason: 'Ежемесячная зарплата',
+                amount: salary,
+            };
+            newBalance.history = [newTransaction, ...(newBalance.history || [])];
+
             hasChanges = true;
             return { ...character, bankAccount: newBalance };
         });
@@ -1222,12 +1244,20 @@ const processMonthlySalary = useCallback(async () => {
         if (charIndex === -1) throw new Error("Персонаж не найден.");
         
         const character = userData.characters[charIndex];
-        const bankAccount = character.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 };
+        const bankAccount = character.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
         if (bankAccount[fromCurrency] < fromAmount) {
             throw new Error("Недостаточно средств для создания запроса.");
         }
         
         bankAccount[fromCurrency] -= fromAmount;
+        
+        const newTransaction: BankTransaction = {
+          id: `txn-exchange-create-${Date.now()}`,
+          date: new Date().toISOString(),
+          reason: 'Создание запроса на обмен',
+          amount: { [fromCurrency]: -fromAmount }
+        };
+        bankAccount.history = [newTransaction, ...(bankAccount.history || [])];
         character.bankAccount = bankAccount;
 
         const newRequest: Omit<ExchangeRequest, 'id'> = {
@@ -1288,14 +1318,18 @@ const processMonthlySalary = useCallback(async () => {
         if (creatorCharIndex === -1) throw new Error("Персонаж создателя запроса не найден.");
 
         // Perform transaction
-        const acceptorBankAccount = acceptorChar.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 };
+        const acceptorBankAccount = acceptorChar.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
         acceptorBankAccount[request.toCurrency] -= request.toAmount;
         acceptorBankAccount[request.fromCurrency] = (acceptorBankAccount[request.fromCurrency] || 0) + request.fromAmount;
+        const acceptorTx: BankTransaction = { id: `txn-accept-${Date.now()}`, date: new Date().toISOString(), reason: `Обмен с ${request.creatorCharacterName}`, amount: { [request.toCurrency]: -request.toAmount, [request.fromCurrency]: request.fromAmount }};
+        acceptorBankAccount.history = [acceptorTx, ...(acceptorBankAccount.history || [])];
         acceptorChar.bankAccount = acceptorBankAccount;
 
         const creatorChar = creatorUserData.characters[creatorCharIndex];
-        const creatorBankAccount = creatorChar.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 };
+        const creatorBankAccount = creatorChar.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
         creatorBankAccount[request.toCurrency] = (creatorBankAccount[request.toCurrency] || 0) + request.toAmount;
+        const creatorTx: BankTransaction = { id: `txn-complete-${Date.now()}`, date: new Date().toISOString(), reason: `Обмен с ${acceptorChar.name}`, amount: { [request.toCurrency]: request.toAmount }};
+        creatorBankAccount.history = [creatorTx, ...(creatorBankAccount.history || [])];
         creatorChar.bankAccount = creatorBankAccount;
         
         // Commit changes
@@ -1329,8 +1363,11 @@ const processMonthlySalary = useCallback(async () => {
 
         // Refund money
         const creatorChar = creatorUserData.characters[creatorCharIndex];
-        const bankAccount = creatorChar.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 };
+        const bankAccount = creatorChar.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
         bankAccount[request.fromCurrency] = (bankAccount[request.fromCurrency] || 0) + request.fromAmount;
+        
+        const refundTx: BankTransaction = { id: `txn-cancel-${Date.now()}`, date: new Date().toISOString(), reason: 'Отмена запроса на обмен', amount: { [request.fromCurrency]: request.fromAmount }};
+        bankAccount.history = [refundTx, ...(bankAccount.history || [])];
         creatorChar.bankAccount = bankAccount;
         
         transaction.update(creatorUserRef, { characters: creatorUserData.characters });

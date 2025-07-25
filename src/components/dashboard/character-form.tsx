@@ -55,7 +55,7 @@ const initialFormData: Omit<Character, 'id'> = {
         транспорт: [],
         familiarCards: [],
     },
-    bankAccount: { platinum: 0, gold: 0, silver: 0, copper: 0 },
+    bankAccount: { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] },
     wealthLevel: 'Бедный',
 };
 
@@ -106,7 +106,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
                 training: Array.isArray(character.training) ? character.training : [],
                 marriedTo: Array.isArray(character.marriedTo) ? character.marriedTo : [],
                 relationships: (Array.isArray(character.relationships) ? character.relationships : []).map(r => ({...r, id: r.id || `rel-${Math.random()}`})),
-                bankAccount: character.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 },
+                bankAccount: character.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] },
                 wealthLevel: character.wealthLevel || 'Бедный',
             };
             setFormData(initializedCharacter);

@@ -112,7 +112,7 @@ export default function AdminTab() {
   const [ecoUserId, setEcoUserId] = useState('');
   const [ecoCharId, setEcoCharId] = useState('');
   const [isDeductingEco, setIsDeductingEco] = useState(false);
-  const [ecoAmount, setEcoAmount] = useState<Partial<BankAccount>>({ platinum: 0, gold: 0, silver: 0, copper: 0});
+  const [ecoAmount, setEcoAmount] = useState<Partial<Omit<BankAccount, 'history'>>>({ platinum: 0, gold: 0, silver: 0, copper: 0});
   const [ecoReason, setEcoReason] = useState('');
   const [ecoWealthLevel, setEcoWealthLevel] = useState<WealthLevel | ''>('');
   
@@ -465,7 +465,7 @@ export default function AdminTab() {
 
   // --- Economy Handlers ---
 
-  const handleEcoAmountChange = (currency: keyof BankAccount, value: string) => {
+  const handleEcoAmountChange = (currency: keyof Omit<BankAccount, 'history'>, value: string) => {
       const numValue = parseInt(value, 10) || 0;
       setEcoAmount(prev => ({ ...prev, [currency]: numValue }));
   };
@@ -477,7 +477,7 @@ export default function AdminTab() {
           return;
       }
       
-      const finalAmount = { ...ecoAmount };
+      const finalAmount: Partial<Omit<BankAccount, 'history'>> = { ...ecoAmount };
       if (isDeductingEco) {
           finalAmount.platinum = -Math.abs(finalAmount.platinum || 0);
           finalAmount.gold = -Math.abs(finalAmount.gold || 0);

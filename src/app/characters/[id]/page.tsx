@@ -4,13 +4,13 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, notFound } from 'next/navigation';
 import { useUser } from '@/hooks/use-user';
-import { User, Character, FamiliarCard, FamiliarRank, Moodlet, Relationship, RelationshipType, WealthLevel, BankAccount, Accomplishment } from '@/lib/types';
+import { User, Character, FamiliarCard, FamiliarRank, Moodlet, Relationship, RelationshipType, WealthLevel, BankAccount, Accomplishment, BankTransaction } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FAMILIARS_BY_ID, MOODLETS_DATA, TRAINING_OPTIONS } from '@/lib/data';
 import FamiliarCardDisplay from '@/components/dashboard/familiar-card';
-import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users, HeartHandshake, Wallet, Coins, Award, Zap, ShieldOff } from 'lucide-react';
+import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users, HeartHandshake, Wallet, Coins, Award, Zap, ShieldOff, History } from 'lucide-react';
 import Link from 'next/link';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogPortal } from '@/components/ui/dialog';
@@ -175,6 +175,12 @@ export default function CharacterPage() {
         const result = formatCurrency(character.bankAccount, true);
         return typeof result === 'string' ? [[result, '']] : result;
     }, [character]);
+    
+    const sortedBankHistory = useMemo(() => {
+        if (!character || !character.bankAccount.history) return [];
+        return [...character.bankAccount.history].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }, [character]);
+
 
     if (isLoading) {
         return <div className="container mx-auto p-4 md:p-8"><p>Загрузка данных персонажа...</p></div>;
@@ -390,6 +396,46 @@ export default function CharacterPage() {
                                     )}
                                 </div>
                             </div>
+                            {sortedBankHistory.length > 0 && (
+                                <Accordion type="single" collapsible className="w-full pt-2">
+                                    <AccordionItem value="history">
+                                        <AccordionTrigger className="text-xs text-muted-foreground hover:no-underline">
+                                           <div className="flex items-center gap-2">
+                                                <History className="w-4 h-4" />
+                                                <span>История счёта</span>
+                                           </div>
+                                        </AccordionTrigger>
+                                        <AccordionContent>
+                                            <ScrollArea className="h-48 pr-3">
+                                                <div className="space-y-3">
+                                                {sortedBankHistory.map(tx => {
+                                                    const amounts = Object.entries(tx.amount).filter(([, val]) => val !== 0);
+                                                    const isCredit = Object.values(tx.amount).some(v => v > 0);
+                                                    const isDebit = Object.values(tx.amount).some(v => v < 0);
+                                                    let colorClass = '';
+                                                    if(isCredit && !isDebit) colorClass = 'text-green-600';
+                                                    if(isDebit && !isCredit) colorClass = 'text-destructive';
+
+                                                    return (
+                                                        <div key={tx.id} className="text-xs p-2 bg-muted/50 rounded-md">
+                                                            <p className="font-semibold">{tx.reason}</p>
+                                                            <p className="text-muted-foreground">{new Date(tx.date).toLocaleString()}</p>
+                                                            <div className={cn("font-mono font-semibold", colorClass)}>
+                                                                {amounts.map(([currency, value]) => (
+                                                                    <div key={currency}>
+                                                                        {value > 0 ? '+' : ''}{value.toLocaleString()} {currency}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )
+                                                })}
+                                                </div>
+                                            </ScrollArea>
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                </Accordion>
+                            )}
                         </CardContent>
                     </Card>
                     
