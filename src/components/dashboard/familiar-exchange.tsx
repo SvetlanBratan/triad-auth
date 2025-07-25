@@ -7,10 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowRightLeft, Repeat, Check, X, Trash2, Send } from 'lucide-react';
+import { ArrowRightLeft, Repeat, Check, X, Trash2, Send, ChevronsUpDown } from 'lucide-react';
 import type { Character, FamiliarCard, FamiliarTradeRequest, User, FamiliarRank } from '@/lib/types';
 import { FAMILIARS_BY_ID } from '@/lib/data';
 import Image from 'next/image';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { cn } from '@/lib/utils';
 
 const rankNames: Record<FamiliarRank, string> = {
     'мифический': 'Мифический',
@@ -33,6 +36,64 @@ const MiniFamiliarCard = ({ cardId }: { cardId: string }) => {
         </div>
     );
 };
+
+interface SearchableSelectProps {
+    options: { value: string; label: string; }[];
+    value: string;
+    onValueChange: (value: string) => void;
+    placeholder: string;
+    disabled?: boolean;
+}
+
+const SearchableSelect = ({ options, value, onValueChange, placeholder, disabled }: SearchableSelectProps) => {
+    const [open, setOpen] = useState(false);
+    const selectedLabel = options.find(opt => opt.value === value)?.label;
+
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={open}
+                    className="w-full justify-between"
+                    disabled={disabled}
+                >
+                    {selectedLabel || placeholder}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+                <Command>
+                    <CommandInput placeholder="Поиск..." />
+                    <CommandList>
+                        <CommandEmpty>Ничего не найдено.</CommandEmpty>
+                        <CommandGroup>
+                            {options.map((option) => (
+                                <CommandItem
+                                    key={option.value}
+                                    value={option.label}
+                                    onSelect={() => {
+                                        onValueChange(option.value);
+                                        setOpen(false);
+                                    }}
+                                >
+                                    <Check
+                                        className={cn(
+                                            "mr-2 h-4 w-4",
+                                            value === option.value ? "opacity-100" : "opacity-0"
+                                        )}
+                                    />
+                                    {option.label}
+                                </CommandItem>
+                            ))}
+                        </CommandGroup>
+                    </CommandList>
+                </Command>
+            </PopoverContent>
+        </Popover>
+    );
+}
 
 
 export default function FamiliarExchange() {
@@ -83,9 +144,12 @@ export default function FamiliarExchange() {
   
   const mySelectedChar = useMemo(() => myCharacters.find(c => c.id === initiatorCharId), [myCharacters, initiatorCharId]);
   
-  const myFamiliars = useMemo(() => {
+  const myFamiliarsOptions = useMemo(() => {
     if (!mySelectedChar) return [];
-    return (mySelectedChar.inventory?.familiarCards || []).map(owned => FAMILIARS_BY_ID[owned.id]).filter(Boolean);
+    return (mySelectedChar.inventory?.familiarCards || [])
+        .map(owned => FAMILIARS_BY_ID[owned.id])
+        .filter(Boolean)
+        .map(fam => ({ value: fam.id, label: `${fam.name} (${rankNames[fam.rank]})` }));
   }, [mySelectedChar]);
 
   const selectedFamiliarRank = useMemo(() => {
@@ -93,20 +157,31 @@ export default function FamiliarExchange() {
     return FAMILIARS_BY_ID[initiatorFamiliarId]?.rank;
   }, [initiatorFamiliarId]);
 
-  const otherCharacters = useMemo(() => {
+  const otherCharactersOptions = useMemo(() => {
     if (!selectedFamiliarRank) return [];
+    const ownerMap = new Map<string, string>();
+    allUsers.forEach(u => u.characters.forEach(c => ownerMap.set(c.id, u.name)));
+
     return allUsers.flatMap(u => u.characters.filter(c => 
         c.id !== initiatorCharId && (c.inventory?.familiarCards || []).some(f => FAMILIARS_BY_ID[f.id]?.rank === selectedFamiliarRank)
-    ));
+    )).map(c => ({ value: c.id, label: `${c.name} (${ownerMap.get(c.id)})` }));
   }, [allUsers, initiatorCharId, selectedFamiliarRank]);
   
-  const targetSelectedChar = useMemo(() => otherCharacters.find(c => c.id === targetCharId), [otherCharacters, targetCharId]);
+  const targetSelectedChar = useMemo(() => {
+      if(!targetCharId) return null;
+      for (const user of allUsers) {
+          const char = user.characters.find(c => c.id === targetCharId);
+          if (char) return char;
+      }
+      return null;
+  }, [allUsers, targetCharId]);
 
-  const targetFamiliars = useMemo(() => {
+  const targetFamiliarsOptions = useMemo(() => {
       if (!targetSelectedChar || !selectedFamiliarRank) return [];
       return (targetSelectedChar.inventory?.familiarCards || [])
           .map(owned => FAMILIARS_BY_ID[owned.id])
-          .filter((card): card is FamiliarCard => !!card && card.rank === selectedFamiliarRank);
+          .filter((card): card is FamiliarCard => !!card && card.rank === selectedFamiliarRank)
+          .map(fam => ({ value: fam.id, label: `${fam.name} (${rankNames[fam.rank]})` }));
   }, [targetSelectedChar, selectedFamiliarRank]);
 
 
@@ -196,28 +271,31 @@ export default function FamiliarExchange() {
                             {myCharacters.map(char => <SelectItem key={char.id} value={char.id}>{char.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
-                    <Select value={initiatorFamiliarId} onValueChange={id => { setInitiatorFamiliarId(id); setTargetCharId(''); setTargetFamiliarId(''); }} disabled={!initiatorCharId}>
-                        <SelectTrigger><SelectValue placeholder="Выберите вашего фамильяра..." /></SelectTrigger>
-                        <SelectContent>
-                            {myFamiliars.map(fam => <SelectItem key={fam.id} value={fam.id}>{fam.name} ({rankNames[fam.rank]})</SelectItem>)}
-                        </SelectContent>
-                    </Select>
+                     <SearchableSelect
+                        options={myFamiliarsOptions}
+                        value={initiatorFamiliarId}
+                        onValueChange={id => { setInitiatorFamiliarId(id); setTargetCharId(''); setTargetFamiliarId(''); }}
+                        placeholder="Выберите вашего фамильяра..."
+                        disabled={!initiatorCharId}
+                    />
                 </div>
                  {/* Step 2: Their side */}
                 <div className="space-y-2 p-3 border rounded-md">
                      <h4 className="font-semibold text-sm">Предложение игроку</h4>
-                    <Select value={targetCharId} onValueChange={id => { setTargetCharId(id); setTargetFamiliarId(''); }} disabled={!selectedFamiliarRank}>
-                        <SelectTrigger><SelectValue placeholder="Выберите персонажа для обмена..." /></SelectTrigger>
-                        <SelectContent>
-                            {otherCharacters.map(char => <SelectItem key={char.id} value={char.id}>{char.name}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                     <Select value={targetFamiliarId} onValueChange={setTargetFamiliarId} disabled={!targetCharId}>
-                        <SelectTrigger><SelectValue placeholder="Выберите их фамильяра..." /></SelectTrigger>
-                        <SelectContent>
-                            {targetFamiliars.map(fam => <SelectItem key={fam.id} value={fam.id}>{fam.name} ({rankNames[fam.rank]})</SelectItem>)}
-                        </SelectContent>
-                    </Select>
+                     <SearchableSelect
+                        options={otherCharactersOptions}
+                        value={targetCharId}
+                        onValueChange={id => { setTargetCharId(id); setTargetFamiliarId(''); }}
+                        placeholder="Выберите персонажа для обмена..."
+                        disabled={!selectedFamiliarRank}
+                    />
+                     <SearchableSelect
+                        options={targetFamiliarsOptions}
+                        value={targetFamiliarId}
+                        onValueChange={setTargetFamiliarId}
+                        placeholder="Выберите их фамильяра..."
+                        disabled={!targetCharId}
+                    />
                 </div>
 
             </CardContent>
