@@ -2,6 +2,7 @@
 
 
 
+
 export type UserRole = 'admin' | 'user';
 export type UserStatus = 'активный' | 'неактивный' | 'отпуск';
 export type RewardRequestStatus = 'в ожидании' | 'одобрено' | 'отклонено';
@@ -91,6 +92,11 @@ export interface BankAccount {
   gold: number;
   silver: number;
   copper: number;
+}
+
+export interface CapitalLevel {
+    name: string;
+    amount: Partial<BankAccount>;
 }
 
 export interface ExchangeRequest {

@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
 import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info } from 'lucide-react';
 import type { UserStatus, UserRole, User, FamiliarCard, BankAccount, WealthLevel, FamiliarRank } from '@/lib/types';
-import { FAME_LEVELS_POINTS, EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, FAMILIARS_BY_ID, WEALTH_LEVELS, ALL_FAMILIARS } from '@/lib/data';
+import { FAME_LEVELS_POINTS, EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, FAMILIARS_BY_ID, WEALTH_LEVELS, ALL_FAMILIARS, STARTING_CAPITAL_LEVELS } from '@/lib/data';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -115,6 +115,11 @@ export default function AdminTab() {
   const [ecoAmount, setEcoAmount] = useState<Partial<BankAccount>>({ platinum: 0, gold: 0, silver: 0, copper: 0});
   const [ecoReason, setEcoReason] = useState('');
   const [ecoWealthLevel, setEcoWealthLevel] = useState<WealthLevel | ''>('');
+  
+  // Starting capital state
+  const [capitalUserId, setCapitalUserId] = useState('');
+  const [capitalCharId, setCapitalCharId] = useState('');
+  const [capitalLevel, setCapitalLevel] = useState('');
 
 
   const { toast } = useToast();
@@ -504,6 +509,29 @@ export default function AdminTab() {
     setEcoWealthLevel('');
   };
 
+  const handleStartingCapitalSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!capitalUserId || !capitalCharId || !capitalLevel) {
+        toast({ variant: 'destructive', title: 'Ошибка', description: 'Выберите пользователя, персонажа и уровень капитала.' });
+        return;
+    }
+
+    const selectedLevel = STARTING_CAPITAL_LEVELS.find(level => level.name === capitalLevel);
+    if (!selectedLevel) {
+        toast({ variant: 'destructive', title: 'Ошибка', description: 'Выбранный уровень капитала не найден.' });
+        return;
+    }
+
+    await addBankPointsToCharacter(capitalUserId, capitalCharId, selectedLevel.amount, 'Начисление стартового капитала');
+    await refetchUsers();
+    toast({ title: 'Стартовый капитал начислен!', description: `Счет персонажа пополнен.` });
+
+    // Reset form
+    setCapitalUserId('');
+    setCapitalCharId('');
+    setCapitalLevel('');
+  };
+
   // --- Memos ---
 
   const charactersForGiveFamiliar = useMemo(() => {
@@ -525,6 +553,11 @@ export default function AdminTab() {
     if (!ecoUserId) return [];
     return users.find(u => u.id === ecoUserId)?.characters || [];
   }, [ecoUserId, users]);
+  
+  const charactersForCapital = useMemo(() => {
+    if (!capitalUserId) return [];
+    return users.find(u => u.id === capitalUserId)?.characters || [];
+  }, [capitalUserId, users]);
 
   const familiarsForSelectedCharacterOptions = useMemo((): {value: string, label: string}[] => {
     if (!removeFamiliarUserId || !removeFamiliarCharId) return [];
@@ -1295,6 +1328,43 @@ export default function AdminTab() {
                             <p className="text-sm text-muted-foreground mb-3">Начисляет зарплату всем персонажам в зависимости от их уровня достатка.</p>
                             <Button onClick={handleSalaryPayout} variant="outline">Начислить зарплату</Button>
                         </div>
+                    </CardContent>
+                </Card>
+            </div>
+             <div className="break-inside-avoid mb-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Star /> Стартовый капитал</CardTitle>
+                        <CardDescription>Начислить персонажу стартовый капитал.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <form onSubmit={handleStartingCapitalSubmit} className="space-y-4">
+                            <div>
+                                <Label>Пользователь и персонаж</Label>
+                                <div className="flex gap-2">
+                                    <Select value={capitalUserId} onValueChange={uid => { setCapitalUserId(uid); setCapitalCharId(''); }}>
+                                        <SelectTrigger><SelectValue placeholder="Пользователь" /></SelectTrigger>
+                                        <SelectContent>{users.map(user => (<SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>))}</SelectContent>
+                                    </Select>
+                                    <Select value={capitalCharId} onValueChange={setCapitalCharId} disabled={!capitalUserId}>
+                                        <SelectTrigger><SelectValue placeholder="Персонаж" /></SelectTrigger>
+                                        <SelectContent>{charactersForCapital.map(c => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}</SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                            <div>
+                                <Label htmlFor="capital-level">Уровень капитала</Label>
+                                <Select value={capitalLevel} onValueChange={setCapitalLevel}>
+                                    <SelectTrigger id="capital-level"><SelectValue placeholder="Выберите уровень" /></SelectTrigger>
+                                    <SelectContent>
+                                        {STARTING_CAPITAL_LEVELS.map(level => (
+                                            <SelectItem key={level.name} value={level.name}>{level.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <Button type="submit">Начислить капитал</Button>
+                        </form>
                     </CardContent>
                 </Card>
             </div>

@@ -1,5 +1,5 @@
 
-import type { Reward, FamiliarCard, Achievement, GameSettings, WealthLevel, BankAccount } from './types';
+import type { Reward, FamiliarCard, Achievement, GameSettings, WealthLevel, BankAccount, CapitalLevel } from './types';
 import type { OptionType } from '@/components/ui/multi-select';
 
 // Game Date is now fetched from Firestore. See UserProvider.
@@ -15,6 +15,15 @@ export const WEALTH_LEVELS: { name: WealthLevel; salary: Partial<BankAccount>; d
     { name: 'Средний', salary: { gold: 10, silver: 60, copper: 500 }, description: '10 зол., 60 сер., 500 мед.' },
     { name: 'Выше среднего', salary: { gold: 20, silver: 100, copper: 1000 }, description: '20 зол., 100 сер., 1000 мед.' },
     { name: 'Высокий', salary: { gold: 35, silver: 200, copper: 1500 }, description: '35 зол., 200 сер., 1500 мед.' }
+];
+
+export const STARTING_CAPITAL_LEVELS: CapitalLevel[] = [
+    { name: 'Очень бедные', amount: { silver: 7, copper: 180 } },
+    { name: 'Бедные', amount: { gold: 1, silver: 35, copper: 400 } },
+    { name: 'Со средним заработком', amount: { gold: 8, silver: 150, copper: 1200 } },
+    { name: 'Богатенькие (ремесленники и гильдейские)', amount: { gold: 30, silver: 400, copper: 2500 } },
+    { name: 'Богатые (бароны и графы)', amount: { gold: 150, silver: 1500, copper: 5000 } },
+    { name: 'Очень богатые (герцоги и выше)', amount: { gold: 800, silver: 5000, copper: 15000 } }
 ];
 
 
