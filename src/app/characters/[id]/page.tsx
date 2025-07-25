@@ -272,27 +272,31 @@ export default function CharacterPage() {
                         </CardContent>
                     </Card>
                     
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><Zap /> Способности</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <ScrollArea className="h-40 w-full">
-                                <p className="whitespace-pre-wrap pr-4">{character.abilities}</p>
-                            </ScrollArea>
-                        </CardContent>
-                    </Card>
+                    {character.abilities && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2"><Zap /> Способности</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <ScrollArea className="h-40 w-full">
+                                    <p className="whitespace-pre-wrap pr-4">{character.abilities}</p>
+                                </ScrollArea>
+                            </CardContent>
+                        </Card>
+                    )}
                     
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><ShieldOff /> Слабости</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <ScrollArea className="h-40 w-full">
-                                <p className="whitespace-pre-wrap pr-4">{character.weaknesses}</p>
-                            </ScrollArea>
-                        </CardContent>
-                    </Card>
+                    {character.weaknesses && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2"><ShieldOff /> Слабости</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <ScrollArea className="h-40 w-full">
+                                    <p className="whitespace-pre-wrap pr-4">{character.weaknesses}</p>
+                                </ScrollArea>
+                            </CardContent>
+                        </Card>
+                    )}
                     
                     <Card>
                         <CardHeader>
