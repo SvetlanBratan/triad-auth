@@ -1194,20 +1194,15 @@ const processMonthlySalary = useCallback(async () => {
         let hasChanges = false;
         const updatedCharacters = user.characters.map(character => {
             const wealthInfo = WEALTH_LEVELS.find(w => w.name === character.wealthLevel);
-            if (!wealthInfo) return character;
+            if (!wealthInfo || !wealthInfo.salary) return character;
 
-            const salaryCopper = Math.floor(Math.random() * (wealthInfo.maxSalary - wealthInfo.minSalary + 1)) + wealthInfo.minSalary;
+            const salary = wealthInfo.salary;
             
             let newBalance = { ...(character.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 }) };
-            newBalance.copper = (newBalance.copper || 0) + salaryCopper;
-
-            // Convert up
-            newBalance.silver = (newBalance.silver || 0) + Math.floor(newBalance.copper / 100);
-            newBalance.copper %= 100;
-            newBalance.gold = (newBalance.gold || 0) + Math.floor(newBalance.silver / 100);
-            newBalance.silver %= 100;
-            newBalance.platinum = (newBalance.platinum || 0) + Math.floor(newBalance.gold / 100);
-            newBalance.gold %= 100;
+            newBalance.platinum = (newBalance.platinum || 0) + (salary.platinum || 0);
+            newBalance.gold = (newBalance.gold || 0) + (salary.gold || 0);
+            newBalance.silver = (newBalance.silver || 0) + (salary.silver || 0);
+            newBalance.copper = (newBalance.copper || 0) + (salary.copper || 0);
             
             hasChanges = true;
             return { ...character, bankAccount: newBalance };
@@ -1318,11 +1313,10 @@ const processMonthlySalary = useCallback(async () => {
     });
     
     if (currentUser) {
-      if (currentUser.id === acceptorUserId) {
-        const updatedUser = await fetchUserById(acceptorUserId);
+      if (currentUser.id === acceptorUserId || currentUser.id === request.creatorUserId) {
+        const updatedUser = await fetchUserById(currentUser.id);
         if (updatedUser) setCurrentUser(updatedUser);
       }
-      // We don't need to update the creator here, they can see the change on next load
     }
   }, [currentUser, fetchUserById]);
 
