@@ -315,7 +315,7 @@ export default function AdminTab() {
     });
   };
 
-  const handleFameAwards = async () => {
+ const handleFameAwards = async () => {
     let usersAwardedCount = 0;
     let totalPointsAwarded = 0;
 
@@ -323,9 +323,9 @@ export default function AdminTab() {
       if (user.characters && user.characters.length > 0) {
         let pointsForUser = 0;
         user.characters.forEach(character => {
-          if (character.fameLevels && character.fameLevels.length > 0) {
-            character.fameLevels.forEach(fame => {
-              const fameLevelKey = fame.level as keyof typeof FAME_LEVELS_POINTS;
+          if (character.accomplishments && character.accomplishments.length > 0) {
+            character.accomplishments.forEach(acc => {
+              const fameLevelKey = acc.fameLevel as keyof typeof FAME_LEVELS_POINTS;
               if (FAME_LEVELS_POINTS[fameLevelKey]) {
                 pointsForUser += FAME_LEVELS_POINTS[fameLevelKey];
               }
@@ -355,6 +355,7 @@ export default function AdminTab() {
       });
     }
   };
+
 
   const handleGiveFamiliar = async (e: React.FormEvent) => {
     e.preventDefault();

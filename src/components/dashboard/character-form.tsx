@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import type { Character, User, Relationship, RelationshipType, WealthLevel, CharacterLevel } from '@/lib/types';
+import type { Character, User, Relationship, RelationshipType, WealthLevel, Accomplishment } from '@/lib/types';
 import { SKILL_LEVELS, FAME_LEVELS, TRAINING_OPTIONS, WEALTH_LEVELS } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { DialogClose } from '@/components/ui/dialog';
@@ -28,8 +28,7 @@ const initialFormData: Omit<Character, 'id'> = {
     activity: '',
     race: '',
     birthDate: '',
-    skillLevels: [],
-    fameLevels: [],
+    accomplishments: [],
     workLocation: '',
     appearance: '',
     personality: '',
@@ -79,21 +78,24 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
 
      useEffect(() => {
         if (character) {
-             const skillLevels = (Array.isArray(character.skillLevels) && character.skillLevels.length > 0)
-                ? character.skillLevels
-                : (Array.isArray(character.skillLevel) && character.skillLevel.length > 0
-                    ? [{ id: `skill-${Date.now()}`, level: character.skillLevel[0], description: character.skillDescription || '' }]
-                    : []);
-
-            const fameLevels = (Array.isArray(character.fameLevels) && character.fameLevels.length > 0)
-                ? character.fameLevels
-                : (Array.isArray(character.currentFameLevel) && character.currentFameLevel.length > 0
-                    ? [{ id: `fame-${Date.now()}`, level: character.currentFameLevel[0], description: '' }]
-                    : []);
+            let accomplishments = character.accomplishments || [];
+            // Migration logic for old structure
+            if (!character.accomplishments && (character.fameLevels || character.skillLevels)) {
+                 const maxLength = Math.max(character.fameLevels?.length || 0, character.skillLevels?.length || 0);
+                 for (let i = 0; i < maxLength; i++) {
+                    accomplishments.push({
+                        id: `acc-${Date.now()}-${i}`,
+                        fameLevel: character.fameLevels?.[i]?.level || '',
+                        skillLevel: character.skillLevels?.[i]?.level || '',
+                        description: character.skillLevels?.[i]?.description || character.fameLevels?.[i]?.description || '',
+                    });
+                 }
+            }
             
             const initializedCharacter = {
                 ...initialFormData,
                 ...character,
+                accomplishments,
                 inventory: {
                     ...initialFormData.inventory,
                     ...(character.inventory || {}),
@@ -105,8 +107,6 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
                 relationships: (Array.isArray(character.relationships) ? character.relationships : []).map(r => ({...r, id: r.id || `rel-${Math.random()}`})),
                 bankAccount: character.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 },
                 wealthLevel: character.wealthLevel || 'Бедный',
-                skillLevels,
-                fameLevels,
             };
             setFormData(initializedCharacter);
         } else {
@@ -137,21 +137,25 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
         setFormData(prev => ({ ...prev, [id]: values }));
     };
     
-    // --- Handlers for Skill and Fame Levels ---
-    const handleLevelChange = (type: 'skillLevels' | 'fameLevels', index: number, field: 'level' | 'description', value: string) => {
-        const newLevels = [...formData[type]];
-        newLevels[index] = { ...newLevels[index], [field]: value };
-        setFormData(prev => ({ ...prev, [type]: newLevels }));
+    const handleAccomplishmentChange = (index: number, field: keyof Omit<Accomplishment, 'id'>, value: string) => {
+        const newAccomplishments = [...(formData.accomplishments || [])];
+        newAccomplishments[index] = { ...newAccomplishments[index], [field]: value };
+        setFormData(prev => ({ ...prev, accomplishments: newAccomplishments }));
     };
     
-    const addLevel = (type: 'skillLevels' | 'fameLevels') => {
-        const newLevel: CharacterLevel = { id: `${type.slice(0, 4)}-${Date.now()}`, level: '', description: '' };
-        setFormData(prev => ({ ...prev, [type]: [...(prev[type] || []), newLevel] }));
+    const addAccomplishment = () => {
+        const newAccomplishment: Accomplishment = { 
+            id: `acc-${Date.now()}`, 
+            fameLevel: '', 
+            skillLevel: '', 
+            description: '' 
+        };
+        setFormData(prev => ({ ...prev, accomplishments: [...(prev.accomplishments || []), newAccomplishment] }));
     };
 
-    const removeLevel = (type: 'skillLevels' | 'fameLevels', index: number) => {
-        const newLevels = formData[type].filter((_, i) => i !== index);
-        setFormData(prev => ({ ...prev, [type]: newLevels }));
+    const removeAccomplishment = (index: number) => {
+        const newAccomplishments = (formData.accomplishments || []).filter((_, i) => i !== index);
+        setFormData(prev => ({ ...prev, accomplishments: newAccomplishments }));
     };
 
 
@@ -195,15 +199,12 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
             },
             familiarCards: formData.inventory.familiarCards || [],
             relationships: formData.relationships.map(({ id, ...rest }) => rest) as Omit<Relationship, 'id'>[],
-             // Cleanup deprecated fields before submitting
-            skillLevel: undefined,
-            skillDescription: undefined,
-            currentFameLevel: undefined,
+            skillLevels: undefined, // Cleanup deprecated field
+            fameLevels: undefined, // Cleanup deprecated field
         };
         // Remove deprecated fields from the object
-        delete finalData.skillLevel;
-        delete finalData.skillDescription;
-        delete finalData.currentFameLevel;
+        delete finalData.skillLevels;
+        delete finalData.fameLevels;
 
         onSubmit(finalData as Character);
     };
@@ -234,54 +235,39 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
                         <Input id="workLocation" value={formData.workLocation ?? ''} onChange={handleChange} placeholder="например, Железная кузница" />
                     </div>
 
-                     {/* Fame Levels */}
+                    {/* Accomplishments */}
                     <div className="space-y-4 rounded-lg border p-4">
-                        <h3 className="text-lg font-medium">Известность</h3>
+                        <h3 className="text-lg font-medium">Достижения</h3>
+                         <p className="text-sm text-muted-foreground">Здесь вы можете комбинировать уровни известности и навыков с пояснениями.</p>
                         <Separator />
                         <div className="space-y-4">
-                            {(formData.fameLevels || []).map((fame, index) => (
-                                <div key={fame.id} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-2 items-end">
-                                    <div className="flex-grow">
-                                        <Label>Уровень</Label>
-                                        <Select value={fame.level} onValueChange={(value) => handleLevelChange('fameLevels', index, 'level', value)}>
-                                            <SelectTrigger><SelectValue placeholder="Выберите уровень..." /></SelectTrigger>
+                            {(formData.accomplishments || []).map((acc, index) => (
+                                <div key={acc.id} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_auto] gap-2 items-end p-2 border rounded-md relative">
+                                    <Button type="button" variant="ghost" size="icon" onClick={() => removeAccomplishment(index)} className="absolute -top-2 -right-2 h-6 w-6 bg-background">
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                    <div>
+                                        <Label>Известность</Label>
+                                        <Select value={acc.fameLevel} onValueChange={(value) => handleAccomplishmentChange(index, 'fameLevel', value)}>
+                                            <SelectTrigger><SelectValue placeholder="Уровень..." /></SelectTrigger>
                                             <SelectContent>{fameLevelOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
                                         </Select>
                                     </div>
-                                    <div className="flex-grow">
-                                        <Label>Пояснение</Label>
-                                        <Input value={fame.description} onChange={(e) => handleLevelChange('fameLevels', index, 'description', e.target.value)} placeholder="например, среди воров"/>
-                                    </div>
-                                    <Button type="button" variant="ghost" size="icon" onClick={() => removeLevel('fameLevels', index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                                </div>
-                            ))}
-                        </div>
-                        <Button type="button" variant="outline" size="sm" onClick={() => addLevel('fameLevels')}><PlusCircle className="mr-2 h-4 w-4"/>Добавить уровень известности</Button>
-                    </div>
-                    
-                    {/* Skill Levels */}
-                    <div className="space-y-4 rounded-lg border p-4">
-                        <h3 className="text-lg font-medium">Навыки</h3>
-                        <Separator />
-                        <div className="space-y-4">
-                            {(formData.skillLevels || []).map((skill, index) => (
-                                <div key={skill.id} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-2 items-end">
-                                    <div className="flex-grow">
-                                        <Label>Уровень</Label>
-                                        <Select value={skill.level} onValueChange={(value) => handleLevelChange('skillLevels', index, 'level', value)}>
-                                            <SelectTrigger><SelectValue placeholder="Выберите уровень..." /></SelectTrigger>
+                                     <div>
+                                        <Label>Навык</Label>
+                                        <Select value={acc.skillLevel} onValueChange={(value) => handleAccomplishmentChange(index, 'skillLevel', value)}>
+                                            <SelectTrigger><SelectValue placeholder="Уровень..." /></SelectTrigger>
                                             <SelectContent>{skillLevelOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
                                         </Select>
                                     </div>
-                                    <div className="flex-grow">
+                                    <div className="md:col-span-2">
                                         <Label>Пояснение</Label>
-                                        <Input value={skill.description} onChange={(e) => handleLevelChange('skillLevels', index, 'description', e.target.value)} placeholder="например, в области конструкта"/>
+                                        <Input value={acc.description} onChange={(e) => handleAccomplishmentChange(index, 'description', e.target.value)} placeholder="...в области интриг"/>
                                     </div>
-                                    <Button type="button" variant="ghost" size="icon" onClick={() => removeLevel('skillLevels', index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                                 </div>
                             ))}
                         </div>
-                        <Button type="button" variant="outline" size="sm" onClick={() => addLevel('skillLevels')}><PlusCircle className="mr-2 h-4 w-4"/>Добавить навык</Button>
+                        <Button type="button" variant="outline" size="sm" onClick={addAccomplishment}><PlusCircle className="mr-2 h-4 w-4"/>Добавить достижение</Button>
                     </div>
                     
                     {/* Main Section */}

@@ -4,13 +4,13 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, notFound } from 'next/navigation';
 import { useUser } from '@/hooks/use-user';
-import { User, Character, FamiliarCard, FamiliarRank, Moodlet, Relationship, RelationshipType, WealthLevel, BankAccount } from '@/lib/types';
+import { User, Character, FamiliarCard, FamiliarRank, Moodlet, Relationship, RelationshipType, WealthLevel, BankAccount, Accomplishment } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FAMILIARS_BY_ID, MOODLETS_DATA, TRAINING_OPTIONS } from '@/lib/data';
 import FamiliarCardDisplay from '@/components/dashboard/familiar-card';
-import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users, HeartHandshake, Wallet, Coins } from 'lucide-react';
+import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users, HeartHandshake, Wallet, Coins, Award } from 'lucide-react';
 import Link from 'next/link';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -198,6 +198,7 @@ export default function CharacterPage() {
     const activeMoodlets = (character.moodlets || []).filter(m => new Date(m.expiresAt) > new Date());
     const age = gameDate ? calculateAge(character.birthDate, gameDate) : null;
     const isViewingOwnProfile = currentUser?.id === owner.id;
+    const accomplishments = character.accomplishments || [];
 
 
     return (
@@ -317,30 +318,27 @@ export default function CharacterPage() {
                                 </span>
                             </div>
                            
-                            <div>
-                                <span className="font-medium text-muted-foreground">Известность:</span>
-                                <div className="mt-1 space-y-1">
-                                {(character.fameLevels && character.fameLevels.length > 0) ? (
-                                    (character.fameLevels || []).map(fame => (
-                                    <p key={fame.id}><Badge variant="secondary">{fame.level}</Badge> <span className="text-muted-foreground">{fame.description}</span></p>
-                                    ))
-                                ) : ( <Badge variant="secondary">N/A</Badge> )}
-                                </div>
-                            </div>
-                             <div>
-                                <span className="font-medium text-muted-foreground">Уровень навыка:</span>
-                                 <div className="mt-1 space-y-1">
-                                {(character.skillLevels && character.skillLevels.length > 0) ? (
-                                    (character.skillLevels || []).map(skill => (
-                                    <p key={skill.id}><Badge variant="secondary">{skill.level}</Badge> <span className="text-muted-foreground">{skill.description}</span></p>
-                                    ))
-                                ) : ( <Badge variant="secondary">N/A</Badge> )}
-                                </div>
-                            </div>
-
                              {character.workLocation && <div className="flex justify-between"><span>Место работы:</span> <span className="text-right">{character.workLocation}</span></div>}
                              {character.abilities && <div className="flex justify-between"><span>Способности:</span> <span className="text-right">{character.abilities}</span></div>}
                              {character.weaknesses && <div className="flex justify-between"><span>Слабости:</span> <span className="text-right">{character.weaknesses}</span></div>}
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><Award /> Достижения</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {accomplishments.length > 0 ? (
+                                <div className="space-y-2">
+                                    {accomplishments.map(acc => (
+                                        <p key={acc.id} className="text-sm p-2 bg-muted/50 rounded-md">
+                                            <span className="font-semibold">{acc.fameLevel}</span> <span className="text-primary font-semibold">{acc.skillLevel}</span> <span className="text-muted-foreground">{acc.description}</span>
+                                        </p>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-muted-foreground text-sm">Достижений пока нет.</p>
+                            )}
                         </CardContent>
                     </Card>
                      <Card>

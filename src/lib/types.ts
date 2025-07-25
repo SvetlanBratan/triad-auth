@@ -132,14 +132,20 @@ export interface CharacterLevel {
     description: string;
 }
 
+export interface Accomplishment {
+    id: string;
+    fameLevel: string;
+    skillLevel: string;
+    description: string;
+}
+
 export interface Character {
   id: string;
   name: string;
   activity: string;
   race: string;
   birthDate: string;
-  skillLevels: CharacterLevel[];
-  fameLevels: CharacterLevel[];
+  accomplishments: Accomplishment[];
   workLocation: string;
   abilities?: string;
   weaknesses?: string;
@@ -161,9 +167,8 @@ export interface Character {
   bankAccount: BankAccount;
   wealthLevel: WealthLevel;
   // Deprecated fields, kept for migration
-  skillLevel?: string[];
-  skillDescription?: string;
-  currentFameLevel?: string[];
+  skillLevels?: CharacterLevel[];
+  fameLevels?: CharacterLevel[];
 }
 
 export interface PointLog {
