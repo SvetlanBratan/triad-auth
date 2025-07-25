@@ -7,13 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowRightLeft, Repeat, Check, X, Trash2, Send, ChevronsUpDown } from 'lucide-react';
+import { ArrowRightLeft, Repeat, Check, X, Trash2, Send } from 'lucide-react';
 import type { Character, FamiliarCard, FamiliarTradeRequest, User, FamiliarRank } from '@/lib/types';
 import { FAMILIARS_BY_ID } from '@/lib/data';
 import Image from 'next/image';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { cn } from '@/lib/utils';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 
 const rankNames: Record<FamiliarRank, string> = {
     'мифический': 'Мифический',
@@ -36,64 +34,6 @@ const MiniFamiliarCard = ({ cardId }: { cardId: string }) => {
         </div>
     );
 };
-
-interface SearchableSelectProps {
-    options: { value: string; label: string; }[];
-    value: string;
-    onValueChange: (value: string) => void;
-    placeholder: string;
-    disabled?: boolean;
-}
-
-const SearchableSelect = ({ options, value, onValueChange, placeholder, disabled }: SearchableSelectProps) => {
-    const [open, setOpen] = useState(false);
-    const selectedLabel = options.find(opt => opt.value === value)?.label;
-
-    return (
-        <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-                <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={open}
-                    className="w-full justify-between"
-                    disabled={disabled}
-                >
-                    {selectedLabel || placeholder}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
-                <Command>
-                    <CommandInput placeholder="Поиск..." />
-                    <CommandList>
-                        <CommandEmpty>Ничего не найдено.</CommandEmpty>
-                        <CommandGroup>
-                            {options.map((option) => (
-                                <CommandItem
-                                    key={option.value}
-                                    value={option.label}
-                                    onSelect={() => {
-                                        onValueChange(option.value);
-                                        setOpen(false);
-                                    }}
-                                >
-                                    <Check
-                                        className={cn(
-                                            "mr-2 h-4 w-4",
-                                            value === option.value ? "opacity-100" : "opacity-0"
-                                        )}
-                                    />
-                                    {option.label}
-                                </CommandItem>
-                            ))}
-                        </CommandGroup>
-                    </CommandList>
-                </Command>
-            </PopoverContent>
-        </Popover>
-    );
-}
 
 
 export default function FamiliarExchange() {

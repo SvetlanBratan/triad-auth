@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
 import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark } from 'lucide-react';
-import type { UserStatus, UserRole, User, FamiliarCard, BankAccount, WealthLevel } from '@/lib/types';
+import type { UserStatus, UserRole, User, FamiliarCard, BankAccount, WealthLevel, FamiliarRank } from '@/lib/types';
 import { FAME_LEVELS_POINTS, EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, FAMILIARS_BY_ID, WEALTH_LEVELS } from '@/lib/data';
 import {
   AlertDialog,
@@ -26,7 +26,15 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { SearchableSelect } from '../ui/searchable-select';
 
+const rankNames: Record<FamiliarRank, string> = {
+    'мифический': 'Мифический',
+    'ивентовый': 'Ивентовый',
+    'легендарный': 'Легендарный',
+    'редкий': 'Редкий',
+    'обычный': 'Обычный'
+};
 
 export default function AdminTab() {
   const { 
@@ -514,17 +522,35 @@ export default function AdminTab() {
     return users.find(u => u.id === ecoUserId)?.characters || [];
   }, [ecoUserId, users]);
 
-  const familiarsForSelectedCharacter = useMemo((): (FamiliarCard & { ownedId: string })[] => {
+  const familiarsForSelectedCharacterOptions = useMemo((): {value: string, label: string}[] => {
     if (!removeFamiliarUserId || !removeFamiliarCharId) return [];
     const user = users.find(u => u.id === removeFamiliarUserId);
     const character = user?.characters.find(c => c.id === removeFamiliarCharId);
     if (!character || !character.inventory?.familiarCards) return [];
-    return character.inventory.familiarCards.map((ownedCard, index) => {
-      const cardDetails = FAMILIARS_BY_ID[ownedCard.id];
-      if (!cardDetails) return null;
-      return { ...cardDetails, ownedId: `${ownedCard.id}-${index}` }; // Create a unique ID for the list key
-    }).filter((card): card is FamiliarCard & { ownedId: string } => card !== null);
+    
+    // Create a map to count occurrences of each card ID
+    const cardCount = new Map<string, number>();
+    character.inventory.familiarCards.forEach(ownedCard => {
+        cardCount.set(ownedCard.id, (cardCount.get(ownedCard.id) || 0) + 1);
+    });
+
+    // Create a unique list of owned cards for the options
+    const uniqueOwnedCards = Array.from(new Set(character.inventory.familiarCards.map(c => c.id)))
+        .map(id => FAMILIARS_BY_ID[id])
+        .filter((card): card is FamiliarCard => !!card);
+
+    return uniqueOwnedCards.map(cardDetails => {
+        const count = cardCount.get(cardDetails.id) || 0;
+        const label = count > 1 
+            ? `${cardDetails.name} (${rankNames[cardDetails.rank]}) (x${count})` 
+            : `${cardDetails.name} (${rankNames[cardDetails.rank]})`;
+        return { value: cardDetails.id, label };
+    });
   }, [removeFamiliarUserId, removeFamiliarCharId, users]);
+
+  const eventFamiliarsOptions = useMemo(() => {
+    return EVENT_FAMILIARS.map(fam => ({ value: fam.id, label: fam.name }));
+  }, []);
 
 
   const selectedCharacterForMoodlet = useMemo(() => {
@@ -994,16 +1020,12 @@ export default function AdminTab() {
                     </div>
                     <div>
                         <Label htmlFor="familiar-select-event">Фамильяр</Label>
-                        <Select value={eventAwardFamiliarId} onValueChange={setEventAwardFamiliarId}>
-                        <SelectTrigger id="familiar-select-event">
-                            <SelectValue placeholder="Выберите фамильяра" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {EVENT_FAMILIARS.map(familiar => (
-                            <SelectItem key={familiar.id} value={familiar.id}>{familiar.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                        </Select>
+                        <SearchableSelect
+                            options={eventFamiliarsOptions}
+                            value={eventAwardFamiliarId}
+                            onValueChange={setEventAwardFamiliarId}
+                            placeholder="Выберите фамильяра..."
+                        />
                     </div>
                     <Button type="submit">Выдать фамильяра</Button>
                     </form>
@@ -1046,16 +1068,13 @@ export default function AdminTab() {
                         </div>
                         <div>
                             <Label htmlFor="remove-fam-card">Карта для удаления</Label>
-                            <Select value={removeFamiliarCardId} onValueChange={setRemoveFamiliarCardId} disabled={!removeFamiliarCharId}>
-                            <SelectTrigger id="remove-fam-card">
-                                <SelectValue placeholder="Выберите карту" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {familiarsForSelectedCharacter.map((card) => (
-                                <SelectItem key={card.ownedId} value={card.id}>{card.name} ({card.rank})</SelectItem>
-                                ))}
-                            </SelectContent>
-                            </Select>
+                            <SearchableSelect
+                                options={familiarsForSelectedCharacterOptions}
+                                value={removeFamiliarCardId}
+                                onValueChange={setRemoveFamiliarCardId}
+                                placeholder="Выберите карту..."
+                                disabled={!removeFamiliarCharId}
+                            />
                         </div>
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
