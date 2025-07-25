@@ -218,7 +218,7 @@ export default function RouletteTab() {
                     {/* Card Back */}
                     <div className="absolute w-full h-full backface-hidden">
                        <Image 
-                           src="https://res.cloudinary.com/dxac8lq4f/image/upload/v1753289052/card-back_n1tpgs.png"
+                           src="https://res.cloudinary.com/dxac8lq4f/image/upload/v1753198005/ChatGPT_Image_22_%D0%B8%D1%8E%D0%BB._2025_%D0%B3._18_26_28_isdxt3.png"
                            alt="Рубашка карты"
                            width={300}
                            height={420}
