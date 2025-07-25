@@ -184,7 +184,7 @@ export default function UserProfileDialog({ user }: { user: User }) {
     }
   };
   
-  const sortedPointHistory = [...user.pointHistory].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const sortedPointHistory = [...(user.pointHistory || [])].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   const userAchievements = (user.achievementIds || []).map(id => ACHIEVEMENTS_BY_ID[id]).filter(Boolean);
 
   return (

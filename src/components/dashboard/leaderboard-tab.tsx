@@ -17,24 +17,30 @@ import { useQuery } from '@tanstack/react-query';
 
 
 export default function LeaderboardTab() {
-  const { fetchLeaderboardUsers } = useUser();
-  const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
+  const { fetchLeaderboardUsers, fetchUserById } = useUser();
+  const [selectedUserId, setSelectedUserId] = React.useState<string | null>(null);
   const { toast } = useToast();
 
-  const { data: users = [], isLoading, isError } = useQuery<User[], Error>({
+  const { data: users = [], isLoading: isLeaderboardLoading, isError: isLeaderboardError } = useQuery<User[], Error>({
     queryKey: ['leaderboard'],
     queryFn: fetchLeaderboardUsers,
   });
   
+  const { data: selectedUser, isLoading: isUserLoading } = useQuery<User | null, Error>({
+      queryKey: ['user', selectedUserId],
+      queryFn: () => fetchUserById(selectedUserId!),
+      enabled: !!selectedUserId,
+  });
+
   React.useEffect(() => {
-    if (isError) {
+    if (isLeaderboardError) {
       toast({
         variant: 'destructive',
         title: 'Ошибка',
         description: 'Не удалось загрузить таблицу лидеров. Возможно, требуется создать индекс в Firestore. Ссылка для создания должна быть в консоли браузера (F12).'
       });
     }
-  }, [isError, toast]);
+  }, [isLeaderboardError, toast]);
   
 
   const getStatusClass = (status: UserStatus) => {
@@ -50,11 +56,8 @@ export default function LeaderboardTab() {
     }
   };
 
-  const handleUserClick = (user: User) => {
-    setSelectedUser(user);
-  };
 
-  if (isLoading) {
+  if (isLeaderboardLoading) {
       return (
         <Card>
             <CardHeader>
@@ -83,7 +86,7 @@ export default function LeaderboardTab() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Dialog open={!!selectedUser} onOpenChange={(isOpen) => !isOpen && setSelectedUser(null)}>
+        <Dialog open={!!selectedUserId} onOpenChange={(isOpen) => !isOpen && setSelectedUserId(null)}>
             <Table>
             <TableHeader>
                 <TableRow>
@@ -95,7 +98,7 @@ export default function LeaderboardTab() {
             </TableHeader>
             <TableBody>
                 {users.map((user, index) => (
-                <TableRow key={user.id} onClick={() => handleUserClick(user)} className="cursor-pointer">
+                <TableRow key={user.id} onClick={() => setSelectedUserId(user.id)} className="cursor-pointer">
                     <TableCell className="font-bold text-lg text-muted-foreground">
                     {index === 0 && <Trophy className="w-6 h-6 text-yellow-400 inline-block" />}
                     {index === 1 && <Trophy className="w-6 h-6 text-slate-400 inline-block" />}
@@ -126,11 +129,10 @@ export default function LeaderboardTab() {
                 ))}
             </TableBody>
             </Table>
-             {selectedUser && (
-                <DialogContent className="max-w-6xl">
-                    <UserProfileDialog user={selectedUser} />
-                </DialogContent>
-            )}
+             <DialogContent className="max-w-6xl">
+                 {isUserLoading && <div className="flex justify-center items-center h-64"><p>Загрузка данных пользователя...</p></div>}
+                 {!isUserLoading && selectedUser && <UserProfileDialog user={selectedUser} />}
+             </DialogContent>
         </Dialog>
       </CardContent>
     </Card>

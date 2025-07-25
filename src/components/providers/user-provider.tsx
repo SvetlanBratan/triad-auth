@@ -29,6 +29,7 @@ interface UserContextType {
   setCurrentUser: (user: User | null) => void;
   gameDate: Date | null;
   gameDateString: string | null;
+  fetchUserById: (userId: string) => Promise<User | null>;
   fetchUsersForAdmin: () => Promise<User[]>;
   fetchLeaderboardUsers: () => Promise<User[]>;
   fetchAllRewardRequests: () => Promise<RewardRequest[]>;
@@ -243,6 +244,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             })) || [];
            userData.achievementIds = userData.achievementIds || [];
            userData.extraCharacterSlots = userData.extraCharacterSlots || 0;
+           userData.pointHistory = userData.pointHistory || [];
           return userData;
       }
       return null;
@@ -319,11 +321,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 avatar: userData.avatar,
                 points: userData.points,
                 status: userData.status,
-                // These fields are needed for the user profile dialog to work from the leaderboard
+                // These fields are needed for the user profile dialog to work from the leaderboard,
+                // but we keep some fields minimal to optimize the initial load of the leaderboard.
+                // The full user data (including point history) is fetched when a profile is opened.
                 email: userData.email,
                 role: userData.role,
                 characters: userData.characters || [],
-                pointHistory: [], // Don't expose full history on leaderboard
+                pointHistory: [], // Don't expose full history on leaderboard to save bandwidth
                 achievementIds: userData.achievementIds || [],
             };
         });
@@ -346,6 +350,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 moodlets: char.moodlets || [],
             })) || [];
             userData.achievementIds = userData.achievementIds || [];
+            userData.pointHistory = userData.pointHistory || [];
             return userData;
         });
         return users;
@@ -1518,6 +1523,7 @@ const processMonthlySalary = useCallback(async () => {
       setCurrentUser,
       gameDate: gameSettings.gameDate,
       gameDateString: gameSettings.gameDateString,
+      fetchUserById,
       fetchUsersForAdmin,
       fetchLeaderboardUsers,
       fetchAllRewardRequests,
@@ -1557,7 +1563,7 @@ const processMonthlySalary = useCallback(async () => {
       acceptFamiliarTradeRequest,
       declineOrCancelFamiliarTradeRequest,
     }),
-    [currentUser, gameSettings, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateGameDate, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest]
+    [currentUser, gameSettings, fetchUserById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateGameDate, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest]
   );
 
   return (
