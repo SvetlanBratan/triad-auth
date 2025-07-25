@@ -38,6 +38,7 @@ import * as LucideIcons from 'lucide-react';
 import CharacterForm from './character-form';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import FamiliarCardDisplay from './familiar-card';
+import RewardRequestsHistory from './reward-requests-history';
 
 
 type IconName = keyof typeof LucideIcons;
@@ -361,6 +362,7 @@ export default function ProfileTab() {
             )}
           </CardContent>
         </Card>
+        <RewardRequestsHistory />
       </div>
       <div className="lg:col-span-2">
         <Card>

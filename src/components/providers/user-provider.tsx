@@ -31,6 +31,7 @@ interface UserContextType {
   gameDateString: string | null;
   fetchUsersForAdmin: () => Promise<User[]>;
   fetchAllRewardRequests: () => Promise<RewardRequest[]>;
+  fetchRewardRequestsForUser: (userId: string) => Promise<RewardRequest[]>;
   fetchAvailableMythicCardsCount: () => Promise<number>;
   addPointsToUser: (userId: string, amount: number, reason: string, characterName?: string) => Promise<User | null>;
   addCharacterToUser: (userId: string, character: Character) => Promise<void>;
@@ -343,6 +344,22 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error("Error fetching all reward requests:", error);
       throw error;
+    }
+  }, []);
+
+  const fetchRewardRequestsForUser = useCallback(async (userId: string): Promise<RewardRequest[]> => {
+    const requests: RewardRequest[] = [];
+    try {
+        const requestsRef = collection(db, 'users', userId, 'reward_requests');
+        const q = query(requestsRef, orderBy('createdAt', 'desc'));
+        const querySnapshot = await getDocs(q);
+        querySnapshot.forEach((doc) => {
+            requests.push(doc.data() as RewardRequest);
+        });
+        return requests;
+    } catch (error) {
+        console.error("Error fetching reward requests for user:", error);
+        throw error;
     }
   }, []);
 
@@ -1524,6 +1541,7 @@ const processMonthlySalary = useCallback(async () => {
       gameDateString: gameSettings.gameDateString,
       fetchUsersForAdmin,
       fetchAllRewardRequests,
+      fetchRewardRequestsForUser,
       fetchAvailableMythicCardsCount,
       addPointsToUser,
       addCharacterToUser,
@@ -1559,7 +1577,7 @@ const processMonthlySalary = useCallback(async () => {
       acceptFamiliarTradeRequest,
       declineOrCancelFamiliarTradeRequest,
     }),
-    [currentUser, gameSettings, fetchUsersForAdmin, fetchAllRewardRequests, fetchAvailableMythicCardsCount, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateGameDate, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest]
+    [currentUser, gameSettings, fetchUsersForAdmin, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveEventFamiliarToCharacter, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateGameDate, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest]
   );
 
   return (
