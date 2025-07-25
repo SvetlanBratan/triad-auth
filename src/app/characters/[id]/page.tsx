@@ -409,6 +409,7 @@ export default function CharacterPage() {
                                             <ScrollArea className="h-48 pr-3">
                                                 <div className="space-y-3">
                                                 {sortedBankHistory.map(tx => {
+                                                    if (!tx.amount) return null;
                                                     const amounts = Object.entries(tx.amount).filter(([, val]) => val !== 0);
                                                     const isCredit = Object.values(tx.amount).some(v => v > 0);
                                                     const isDebit = Object.values(tx.amount).some(v => v < 0);
@@ -627,6 +628,8 @@ export default function CharacterPage() {
 
         </div>
     );
+
+    
 
     
 
