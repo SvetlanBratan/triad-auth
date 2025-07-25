@@ -16,7 +16,7 @@ const FamiliarCardDisplay = ({ cardId, isRevealed = false }: { cardId: string, i
                     alt={card.name} 
                     width={300}
                     height={420}
-                    className="rounded-xl object-cover shadow-2xl"
+                    className="rounded-xl object-cover shadow-2xl w-full h-full"
                     data-ai-hint={card['data-ai-hint']}
                 />
             </div>

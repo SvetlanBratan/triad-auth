@@ -31,13 +31,18 @@ const DUPLICATE_REFUND = 1000;
 
 const totalMythicCount = ALL_FAMILIARS.filter(f => f.rank === 'мифический').length;
 
+interface PullResult {
+    newCard: FamiliarCard;
+    isDuplicate: boolean;
+}
 
 export default function RouletteTab() {
   const { currentUser, pullGachaForCharacter, fetchAvailableMythicCardsCount } = useUser();
   const { toast } = useToast();
   const [selectedCharacterId, setSelectedCharacterId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
-  const [revealedCard, setRevealedCard] = useState<FamiliarCard | null>(null);
+  const [pullResult, setPullResult] = useState<PullResult | null>(null);
+  const [isFlipping, setIsFlipping] = useState(false);
   const [availableMythicCount, setAvailableMythicCount] = useState<number | null>(null);
   
   useEffect(() => {
@@ -50,7 +55,6 @@ export default function RouletteTab() {
     if (!character || (character.familiarCards && character.familiarCards.length > 0)) {
         return false;
     }
-    // Check if there's any gacha history for this character
     return !currentUser.pointHistory.some(log => 
         log.characterName === character.name && log.reason.includes('Рулетка')
     );
@@ -79,32 +83,16 @@ export default function RouletteTab() {
     }
 
     setIsLoading(true);
-    setRevealedCard(null); // Hide previous card
+    setPullResult(null); 
+    setIsFlipping(false);
 
     try {
-      const { newCard, isDuplicate } = await pullGachaForCharacter(
+      const result = await pullGachaForCharacter(
         currentUser.id,
         selectedCharacterId
       );
       
-      setRevealedCard(newCard);
-
-      if (isDuplicate) {
-        toast({
-          title: 'Дубликат!',
-          description: `У вас уже есть карта "${newCard.name}". Вам возвращено ${DUPLICATE_REFUND.toLocaleString()} баллов.`,
-        });
-      } else {
-        toast({
-          title: 'Успех!',
-          description: `Вы получили новую карту: ${newCard.name}!`,
-        });
-      }
-
-      // Refetch mythic count if new mythic card was pulled
-      if (newCard.rank === 'мифический' && !isDuplicate) {
-        fetchAvailableMythicCardsCount().then(setAvailableMythicCount);
-      }
+      setPullResult(result);
 
     } catch (error) {
       const errorMessage =
@@ -117,6 +105,32 @@ export default function RouletteTab() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleCardClick = () => {
+    if (!pullResult || isFlipping) return;
+
+    setIsFlipping(true);
+
+    setTimeout(() => {
+        const { newCard, isDuplicate } = pullResult;
+        if (isDuplicate) {
+            toast({
+                title: 'Дубликат!',
+                description: `У вас уже есть карта "${newCard.name}". Вам возвращено ${DUPLICATE_REFUND.toLocaleString()} баллов.`,
+            });
+        } else {
+            toast({
+                title: 'Успех!',
+                description: `Вы получили новую карту: ${newCard.name}!`,
+            });
+        }
+
+        // Refetch mythic count if a new mythic card was pulled
+        if (newCard.rank === 'мифический' && !isDuplicate) {
+            fetchAvailableMythicCardsCount().then(setAvailableMythicCount);
+        }
+    }, 700); // Corresponds to animation duration
   };
   
 
@@ -192,13 +206,29 @@ export default function RouletteTab() {
       </Card>
 
       <div className="w-full max-w-md min-h-[480px] flex items-center justify-center">
-        {revealedCard ? (
+        {pullResult ? (
            <div className="flex flex-col items-center gap-4">
-               <div className="w-[300px] h-[420px] perspective-1000">
+               <div className="w-[300px] h-[420px] perspective-1000" onClick={handleCardClick}>
                  <div
-                   className={'relative w-full h-full preserve-3d transition-transform duration-700'}
+                   className={cn(
+                       'relative w-full h-full preserve-3d transition-transform duration-700',
+                       isFlipping && 'rotate-y-180'
+                   )}
                  >
-                   <FamiliarCardDisplay cardId={revealedCard.id} isRevealed />
+                    {/* Card Back */}
+                    <div className="absolute w-full h-full backface-hidden">
+                       <Image 
+                           src="https://res.cloudinary.com/dxac8lq4f/image/upload/v1753289052/card-back_n1tpgs.png"
+                           alt="Рубашка карты"
+                           width={300}
+                           height={420}
+                           className="rounded-xl object-cover shadow-2xl"
+                        />
+                    </div>
+                    {/* Card Front */}
+                    <div className="absolute w-full h-full backface-hidden rotate-y-180">
+                        <FamiliarCardDisplay cardId={pullResult.newCard.id} isRevealed />
+                    </div>
                  </div>
                </div>
            </div>
