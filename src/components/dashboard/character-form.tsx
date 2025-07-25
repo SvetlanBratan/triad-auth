@@ -15,6 +15,7 @@ import { useUser } from '@/hooks/use-user';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Trash2, PlusCircle } from 'lucide-react';
 import { Separator } from '../ui/separator';
+import { SearchableSelect } from '../ui/searchable-select';
 
 interface CharacterFormProps {
     character: Character | null;
@@ -248,17 +249,21 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
                                     </Button>
                                     <div>
                                         <Label>Известность</Label>
-                                        <Select value={acc.fameLevel} onValueChange={(value) => handleAccomplishmentChange(index, 'fameLevel', value)}>
-                                            <SelectTrigger><SelectValue placeholder="Уровень..." /></SelectTrigger>
-                                            <SelectContent>{fameLevelOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
-                                        </Select>
+                                        <SearchableSelect
+                                            options={fameLevelOptions}
+                                            value={acc.fameLevel}
+                                            onValueChange={(value) => handleAccomplishmentChange(index, 'fameLevel', value)}
+                                            placeholder="Уровень..."
+                                        />
                                     </div>
                                      <div>
                                         <Label>Навык</Label>
-                                        <Select value={acc.skillLevel} onValueChange={(value) => handleAccomplishmentChange(index, 'skillLevel', value)}>
-                                            <SelectTrigger><SelectValue placeholder="Уровень..." /></SelectTrigger>
-                                            <SelectContent>{skillLevelOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
-                                        </Select>
+                                        <SearchableSelect
+                                            options={skillLevelOptions}
+                                            value={acc.skillLevel}
+                                            onValueChange={(value) => handleAccomplishmentChange(index, 'skillLevel', value)}
+                                            placeholder="Уровень..."
+                                        />
                                     </div>
                                     <div className="md:col-span-2">
                                         <Label>Пояснение</Label>
