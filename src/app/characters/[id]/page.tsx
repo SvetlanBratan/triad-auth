@@ -208,7 +208,7 @@ export default function CharacterPage() {
                 Вернуться в профиль
             </Link>
 
-            <header className="flex flex-col md:flex-row justify-between md:items-start mb-6 gap-4">
+            <header className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-6 gap-4">
                 <div className="flex-1">
                     <div className="flex items-center gap-3 flex-wrap">
                         <h1 className="text-xl md:text-2xl font-bold font-headline text-primary">{character.name}</h1>
@@ -236,7 +236,7 @@ export default function CharacterPage() {
                     <p className="text-muted-foreground">{character.activity}</p>
                     <p className="text-sm text-muted-foreground">Владелец: {owner.name}</p>
                 </div>
-                {canEdit && <Button onClick={() => setIsFormOpen(true)} className="mt-2 md:mt-0"><Edit className="mr-2"/>Редактировать анкету</Button>}
+                {canEdit && <Button onClick={() => setIsFormOpen(true)} className="mt-2 sm:mt-0 self-start sm:self-center"><Edit className="mr-2"/>Редактировать анкету</Button>}
             </header>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
