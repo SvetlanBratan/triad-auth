@@ -22,6 +22,8 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfi
 import { useUser } from '@/hooks/use-user';
 import { FirebaseError } from 'firebase/app';
 import { collection, getDocs, query, where } from 'firebase/firestore';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { Terminal } from 'lucide-react';
 
 const formSchema = z.object({
   nickname: z.string().min(3, 'Никнейм должен содержать не менее 3 символов.'),
@@ -117,6 +119,15 @@ export default function AuthPage() {
         </CardHeader>
         <form onSubmit={handleSubmit(handleAuth)}>
           <CardContent className="grid gap-4">
+            {!isLogin && (
+                <Alert variant="destructive">
+                    <Terminal className="h-4 w-4" />
+                    <AlertTitle>Внимание!</AlertTitle>
+                    <AlertDescription>
+                        Пожалуйста, не используйте реальные пароли от других ресурсов. Проект не несет ответственности за сохранность ваших данных.
+                    </AlertDescription>
+                </Alert>
+            )}
             <div className="grid gap-2">
               <Label htmlFor="nickname">Никнейм</Label>
               <Input id="nickname" {...register('nickname')} disabled={isLoading} />
