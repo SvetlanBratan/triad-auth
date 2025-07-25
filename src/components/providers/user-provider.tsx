@@ -1325,10 +1325,11 @@ const processMonthlySalary = useCallback(async () => {
         transaction.update(requestRef, { status: 'closed' });
     });
     
-    // Refresh both users' data locally if they are the current user
-    if(currentUser?.id === acceptorUserId || currentUser?.id === request.creatorUserId) {
+    if (currentUser) {
+      if (currentUser.id === acceptorUserId || currentUser.id === request.creatorUserId) {
         const updatedUser = await fetchUserById(currentUser.id);
-        if(updatedUser) setCurrentUser(updatedUser);
+        if (updatedUser) setCurrentUser(updatedUser);
+      }
     }
   }, [currentUser, fetchUserById]);
 
