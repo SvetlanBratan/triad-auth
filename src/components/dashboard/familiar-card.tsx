@@ -16,7 +16,7 @@ const FamiliarCardDisplay = ({ cardId, isRevealed = false }: { cardId: string, i
                     alt={card.name} 
                     width={300}
                     height={420}
-                    className="rounded-xl object-cover shadow-2xl w-full h-full"
+                    className="rounded-xl object-contain shadow-2xl w-full h-full"
                     data-ai-hint={card['data-ai-hint']}
                 />
             </div>
@@ -32,7 +32,7 @@ const FamiliarCardDisplay = ({ cardId, isRevealed = false }: { cardId: string, i
                         alt={card.name} 
                         width={96}
                         height={144}
-                        className="rounded-md object-cover w-full h-full transition-all duration-300 group-hover:scale-105"
+                        className="rounded-md object-contain w-full h-full transition-all duration-300 group-hover:scale-105"
                         data-ai-hint={card['data-ai-hint']}
                     />
                 </div>
