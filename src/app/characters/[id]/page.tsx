@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FAMILIARS_BY_ID, MOODLETS_DATA, TRAINING_OPTIONS } from '@/lib/data';
 import FamiliarCardDisplay from '@/components/dashboard/familiar-card';
-import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users, HeartHandshake, Wallet, Coins, Award } from 'lucide-react';
+import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users, HeartHandshake, Wallet, Coins, Award, Zap, ShieldOff } from 'lucide-react';
 import Link from 'next/link';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -271,6 +271,29 @@ export default function CharacterPage() {
                             </ScrollArea>
                         </CardContent>
                     </Card>
+                    
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><Zap /> Способности</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <ScrollArea className="h-40 w-full">
+                                <p className="whitespace-pre-wrap pr-4">{character.abilities}</p>
+                            </ScrollArea>
+                        </CardContent>
+                    </Card>
+                    
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><ShieldOff /> Слабости</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <ScrollArea className="h-40 w-full">
+                                <p className="whitespace-pre-wrap pr-4">{character.weaknesses}</p>
+                            </ScrollArea>
+                        </CardContent>
+                    </Card>
+                    
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2"><HeartHandshake /> Отношения</CardTitle>
@@ -319,18 +342,6 @@ export default function CharacterPage() {
                             </div>
                            
                              {character.workLocation && <div className="flex justify-between"><span>Место работы:</span> <span className="text-right">{character.workLocation}</span></div>}
-                             {character.abilities && (
-                                <div>
-                                    <span className="font-medium">Способности:</span>
-                                    <p className="whitespace-pre-wrap text-muted-foreground mt-1">{character.abilities}</p>
-                                </div>
-                            )}
-                            {character.weaknesses && (
-                                <div>
-                                    <span className="font-medium">Слабости:</span>
-                                    <p className="whitespace-pre-wrap text-muted-foreground mt-1">{character.weaknesses}</p>
-                                </div>
-                            )}
                         </CardContent>
                     </Card>
                     <Card>
@@ -565,3 +576,5 @@ export default function CharacterPage() {
         </div>
     );
 }
+
+    
