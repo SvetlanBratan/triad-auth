@@ -146,7 +146,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
     
     const addLevel = (type: 'skillLevels' | 'fameLevels') => {
         const newLevel: CharacterLevel = { id: `${type.slice(0, 4)}-${Date.now()}`, level: '', description: '' };
-        setFormData(prev => ({ ...prev, [type]: [...prev[type], newLevel] }));
+        setFormData(prev => ({ ...prev, [type]: [...(prev[type] || []), newLevel] }));
     };
 
     const removeLevel = (type: 'skillLevels' | 'fameLevels', index: number) => {
@@ -239,7 +239,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
                         <h3 className="text-lg font-medium">Известность</h3>
                         <Separator />
                         <div className="space-y-4">
-                            {formData.fameLevels.map((fame, index) => (
+                            {(formData.fameLevels || []).map((fame, index) => (
                                 <div key={fame.id} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-2 items-end">
                                     <div className="flex-grow">
                                         <Label>Уровень</Label>
@@ -264,7 +264,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
                         <h3 className="text-lg font-medium">Навыки</h3>
                         <Separator />
                         <div className="space-y-4">
-                            {formData.skillLevels.map((skill, index) => (
+                            {(formData.skillLevels || []).map((skill, index) => (
                                 <div key={skill.id} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-2 items-end">
                                     <div className="flex-grow">
                                         <Label>Уровень</Label>
@@ -311,7 +311,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
                         <h3 className="text-lg font-medium">Отношения</h3>
                         <Separator />
                         <div className="space-y-6">
-                            {formData.relationships.map((rel, index) => (
+                            {(formData.relationships || []).map((rel, index) => (
                                 <div key={rel.id} className="space-y-3 rounded-md border p-3 relative">
                                     <Button
                                         type="button"

@@ -320,8 +320,8 @@ export default function CharacterPage() {
                             <div>
                                 <span className="font-medium text-muted-foreground">Известность:</span>
                                 <div className="mt-1 space-y-1">
-                                {character.fameLevels && character.fameLevels.length > 0 ? (
-                                    character.fameLevels.map(fame => (
+                                {(character.fameLevels && character.fameLevels.length > 0) ? (
+                                    (character.fameLevels || []).map(fame => (
                                     <p key={fame.id}><Badge variant="secondary">{fame.level}</Badge> <span className="text-muted-foreground">{fame.description}</span></p>
                                     ))
                                 ) : ( <Badge variant="secondary">N/A</Badge> )}
@@ -330,8 +330,8 @@ export default function CharacterPage() {
                              <div>
                                 <span className="font-medium text-muted-foreground">Уровень навыка:</span>
                                  <div className="mt-1 space-y-1">
-                                {character.skillLevels && character.skillLevels.length > 0 ? (
-                                    character.skillLevels.map(skill => (
+                                {(character.skillLevels && character.skillLevels.length > 0) ? (
+                                    (character.skillLevels || []).map(skill => (
                                     <p key={skill.id}><Badge variant="secondary">{skill.level}</Badge> <span className="text-muted-foreground">{skill.description}</span></p>
                                     ))
                                 ) : ( <Badge variant="secondary">N/A</Badge> )}
