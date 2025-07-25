@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, 'react';
 import { useUser } from '@/hooks/use-user';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -13,31 +13,29 @@ import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogTrigger } from '../ui/dialog';
 import UserProfileDialog from './user-profile-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { useQuery } from '@tanstack/react-query';
 
 
 export default function LeaderboardTab() {
-  const { fetchUsersForAdmin } = useUser();
-  const [users, setUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const { fetchLeaderboardUsers } = useUser();
+  const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-      const loadUsers = async () => {
-          setIsLoading(true);
-          try {
-              // The fetchUsersForAdmin function already sorts by points descending
-              const fetchedUsers = await fetchUsersForAdmin();
-              setUsers(fetchedUsers);
-          } catch (error) {
-              console.error("Failed to fetch users", error);
-              toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось загрузить таблицу лидеров. Возможно, требуется создать индекс в Firestore. Ссылка для создания должна быть в консоли браузера (F12).' });
-          } finally {
-              setIsLoading(false);
-          }
-      };
-      loadUsers();
-  }, [fetchUsersForAdmin, toast]);
+  const { data: users = [], isLoading, isError } = useQuery<User[], Error>({
+    queryKey: ['leaderboard'],
+    queryFn: fetchLeaderboardUsers,
+  });
+  
+  React.useEffect(() => {
+    if (isError) {
+      toast({
+        variant: 'destructive',
+        title: 'Ошибка',
+        description: 'Не удалось загрузить таблицу лидеров. Возможно, требуется создать индекс в Firestore. Ссылка для создания должна быть в консоли браузера (F12).'
+      });
+    }
+  }, [isError, toast]);
+  
 
   const getStatusClass = (status: UserStatus) => {
     switch (status) {
