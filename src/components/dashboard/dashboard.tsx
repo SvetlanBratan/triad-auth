@@ -13,6 +13,7 @@ import AuthPage from "../auth/auth-page";
 import { useAuth } from "../providers/user-provider";
 import CurrencyExchange from "./currency-exchange";
 import FamiliarsTab from "./familiars-tab";
+import { cn } from "@/lib/utils";
 
 export function Dashboard() {
   const { currentUser } = useUser();
@@ -37,7 +38,7 @@ export function Dashboard() {
   const tabs = [
     { value: 'profile', label: 'Профиль', icon: User },
     { value: 'leaderboard', label: 'Лидеры', icon: Trophy },
-    { value: 'familiars', label: 'Фамильяры', icon: Cat },
+    { value: 'familiars', label: 'Фамильяры', icon: Cat, className: "shrink-0" },
     { value: 'rewards', label: 'Награды', icon: Award },
     { value: 'bank', label: 'Банк', icon: Landmark },
     ...(isAdmin ? [{ value: 'requests', label: 'Запросы', icon: GitPullRequest }] : []),
@@ -49,9 +50,9 @@ export function Dashboard() {
   return (
       <Tabs defaultValue="profile" className="w-full">
         <TabsList className={`grid w-full ${gridColsClass}`}>
-          {tabs.map(({ value, label, icon: Icon }) => (
+          {tabs.map(({ value, label, icon: Icon, className }) => (
             <TabsTrigger key={value} value={value} className="flex-row items-center justify-center p-1 sm:p-2 sm:gap-1.5 text-xs sm:text-sm">
-              <Icon className="w-4 h-4" />
+              <Icon className={cn("w-4 h-4", className)} />
               <span className="hidden sm:inline">{label}</span>
             </TabsTrigger>
           ))}
