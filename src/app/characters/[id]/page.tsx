@@ -308,7 +308,7 @@ export default function CharacterPage() {
                         <CardHeader>
                             <CardTitle>Основная информация</CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-2 text-sm">
+                        <CardContent className="space-y-4 text-sm">
                             <div className="flex justify-between"><span>Раса:</span> <span className="text-right">{character.race || 'N/A'}</span></div>
                              <div className="flex justify-between">
                                 <span>Дата рождения:</span> 
@@ -319,8 +319,18 @@ export default function CharacterPage() {
                             </div>
                            
                              {character.workLocation && <div className="flex justify-between"><span>Место работы:</span> <span className="text-right">{character.workLocation}</span></div>}
-                             {character.abilities && <div className="flex justify-between"><span>Способности:</span> <span className="text-right">{character.abilities}</span></div>}
-                             {character.weaknesses && <div className="flex justify-between"><span>Слабости:</span> <span className="text-right">{character.weaknesses}</span></div>}
+                             {character.abilities && (
+                                <div>
+                                    <span className="font-medium">Способности:</span>
+                                    <p className="whitespace-pre-wrap text-muted-foreground mt-1">{character.abilities}</p>
+                                </div>
+                            )}
+                            {character.weaknesses && (
+                                <div>
+                                    <span className="font-medium">Слабости:</span>
+                                    <p className="whitespace-pre-wrap text-muted-foreground mt-1">{character.weaknesses}</p>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                     <Card>
