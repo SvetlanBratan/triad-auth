@@ -287,6 +287,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       if (user) {
         setFirebaseUser(user);
         try {
+            await fetchGameSettings(); // Fetch settings only after user is confirmed
             let userData = await fetchUserById(user.uid);
             if (!userData) {
                 const nickname = user.displayName || user.email?.split('@')[0] || 'Пользователь';
@@ -306,12 +307,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => unsubscribe();
-  }, [createNewUser, fetchUserById]);
+  }, [createNewUser, fetchUserById, fetchGameSettings]);
 
-    useEffect(() => {
-        // Fetch settings for everyone, not just admin
-        fetchGameSettings();
-    }, [fetchGameSettings]);
 
     const fetchLeaderboardUsers = useCallback(async (): Promise<User[]> => {
         const usersCollection = collection(db, "users");
@@ -1326,10 +1323,11 @@ const processMonthlySalary = useCallback(async () => {
     });
     
     if (currentUser) {
-      if (currentUser.id === acceptorUserId || currentUser.id === request.creatorUserId) {
-        const updatedUser = await fetchUserById(currentUser.id);
+      if (currentUser.id === acceptorUserId) {
+        const updatedUser = await fetchUserById(acceptorUserId);
         if (updatedUser) setCurrentUser(updatedUser);
       }
+      // We don't need to update the creator here, they can see the change on next load
     }
   }, [currentUser, fetchUserById]);
 
