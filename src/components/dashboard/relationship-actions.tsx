@@ -26,12 +26,10 @@ const Cooldowns = {
 }
 
 export default function RelationshipActions({ targetCharacter }: RelationshipActionsProps) {
-    const { currentUser, performRelationshipAction, createPostRequest } = useUser();
+    const { currentUser, performRelationshipAction } = useUser();
     const { toast } = useToast();
 
     const [sourceCharacterId, setSourceCharacterId] = useState('');
-    const [isPostDialogOpen, setIsPostDialogOpen] = useState(false);
-    const [postLocation, setPostLocation] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
     const relationship = useMemo(() => {
@@ -77,22 +75,6 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
             setIsLoading(false);
         }
     };
-
-    const handlePostRequest = async () => {
-        if (!currentUser || !sourceCharacterId || !postLocation) return;
-        setIsLoading(true);
-        try {
-            await createPostRequest(sourceCharacterId, targetCharacter.id, postLocation);
-            toast({ title: 'Запрос отправлен!', description: 'Заявка на пост отправлена. Получатель должен будет её подтвердить.' });
-            setIsPostDialogOpen(false);
-            setPostLocation('');
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Произошла неизвестная ошибка.';
-            toast({ variant: 'destructive', title: 'Ошибка', description: errorMessage });
-        } finally {
-            setIsLoading(false);
-        }
-    };
     
     if (!currentUser?.characters.some(c => c.relationships?.some(r => r.targetCharacterId === targetCharacter.id))) {
         return null;
@@ -125,7 +107,7 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
                 </div>
                 {sourceCharacterId && relationship && (
                     <TooltipProvider delayDuration={100}>
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid grid-cols-2 gap-2">
                              <Tooltip>
                                 <TooltipTrigger asChild>
                                     {/* Wrapping button in a span is required for Tooltip when button is disabled */}
@@ -163,50 +145,6 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
                                     {!canSendLetter && <p className="text-xs text-muted-foreground">{letterTimeLeft}</p>}
                                 </TooltipContent>
                             </Tooltip>
-                            
-                             <Dialog open={isPostDialogOpen} onOpenChange={setIsPostDialogOpen}>
-                                 <Tooltip>
-                                    <TooltipTrigger asChild>
-                                         <DialogTrigger asChild>
-                                            <Button variant="outline" className="w-full" disabled={isLoading}>
-                                                <MessageSquarePlus className="w-4 h-4" />
-                                            </Button>
-                                        </DialogTrigger>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>Заявить о посте (+50)</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                                <DialogContent>
-                                    <DialogHeader>
-                                        <DialogTitle>Заявка о посте</DialogTitle>
-                                        <DialogDescription>
-                                           Укажите, где был написан пост для персонажа {targetCharacter.name}. После вашего заявления, получатель должен будет подтвердить его для начисления очков.
-                                        </DialogDescription>
-                                    </DialogHeader>
-                                    <div className="space-y-2 py-4">
-                                        <Label htmlFor="post-location">Локация или ссылка на пост</Label>
-                                        <Textarea 
-                                            id="post-location" 
-                                            value={postLocation} 
-                                            onChange={e => setPostLocation(e.target.value)} 
-                                            placeholder='например, "Площадь города", "Таверна «Пьяный лис»" или ссылка на пост'
-                                        />
-                                    </div>
-                                    <DialogFooter>
-                                        <DialogClose asChild>
-                                            <Button type="button" variant="ghost">Отмена</Button>
-                                        </DialogClose>
-                                        <Button 
-                                            type="button" 
-                                            onClick={handlePostRequest}
-                                            disabled={!postLocation || isLoading}
-                                        >
-                                            {isLoading ? 'Отправка...' : 'Отправить заявку'}
-                                        </Button>
-                                    </DialogFooter>
-                                </DialogContent>
-                            </Dialog>
                         </div>
                     </TooltipProvider>
                 )}
