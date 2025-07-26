@@ -22,8 +22,8 @@ export const STARTING_CAPITAL_LEVELS: CapitalLevel[] = [
     { name: 'Бедные', amount: { gold: 1, silver: 35, copper: 400 } },
     { name: 'Со средним заработком', amount: { gold: 8, silver: 150, copper: 1200 } },
     { name: 'Богатенькие (ремесленники и гильдейские)', amount: { gold: 30, silver: 400, copper: 2500 } },
-    { name: 'Богатые (бароны и графы)', amount: { gold: 150, silver: 1500, copper: 5000 } },
-    { name: 'Очень богатые (герцоги и выше)', amount: { gold: 800, silver: 5000, copper: 15000 } }
+    { name: 'Богатые (бароны и графы)', amount: { platinum: 50, gold: 150, silver: 1500, copper: 5000 } },
+    { name: 'Очень богатые (герцоги и выше)', amount: { platinum: 100, gold: 800, silver: 5000, copper: 15000 } }
 ];
 
 
