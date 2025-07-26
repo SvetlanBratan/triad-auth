@@ -285,7 +285,7 @@ export default function AdminTab() {
     await refetchUsers();
     toast({
       title: "Роль обновлена!",
-      description: `Роль пользователя изменена на "${selectedRole}".`,
+      description: `Роль пользователя изменен на "${selectedRole}".`,
     });
     setRoleSelectedUserId('');
     setSelectedRole('');

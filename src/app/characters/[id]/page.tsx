@@ -4,7 +4,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, notFound } from 'next/navigation';
 import { useUser } from '@/hooks/use-user';
-import { User, Character, FamiliarCard, FamiliarRank, Moodlet, Relationship, RelationshipType, WealthLevel, BankAccount, Accomplishment, BankTransaction } from '@/lib/types';
+import { User, Character, FamiliarCard, FamiliarRank, Moodlet, Relationship, RelationshipType, WealthLevel, BankAccount, Accomplishment, BankTransaction, OwnedFamiliarCard } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -75,17 +75,18 @@ const currencyNames: Record<string, string> = {
 const FamiliarsSection = ({ character }: { character: Character }) => {
     const familiarCards = character.inventory?.familiarCards || [];
 
-    const groupedFamiliars = familiarCards.reduce((acc, ownedCard) => {
+    const groupedFamiliars = familiarCards.reduce((acc, ownedCard, index) => {
         const cardDetails = FAMILIARS_BY_ID[ownedCard.id];
         if (cardDetails) {
             const rank = cardDetails.rank;
             if (!acc[rank]) {
                 acc[rank] = [];
             }
-            acc[rank].push(cardDetails);
+            acc[rank].push({ ...cardDetails, uniqueKey: `${cardDetails.id}-${index}` });
         }
         return acc;
-    }, {} as Record<FamiliarRank, FamiliarCard[]>);
+    }, {} as Record<FamiliarRank, (FamiliarCard & { uniqueKey: string })[]>);
+
 
     return (
         <div className="pt-2">
@@ -98,7 +99,7 @@ const FamiliarsSection = ({ character }: { character: Character }) => {
                                     <h4 className="font-semibold capitalize text-muted-foreground mb-2">{rankNames[rank]}</h4>
                                     <div className="flex flex-wrap gap-2">
                                         {groupedFamiliars[rank].map(card => (
-                                            <FamiliarCardDisplay key={card.id} cardId={card.id} />
+                                            <FamiliarCardDisplay key={card.uniqueKey} cardId={card.id} />
                                         ))}
                                     </div>
                                 </div>
