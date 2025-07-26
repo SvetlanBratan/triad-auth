@@ -34,7 +34,7 @@ interface MultiSelectProps {
   placeholder?: string;
 }
 
-function MultiSelect({ options, selected, onChange, className, placeholder = "Select options..." }: MultiSelectProps) {
+function MultiSelect({ options, selected, onChange, className, placeholder = "Выберите..." }: MultiSelectProps) {
   const [open, setOpen] = React.useState(false)
 
   const handleUnselect = (item: string) => {
@@ -128,3 +128,5 @@ function MultiSelect({ options, selected, onChange, className, placeholder = "Se
 }
 
 export { MultiSelect };
+
+    

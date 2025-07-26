@@ -269,9 +269,6 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                     <div className="space-y-4">
                         <div><Label htmlFor="name">Имя персонажа</Label><Input id="name" value={formData.name ?? ''} onChange={(e) => handleFieldChange('name', e.target.value)} required placeholder="Например, Артас Менетил"/></div>
                         <div><Label htmlFor="activity">Деятельность/профессия</Label><Input id="activity" value={formData.activity ?? ''} onChange={(e) => handleFieldChange('activity', e.target.value)} required placeholder="Например, Охотник на чудовищ"/></div>
-                        <div><Label htmlFor="race">Раса</Label><Input id="race" value={formData.race ?? ''} onChange={(e) => handleFieldChange('race', e.target.value)} required placeholder="Например, Человек"/></div>
-                        <div><Label htmlFor="birthDate">Дата рождения</Label><Input id="birthDate" value={formData.birthDate ?? ''} onChange={(e) => handleFieldChange('birthDate', e.target.value)} placeholder="например, 15.06.2680" required /></div>
-                        <div><Label htmlFor="workLocation">Место работы</Label><Input id="workLocation" value={formData.workLocation ?? ''} onChange={(e) => handleFieldChange('workLocation', e.target.value)} placeholder="Например, Гильдия 'Три топора'" /></div>
                     </div>
                 );
 
@@ -338,8 +335,8 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                     case 'biography': return <div><Label htmlFor="biography">Биография</Label><Textarea id="biography" value={formData.biography ?? ''} onChange={(e) => handleFieldChange('biography', e.target.value)} rows={15} placeholder="Расскажите историю вашего персонажа: где он родился, как рос, ключевые события в его жизни..."/></div>;
                     case 'abilities': return <div><Label htmlFor="abilities">Способности</Label><Textarea id="abilities" value={formData.abilities ?? ''} onChange={(e) => handleFieldChange('abilities', e.target.value)} rows={8} placeholder="Опишите уникальные способности или навыки вашего персонажа."/></div>;
                     case 'weaknesses': return <div><Label htmlFor="weaknesses">Слабости</Label><Textarea id="weaknesses" value={formData.weaknesses ?? ''} onChange={(e) => handleFieldChange('weaknesses', e.target.value)} rows={8} placeholder="Укажите слабости, уязвимости или страхи вашего персонажа."/></div>;
-                    case 'marriage': return <div><Label htmlFor="marriedTo">В браке с</Label><MultiSelect options={characterOptions} selected={formData.marriedTo ?? []} onChange={(v) => handleMultiSelectChange('marriedTo', v)} /></div>;
-                    case 'training': return <div><Label htmlFor="training">Обучение</Label><MultiSelect options={TRAINING_OPTIONS} selected={formData.training ?? []} onChange={(v) => handleMultiSelectChange('training', v)} /></div>;
+                    case 'marriage': return <div><Label htmlFor="marriedTo">В браке с</Label><MultiSelect placeholder="Выберите персонажей..." options={characterOptions} selected={formData.marriedTo ?? []} onChange={(v) => handleMultiSelectChange('marriedTo', v)} /></div>;
+                    case 'training': return <div><Label htmlFor="training">Обучение</Label><MultiSelect placeholder="Выберите варианты..." options={TRAINING_OPTIONS} selected={formData.training ?? []} onChange={(v) => handleMultiSelectChange('training', v)} /></div>;
                     case 'lifeGoal': return <div><Label htmlFor="lifeGoal">Жизненная цель</Label><Textarea id="lifeGoal" value={formData.lifeGoal ?? ''} onChange={(e) => handleFieldChange('lifeGoal', e.target.value)} rows={4} placeholder="Какова главная цель или мечта вашего персонажа?"/></div>;
                     case 'pets': return <div><Label htmlFor="pets">Питомцы</Label><Textarea id="pets" value={formData.pets ?? ''} onChange={(e) => handleFieldChange('pets', e.target.value)} rows={4} placeholder="Есть ли у вашего персонажа питомцы? Расскажите о них."/></div>;
                     case 'diary': return <div><Label htmlFor="diary">Личный дневник</Label><Textarea id="diary" value={formData.diary ?? ''} onChange={(e) => handleFieldChange('diary', e.target.value)} rows={8} placeholder="Здесь можно вести записи от лица персонажа. Этот раздел виден только вам и администраторам."/></div>;
@@ -375,5 +372,5 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
 };
 
 export default CharacterForm;
-
+    
     
