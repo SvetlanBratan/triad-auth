@@ -65,6 +65,7 @@ const initialFormData: Omit<Character, 'id'> = {
     crimeLevel: 5,
     accomplishments: [],
     workLocation: '',
+    factions: '',
     appearance: '',
     appearanceImage: '',
     personality: '',
@@ -119,7 +120,8 @@ const FieldLabels: Partial<Record<keyof Character, string>> = {
     race: 'Раса',
     birthDate: 'Дата рождения',
     workLocation: 'Место работы',
-    crimeLevel: 'Уровень преступности'
+    crimeLevel: 'Уровень преступности',
+    factions: 'Фракции/гильдии',
 };
 
 const relationshipTypeOptions: { value: RelationshipType, label: string }[] = [
@@ -316,6 +318,10 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                             <div>
                                 <Label htmlFor="workLocation">Место работы</Label>
                                 <Input id="workLocation" value={formData.workLocation ?? ''} onChange={(e) => handleFieldChange('workLocation', e.target.value)} />
+                            </div>
+                            <div>
+                                <Label htmlFor="factions">Фракции/гильдии</Label>
+                                <Input id="factions" value={formData.factions ?? ''} onChange={(e) => handleFieldChange('factions', e.target.value)} />
                             </div>
                         </div>
                     );

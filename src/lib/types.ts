@@ -160,6 +160,7 @@ export interface Character {
   birthDate: string;
   accomplishments: Accomplishment[];
   workLocation: string;
+  factions?: string;
   abilities?: string;
   weaknesses?: string;
   lifeGoal?: string;
@@ -225,8 +226,8 @@ export interface RewardRequest {
   rewardId: string;
   rewardTitle: string;
   rewardCost: number;
-  characterId: string | null;
-  characterName: string | null;
+  characterId: string;
+  characterName: string;
   status: RewardRequestStatus;
   createdAt: string; // ISO string date
 }

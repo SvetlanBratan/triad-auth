@@ -209,6 +209,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     birthDate: '',
     accomplishments: [],
     workLocation: '',
+    factions: '',
     appearance: '',
     personality: '',
     biography: '',
@@ -669,15 +670,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     const batch = writeBatch(db);
     const requestId = `req-${Date.now()}`;
-    
-    const finalRewardRequestData = {
-      ...rewardRequestData,
-      characterId: rewardRequestData.characterId ?? null,
-      characterName: rewardRequestData.characterName ?? null,
-    };
 
     const newRequest: RewardRequest = {
-        ...finalRewardRequestData,
+        ...rewardRequestData,
         id: requestId,
         status: 'в ожидании',
         createdAt: new Date().toISOString(),
