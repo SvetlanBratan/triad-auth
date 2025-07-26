@@ -294,7 +294,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                             )}
                             <div><Label>Известность</Label><SearchableSelect options={fameLevelOptions} value={acc.fameLevel} onValueChange={(v) => handleItemChange('fameLevel', v)} placeholder="Уровень..." /></div>
                             <div><Label>Навык</Label><SearchableSelect options={skillLevelOptions} value={acc.skillLevel} onValueChange={(v) => handleItemChange('skillLevel', v)} placeholder="Уровень..." /></div>
-                            <div><Label>Пояснение</Label><Input value={acc.description} onChange={(e) => handleItemChange('description', e.target.value)} placeholder="Например, за победу в турнире"/></div>
+                            <div><Label>Пояснение</Label><Input value={acc.description} onChange={(e) => handleItemChange('description', e.target.value)} placeholder="Например, в области зельеварения"/></div>
                         </div>
                     </div>
                 );
