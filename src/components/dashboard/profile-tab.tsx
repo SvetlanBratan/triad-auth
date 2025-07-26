@@ -33,9 +33,9 @@ import { useToast } from '@/hooks/use-toast';
 import { cn, formatTimeLeft } from '@/lib/utils';
 import { ACHIEVEMENTS_BY_ID, FAMILIARS_BY_ID } from '@/lib/data';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { TooltipProvider } from '../ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import * as LucideIcons from 'lucide-react';
-import CharacterForm from './character-form';
+import CharacterForm, { type EditableSection } from './character-form';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import FamiliarCardDisplay from './familiar-card';
 import RewardRequestsHistory from './reward-requests-history';
@@ -69,17 +69,17 @@ const CharacterDisplay = ({ character, onDelete }: { character: Character, onDel
     const activeMoodlets = (character.moodlets || []).filter(m => new Date(m.expiresAt) > new Date());
     const familiarCards = character.inventory?.familiarCards || [];
 
-    const groupedFamiliars = familiarCards.reduce((acc, ownedCard) => {
+    const groupedFamiliars = familiarCards.reduce((acc, ownedCard, index) => {
         const cardDetails = FAMILIARS_BY_ID[ownedCard.id];
         if (cardDetails) {
             const rank = cardDetails.rank;
             if (!acc[rank]) {
                 acc[rank] = [];
             }
-            acc[rank].push(cardDetails);
+            acc[rank].push({ ...cardDetails, uniqueKey: `${cardDetails.id}-${index}` });
         }
         return acc;
-    }, {} as Record<FamiliarRank, FamiliarCard[]>);
+    }, {} as Record<FamiliarRank, (FamiliarCard & { uniqueKey: string })[]>);
 
 
     return (
@@ -166,7 +166,7 @@ const CharacterDisplay = ({ character, onDelete }: { character: Character, onDel
                                             <h4 className="font-semibold capitalize text-muted-foreground mb-2">{rankNames[rank]}</h4>
                                             <div className="flex flex-wrap gap-2">
                                                 {groupedFamiliars[rank].map(card => (
-                                                    <FamiliarCardDisplay key={card.id} cardId={card.id} />
+                                                    <FamiliarCardDisplay key={card.uniqueKey} cardId={card.id} />
                                                 ))}
                                             </div>
                                             </div>
@@ -191,7 +191,6 @@ export default function ProfileTab() {
   const { currentUser, updateCharacterInUser, deleteCharacterFromUser, fetchUsersForAdmin, checkExtraCharacterSlots, setCurrentUser } = useUser();
   const [isFormDialogOpen, setFormDialogOpen] = React.useState(false);
   const [isAvatarDialogOpen, setAvatarDialogOpen] = React.useState(false);
-  const [editingCharacter, setEditingCharacter] = React.useState<Character | null>(null);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const { toast } = useToast();
 
@@ -230,7 +229,6 @@ export default function ProfileTab() {
         });
         return;
     }
-    setEditingCharacter(null);
     setFormDialogOpen(true);
   };
 
@@ -245,14 +243,9 @@ export default function ProfileTab() {
 
       updateCharacterInUser(currentUser.id, characterData);
       
-      if (editingCharacter) {
-        toast({ title: "Успешно", description: "Данные персонажа обновлены." });
-      } else {
-        toast({ title: "Успешно", description: "Персонаж добавлен. Теперь он может получать награды." });
-      }
+      toast({ title: "Успешно", description: "Персонаж добавлен. Теперь вы можете настроить его анкету." });
 
       setFormDialogOpen(false);
-      setEditingCharacter(null);
   };
 
   const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString();
@@ -421,18 +414,13 @@ export default function ProfileTab() {
       </div>
 
        <Dialog open={isFormDialogOpen} onOpenChange={setFormDialogOpen}>
-            <DialogContent className="max-w-3xl">
-                <DialogHeader>
-                <DialogTitle>{editingCharacter ? 'Редактировать персонажа' : 'Добавить нового персонажа'}</DialogTitle>
-                <DialogDescription>
-                    {editingCharacter ? 'Измените данные вашего персонажа.' : 'Заполните данные для вашего нового персонажа.'}
-                </DialogDescription>
-                </DialogHeader>
+            <DialogContent>
                 <CharacterForm 
                     onSubmit={handleFormSubmit as (data: Character) => void}
-                    character={editingCharacter}
+                    character={null}
                     allUsers={allUsers}
-                    closeDialog={() => setFormDialogOpen(false)} 
+                    closeDialog={() => setFormDialogOpen(false)}
+                    editingSection={'mainInfo'}
                 />
             </DialogContent>
         </Dialog>

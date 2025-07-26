@@ -18,7 +18,7 @@ import { SearchableSelect } from '../ui/searchable-select';
 import RelationshipForm from './relationship-form';
 import FinanceForm from './finance-form';
 
-export type EditableSection = 'mainInfo' | 'accomplishments' | 'appearance' | 'personality' | 'biography' | 'abilities' | 'weaknesses' | 'relationships' | 'marriage' | 'additionalInfo' | 'finance';
+export type EditableSection = 'mainInfo' | 'accomplishments' | 'appearance' | 'personality' | 'biography' | 'abilities' | 'weaknesses' | 'relationships' | 'marriage' | 'additionalInfo';
 
 interface CharacterFormProps {
     character: Character | null;
@@ -77,11 +77,11 @@ const SectionTitles: Record<EditableSection, string> = {
     relationships: 'Отношения',
     marriage: 'Семейное положение',
     additionalInfo: 'Дополнительно',
-    finance: 'Финансы'
 };
 
 
 const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingSection }: CharacterFormProps) => {
+    const isCreating = !character;
     const [formData, setFormData] = useState<Character>(character || { ...initialFormData, id: `c-${Date.now()}`});
 
      useEffect(() => {
@@ -157,6 +157,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingSect
     };
 
     const getDialogTitle = () => {
+        if (isCreating) return 'Добавить нового персонажа';
         if (!editingSection) return '';
         
         let titleAction = "Редактировать";
@@ -179,7 +180,8 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingSect
     }
 
     const renderSection = () => {
-        switch(editingSection) {
+        const sectionToRender = isCreating ? 'mainInfo' : editingSection;
+        switch(sectionToRender) {
             case 'mainInfo':
                 return (
                     <div className="space-y-4">
@@ -220,27 +222,31 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingSect
                         <div><Label htmlFor="diary">Личный дневник</Label><Textarea id="diary" value={formData.diary ?? ''} onChange={handleChange} rows={8}/></div>
                     </div>
                 );
-            case 'finance': return <FinanceForm formData={formData} setFormData={setFormData} />;
-            default: return <p>Выберите секцию для редактирования.</p>
+            default: return isCreating ? renderSection() : <p>Выберите секцию для редактирования.</p>
         }
     }
     
     return (
-        <form onSubmit={handleSubmit} className="flex flex-col h-full max-h-[85vh] overflow-hidden">
+         <form onSubmit={handleSubmit} className="flex flex-col h-full max-h-[85vh]">
              <DialogHeader>
                 <DialogTitle>{getDialogTitle()}</DialogTitle>
                 <DialogDescription>
-                    Внесите изменения и нажмите "Сохранить".
+                    {isCreating 
+                        ? 'Заполните основные данные. Остальную анкету можно будет заполнить позже.' 
+                        : 'Внесите изменения и нажмите "Сохранить".'
+                    }
                 </DialogDescription>
              </DialogHeader>
-             <div className="flex-1 py-4 overflow-y-auto pr-2">
-                {renderSection()}
+             <div className="relative flex-1 py-4">
+                 <ScrollArea className="absolute inset-0 pr-6">
+                    {renderSection()}
+                 </ScrollArea>
              </div>
             <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t">
               <DialogClose asChild>
                 <Button type="button" variant="ghost">Отмена</Button>
               </DialogClose>
-              <Button type="submit">Сохранить изменения</Button>
+              <Button type="submit">{isCreating ? 'Создать персонажа' : 'Сохранить изменения'}</Button>
             </div>
         </form>
     );
