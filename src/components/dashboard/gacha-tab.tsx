@@ -56,12 +56,13 @@ export default function RouletteTab() {
     
     // Check if the character has any familiar cards yet
     const hasCards = character.inventory?.familiarCards && character.inventory.familiarCards.length > 0;
-    if(hasCards) return false;
     
     // Check if there is any roulette log for this character
-    return !currentUser.pointHistory.some(log => 
+    const hasHistory = currentUser.pointHistory.some(log => 
         log.characterId === character.id && log.reason.includes('Рулетка')
     );
+    
+    return !hasCards && !hasHistory;
   }, [currentUser, selectedCharacterId]);
 
   const currentCost = isFirstSpinForChar ? 0 : ROULETTE_COST;

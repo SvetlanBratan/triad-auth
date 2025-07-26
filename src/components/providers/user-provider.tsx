@@ -817,7 +817,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (characterIndex === -1) throw new Error("Персонаж не найден.");
         const character = user.characters[characterIndex];
 
-        const isFirstPullForChar = !user.pointHistory.some(log => log.characterId === characterId && log.reason.includes('Рулетка'));
+        const hasCards = character.inventory?.familiarCards && character.inventory.familiarCards.length > 0;
+        const hasHistory = user.pointHistory.some(log => log.characterId === characterId && log.reason.includes('Рулетка'));
+        const isFirstPullForChar = !hasCards && !hasHistory;
+        
         const cost = isFirstPullForChar ? 0 : ROULETTE_COST;
         if (user.points < cost) throw new Error("Недостаточно очков.");
         let finalPointChange = -cost;
