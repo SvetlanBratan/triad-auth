@@ -243,7 +243,7 @@ export default function ProfileTab() {
 
       updateCharacterInUser(currentUser.id, characterData);
       
-      toast({ title: "Успешно", description: "Персонаж добавлен. Теперь вы можете настроить его анкету." });
+      toast({ title: "Успешно", description: "Данные персонажа сохранены." });
 
       setEditingState(null);
   };
@@ -271,6 +271,13 @@ export default function ProfileTab() {
     currentUser.characters.forEach(c => map.set(c.id, c.name));
     return map;
   }, [currentUser.characters]);
+
+  const characterToEdit = useMemo(() => {
+    if (!editingState || editingState.type !== 'createCharacter') return null;
+    // This logic might need to be expanded if we edit existing characters from this component.
+    // For now, it only handles creation.
+    return null;
+  }, [editingState]);
 
 
   return (
@@ -418,7 +425,7 @@ export default function ProfileTab() {
             <DialogContent>
                 <CharacterForm 
                     onSubmit={handleFormSubmit as (data: Character) => void}
-                    character={currentUser.characters[0] || null}
+                    character={characterToEdit}
                     allUsers={allUsers}
                     closeDialog={() => setEditingState(null)}
                     editingState={editingState}
