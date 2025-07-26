@@ -215,8 +215,7 @@ export interface Reward {
   description: string;
   cost: number;
   type: 'permanent' | 'temporary';
-  iconName: string; 
-  requiresCharacter?: boolean;
+  iconName: string;
 }
 
 export interface RewardRequest {
@@ -226,8 +225,8 @@ export interface RewardRequest {
   rewardId: string;
   rewardTitle: string;
   rewardCost: number;
-  characterId?: string;
-  characterName?: string;
+  characterId: string | null;
+  characterName: string | null;
   status: RewardRequestStatus;
   createdAt: string; // ISO string date
 }

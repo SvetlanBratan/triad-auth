@@ -670,7 +670,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const batch = writeBatch(db);
     const requestId = `req-${Date.now()}`;
     
-    // Explicitly set null for missing character info
     const finalRewardRequestData = {
       ...rewardRequestData,
       characterId: rewardRequestData.characterId ?? null,
@@ -692,7 +691,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       date: new Date().toISOString(),
       amount: -rewardRequestData.rewardCost,
       reason: `Запрос награды: ${rewardRequestData.rewardTitle}`,
-      characterId: rewardRequestData.characterId,
+      characterId: rewardRequestData.characterId ?? undefined,
     };
     const updatedPoints = user.points - rewardRequestData.rewardCost;
     const updatedHistory = [newPointLog, ...user.pointHistory].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());

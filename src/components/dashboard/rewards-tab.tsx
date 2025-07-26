@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useUser } from '@/hooks/use-user';
@@ -57,12 +58,17 @@ export default function RewardsTab() {
   };
 
   const handleConfirmRequest = async () => {
-    if (!currentUser || !selectedReward) return;
+    if (!currentUser || !selectedReward || !selectedCharacterId) return;
     setIsLoading(true);
 
-    const isForPlayer = selectedCharacterId === 'for_player';
-    const character = isForPlayer ? undefined : currentUser.characters.find(c => c.id === selectedCharacterId);
+    const character = currentUser.characters.find(c => c.id === selectedCharacterId);
     
+    if (!character) {
+        toast({ variant: "destructive", title: "Ошибка", description: "Выбранный персонаж не найден." });
+        setIsLoading(false);
+        return;
+    }
+
     try {
         await createRewardRequest({
             userId: currentUser.id,
@@ -70,7 +76,8 @@ export default function RewardsTab() {
             rewardId: selectedReward.id,
             rewardTitle: selectedReward.title,
             rewardCost: selectedReward.cost,
-            ...(character && { characterId: character.id, characterName: character.name }),
+            characterId: character.id,
+            characterName: character.name,
         });
         toast({
             title: "Запрос отправлен!",
@@ -136,17 +143,16 @@ export default function RewardsTab() {
                     <DialogHeader>
                         <DialogTitle>Запросить "{selectedReward.title}"</DialogTitle>
                         <DialogDescription>
-                            Выберите цель для этой награды. После подтверждения запрос будет отправлен администраторам.
+                            Выберите персонажа для этой награды. После подтверждения запрос будет отправлен администраторам.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="py-4 space-y-4">
-                        <p>Выберите, для кого запросить награду:</p>
+                        <p>Для какого персонажа вы хотите запросить награду?</p>
                         <Select onValueChange={setSelectedCharacterId} value={selectedCharacterId}>
                             <SelectTrigger>
-                                <SelectValue placeholder="Выберите цель..." />
+                                <SelectValue placeholder="Выберите персонажа..." />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="for_player">Для игрока (не требуется персонаж)</SelectItem>
                                 {currentUser?.characters.map(char => (
                                     <SelectItem key={char.id} value={char.id}>{char.name}</SelectItem>
                                 ))}

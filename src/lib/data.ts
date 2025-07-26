@@ -45,7 +45,7 @@ export const STARTING_CAPITAL_LEVELS: CapitalLevel[] = [
 // will get a real Firebase UID.
 export const users: never[] = [];
 
-export const rewards: Omit<Reward, 'requiresCharacter'>[] = [
+export const rewards: Reward[] = [
     { id: 'r-race-1', title: 'Закрытая раса (ур. 1)', description: 'Безликие, неониды, нарраторы', cost: 8000, type: 'permanent', iconName: 'UserPlus' },
     { id: 'r-race-2', title: 'Закрытая раса (ур. 2)', description: 'Бракованные пересмешники, скелеты, астролоиды', cost: 10000, type: 'permanent', iconName: 'UserPlus' },
     { id: 'r-race-3', title: 'Закрытая раса (ур. 3)', description: 'Ларимы, антаресы, дарнатиаре и пересмешники', cost: 30000, type: 'permanent', iconName: 'UserPlus' },
