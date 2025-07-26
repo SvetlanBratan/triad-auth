@@ -217,15 +217,15 @@ export default function CharacterPage() {
     const accomplishments = character.accomplishments || [];
     
     const SectionHeader = ({ title, icon, section, isEmpty }: { title: string; icon: React.ReactNode; section: EditableSection, isEmpty?: boolean }) => (
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <CardTitle className="flex items-center gap-2">{icon} {title}</CardTitle>
             {isOwnerOrAdmin && (
                 isEmpty ? (
-                     <Button variant="outline-dashed" size="sm" onClick={() => setEditingSection(section)}>
+                     <Button variant="outline-dashed" size="sm" onClick={() => setEditingSection(section)} className="shrink-0 self-start sm:self-center">
                         <PlusCircle className="mr-2 h-4 w-4" /> Добавить
                     </Button>
                 ) : (
-                    <Button variant="ghost" size="icon" onClick={() => setEditingSection(section)}>
+                    <Button variant="ghost" size="icon" onClick={() => setEditingSection(section)} className="shrink-0 self-start sm:self-center">
                         <Edit className="w-4 h-4" />
                     </Button>
                 )
@@ -389,7 +389,6 @@ export default function CharacterPage() {
                      <Card>
                         <CardHeader className="flex flex-row items-center justify-between">
                             <CardTitle className="flex items-center gap-2"><Wallet /> Финансы</CardTitle>
-                            {currentUser?.role === 'admin' && <Button variant="ghost" size="icon" onClick={() => setEditingSection('finance')}><Edit className="w-4 h-4" /></Button>}
                         </CardHeader>
                         <CardContent className="space-y-2 text-sm">
                              <div className="flex justify-between items-center">
