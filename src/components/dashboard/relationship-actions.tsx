@@ -31,6 +31,15 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
 
     const [sourceCharacterId, setSourceCharacterId] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    
+    // Check if there's any relationship between any of the current user's characters and the target character
+    const hasAnyRelationship = useMemo(() => {
+        if (!currentUser) return false;
+        return currentUser.characters.some(sourceChar => 
+            (sourceChar.relationships || []).some(rel => rel.targetCharacterId === targetCharacter.id)
+        );
+    }, [currentUser, targetCharacter.id]);
+
 
     const relationship = useMemo(() => {
         if (!currentUser || !sourceCharacterId) return null;
@@ -86,6 +95,12 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
             setIsLoading(false);
         }
     };
+    
+    // Do not render the component at all if there's no relationship established.
+    if (!hasAnyRelationship) {
+        return null;
+    }
+
 
     return (
         <Card>
@@ -101,11 +116,15 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
                             <SelectValue placeholder="Выберите персонажа..." />
                         </SelectTrigger>
                         <SelectContent>
-                            {currentUser?.characters.map(char => (
-                                <SelectItem key={char.id} value={char.id}>
-                                    {char.name}
-                                </SelectItem>
-                            ))}
+                            {currentUser?.characters
+                                // Filter to only show characters that actually have a relationship with the target
+                                .filter(char => (char.relationships || []).some(r => r.targetCharacterId === targetCharacter.id))
+                                .map(char => (
+                                    <SelectItem key={char.id} value={char.id}>
+                                        {char.name}
+                                    </SelectItem>
+                                ))
+                            }
                         </SelectContent>
                     </Select>
                 </div>
@@ -151,12 +170,6 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
                                 </Tooltip>
                             </div>
                         </TooltipProvider>
-                        {!relationship && (
-                            <div className="text-sm text-muted-foreground p-2 bg-muted/50 rounded-md flex items-start gap-2">
-                                <Info className="w-4 h-4 mt-0.5 shrink-0" />
-                                <span>Чтобы совершать действия, попросите администратора установить начальные отношения между вашими персонажами.</span>
-                            </div>
-                        )}
                     </>
                 )}
             </CardContent>

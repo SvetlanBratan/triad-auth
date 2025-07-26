@@ -154,7 +154,7 @@ export default function CharacterPage() {
         if(id) {
           findCharacterAndUsers();
         }
-    }, [id, fetchUsersForAdmin, setCurrentUser]); 
+    }, [id, fetchUsersForAdmin, setCurrentUser, gameDate]); 
 
     const handleFormSubmit = (characterData: Character) => {
         if (!owner) return;
@@ -251,7 +251,7 @@ export default function CharacterPage() {
         if (!isVisible && !isOwnerOrAdmin) return null;
         const isEmpty = !value;
         return (
-            <div className="grid grid-cols-1 sm:grid-cols-3 sm:items-center gap-1 sm:gap-4 group">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-1 gap-x-4 group items-center">
                 <span className="text-muted-foreground col-span-1">{label}:</span>
                 <div className="flex items-center justify-between col-span-1 sm:col-span-2">
                     <div className="flex-1 text-left">
@@ -541,7 +541,7 @@ export default function CharacterPage() {
                         </Card>
                     )}
                     
-                    {!isOwnerOrAdmin && currentUser && <RelationshipActions targetCharacter={character} />}
+                    {currentUser && currentUser.id !== owner.id && <RelationshipActions targetCharacter={character} />}
 
                     <Card>
                         <SectionHeader title="Семейное положение" icon={<Users />} section="marriage" />
