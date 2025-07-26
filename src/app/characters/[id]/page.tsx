@@ -403,7 +403,7 @@ export default function CharacterPage() {
                                     )}
                                 </div>
                             </div>
-                            {sortedBankHistory.length > 0 && (
+                            {isViewingOwnProfile && sortedBankHistory.length > 0 && (
                                 <Accordion type="single" collapsible className="w-full pt-2">
                                     <AccordionItem value="history">
                                         <AccordionTrigger className="text-xs text-muted-foreground hover:no-underline">
@@ -639,3 +639,4 @@ export default function CharacterPage() {
     
 
     
+
