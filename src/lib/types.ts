@@ -165,6 +165,7 @@ export interface Character {
   lifeGoal?: string;
   pets?: string;
   appearance: string;
+  appearanceImage?: string;
   personality: string;
   biography: string;
   diary: string; 

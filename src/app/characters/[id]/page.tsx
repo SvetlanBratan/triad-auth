@@ -23,6 +23,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import RelationshipActions from '@/components/dashboard/relationship-actions';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import Image from 'next/image';
 
 
 type IconName = keyof typeof LucideIcons;
@@ -321,9 +322,23 @@ export default function CharacterPage() {
                      <Card>
                         <SectionHeader title="Внешность" icon={<PersonStanding />} section="appearance" />
                         <CardContent>
-                            <ScrollArea className="h-40 w-full">
-                                <p className="whitespace-pre-wrap pr-4">{character.appearance || 'Описание отсутствует.'}</p>
-                            </ScrollArea>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="md:col-span-1">
+                                    <Image
+                                        src={character.appearanceImage || 'https://placehold.co/400x600.png'}
+                                        alt={`Внешность ${character.name}`}
+                                        width={400}
+                                        height={600}
+                                        className="rounded-lg object-cover w-full h-auto aspect-[4/6]"
+                                        data-ai-hint="character portrait"
+                                    />
+                                </div>
+                                <div className="md:col-span-2">
+                                    <ScrollArea className="h-96 w-full">
+                                        <p className="whitespace-pre-wrap pr-4">{character.appearance || 'Описание отсутствует.'}</p>
+                                    </ScrollArea>
+                                </div>
+                            </div>
                         </CardContent>
                     </Card>
                      <Card>

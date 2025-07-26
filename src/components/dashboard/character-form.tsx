@@ -10,10 +10,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '../ui/textarea';
 import { ScrollArea } from '../ui/scroll-area';
-import { MultiSelect, OptionType } from '../ui/multi-select';
+import { MultiSelect } from '../ui/multi-select';
 import { Trash2, PlusCircle } from 'lucide-react';
 import { SearchableSelect } from '../ui/searchable-select';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import ImageUploader from './image-uploader';
 
 
 export type EditableSection = 
@@ -64,6 +65,7 @@ const initialFormData: Omit<Character, 'id'> = {
     accomplishments: [],
     workLocation: '',
     appearance: '',
+    appearanceImage: '',
     personality: '',
     biography: '',
     diary: '',
@@ -92,8 +94,8 @@ const initialFormData: Omit<Character, 'id'> = {
     wealthLevel: 'Бедный',
 };
 
-const fameLevelOptions: OptionType[] = FAME_LEVELS.map(level => ({ value: level, label: level }));
-const skillLevelOptions: OptionType[] = SKILL_LEVELS.map(level => ({ value: level, label: level }));
+const fameLevelOptions = FAME_LEVELS.map(level => ({ value: level, label: level }));
+const skillLevelOptions = SKILL_LEVELS.map(level => ({ value: level, label: level }));
 
 const SectionTitles: Record<EditableSection, string> = {
     mainInfo: 'Основная информация',
@@ -319,7 +321,12 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                 }
                  // The rest of the section cases
                 switch(editingState.section) {
-                    case 'appearance': return <div><Label htmlFor="appearance">Внешность</Label><Textarea id="appearance" value={formData.appearance ?? ''} onChange={(e) => handleFieldChange('appearance', e.target.value)} rows={10} placeholder="Опишите внешность вашего персонажа: рост, телосложение, цвет волос и глаз, особые приметы..."/></div>;
+                    case 'appearance': return <div className="space-y-4"><ImageUploader
+                                    currentImageUrl={formData.appearanceImage}
+                                    onUpload={(url) => handleFieldChange('appearanceImage', url)}
+                                    uploadPreset="ankets"
+                                />
+                                <div><Label htmlFor="appearance">Описание внешности</Label><Textarea id="appearance" value={formData.appearance ?? ''} onChange={(e) => handleFieldChange('appearance', e.target.value)} rows={10} placeholder="Опишите внешность вашего персонажа: рост, телосложение, цвет волос и глаз, особые приметы..."/></div></div>;
                     case 'personality': return <div><Label htmlFor="personality">Характер</Label><Textarea id="personality" value={formData.personality ?? ''} onChange={(e) => handleFieldChange('personality', e.target.value)} rows={10} placeholder="Опишите характер персонажа: его сильные и слабые стороны, привычки, мировоззрение, манеру общения..."/></div>;
                     case 'biography': return <div><Label htmlFor="biography">Биография</Label><Textarea id="biography" value={formData.biography ?? ''} onChange={(e) => handleFieldChange('biography', e.target.value)} rows={15} placeholder="Расскажите историю вашего персонажа: где он родился, как рос, ключевые события в его жизни..."/></div>;
                     case 'abilities': return <div><Label htmlFor="abilities">Способности</Label><Textarea id="abilities" value={formData.abilities ?? ''} onChange={(e) => handleFieldChange('abilities', e.target.value)} rows={8} placeholder="Опишите уникальные способности или навыки вашего персонажа."/></div>;
