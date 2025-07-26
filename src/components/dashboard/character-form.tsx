@@ -213,7 +213,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
     return (
         <form onSubmit={handleSubmit} className="flex flex-col h-full">
             <ScrollArea className="flex-grow pr-6 -mr-6">
-                <div className="space-y-4 pb-4">
+                <div className="space-y-4 pb-[50px]">
                     {/* Basic Info */}
                     <div>
                         <Label htmlFor="name">Имя персонажа</Label>
