@@ -256,7 +256,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 training: Array.isArray(char.training) ? char.training : [],
                 marriedTo: Array.isArray(char.marriedTo) ? char.marriedTo : [],
                 relationships: (Array.isArray(char.relationships) ? char.relationships : []).map(r => ({ ...r, id: r.id || `rel-${Math.random()}` })),
-                inventory: char.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: char.familiarCards || [] },
+                inventory: { ...initialFormData.inventory, ...(char.inventory || {}) },
                 moodlets: char.moodlets || [],
             })) || [];
            userData.achievementIds = userData.achievementIds || [];
@@ -357,7 +357,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                  bankAccount: typeof char.bankAccount !== 'object' || char.bankAccount === null 
                     ? { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] } 
                     : { platinum: 0, gold: 0, silver: 0, copper: 0, history: [], ...char.bankAccount },
-                inventory: char.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: char.familiarCards || [] },
+                inventory: { ...initialFormData.inventory, ...(char.inventory || {}) },
                 moodlets: char.moodlets || [],
             })) || [];
             userData.achievementIds = userData.achievementIds || [];

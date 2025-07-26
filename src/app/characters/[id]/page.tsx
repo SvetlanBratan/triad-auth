@@ -676,22 +676,18 @@ export default function CharacterPage() {
                                         <p className="text-muted-foreground text-sm">Здесь будет список подарков.</p>
                                     </AccordionContent>
                                 </AccordionItem>
-                                {(inventory.недвижимость && inventory.недвижимость.length > 0) && (
                                 <AccordionItem value="real-estate">
-                                    <AccordionTrigger><Home className="mr-2 w-4 h-4"/>Недвижимость ({inventory.недвижимость.length})</AccordionTrigger>
+                                    <AccordionTrigger><Home className="mr-2 w-4 h-4"/>Недвижимость ({(inventory.недвижимость || []).length})</AccordionTrigger>
                                     <AccordionContent>
                                         <p className="text-muted-foreground text-sm">Здесь будет список недвижимости.</p>
                                     </AccordionContent>
                                 </AccordionItem>
-                                )}
-                                {(inventory.транспорт && inventory.транспорт.length > 0) && (
                                 <AccordionItem value="transport">
-                                    <AccordionTrigger><CarFront className="mr-2 w-4 h-4"/>Транспорт ({inventory.транспорт.length})</AccordionTrigger>
+                                    <AccordionTrigger><CarFront className="mr-2 w-4 h-4"/>Транспорт ({(inventory.транспорт || []).length})</AccordionTrigger>
                                     <AccordionContent>
                                         <p className="text-muted-foreground text-sm">Здесь будет список транспорта.</p>
                                     </AccordionContent>
                                 </AccordionItem>
-                                )}
                              </Accordion>
                         </CardContent>
                     </Card>
