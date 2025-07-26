@@ -201,12 +201,12 @@ export default function UserProfileDialog({ user }: { user: User }) {
   }, [user.characters]);
 
   return (
-    <div className="flex flex-col h-full">
+    <div>
         <DialogHeader>
           <DialogTitle className="text-2xl pr-8">Профиль игрока: {user.name}</DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 mt-4 -mr-6 pr-6">
+        <div className="mt-4">
             <div className="flex flex-col md:grid md:grid-cols-2 gap-6 items-start">
             {/* Left Column */}
             <div className={cn("space-y-6 min-w-0", !isAdminViewer && "md:col-span-2")}>
@@ -328,7 +328,7 @@ export default function UserProfileDialog({ user }: { user: User }) {
                 </div>
             )}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }
