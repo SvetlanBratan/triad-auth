@@ -15,6 +15,7 @@ import { Trash2, PlusCircle } from 'lucide-react';
 import { SearchableSelect } from '../ui/searchable-select';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import ImageUploader from './image-uploader';
+import { SearchableMultiSelect } from '../ui/searchable-multi-select';
 
 
 export type EditableSection = 
@@ -184,7 +185,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
 
         return allUsers.flatMap(user =>
             user.characters
-                .filter(c => c.id !== formData.id && !currentRelationshipIds.has(c.id))
+                .filter(c => c.id !== formData.id) // Cannot be married to self
                 .map(c => ({
                     value: c.id,
                     label: `${c.name} (${user.name})`
@@ -331,7 +332,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                     case 'biography': return <div><Label htmlFor="biography">Биография</Label><Textarea id="biography" value={formData.biography ?? ''} onChange={(e) => handleFieldChange('biography', e.target.value)} rows={15} placeholder="Расскажите историю вашего персонажа: где он родился, как рос, ключевые события в его жизни..."/></div>;
                     case 'abilities': return <div><Label htmlFor="abilities">Способности</Label><Textarea id="abilities" value={formData.abilities ?? ''} onChange={(e) => handleFieldChange('abilities', e.target.value)} rows={8} placeholder="Опишите уникальные способности или навыки вашего персонажа."/></div>;
                     case 'weaknesses': return <div><Label htmlFor="weaknesses">Слабости</Label><Textarea id="weaknesses" value={formData.weaknesses ?? ''} onChange={(e) => handleFieldChange('weaknesses', e.target.value)} rows={8} placeholder="Укажите слабости, уязвимости или страхи вашего персонажа."/></div>;
-                    case 'marriage': return <div><Label htmlFor="marriedTo">В браке с</Label><MultiSelect placeholder="Выберите персонажей..." options={characterOptions} selected={formData.marriedTo ?? []} onChange={(v) => handleMultiSelectChange('marriedTo', v)} /></div>;
+                    case 'marriage': return <div><Label htmlFor="marriedTo">В браке с</Label><SearchableMultiSelect placeholder="Выберите персонажей..." options={characterOptions} selected={formData.marriedTo ?? []} onChange={(v) => handleMultiSelectChange('marriedTo', v)} /></div>;
                     case 'training': return <div><Label htmlFor="training">Обучение</Label><MultiSelect placeholder="Выберите варианты..." options={TRAINING_OPTIONS} selected={formData.training ?? []} onChange={(v) => handleMultiSelectChange('training', v)} /></div>;
                     case 'lifeGoal': return <div><Label htmlFor="lifeGoal">Жизненная цель</Label><Textarea id="lifeGoal" value={formData.lifeGoal ?? ''} onChange={(e) => handleFieldChange('lifeGoal', e.target.value)} rows={4} placeholder="Какова главная цель или мечта вашего персонажа?"/></div>;
                     case 'criminalRecords': return <div><Label htmlFor="criminalRecords">Судимости</Label><Textarea id="criminalRecords" value={formData.criminalRecords ?? ''} onChange={(e) => handleFieldChange('criminalRecords', e.target.value)} rows={4} placeholder="Опишите судимости персонажа."/></div>;
