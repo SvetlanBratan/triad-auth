@@ -51,29 +51,17 @@ export default function AuthPage() {
         .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
         .join(' ');
 
-    const fakeEmailForRegistration = `${data.nickname.toLowerCase().replace(/\s/g, '')}@pumpkin.com`;
+    const fakeEmailForAuth = `${data.nickname.toLowerCase().replace(/\s/g, '')}@pumpkin.com`;
 
     try {
       if (isLogin) {
-        // Login: Find user by nickname first to get their actual email
-        const usersRef = collection(db, 'users');
-        const q = query(usersRef, where('name', '==', formattedNickname));
-        const querySnapshot = await getDocs(q);
-
-        if (querySnapshot.empty) {
-            throw new FirebaseError('auth/invalid-credential', 'Неверный никнейм или пароль.');
-        }
-
-        const userData = querySnapshot.docs[0].data() as User;
-        const actualEmail = userData.email;
-
-        await signInWithEmailAndPassword(auth, actualEmail, data.password);
+        // Login
+        await signInWithEmailAndPassword(auth, fakeEmailForAuth, data.password);
         toast({ title: 'Вход выполнен', description: `Добро пожаловать!` });
-
       } else {
         // Register
         try {
-            const userCredential = await createUserWithEmailAndPassword(auth, fakeEmailForRegistration, data.password);
+            const userCredential = await createUserWithEmailAndPassword(auth, fakeEmailForAuth, data.password);
             
             await updateProfile(userCredential.user, { displayName: formattedNickname });
 
