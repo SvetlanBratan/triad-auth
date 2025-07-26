@@ -130,14 +130,19 @@ const drawFamiliarCard = (hasBlessing: boolean, unavailableMythicIds: Set<string
     const availableCommon = availableCards.filter(c => c.rank === 'обычный');
 
     let chosenPool: FamiliarCard[] = [];
+    let chosenRank: FamiliarRank;
 
     if (rand < chances.мифический && availableMythic.length > 0) {
+        chosenRank = 'мифический';
         chosenPool = availableMythic;
-    } else if (rand >= chances.мифический && rand < chances.легендарный && availableLegendary.length > 0) {
+    } else if (rand < chances.мифический + chances.легендарный && availableLegendary.length > 0) {
+        chosenRank = 'легендарный';
         chosenPool = availableLegendary;
-    } else if (rand >= chances.легендарный && rand < chances.редкий && availableRare.length > 0) {
+    } else if (rand < chances.мифический + chances.легендарный + chances.редкий && availableRare.length > 0) {
+        chosenRank = 'редкий';
         chosenPool = availableRare;
     } else { 
+        chosenRank = 'обычный';
         chosenPool = availableCommon;
     }
     
@@ -151,6 +156,7 @@ const drawFamiliarCard = (hasBlessing: boolean, unavailableMythicIds: Set<string
         } else if (availableMythic.length > 0) {
             chosenPool = availableMythic;
         } else {
+            // Fallback to all non-event cards if somehow all pools are empty
             chosenPool = ALL_FAMILIARS.filter(c => c.rank !== 'ивентовый');
         }
     }
@@ -508,32 +514,27 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const oldRelationships = new Map((oldCharacterState?.relationships || []).map(r => [r.targetCharacterId, r]));
         
         const sanitizeCharacterForWrite = (char: Character): Character => {
-            const sanitized: Character = {
-                ...initialFormData, 
-                ...char, 
-                abilities: char.abilities ?? '',
-                weaknesses: char.weaknesses ?? '',
-                lifeGoal: char.lifeGoal ?? '',
-                pets: char.pets ?? '',
-                criminalRecords: char.criminalRecords ?? '',
-                crimeLevel: char.crimeLevel ?? 5,
-                marriedTo: char.marriedTo ?? [],
-                moodlets: char.moodlets ?? [],
-                relationships: char.relationships ?? [],
-                inventory: char.inventory || initialFormData.inventory,
-                bankAccount: {
-                  ...(initialFormData.bankAccount),
-                  ...(char.bankAccount || {}),
-                  history: Array.isArray(char.bankAccount?.history) ? char.bankAccount.history : [],
-                },
-            };
-             // Ensure no undefined values are in the final object
-            for (const key in sanitized) {
-                if (sanitized[key as keyof Character] === undefined) {
-                    sanitized[key as keyof Character] = null as any; 
+            const sanitized: Partial<Character> = { ...char };
+
+            for (const key in initialFormData) {
+                const typedKey = key as keyof Character;
+                if (sanitized[typedKey] === undefined) {
+                    sanitized[typedKey] = initialFormData[typedKey as keyof typeof initialFormData] as any;
                 }
             }
-            return sanitized;
+             if (typeof sanitized.bankAccount !== 'object' || sanitized.bankAccount === null) {
+                sanitized.bankAccount = initialFormData.bankAccount;
+            } else {
+                sanitized.bankAccount = { ...initialFormData.bankAccount, ...sanitized.bankAccount };
+            }
+            if (!Array.isArray(sanitized.bankAccount.history)) {
+                sanitized.bankAccount.history = [];
+            }
+            if (typeof sanitized.inventory !== 'object' || sanitized.inventory === null) {
+                sanitized.inventory = initialFormData.inventory;
+            }
+
+            return sanitized as Character;
         };
 
         const sanitizedCharacterToUpdate = sanitizeCharacterForWrite(characterToUpdate);
@@ -573,9 +574,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 
                 if (targetCharIndex !== -1) {
                     const targetChar = sanitizeCharacterForWrite({ ...userToUpdate.characters[targetCharIndex] });
-                    const reciprocalRelIndex = targetChar.relationships.findIndex(r => r.targetCharacterId === sanitizedCharacterToUpdate.id);
+                    const reciprocalRelIndex = (targetChar.relationships || []).findIndex(r => r.targetCharacterId === sanitizedCharacterToUpdate.id);
 
                     const reciprocalRel: Relationship = {
+                        id: reciprocalRelIndex !== -1 ? targetChar.relationships[reciprocalRelIndex].id : `rel-${Date.now()}`,
                         targetCharacterId: sanitizedCharacterToUpdate.id,
                         targetCharacterName: sanitizedCharacterToUpdate.name,
                         type: newRel.type,
@@ -586,7 +588,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                     if (reciprocalRelIndex !== -1) {
                         targetChar.relationships[reciprocalRelIndex] = reciprocalRel;
                     } else {
-                        targetChar.relationships.push(reciprocalRel);
+                        targetChar.relationships = [...(targetChar.relationships || []), reciprocalRel];
                     }
                     
                     userToUpdate.characters[targetCharIndex] = targetChar;
@@ -612,7 +614,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                     
                     if (targetCharIndex !== -1) {
                          const targetChar = sanitizeCharacterForWrite({ ...userToUpdate.characters[targetCharIndex] });
-                         targetChar.relationships = targetChar.relationships.filter(r => r.targetCharacterId !== sanitizedCharacterToUpdate.id);
+                         targetChar.relationships = (targetChar.relationships || []).filter(r => r.targetCharacterId !== sanitizedCharacterToUpdate.id);
                          userToUpdate.characters[targetCharIndex] = targetChar;
                          usersToUpdate.set(targetUserId, userToUpdate);
                     }
@@ -625,7 +627,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 ...user,
                 characters: user.characters.map(c => {
                     const { relationships, ...restOfChar } = c;
-                    const sanitizedRelationships = (relationships || []).map(({ id: tempId, ...restOfRel }) => restOfRel);
+                    const sanitizedRelationships = (relationships || []).map(r => {
+                        const { id: tempId, ...restOfRel } = r;
+                        return restOfRel;
+                    });
                     return { ...restOfChar, relationships: sanitizedRelationships };
                 })
             };
