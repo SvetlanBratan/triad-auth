@@ -251,7 +251,7 @@ export default function CharacterPage() {
         if (!isVisible && !isOwnerOrAdmin) return null;
         const isEmpty = !value;
         return (
-            <div className="flex justify-between items-center group">
+            <div className="flex justify-between items-center group flex-wrap">
                 <span className="text-muted-foreground shrink-0 pr-2">{label}:</span>
                 <div className="flex items-center gap-2 text-right">
                     {isEmpty && isOwnerOrAdmin ? <span className="italic text-muted-foreground/80">Не указано</span> : value}
@@ -686,7 +686,7 @@ export default function CharacterPage() {
                              <SubSection 
                                 title="Личный дневник"
                                 section="diary"
-                                isVisible={!!character.diary || isOwnerOrAdmin}
+                                isVisible={!!character.diary}
                                 isEmpty={!character.diary}
                                 content={<p className="whitespace-pre-wrap text-sm pt-2">{character.diary}</p>}
                             />
