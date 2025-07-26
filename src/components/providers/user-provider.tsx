@@ -508,29 +508,32 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const oldCharacterState = sourceUserData.characters.find(c => c.id === characterToUpdate.id);
         const oldRelationships = new Map((oldCharacterState?.relationships || []).map(r => [r.targetCharacterId, r]));
         
-        const sanitizeCharacterForWrite = (char: Character): Character => {
-            const sanitized: Partial<Character> = { ...char };
+         const sanitizeCharacterForWrite = (char: Character): Character => {
+            const sanitized = JSON.parse(JSON.stringify(char)); // Deep clone to avoid mutation issues
+            const defaults = initialFormData;
 
-            for (const key in initialFormData) {
-                const typedKey = key as keyof typeof initialFormData;
-                 if (sanitized[typedKey] === undefined) {
-                    sanitized[typedKey] = initialFormData[typedKey] as any;
+            for (const key in defaults) {
+                const typedKey = key as keyof typeof defaults;
+                if (sanitized[typedKey] === undefined) {
+                    sanitized[typedKey] = defaults[typedKey];
                 }
             }
-             if (typeof sanitized.bankAccount !== 'object' || sanitized.bankAccount === null) {
-                sanitized.bankAccount = initialFormData.bankAccount;
-            } else {
-                sanitized.bankAccount = { ...initialFormData.bankAccount, ...sanitized.bankAccount };
-            }
-            if (!Array.isArray(sanitized.bankAccount.history)) {
-                sanitized.bankAccount.history = [];
-            }
-            if (typeof sanitized.inventory !== 'object' || sanitized.inventory === null) {
-                sanitized.inventory = initialFormData.inventory;
-            }
+             
+            // Ensure nested objects are fully initialized
+            sanitized.bankAccount = { ...defaults.bankAccount, ...(sanitized.bankAccount || {}) };
+            sanitized.inventory = { ...defaults.inventory, ...(sanitized.inventory || {}) };
+            
+            // Ensure all array fields are arrays
+            const arrayFields: (keyof Character)[] = ['accomplishments', 'training', 'relationships', 'marriedTo', 'moodlets'];
+            arrayFields.forEach(field => {
+                if (!Array.isArray(sanitized[field])) {
+                    sanitized[field] = [];
+                }
+            });
 
-            return sanitized as Character;
+            return sanitized;
         };
+
 
         const sanitizedCharacterToUpdate = sanitizeCharacterForWrite(characterToUpdate);
 
@@ -623,7 +626,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 characters: user.characters.map(c => {
                     const { relationships, ...restOfChar } = c;
                     const sanitizedRelationships = (relationships || []).map(r => {
-                        const { id: _, ...restOfRel } = r; // Remove temporary client-side id
+                         const { id: _, ...restOfRel } = r; // Remove temporary client-side id before writing
                         return restOfRel;
                     });
                     return { ...restOfChar, relationships: sanitizedRelationships };
@@ -667,16 +670,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const batch = writeBatch(db);
     const requestId = `req-${Date.now()}`;
     
-    // Clean the object before creating the request
-    const cleanRewardRequestData: { [key: string]: any } = { ...rewardRequestData };
-    Object.keys(cleanRewardRequestData).forEach(key => {
-        if (cleanRewardRequestData[key] === undefined) {
-            delete cleanRewardRequestData[key];
-        }
-    });
+    // Explicitly set null for missing character info
+    const finalRewardRequestData = {
+      ...rewardRequestData,
+      characterId: rewardRequestData.characterId ?? null,
+      characterName: rewardRequestData.characterName ?? null,
+    };
 
     const newRequest: RewardRequest = {
-        ...(cleanRewardRequestData as Omit<RewardRequest, 'id' | 'status' | 'createdAt'>),
+        ...finalRewardRequestData,
         id: requestId,
         status: 'в ожидании',
         createdAt: new Date().toISOString(),
