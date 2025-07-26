@@ -411,10 +411,12 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                             )}
                             <div>
                                 <Label>Персонаж</Label>
-                                <Select value={rel.targetCharacterId} onValueChange={(value) => handleItemChange('targetCharacterId', value)}>
-                                    <SelectTrigger><SelectValue placeholder="Выберите персонажа..." /></SelectTrigger>
-                                    <SelectContent>{characterOptions.map(opt => (<SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>))}</SelectContent>
-                                </Select>
+                                <SearchableSelect
+                                    options={characterOptions}
+                                    value={rel.targetCharacterId}
+                                    onValueChange={(value) => handleItemChange('targetCharacterId', value)}
+                                    placeholder="Выберите персонажа..."
+                                />
                             </div>
                             <div>
                                 <Label>Тип отношений</Label>
