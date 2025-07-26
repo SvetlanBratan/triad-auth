@@ -223,7 +223,7 @@ export default function CharacterPage() {
     const accomplishments = character.accomplishments || [];
     
     const SectionHeader = ({ title, icon, section, isEmpty }: { title: string; icon: React.ReactNode; section: EditableSection, isEmpty?: boolean }) => (
-        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <CardTitle className="flex items-center gap-2">{icon} {title}</CardTitle>
             {isOwnerOrAdmin && (
                 isEmpty ? (
@@ -597,52 +597,29 @@ export default function CharacterPage() {
                         )}
                     </Card>
                     
-                     <Card>
-                        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                           <CardTitle className="flex items-center gap-2">Дополнительно</CardTitle>
-                        </CardHeader>
+                    <Card>
+                        <SectionHeader title="Дополнительно" icon={<Info />} section="lifeGoal" />
                         <CardContent>
-                             <Accordion type="multiple" className="w-full">
-                                {(character.lifeGoal || isOwnerOrAdmin) && (
+                            <Accordion type="multiple" className="w-full">
+                                { (character.lifeGoal || isOwnerOrAdmin) && (
                                     <AccordionItem value="lifeGoal">
-                                        <AccordionTrigger className="flex justify-between items-center w-full">
-                                            <span>Жизненная цель</span>
-                                             {isOwnerOrAdmin && (
-                                                <Button variant="ghost" size="icon-sm" onClick={(e) => {e.stopPropagation(); setEditingSection('lifeGoal')}} className="group-hover:opacity-100 opacity-0">
-                                                    {character.lifeGoal ? <Edit className="w-3.5 h-3.5" /> : <PlusCircle className="w-3.5 h-3.5" />}
-                                                </Button>
-                                            )}
-                                        </AccordionTrigger>
-                                        {character.lifeGoal && <AccordionContent><p className="whitespace-pre-wrap">{character.lifeGoal}</p></AccordionContent>}
+                                        <AccordionTrigger>Жизненная цель</AccordionTrigger>
+                                        <AccordionContent><p className="whitespace-pre-wrap">{character.lifeGoal || 'Описание отсутствует.'}</p></AccordionContent>
                                     </AccordionItem>
                                 )}
-                                {(character.pets || isOwnerOrAdmin) && (
+                                { (character.pets || isOwnerOrAdmin) && (
                                     <AccordionItem value="pets">
-                                        <AccordionTrigger>
-                                            <span>Питомцы</span>
-                                            {isOwnerOrAdmin && (
-                                                <Button variant="ghost" size="icon-sm" onClick={(e) => {e.stopPropagation(); setEditingSection('pets')}} className="group-hover:opacity-100 opacity-0">
-                                                    {character.pets ? <Edit className="w-3.5 h-3.5" /> : <PlusCircle className="w-3.5 h-3.5" />}
-                                                </Button>
-                                            )}
-                                        </AccordionTrigger>
-                                        {character.pets && <AccordionContent><p className="whitespace-pre-wrap">{character.pets}</p></AccordionContent>}
+                                        <AccordionTrigger>Питомцы</AccordionTrigger>
+                                        <AccordionContent><p className="whitespace-pre-wrap">{character.pets || 'Описание отсутствует.'}</p></AccordionContent>
                                     </AccordionItem>
                                 )}
-                                {(character.diary || isOwnerOrAdmin) && (
+                                { (character.diary || isOwnerOrAdmin) && (
                                     <AccordionItem value="diary">
-                                        <AccordionTrigger>
-                                            <span>Личный дневник</span>
-                                             {isOwnerOrAdmin && (
-                                                <Button variant="ghost" size="icon-sm" onClick={(e) => {e.stopPropagation(); setEditingSection('diary')}} className="group-hover:opacity-100 opacity-0">
-                                                   {character.diary ? <Edit className="w-3.5 h-3.5" /> : <PlusCircle className="w-3.5 h-3.5" />}
-                                                </Button>
-                                            )}
-                                        </AccordionTrigger>
-                                        {character.diary && <AccordionContent><p className="whitespace-pre-wrap">{character.diary}</p></AccordionContent>}
+                                        <AccordionTrigger>Личный дневник</AccordionTrigger>
+                                        <AccordionContent><p className="whitespace-pre-wrap">{character.diary || 'Описание отсутствует.'}</p></AccordionContent>
                                     </AccordionItem>
                                 )}
-                             </Accordion>
+                            </Accordion>
                         </CardContent>
                     </Card>
 
@@ -665,4 +642,3 @@ export default function CharacterPage() {
         </div>
     );
 }
-
