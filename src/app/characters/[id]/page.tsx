@@ -221,7 +221,7 @@ export default function CharacterPage() {
             <CardTitle className="flex items-center gap-2">{icon} {title}</CardTitle>
             {isOwnerOrAdmin && (
                 isEmpty ? (
-                     <Button variant="outline-dashed" size="sm" onClick={() => setEditingSection(section)} className="shrink-0 self-start sm:self-center">
+                     <Button variant="outline-dashed" size="sm" onClick={() => setEditingSection(section)} className="shrink-0 self-start sm:self-auto">
                         <PlusCircle className="mr-2 h-4 w-4" /> Добавить
                     </Button>
                 ) : (
@@ -588,15 +588,7 @@ export default function CharacterPage() {
                                     <AccordionItem value="lifeGoal">
                                         <AccordionTrigger>Жизненная цель</AccordionTrigger>
                                         <AccordionContent>
-                                            {character.lifeGoal ? (
-                                                <p className="whitespace-pre-wrap">{character.lifeGoal}</p>
-                                            ) : (
-                                                 isOwnerOrAdmin && (
-                                                    <div className="text-center py-2">
-                                                        <Button variant="outline-dashed" size="sm" onClick={() => setEditingSection('additionalInfo')}><PlusCircle className="mr-2 h-4 w-4" /> Добавить</Button>
-                                                    </div>
-                                                )
-                                            )}
+                                            <p className="whitespace-pre-wrap">{character.lifeGoal || 'Описание отсутствует.'}</p>
                                         </AccordionContent>
                                     </AccordionItem>
                                 )}
@@ -604,15 +596,7 @@ export default function CharacterPage() {
                                     <AccordionItem value="pets">
                                         <AccordionTrigger>Питомцы</AccordionTrigger>
                                         <AccordionContent>
-                                            {character.pets ? (
-                                                <p className="whitespace-pre-wrap">{character.pets}</p>
-                                            ) : (
-                                                 isOwnerOrAdmin && (
-                                                    <div className="text-center py-2">
-                                                        <Button variant="outline-dashed" size="sm" onClick={() => setEditingSection('additionalInfo')}><PlusCircle className="mr-2 h-4 w-4" /> Добавить</Button>
-                                                    </div>
-                                                )
-                                            )}
+                                            <p className="whitespace-pre-wrap">{character.pets || 'Описание отсутствует.'}</p>
                                         </AccordionContent>
                                     </AccordionItem>
                                 )}
@@ -620,15 +604,7 @@ export default function CharacterPage() {
                                     <AccordionItem value="diary">
                                         <AccordionTrigger>Личный дневник</AccordionTrigger>
                                         <AccordionContent>
-                                            {character.diary ? (
-                                                <p className="whitespace-pre-wrap">{character.diary}</p>
-                                            ) : (
-                                                isOwnerOrAdmin && (
-                                                    <div className="text-center py-2">
-                                                        <Button variant="outline-dashed" size="sm" onClick={() => setEditingSection('additionalInfo')}><PlusCircle className="mr-2 h-4 w-4" /> Добавить</Button>
-                                                    </div>
-                                                )
-                                            )}
+                                            <p className="whitespace-pre-wrap">{character.diary || 'Описание отсутствует.'}</p>
                                         </AccordionContent>
                                     </AccordionItem>
                                 )}
