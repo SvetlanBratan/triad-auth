@@ -129,7 +129,7 @@ export default function LeaderboardTab() {
                 ))}
             </TableBody>
             </Table>
-             <DialogContent>
+             <DialogContent className="sm:max-w-xl md:max-w-3xl lg:max-w-6xl">
                  <DialogTitle className="sr-only">Профиль пользователя</DialogTitle>
                  {isUserLoading && <div className="flex justify-center items-center h-64"><p>Загрузка данных пользователя...</p></div>}
                  {!isUserLoading && selectedUser && <UserProfileDialog user={selectedUser} />}

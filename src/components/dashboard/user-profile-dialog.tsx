@@ -202,132 +202,130 @@ export default function UserProfileDialog({ user }: { user: User }) {
 
   return (
     <div>
-        <DialogHeader>
-          <DialogTitle className="text-2xl pr-8">Профиль игрока: {user.name}</DialogTitle>
-        </DialogHeader>
+      <DialogHeader>
+        <DialogTitle className="text-2xl pr-8">Профиль игрока: {user.name}</DialogTitle>
+      </DialogHeader>
 
-        <div className="mt-4">
-            <div className="flex flex-col md:grid md:grid-cols-2 gap-6 items-start">
-            {/* Left Column */}
-            <div className={cn("space-y-6 min-w-0", !isAdminViewer && "md:col-span-2")}>
-                <Card>
-                    <CardHeader>
-                    <div className="flex items-center gap-4">
-                        <Avatar className="h-16 w-16">
-                        <AvatarImage src={user.avatar} alt={user.name} />
-                        <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 overflow-hidden min-w-0">
-                            <CardTitle className="text-2xl font-headline truncate">{user.name}</CardTitle>
-                            <CardDescription className="truncate">{user.email}</CardDescription>
-                        </div>
-                    </div>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                    <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Баллы</span>
-                        <span className="font-bold text-lg text-primary flex items-center gap-1">
-                        <Star className="w-4 h-4" /> {user.points.toLocaleString()}
-                        </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Статус</span>
-                        <Badge variant={'outline'} className={cn("capitalize", getStatusClass(user.status))}>
-                        {user.status}
-                        </Badge>
-                    </div>
-                     {isAdminViewer && (
-                        <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground">Роль</span>
-                            <Badge variant="outline">{user.role}</Badge>
-                        </div>
-                    )}
-                    {userAchievements.length > 0 && (
-                        <div className="pt-4">
-                            <h4 className="text-sm font-semibold text-muted-foreground mb-2">Достижения</h4>
-                                <div className="flex flex-wrap gap-2">
-                                    {userAchievements.map(ach => (
-                                    <Popover key={ach.id}>
-                                        <PopoverTrigger asChild>
-                                            <Button variant="outline" size="icon" className="w-10 h-10 p-2 bg-muted hover:bg-primary/10">
-                                                <DynamicIcon name={ach.iconName} className="w-5 h-5 text-primary" />
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto max-w-xs">
-                                            <p className="font-bold">{ach.name}</p>
-                                            <p className="text-xs">{ach.description}</p>
-                                        </PopoverContent>
-                                    </Popover>
-                                    ))}
-                                </div>
-                        </div>
-                    )}
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Персонажи</CardTitle>
-                        <CardDescription>Список персонажей игрока</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {user.characters.length > 0 ? (
-                            <Accordion type="single" collapsible className="w-full">
-                                {user.characters.map(char => (
-                                    <CharacterDisplay key={char.id} character={char} />
-                                ))}
-                            </Accordion>
-                        ) : (
-                            <p className="text-sm text-muted-foreground text-center py-4">У этого игрока нет персонажей.</p>
-                        )}
-                    </CardContent>
-                </Card>
-            </div>
-
-            {/* Right Column */}
-            {isAdminViewer && (
-                <div className="min-w-0">
-                  <Card>
-                      <CardHeader>
-                          <CardTitle>История баллов</CardTitle>
-                          <CardDescription>Журнал заработанных и потраченных баллов.</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                          <div className="relative w-full overflow-auto">
-                              <Table>
-                                  <TableHeader>
-                                  <TableRow>
-                                      <TableHead>Дата</TableHead>
-                                      <TableHead>Причина</TableHead>
-                                      <TableHead className="text-right">Сумма</TableHead>
-                                  </TableRow>
-                                  </TableHeader>
-                                  <TableBody>
-                                  {sortedPointHistory.length > 0 ? sortedPointHistory.map((log: PointLog) => (
-                                      <TableRow key={log.id}>
-                                      <TableCell className="text-muted-foreground">{formatDate(log.date)}</TableCell>
-                                      <TableCell>
-                                          <p>{log.reason}</p>
-                                          {log.characterId && <p className="text-xs text-muted-foreground">Персонаж: {characterMap.get(log.characterId) || 'Неизвестно'}</p>}
-                                      </TableCell>
-                                      <TableCell className={`text-right font-semibold ${log.amount > 0 ? 'text-green-600' : 'text-destructive'}`}>
-                                          {log.amount > 0 ? '+' : ''}{log.amount.toLocaleString()}
-                                      </TableCell>
-                                      </TableRow>
-                                  )) : (
-                                      <TableRow>
-                                      <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
-                                          Истории баллов пока нет.
-                                      </TableCell>
-                                      </TableRow>
-                                  )}
-                                  </TableBody>
-                              </Table>
-                          </div>
-                      </CardContent>
-                  </Card>
+      <div className="mt-4 flex flex-col md:grid md:grid-cols-2 gap-6 items-start">
+        {/* Left Column */}
+        <div className={cn("space-y-6 w-full min-w-0", !isAdminViewer && "md:col-span-2")}>
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-4">
+                <Avatar className="h-16 w-16">
+                  <AvatarImage src={user.avatar} alt={user.name} />
+                  <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1 overflow-hidden min-w-0">
+                  <CardTitle className="text-2xl font-headline truncate">{user.name}</CardTitle>
+                  <CardDescription className="truncate">{user.email}</CardDescription>
                 </div>
-            )}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Баллы</span>
+                <span className="font-bold text-lg text-primary flex items-center gap-1">
+                  <Star className="w-4 h-4" /> {user.points.toLocaleString()}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Статус</span>
+                <Badge variant={'outline'} className={cn("capitalize", getStatusClass(user.status))}>
+                  {user.status}
+                </Badge>
+              </div>
+              {isAdminViewer && (
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Роль</span>
+                  <Badge variant="outline">{user.role}</Badge>
+                </div>
+              )}
+              {userAchievements.length > 0 && (
+                <div className="pt-4">
+                  <h4 className="text-sm font-semibold text-muted-foreground mb-2">Достижения</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {userAchievements.map(ach => (
+                      <Popover key={ach.id}>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" size="icon" className="w-10 h-10 p-2 bg-muted hover:bg-primary/10">
+                            <DynamicIcon name={ach.iconName} className="w-5 h-5 text-primary" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto max-w-xs">
+                          <p className="font-bold">{ach.name}</p>
+                          <p className="text-xs">{ach.description}</p>
+                        </PopoverContent>
+                      </Popover>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Персонажи</CardTitle>
+              <CardDescription>Список персонажей игрока</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {user.characters.length > 0 ? (
+                <Accordion type="single" collapsible className="w-full">
+                  {user.characters.map(char => (
+                    <CharacterDisplay key={char.id} character={char} />
+                  ))}
+                </Accordion>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">У этого игрока нет персонажей.</p>
+              )}
+            </CardContent>
+          </Card>
         </div>
+
+        {/* Right Column */}
+        {isAdminViewer && (
+          <div className="w-full min-w-0">
+            <Card>
+              <CardHeader>
+                <CardTitle>История баллов</CardTitle>
+                <CardDescription>Журнал заработанных и потраченных баллов.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="relative w-full overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Дата</TableHead>
+                        <TableHead>Причина</TableHead>
+                        <TableHead className="text-right">Сумма</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {sortedPointHistory.length > 0 ? sortedPointHistory.map((log: PointLog) => (
+                        <TableRow key={log.id}>
+                          <TableCell className="text-muted-foreground">{formatDate(log.date)}</TableCell>
+                          <TableCell>
+                            <p>{log.reason}</p>
+                            {log.characterId && <p className="text-xs text-muted-foreground">Персонаж: {characterMap.get(log.characterId) || 'Неизвестно'}</p>}
+                          </TableCell>
+                          <TableCell className={`text-right font-semibold ${log.amount > 0 ? 'text-green-600' : 'text-destructive'}`}>
+                            {log.amount > 0 ? '+' : ''}{log.amount.toLocaleString()}
+                          </TableCell>
+                        </TableRow>
+                      )) : (
+                        <TableRow>
+                          <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                            Истории баллов пока нет.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );
