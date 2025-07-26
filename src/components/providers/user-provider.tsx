@@ -110,14 +110,12 @@ const drawFamiliarCard = (hasBlessing: boolean, unavailableMythicIds: Set<string
     
     let rand = Math.random() * 100;
 
-    // Define base chances
     const chances = {
         мифический: 2,
         легендарный: 10,
         редкий: 25,
     };
     
-    // Apply blessing bonus
     if (hasBlessing) {
         chances.мифический = 5;
         chances.легендарный = 20;
@@ -133,18 +131,16 @@ const drawFamiliarCard = (hasBlessing: boolean, unavailableMythicIds: Set<string
 
     let chosenPool: FamiliarCard[] = [];
 
-    // Correctly check ranges
     if (rand < chances.мифический && availableMythic.length > 0) {
         chosenPool = availableMythic;
-    } else if (rand < chances.легендарный && availableLegendary.length > 0) { // Not cumulative
+    } else if (rand >= chances.мифический && rand < chances.легендарный && availableLegendary.length > 0) {
         chosenPool = availableLegendary;
-    } else if (rand < chances.редкий && availableRare.length > 0) { // Not cumulative
+    } else if (rand >= chances.легендарный && rand < chances.редкий && availableRare.length > 0) {
         chosenPool = availableRare;
-    } else { // Default to common
+    } else { 
         chosenPool = availableCommon;
     }
     
-    // Fallback logic if a chosen pool is empty but shouldn't be
     if (chosenPool.length === 0) {
         if (availableCommon.length > 0) {
             chosenPool = availableCommon;
@@ -155,7 +151,6 @@ const drawFamiliarCard = (hasBlessing: boolean, unavailableMythicIds: Set<string
         } else if (availableMythic.length > 0) {
             chosenPool = availableMythic;
         } else {
-             // Absolute fallback: if even non-mythics are gone, pick any non-event card
             chosenPool = ALL_FAMILIARS.filter(c => c.rank !== 'ивентовый');
         }
     }
@@ -251,7 +246,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
            userData.characters = userData.characters?.map(char => ({
                 ...initialFormData,
                 ...char,
-                crimeLevel: char.crimeLevel ?? 5, // Ensure crimeLevel has a default value
+                crimeLevel: char.crimeLevel ?? 5, 
                 bankAccount: typeof char.bankAccount !== 'object' || char.bankAccount === null 
                     ? { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] } 
                     : { platinum: 0, gold: 0, silver: 0, copper: 0, history: [], ...char.bankAccount },
@@ -304,7 +299,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       if (user) {
         setFirebaseUser(user);
         try {
-            await fetchGameSettings(); // Fetch settings only after user is confirmed
+            await fetchGameSettings(); 
             let userData = await fetchUserById(user.uid);
             if (!userData) {
                 const nickname = user.displayName || user.email?.split('@')[0] || 'Пользователь';
@@ -513,26 +508,32 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const oldRelationships = new Map((oldCharacterState?.relationships || []).map(r => [r.targetCharacterId, r]));
         
         const sanitizeCharacterForWrite = (char: Character): Character => {
-            return {
-                ...initialFormData, // Start with a complete, default-filled object
-                ...char, // Overwrite with actual character data
-                crimeLevel: char.crimeLevel ?? 5,
-                relationships: char.relationships || [],
-                marriedTo: char.marriedTo || [],
-                moodlets: char.moodlets || [],
+            const sanitized: Character = {
+                ...initialFormData, 
+                ...char, 
                 abilities: char.abilities ?? '',
                 weaknesses: char.weaknesses ?? '',
                 lifeGoal: char.lifeGoal ?? '',
                 pets: char.pets ?? '',
                 criminalRecords: char.criminalRecords ?? '',
+                crimeLevel: char.crimeLevel ?? 5,
+                marriedTo: char.marriedTo ?? [],
+                moodlets: char.moodlets ?? [],
+                relationships: char.relationships ?? [],
                 inventory: char.inventory || initialFormData.inventory,
-                bankAccount: char.bankAccount || initialFormData.bankAccount,
                 bankAccount: {
-                  ...initialFormData.bankAccount,
+                  ...(initialFormData.bankAccount),
                   ...(char.bankAccount || {}),
                   history: Array.isArray(char.bankAccount?.history) ? char.bankAccount.history : [],
                 },
             };
+             // Ensure no undefined values are in the final object
+            for (const key in sanitized) {
+                if (sanitized[key as keyof Character] === undefined) {
+                    sanitized[key as keyof Character] = null as any; 
+                }
+            }
+            return sanitized;
         };
 
         const sanitizedCharacterToUpdate = sanitizeCharacterForWrite(characterToUpdate);
@@ -546,7 +547,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             updatedCharacters.push(sanitizedCharacterToUpdate);
         }
 
-        // --- Relationship Synchronization ---
         const allUsersSnapshot = await getDocs(collection(db, "users"));
         const allUsersMap = new Map(allUsersSnapshot.docs.map(d => [d.id, d.data() as User]));
         const usersToUpdate = new Map<string, User>();
@@ -554,12 +554,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         const newRelationships = new Map((sanitizedCharacterToUpdate.relationships || []).map(r => [r.targetCharacterId, r]));
 
-        // Check for new/updated relationships
         for (const [targetCharId, newRel] of newRelationships.entries()) {
             const oldRel = oldRelationships.get(targetCharId);
-            if (JSON.stringify(oldRel) === JSON.stringify(newRel)) continue; // No change
+            if (JSON.stringify(oldRel) === JSON.stringify(newRel)) continue;
 
-            // Find target user and character
             let targetUser: User | undefined;
             let targetUserId: string | undefined;
             allUsersMap.forEach((user, id) => {
@@ -597,10 +595,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             }
         }
 
-        // Check for removed relationships
         for (const [targetCharId] of oldRelationships.entries()) {
             if (!newRelationships.has(targetCharId)) {
-                // Find target user and character
                  let targetUser: User | undefined;
                  let targetUserId: string | undefined;
                  allUsersMap.forEach((user, id) => {
@@ -624,17 +620,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             }
         }
         
-        // Commit all updates
         for (const [id, user] of usersToUpdate.entries()) {
-            // Sanitize relationships before writing to remove temporary client-side IDs
-            const sanitizedUser = {
+            const sanitizedUserForWrite = {
                 ...user,
-                characters: user.characters.map(c => ({
-                    ...c,
-                    relationships: (c.relationships || []).map(({ id: tempId, ...rest }) => rest)
-                }))
+                characters: user.characters.map(c => {
+                    const { relationships, ...restOfChar } = c;
+                    const sanitizedRelationships = (relationships || []).map(({ id: tempId, ...restOfRel }) => restOfRel);
+                    return { ...restOfChar, relationships: sanitizedRelationships };
+                })
             };
-            transaction.set(doc(db, "users", id), sanitizedUser);
+            transaction.set(doc(db, "users", id), sanitizedUserForWrite);
         }
     });
 
@@ -879,7 +874,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (user.points < cost) throw new Error("Недостаточно очков.");
         let finalPointChange = -cost;
 
-        // Globally check for claimed mythic cards
         const allUsersSnapshot = await getDocs(collection(db, 'users'));
         const claimedMythicIds = new Set<string>();
         allUsersSnapshot.forEach(doc => {
@@ -936,7 +930,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         };
         updatedUser.pointHistory.unshift(newPointLog);
         
-        finalUser = updatedUser; // Update the user object to be returned
+        finalUser = updatedUser;
         transaction.set(userRef, updatedUser);
     });
 
@@ -961,8 +955,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const character = { ...user.characters[characterIndex] };
     const inventory = character.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: [] };
     
-    // Unlike event familiars, we can allow duplicates from admin panel if needed
-    // For now, let's just add it.
     inventory.familiarCards = [...(inventory.familiarCards || []), { id: familiarId }];
     character.inventory = inventory;
 
@@ -1073,7 +1065,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const inventory = character.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: [] };
     const ownedCards = inventory.familiarCards || [];
 
-    // Find the first instance of the card and remove it
     const cardIndexToRemove = ownedCards.findIndex(card => card.id === cardId);
     if (cardIndexToRemove === -1) throw new Error("Card not found on character");
 
@@ -1112,7 +1103,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         let targetUserData: User | null = null;
         let targetUserId: string | null = null;
         
-        // This query is inefficient but necessary without a direct mapping
         const allUsersSnapshot = await getDocs(collection(db, "users"));
         allUsersSnapshot.forEach(doc => {
             const user = doc.data() as User;
@@ -1131,7 +1121,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         const updateRelationship = (character: Character, otherCharId: string, points: number, action: RelationshipAction) => {
             const relIndex = (character.relationships || []).findIndex(r => r.targetCharacterId === otherCharId);
-            if (relIndex === -1) return; // Relationship must exist
+            if (relIndex === -1) return;
 
             const relationship = character.relationships[relIndex];
             relationship.points += points;
@@ -1153,12 +1143,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         };
         const pointsToAdd = RELATIONSHIP_POINTS_CONFIG[actionType];
 
-        // Update Source Character
         const sourceCharIndex = sourceUserData.characters.findIndex(c => c.id === sourceCharacterId);
         if (sourceCharIndex === -1) throw new Error("Исходный персонаж не найден.");
         updateRelationship(sourceUserData.characters[sourceCharIndex], targetCharacterId, pointsToAdd, newAction);
 
-        // Update Target Character
         const targetCharIndex = targetUserData.characters.findIndex(c => c.id === targetCharacterId);
         if (targetCharIndex === -1) throw new Error("Целевой персонаж не найден.");
         updateRelationship(targetUserData.characters[targetCharIndex], sourceCharacterId, pointsToAdd, newAction);
@@ -1313,7 +1301,6 @@ const processMonthlySalary = useCallback(async () => {
 }, [fetchUsersForAdmin]);
 
 
-  // --- Currency Exchange ---
   const createExchangeRequest = useCallback(async (creatorUserId: string, creatorCharacterId: string, fromCurrency: Currency, fromAmount: number, toCurrency: Currency, toAmount: number) => {
     await runTransaction(db, async (transaction) => {
         const userRef = doc(db, "users", creatorUserId);
@@ -1355,7 +1342,7 @@ const processMonthlySalary = useCallback(async () => {
         };
 
         const requestsCollection = collection(db, "exchange_requests");
-        const newDocRef = doc(requestsCollection); // Firestore generates ID
+        const newDocRef = doc(requestsCollection); 
         transaction.set(newDocRef, newRequest);
         transaction.update(userRef, { characters: userData.characters });
     });
@@ -1378,7 +1365,6 @@ const processMonthlySalary = useCallback(async () => {
             throw new Error("Запрос больше не действителен.");
         }
         
-        // Get acceptor
         const acceptorUserRef = doc(db, "users", acceptorUserId);
         const acceptorUserDoc = await transaction.get(acceptorUserRef);
         if (!acceptorUserDoc.exists()) throw new Error("Принимающий пользователь не найден.");
@@ -1395,7 +1381,6 @@ const processMonthlySalary = useCallback(async () => {
              throw new Error("У выбранного персонажа недостаточно средств.");
         }
         
-        // Get creator
         const creatorUserRef = doc(db, "users", request.creatorUserId);
         const creatorUserDoc = await transaction.get(creatorUserRef);
         if (!creatorUserDoc.exists()) throw new Error("Создатель запроса не найден.");
@@ -1403,7 +1388,6 @@ const processMonthlySalary = useCallback(async () => {
         const creatorCharIndex = creatorUserData.characters.findIndex(c => c.id === request.creatorCharacterId);
         if (creatorCharIndex === -1) throw new Error("Персонаж создателя запроса не найден.");
 
-        // Perform transaction
         const acceptorBankAccount = acceptorChar.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
         acceptorBankAccount[request.toCurrency] -= request.toAmount;
         acceptorBankAccount[request.fromCurrency] = (acceptorBankAccount[request.fromCurrency] || 0) + request.fromAmount;
@@ -1418,7 +1402,6 @@ const processMonthlySalary = useCallback(async () => {
         creatorBankAccount.history = [creatorTx, ...(creatorBankAccount.history || [])];
         creatorChar.bankAccount = creatorBankAccount;
         
-        // Commit changes
         transaction.update(acceptorUserRef, { characters: acceptorUserData.characters });
         transaction.update(creatorUserRef, { characters: creatorUserData.characters });
         transaction.update(requestRef, { status: 'closed', acceptorCharacterId: acceptorCharacterId, acceptorCharacterName: acceptorChar.name });
@@ -1447,7 +1430,6 @@ const processMonthlySalary = useCallback(async () => {
         const creatorCharIndex = creatorUserData.characters.findIndex(c => c.id === request.creatorCharacterId);
         if (creatorCharIndex === -1) throw new Error("Персонаж создателя запроса не найден.");
 
-        // Refund money
         const creatorChar = creatorUserData.characters[creatorCharIndex];
         const bankAccount = creatorChar.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
         bankAccount[request.fromCurrency] = (bankAccount[request.fromCurrency] || 0) + request.fromAmount;
@@ -1466,8 +1448,6 @@ const processMonthlySalary = useCallback(async () => {
     }
   }, [currentUser, fetchUserById]);
 
-
-    // --- Familiar Exchange ---
 
   const createFamiliarTradeRequest = useCallback(async (initiatorCharacterId: string, initiatorFamiliarId: string, targetCharacterId: string, targetFamiliarId: string) => {
     if (!currentUser) throw new Error("Пользователь не авторизован.");
@@ -1531,14 +1511,12 @@ const processMonthlySalary = useCallback(async () => {
     
     const requestsCollection = collection(db, "familiar_trade_requests");
 
-    // Query for outgoing requests
     const outgoingQuery = query(
       requestsCollection,
       where('initiatorUserId', '==', currentUser.id),
       where('status', '==', 'в ожидании')
     );
     
-    // Query for incoming requests
     const incomingQuery = query(
       requestsCollection,
       where('targetUserId', '==', currentUser.id),
@@ -1580,7 +1558,6 @@ const processMonthlySalary = useCallback(async () => {
         const initiatorData = initiatorDoc.data() as User;
         const targetData = targetDoc.data() as User;
 
-        // --- Remove cards ---
         const initiatorCharIndex = initiatorData.characters.findIndex(c => c.id === request.initiatorCharacterId);
         const targetCharIndex = targetData.characters.findIndex(c => c.id === request.targetCharacterId);
 
@@ -1598,17 +1575,14 @@ const processMonthlySalary = useCallback(async () => {
         if (targetCardIndex === -1) throw new Error(`Фамильяр ${request.targetFamiliarName} не найден у ${request.targetCharacterName}.`);
         targetChar.inventory.familiarCards.splice(targetCardIndex, 1);
 
-        // --- Add cards ---
         initiatorChar.inventory.familiarCards.push({ id: request.targetFamiliarId });
         targetChar.inventory.familiarCards.push({ id: request.initiatorFamiliarId });
 
-        // --- Commit ---
         transaction.update(initiatorUserRef, { characters: initiatorData.characters });
         transaction.update(targetUserRef, { characters: targetData.characters });
         transaction.update(requestRef, { status: 'принято' });
     });
 
-    // Refresh data for both users if one of them is the current user
     if (currentUser && (currentUser.id === request.initiatorUserId || currentUser.id === request.targetUserId)) {
         const updatedUser = await fetchUserById(currentUser.id);
         if (updatedUser) setCurrentUser(updatedUser);
@@ -1648,12 +1622,10 @@ const processMonthlySalary = useCallback(async () => {
 
     const userPointsToAdd = new Map<string, { points: number; reasons: string[] }>();
 
-    // Initialize map for active users
     activeUsers.forEach(user => {
         userPointsToAdd.set(user.id, { points: 0, reasons: [] });
     });
 
-    // 1. Calculate Activity Bonus
     activeUsers.forEach(user => {
         const currentData = userPointsToAdd.get(user.id)!;
         const activityBonus = 800;
@@ -1665,7 +1637,6 @@ const processMonthlySalary = useCallback(async () => {
         currentData.reasons.push(reason);
     });
 
-    // 2. Calculate Fame Bonus
     activeUsers.forEach(user => {
         if (!user.characters || user.characters.length === 0) return;
 
@@ -1686,7 +1657,6 @@ const processMonthlySalary = useCallback(async () => {
         }
     });
     
-    // 3. Commit to Batch
     for (const user of activeUsers) {
         const data = userPointsToAdd.get(user.id);
         if (!data || data.points === 0) continue;
@@ -1711,7 +1681,7 @@ const processMonthlySalary = useCallback(async () => {
     batch.update(settingsRef, { lastWeeklyBonusAwardedAt: now.toISOString() });
 
     await batch.commit();
-    await fetchGameSettings(); // Refetch settings to update the context state
+    await fetchGameSettings(); 
 
     return { awardedCount: activeUsers.length, isOverdue };
 }, [gameSettings.lastWeeklyBonusAwardedAt, fetchUsersForAdmin, fetchGameSettings]);
@@ -1779,7 +1749,3 @@ const processMonthlySalary = useCallback(async () => {
     </AuthContext.Provider>
   );
 }
-
-    
-
-    
