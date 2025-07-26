@@ -517,9 +517,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const sanitized: Partial<Character> = { ...char };
 
             for (const key in initialFormData) {
-                const typedKey = key as keyof Character;
-                if (sanitized[typedKey] === undefined) {
-                    sanitized[typedKey] = initialFormData[typedKey as keyof typeof initialFormData] as any;
+                const typedKey = key as keyof typeof initialFormData;
+                 if (sanitized[typedKey] === undefined) {
+                    sanitized[typedKey] = initialFormData[typedKey] as any;
                 }
             }
              if (typeof sanitized.bankAccount !== 'object' || sanitized.bankAccount === null) {
@@ -623,12 +623,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
         
         for (const [id, user] of usersToUpdate.entries()) {
-            const sanitizedUserForWrite = {
+             const sanitizedUserForWrite = {
                 ...user,
                 characters: user.characters.map(c => {
                     const { relationships, ...restOfChar } = c;
                     const sanitizedRelationships = (relationships || []).map(r => {
-                        const { id: tempId, ...restOfRel } = r;
+                        const { id: _, ...restOfRel } = r; // Remove temporary client-side id
                         return restOfRel;
                     });
                     return { ...restOfChar, relationships: sanitizedRelationships };
@@ -671,12 +671,22 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     const batch = writeBatch(db);
     const requestId = `req-${Date.now()}`;
+    
+    // Clean the object before creating the request
+    const cleanRewardRequestData: { [key: string]: any } = { ...rewardRequestData };
+    Object.keys(cleanRewardRequestData).forEach(key => {
+        if (cleanRewardRequestData[key] === undefined) {
+            delete cleanRewardRequestData[key];
+        }
+    });
+
     const newRequest: RewardRequest = {
-        ...rewardRequestData,
+        ...(cleanRewardRequestData as Omit<RewardRequest, 'id' | 'status' | 'createdAt'>),
         id: requestId,
         status: 'в ожидании',
         createdAt: new Date().toISOString(),
     };
+
     const requestRef = doc(db, "users", user.id, "reward_requests", requestId);
     batch.set(requestRef, newRequest);
 
