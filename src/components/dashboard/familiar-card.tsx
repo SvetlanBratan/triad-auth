@@ -37,7 +37,7 @@ const FamiliarCardDisplay = ({ cardId, isRevealed = false }: { cardId: string, i
                     />
                 </div>
             </DialogTrigger>
-            <DialogContent className="p-0 bg-transparent border-none max-w-[300px] w-auto shadow-none">
+            <DialogContent className="p-0 bg-transparent border-none w-auto max-w-[90vw] sm:max-w-sm shadow-none">
                  <DialogTitle className="sr-only">{card.name}</DialogTitle>
                 <Image 
                   src={card.imageUrl} 
