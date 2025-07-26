@@ -154,7 +154,7 @@ export default function CharacterPage() {
         if(id) {
           findCharacterAndUsers();
         }
-    }, [id, fetchUsersForAdmin, currentUser, setCurrentUser]); 
+    }, [id, fetchUsersForAdmin, setCurrentUser]); 
 
     const handleFormSubmit = (characterData: Character) => {
         if (!owner) return;
