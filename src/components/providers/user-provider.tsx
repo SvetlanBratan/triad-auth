@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
@@ -116,7 +115,6 @@ const drawFamiliarCard = (hasBlessing: boolean, unavailableMythicIds: Set<string
         мифический: 2,
         легендарный: 10,
         редкий: 25,
-        обычный: 100, // Common is the remainder
     };
     
     // Apply blessing bonus
@@ -138,9 +136,9 @@ const drawFamiliarCard = (hasBlessing: boolean, unavailableMythicIds: Set<string
     // Correctly check ranges
     if (rand < chances.мифический && availableMythic.length > 0) {
         chosenPool = availableMythic;
-    } else if (rand < chances.мифический + chances.легендарный && availableLegendary.length > 0) {
+    } else if (rand < chances.легендарный && availableLegendary.length > 0) { // Not cumulative
         chosenPool = availableLegendary;
-    } else if (rand < chances.мифический + chances.легендарный + chances.редкий && availableRare.length > 0) {
+    } else if (rand < chances.редкий && availableRare.length > 0) { // Not cumulative
         chosenPool = availableRare;
     } else { // Default to common
         chosenPool = availableCommon;
@@ -540,6 +538,17 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         usersToUpdate.set(userId, { ...sourceUserData, characters: updatedCharacters });
 
         const newRelationships = new Map((sanitizedCharacterToUpdate.relationships || []).map(r => [r.targetCharacterId, r]));
+        
+        const sanitizeCharacterForWrite = (char: Character): Character => {
+            return {
+                ...char,
+                crimeLevel: char.crimeLevel ?? 5,
+                relationships: char.relationships || [],
+                bankAccount: char.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] },
+                // ... add other fields that might be undefined
+            };
+        };
+
 
         // Check for new/updated relationships
         for (const [targetCharId, newRel] of newRelationships.entries()) {
@@ -561,8 +570,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 const targetCharIndex = userToUpdate.characters.findIndex(c => c.id === targetCharId);
                 
                 if (targetCharIndex !== -1) {
-                    const targetChar = { ...userToUpdate.characters[targetCharIndex] };
-                    targetChar.relationships = targetChar.relationships || [];
+                    const targetChar = sanitizeCharacterForWrite({ ...userToUpdate.characters[targetCharIndex] });
                     const reciprocalRelIndex = targetChar.relationships.findIndex(r => r.targetCharacterId === sanitizedCharacterToUpdate.id);
 
                     const reciprocalRel: Relationship = {
@@ -603,8 +611,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                     const targetCharIndex = userToUpdate.characters.findIndex(c => c.id === targetCharId);
                     
                     if (targetCharIndex !== -1) {
-                         const targetChar = { ...userToUpdate.characters[targetCharIndex] };
-                         targetChar.relationships = (targetChar.relationships || []).filter(r => r.targetCharacterId !== sanitizedCharacterToUpdate.id);
+                         const targetChar = sanitizeCharacterForWrite({ ...userToUpdate.characters[targetCharIndex] });
+                         targetChar.relationships = targetChar.relationships.filter(r => r.targetCharacterId !== sanitizedCharacterToUpdate.id);
                          userToUpdate.characters[targetCharIndex] = targetChar;
                          usersToUpdate.set(targetUserId, userToUpdate);
                     }
@@ -1767,3 +1775,5 @@ const processMonthlySalary = useCallback(async () => {
     </AuthContext.Provider>
   );
 }
+
+    
