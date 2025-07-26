@@ -52,41 +52,29 @@ export default function RewardsTab() {
       return;
     }
     
-    if (reward.requiresCharacter) {
-      if(currentUser.characters.length === 0){
-        toast({
-          variant: "destructive",
-          title: "Требуется персонаж",
-          description: `У вас должен быть хотя бы один персонаж, чтобы получить эту награду.`,
-        });
-        return;
-      }
-      setSelectedReward(reward);
-      setIsDialogOpen(true);
-    } else {
-      // For rewards that don't need a character, confirm directly
-      handleConfirmRequest(reward);
-    }
+    setSelectedReward(reward);
+    setIsDialogOpen(true);
   };
 
-  const handleConfirmRequest = async (reward: Reward, characterId?: string) => {
-    if (!currentUser) return;
+  const handleConfirmRequest = async () => {
+    if (!currentUser || !selectedReward) return;
     setIsLoading(true);
 
-    const character = currentUser.characters.find(c => c.id === characterId);
+    const isForPlayer = selectedCharacterId === 'for_player';
+    const character = isForPlayer ? undefined : currentUser.characters.find(c => c.id === selectedCharacterId);
     
     try {
         await createRewardRequest({
             userId: currentUser.id,
             userName: currentUser.name,
-            rewardId: reward.id,
-            rewardTitle: reward.title,
-            rewardCost: reward.cost,
+            rewardId: selectedReward.id,
+            rewardTitle: selectedReward.title,
+            rewardCost: selectedReward.cost,
             ...(character && { characterId: character.id, characterName: character.name }),
         });
         toast({
             title: "Запрос отправлен!",
-            description: `Ваш запрос на "${reward.title}" отправлен на рассмотрение. Баллы списаны.`,
+            description: `Ваш запрос на "${selectedReward.title}" отправлен на рассмотрение. Баллы списаны.`,
         });
     } catch (error) {
         console.error("Failed to create reward request:", error);
@@ -129,7 +117,6 @@ export default function RewardsTab() {
             </CardHeader>
             <CardContent className="flex-grow">
               {reward.type === 'temporary' && <p className="text-xs text-accent font-semibold uppercase tracking-wider">Временная</p>}
-               {reward.requiresCharacter && <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Требуется персонаж</p>}
             </CardContent>
             <CardFooter className="flex justify-between items-center bg-muted/50 p-4 mt-auto">
               <p className="font-bold text-lg text-primary flex items-center gap-1.5">
@@ -149,23 +136,24 @@ export default function RewardsTab() {
                     <DialogHeader>
                         <DialogTitle>Запросить "{selectedReward.title}"</DialogTitle>
                         <DialogDescription>
-                            Эта награда требует выбора персонажа. После подтверждения запрос будет отправлен администраторам.
+                            Выберите цель для этой награды. После подтверждения запрос будет отправлен администраторам.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="py-4 space-y-4">
-                        <p>Выберите, для какого персонажа запросить награду:</p>
+                        <p>Выберите, для кого запросить награду:</p>
                         <Select onValueChange={setSelectedCharacterId} value={selectedCharacterId}>
                             <SelectTrigger>
-                                <SelectValue placeholder="Выберите персонажа" />
+                                <SelectValue placeholder="Выберите цель..." />
                             </SelectTrigger>
                             <SelectContent>
+                                <SelectItem value="for_player">Для игрока (не требуется персонаж)</SelectItem>
                                 {currentUser?.characters.map(char => (
                                     <SelectItem key={char.id} value={char.id}>{char.name}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
                     </div>
-                    <Button onClick={() => handleConfirmRequest(selectedReward, selectedCharacterId)} disabled={!selectedCharacterId || isLoading}>
+                    <Button onClick={handleConfirmRequest} disabled={!selectedCharacterId || isLoading}>
                         {isLoading ? 'Отправка...' : `Отправить запрос за ${selectedReward.cost.toLocaleString()} баллов`}
                     </Button>
                 </DialogContent>
