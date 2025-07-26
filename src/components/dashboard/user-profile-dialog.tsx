@@ -11,7 +11,6 @@ import { Anchor, KeyRound, Sparkles, Star, X } from 'lucide-react';
 import { cn, formatTimeLeft } from '@/lib/utils';
 import FamiliarCardDisplay from './familiar-card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
-import { DialogHeader, DialogTitle } from '../ui/dialog';
 import { ACHIEVEMENTS_BY_ID, FAMILIARS_BY_ID } from '@/lib/data';
 import * as LucideIcons from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
@@ -201,14 +200,9 @@ export default function UserProfileDialog({ user }: { user: User }) {
   }, [user.characters]);
 
   return (
-    <div>
-      <DialogHeader>
-        <DialogTitle className="text-2xl pr-8">Профиль игрока: {user.name}</DialogTitle>
-      </DialogHeader>
-
-      <div className="mt-4 flex flex-col md:grid md:grid-cols-2 gap-6 items-start">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column */}
-        <div className={cn("space-y-6 w-full min-w-0", !isAdminViewer && "md:col-span-2")}>
+        <div className="lg:col-span-1 space-y-6">
           <Card>
             <CardHeader>
               <div className="flex items-center gap-4">
@@ -263,7 +257,7 @@ export default function UserProfileDialog({ user }: { user: User }) {
               )}
             </CardContent>
           </Card>
-          <Card>
+           <Card>
             <CardHeader>
               <CardTitle>Персонажи</CardTitle>
               <CardDescription>Список персонажей игрока</CardDescription>
@@ -283,15 +277,13 @@ export default function UserProfileDialog({ user }: { user: User }) {
         </div>
 
         {/* Right Column */}
-        {isAdminViewer && (
-          <div className="w-full min-w-0">
+        <div className="lg:col-span-2">
             <Card>
               <CardHeader>
                 <CardTitle>История баллов</CardTitle>
                 <CardDescription>Журнал заработанных и потраченных баллов.</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="relative w-full overflow-auto">
+              <CardContent className="max-h-[80vh] overflow-y-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -321,12 +313,9 @@ export default function UserProfileDialog({ user }: { user: User }) {
                       )}
                     </TableBody>
                   </Table>
-                </div>
               </CardContent>
             </Card>
-          </div>
-        )}
-      </div>
+        </div>
     </div>
   );
 }

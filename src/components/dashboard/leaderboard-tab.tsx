@@ -10,15 +10,13 @@ import { Badge } from '@/components/ui/badge';
 import { Trophy } from 'lucide-react';
 import type { User, UserStatus } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '../ui/dialog';
-import UserProfileDialog from './user-profile-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
+import Link from 'next/link';
 
 
 export default function LeaderboardTab() {
-  const { fetchLeaderboardUsers, fetchUserById } = useUser();
-  const [selectedUserId, setSelectedUserId] = React.useState<string | null>(null);
+  const { fetchLeaderboardUsers } = useUser();
   const { toast } = useToast();
 
   const { data: users = [], isLoading: isLeaderboardLoading, isError: isLeaderboardError } = useQuery<User[], Error>({
@@ -26,12 +24,6 @@ export default function LeaderboardTab() {
     queryFn: fetchLeaderboardUsers,
   });
   
-  const { data: selectedUser, isLoading: isUserLoading } = useQuery<User | null, Error>({
-      queryKey: ['user', selectedUserId],
-      queryFn: () => fetchUserById(selectedUserId!),
-      enabled: !!selectedUserId,
-  });
-
   React.useEffect(() => {
     if (isLeaderboardError) {
       toast({
@@ -86,7 +78,6 @@ export default function LeaderboardTab() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Dialog open={!!selectedUserId} onOpenChange={(isOpen) => !isOpen && setSelectedUserId(null)}>
             <Table>
             <TableHeader>
                 <TableRow>
@@ -98,16 +89,17 @@ export default function LeaderboardTab() {
             </TableHeader>
             <TableBody>
                 {users.map((user, index) => (
-                <TableRow key={user.id} onClick={() => setSelectedUserId(user.id)} className="cursor-pointer">
+                <TableRow key={user.id} className="cursor-pointer">
                     <TableCell className="font-bold text-lg text-muted-foreground">
-                    {index === 0 && <Trophy className="w-6 h-6 text-yellow-400 inline-block" />}
-                    {index === 1 && <Trophy className="w-6 h-6 text-slate-400 inline-block" />}
-                    {index === 2 && <Trophy className="w-6 h-6 text-amber-700 inline-block" />}
-                    {index > 2 && index + 1}
+                    <Link href={`/users/${user.id}`} className="block w-full h-full">
+                        {index === 0 && <Trophy className="w-6 h-6 text-yellow-400 inline-block" />}
+                        {index === 1 && <Trophy className="w-6 h-6 text-slate-400 inline-block" />}
+                        {index === 2 && <Trophy className="w-6 h-6 text-amber-700 inline-block" />}
+                        {index > 2 && index + 1}
+                    </Link>
                     </TableCell>
                     <TableCell>
-                      <DialogTrigger asChild>
-                        <div className="flex items-center gap-3">
+                      <Link href={`/users/${user.id}`} className="flex items-center gap-3">
                           <Avatar>
                           <AvatarImage src={user.avatar} alt={user.name} />
                           <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
@@ -116,25 +108,24 @@ export default function LeaderboardTab() {
                           <p className="font-medium">{user.name}</p>
                           <p className="text-xs text-muted-foreground sm:hidden capitalize">{user.status}</p>
                           </div>
-                      </div>
-                      </DialogTrigger>
+                      </Link>
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">
-                    <Badge variant={'outline'} className={cn("capitalize", getStatusClass(user.status))}>
-                        {user.status}
-                    </Badge>
+                     <Link href={`/users/${user.id}`} className="block w-full h-full">
+                        <Badge variant={'outline'} className={cn("capitalize", getStatusClass(user.status))}>
+                            {user.status}
+                        </Badge>
+                     </Link>
                     </TableCell>
-                    <TableCell className="text-right font-bold text-primary">{user.points.toLocaleString()}</TableCell>
+                    <TableCell className="text-right font-bold text-primary">
+                        <Link href={`/users/${user.id}`} className="block w-full h-full">
+                            {user.points.toLocaleString()}
+                        </Link>
+                    </TableCell>
                 </TableRow>
                 ))}
             </TableBody>
             </Table>
-             <DialogContent>
-                 <DialogTitle className="sr-only">Профиль пользователя</DialogTitle>
-                 {isUserLoading && <div className="flex justify-center items-center h-64"><p>Загрузка данных пользователя...</p></div>}
-                 {!isUserLoading && selectedUser && <UserProfileDialog user={selectedUser} />}
-             </DialogContent>
-        </Dialog>
       </CardContent>
     </Card>
   );
