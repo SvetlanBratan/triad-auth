@@ -258,7 +258,7 @@ export default function CharacterPage() {
         if (!isVisible && !isOwnerOrAdmin) return null;
         const isEmpty = !value;
         return (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-1 gap-x-4 group items-center">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-1 gap-x-4 group items-start">
                 <span className="text-muted-foreground col-span-1 flex items-center gap-1.5">{icon}{label}:</span>
                 <div className="flex items-center justify-between col-span-1 sm:col-span-2">
                     <div className="flex-1 text-left">
@@ -454,7 +454,7 @@ export default function CharacterPage() {
                             <InfoRow
                                 label="Дата рождения"
                                 value={
-                                    <span className="flex items-center justify-end gap-1.5 flex-wrap">
+                                    <span className="flex items-center gap-1.5 flex-wrap">
                                         <span>{character.birthDate || ''}</span>
                                         {age !== null && <span className="text-muted-foreground">({age} лет)</span>}
                                     </span>
