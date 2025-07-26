@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from 'react';
@@ -147,7 +146,7 @@ export default function ImageUploader({ currentImageUrl, onUpload, uploadPreset 
       
       {file && (
          <Button onClick={handleUpload} disabled={isLoading} className="w-full">
-          {isLoading ? 'Загрузка...' : 'Загрузить новое изображение'}
+          {isLoading ? 'Загрузка...' : 'Сохранить изображение'}
         </Button>
       )}
     </div>
