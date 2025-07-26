@@ -10,20 +10,24 @@ export const DEFAULT_GAME_SETTINGS: GameSettings = {
 }
 
 export const WEALTH_LEVELS: { name: WealthLevel; salary: Partial<BankAccount>; description: string }[] = [
+    { name: 'Нищий', salary: { copper: 10 }, description: '10 мед.' },
     { name: 'Бедный', salary: { silver: 18, copper: 200 }, description: '18 сер., 200 мед.' },
     { name: 'Просветленный', salary: { gold: 1, silver: 40, copper: 300 }, description: '1 зол., 40 сер., 300 мед.' },
     { name: 'Средний', salary: { gold: 10, silver: 60, copper: 500 }, description: '10 зол., 60 сер., 500 мед.' },
     { name: 'Выше среднего', salary: { gold: 20, silver: 100, copper: 1000 }, description: '20 зол., 100 сер., 1000 мед.' },
-    { name: 'Высокий', salary: { gold: 35, silver: 200, copper: 1500 }, description: '35 зол., 200 сер., 1500 мед.' }
+    { name: 'Высокий', salary: { gold: 35, silver: 200, copper: 1500 }, description: '35 зол., 200 сер., 1500 мед.' },
+    { name: 'Сказочно богат', salary: { platinum: 100, gold: 1000, silver: 100, copper: 100 }, description: '100 пл., 1000 зол., 100 сер., 100 мед.' }
 ];
 
 export const STARTING_CAPITAL_LEVELS: CapitalLevel[] = [
+    { name: 'Нищие', amount: { copper: 100 } },
     { name: 'Очень бедные', amount: { silver: 7, copper: 180 } },
     { name: 'Бедные', amount: { gold: 1, silver: 35, copper: 400 } },
     { name: 'Со средним заработком', amount: { gold: 8, silver: 150, copper: 1200 } },
     { name: 'Богатенькие (ремесленники и гильдейские)', amount: { gold: 30, silver: 400, copper: 2500 } },
     { name: 'Богатые (бароны и графы)', amount: { platinum: 50, gold: 150, silver: 1500, copper: 5000 } },
-    { name: 'Очень богатые (герцоги и выше)', amount: { platinum: 100, gold: 800, silver: 5000, copper: 15000 } }
+    { name: 'Очень богатые (герцоги и выше)', amount: { platinum: 100, gold: 800, silver: 5000, copper: 15000 } },
+    { name: 'Сказочно богат', amount: { platinum: 1000, gold: 10000, silver: 100000, copper: 100000 } }
 ];
 
 
