@@ -757,3 +757,5 @@ export default function CharacterPage() {
         </div>
     );
 }
+
+    
