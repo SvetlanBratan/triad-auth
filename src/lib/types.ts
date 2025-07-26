@@ -11,6 +11,7 @@ export type WealthLevel = 'Нищий' | 'Бедный' | 'Просветлен�
 export type Currency = keyof Omit<BankAccount, 'history'>;
 export type ExchangeRequestStatus = 'open' | 'closed';
 export type FamiliarTradeRequestStatus = 'в ожидании' | 'принято' | 'отклонено' | 'отменено';
+export type CrimeLevel = 1 | 2 | 3 | 4 | 5;
 
 
 export interface GameSettings {
@@ -178,6 +179,7 @@ export interface Character {
   hasCrimeConnections?: boolean;
   bankAccount: BankAccount;
   wealthLevel: WealthLevel;
+  crimeLevel?: CrimeLevel;
   // Deprecated fields, kept for migration
   skillLevels?: CharacterLevel[];
   fameLevels?: CharacterLevel[];

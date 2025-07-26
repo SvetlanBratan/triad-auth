@@ -1,5 +1,5 @@
 
-import type { Reward, FamiliarCard, Achievement, GameSettings, WealthLevel, BankAccount, CapitalLevel } from './types';
+import type { Reward, FamiliarCard, Achievement, GameSettings, WealthLevel, BankAccount, CapitalLevel, CrimeLevel } from './types';
 import type { OptionType } from '@/components/ui/multi-select';
 
 // Game Date is now fetched from Firestore. See UserProvider.
@@ -9,6 +9,14 @@ export const DEFAULT_GAME_SETTINGS: GameSettings = {
     gameDate: new Date(2709, 2, 21), // Month is 0-indexed (2 = March)
     lastWeeklyBonusAwardedAt: new Date(0).toISOString(), // Initialize with a very old date
 }
+
+export const CRIME_LEVELS: { level: CrimeLevel, title: string, description: string }[] = [
+    { level: 5, title: 'Пятый (Мирный)', description: 'Принадлежит всем мирным жителям. Не предполагает задержания или казнь, так как житель не совершал никаких преступлений.' },
+    { level: 4, title: 'Четвертый', description: 'Присваивается за участие или организацию драки, оскорбления жителей любого рода, титула и возраста.' },
+    { level: 3, title: 'Третий', description: 'Присваивается за мошенничество (от мелких до крупных) и воровство (различных ценностей и существ).' },
+    { level: 2, title: 'Второй', description: 'Присваивается за насилие (без рабовладельческого контракта) и единовременные убийства.' },
+    { level: 1, title: 'Первый (Опасный)', description: 'Самый опасный уровень. Принадлежит пиратам, серийным убийцам (трех и более лиц), насильникам приближенных или родственников Владыки.' }
+];
 
 export const WEALTH_LEVELS: { name: WealthLevel; salary: Partial<BankAccount>; description: string }[] = [
     { name: 'Нищий', salary: { copper: 10 }, description: '10 мед.' },

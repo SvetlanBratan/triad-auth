@@ -8,7 +8,7 @@ import { User, Character, FamiliarCard, FamiliarRank, Moodlet, Relationship, Rel
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FAMILIARS_BY_ID, MOODLETS_DATA, TRAINING_OPTIONS } from '@/lib/data';
+import { FAMILIARS_BY_ID, MOODLETS_DATA, TRAINING_OPTIONS, CRIME_LEVELS } from '@/lib/data';
 import FamiliarCardDisplay from '@/components/dashboard/familiar-card';
 import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users, HeartHandshake, Wallet, Coins, Award, Zap, ShieldOff, History, Info, PlusCircle, BookUser } from 'lucide-react';
 import Link from 'next/link';
@@ -22,6 +22,7 @@ import * as LucideIcons from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import RelationshipActions from '@/components/dashboard/relationship-actions';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 type IconName = keyof typeof LucideIcons;
@@ -194,6 +195,11 @@ export default function CharacterPage() {
         return [...character.bankAccount.history].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }, [character]);
 
+    const crimeLevelInfo = useMemo(() => {
+        if (!character?.crimeLevel) return null;
+        return CRIME_LEVELS.find(cl => cl.level === character.crimeLevel);
+    }, [character]);
+
 
     if (isLoading) {
         return <div className="container mx-auto p-4 md:p-8"><p>Загрузка данных персонажа...</p></div>;
@@ -247,12 +253,12 @@ export default function CharacterPage() {
         );
     };
     
-     const InfoRow = ({ label, value, field, section, isVisible = true }: { label: string, value: React.ReactNode, field: keyof Character, section: EditableSection, isVisible?: boolean }) => {
+     const InfoRow = ({ label, value, field, section, isVisible = true, icon }: { label: string, value: React.ReactNode, field: keyof Character, section: EditableSection, isVisible?: boolean, icon?: React.ReactNode }) => {
         if (!isVisible && !isOwnerOrAdmin) return null;
         const isEmpty = !value;
         return (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-1 gap-x-4 group items-center">
-                <span className="text-muted-foreground col-span-1">{label}:</span>
+                <span className="text-muted-foreground col-span-1 flex items-center gap-1.5">{icon}{label}:</span>
                 <div className="flex items-center justify-between col-span-1 sm:col-span-2">
                     <div className="flex-1 text-left">
                         {isEmpty && isOwnerOrAdmin ? <span className="italic text-muted-foreground/80">Не указано</span> : value}
@@ -438,6 +444,23 @@ export default function CharacterPage() {
                                 }
                                 field="birthDate"
                                 section="mainInfo"
+                            />
+                             <InfoRow 
+                                label="Уровень преступности" 
+                                value={crimeLevelInfo ? crimeLevelInfo.title : ''} 
+                                field="crimeLevel" 
+                                section="mainInfo" 
+                                isVisible={!!crimeLevelInfo}
+                                icon={
+                                    crimeLevelInfo ? (
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild><ShieldAlert className="w-4 h-4 text-destructive" /></TooltipTrigger>
+                                            <TooltipContent className="max-w-xs"><p>{crimeLevelInfo.description}</p></TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                    ) : undefined
+                                }
                             />
                             <InfoRow label="Место работы" value={character.workLocation} field="workLocation" section="mainInfo" isVisible={!!character.workLocation}/>
                         </CardContent>
