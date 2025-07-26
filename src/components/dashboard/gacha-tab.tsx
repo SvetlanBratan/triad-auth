@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -11,13 +12,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Dices, Star, Sprout, Gift, ShieldAlert } from 'lucide-react';
 import type { FamiliarCard } from '@/lib/types';
@@ -25,6 +19,7 @@ import FamiliarCardDisplay from './familiar-card';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { ALL_FAMILIARS } from '@/lib/data';
+import { SearchableSelect } from '../ui/searchable-select';
 
 const ROULETTE_COST = 5000;
 const DUPLICATE_REFUND = 1000;
@@ -139,6 +134,12 @@ export default function RouletteTab() {
     }, 700); // Corresponds to animation duration
   };
   
+  const characterOptions = useMemo(() => {
+    return (currentUser?.characters || []).map(char => ({
+      value: char.id,
+      label: char.name,
+    }));
+  }, [currentUser]);
 
   return (
     <div className="flex flex-col items-center gap-8">
@@ -175,22 +176,13 @@ export default function RouletteTab() {
             <label className="text-sm font-medium mb-2 block">
               Выберите персонажа:
             </label>
-            <Select
-              onValueChange={setSelectedCharacterId}
-              value={selectedCharacterId}
-              disabled={isLoading}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Выберите персонажа..." />
-              </SelectTrigger>
-              <SelectContent>
-                {currentUser?.characters.map((char) => (
-                  <SelectItem key={char.id} value={char.id}>
-                    {char.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+             <SearchableSelect
+                options={characterOptions}
+                value={selectedCharacterId}
+                onValueChange={setSelectedCharacterId}
+                placeholder="Выберите персонажа..."
+                disabled={isLoading}
+            />
              {currentUser?.characters.length === 0 && (
                 <p className="text-xs text-muted-foreground mt-2">У вас нет персонажей. Добавьте одного во вкладке "Мой профиль".</p>
             )}

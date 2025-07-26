@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useUser } from '@/hooks/use-user';
@@ -9,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import * as LucideIcons from 'lucide-react';
 import { Star } from 'lucide-react';
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -17,7 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { SearchableSelect } from '../ui/searchable-select';
 
 type IconName = keyof typeof LucideIcons;
 
@@ -97,6 +98,14 @@ export default function RewardsTab() {
         setSelectedCharacterId('');
     }
   }
+  
+  const characterOptions = useMemo(() => {
+    return (currentUser?.characters || []).map(char => ({
+      value: char.id,
+      label: char.name,
+    }));
+  }, [currentUser]);
+
 
   return (
     <div>
@@ -148,16 +157,12 @@ export default function RewardsTab() {
                     </DialogHeader>
                     <div className="py-4 space-y-4">
                         <p>Для какого персонажа вы хотите запросить награду?</p>
-                        <Select onValueChange={setSelectedCharacterId} value={selectedCharacterId}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Выберите персонажа..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {currentUser?.characters.map(char => (
-                                    <SelectItem key={char.id} value={char.id}>{char.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <SearchableSelect
+                            options={characterOptions}
+                            value={selectedCharacterId}
+                            onValueChange={setSelectedCharacterId}
+                            placeholder="Выберите персонажа..."
+                        />
                     </div>
                     <Button onClick={handleConfirmRequest} disabled={!selectedCharacterId || isLoading}>
                         {isLoading ? 'Отправка...' : `Отправить запрос за ${selectedReward.cost.toLocaleString()} баллов`}

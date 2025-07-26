@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -12,13 +13,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowRightLeft, Coins, Trash2, Repeat, Info } from 'lucide-react';
 import { Input } from '../ui/input';
@@ -28,6 +22,7 @@ import { formatCurrency } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
+import { SearchableSelect } from '../ui/searchable-select';
 
 const CURRENCY_OPTIONS: { value: Currency, label: string }[] = [
     { value: 'platinum', label: 'Платина' },
@@ -90,6 +85,13 @@ export default function CurrencyExchange() {
     return currentUser?.characters.find(c => c.id === fromCharacterId);
   }, [currentUser, fromCharacterId]);
   
+  const myCharacterOptions = useMemo(() => {
+    return (currentUser?.characters || []).map(char => ({
+      value: char.id,
+      label: char.name,
+    }));
+  }, [currentUser]);
+
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value, 10);
     setFromAmount(isNaN(value) || value < 0 ? 0 : value);
@@ -174,14 +176,12 @@ export default function CurrencyExchange() {
 
                     <div>
                         <Label>Ваш персонаж и его счет</Label>
-                        <Select value={fromCharacterId} onValueChange={setFromCharacterId}>
-                            <SelectTrigger><SelectValue placeholder="Выберите персонажа..." /></SelectTrigger>
-                            <SelectContent>
-                                {currentUser?.characters.map(char => (
-                                    <SelectItem key={char.id} value={char.id}>{char.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                         <SearchableSelect
+                            options={myCharacterOptions}
+                            value={fromCharacterId}
+                            onValueChange={setFromCharacterId}
+                            placeholder="Выберите персонажа..."
+                        />
                         {selectedCharacter && (
                             <div className="mt-2 p-2 bg-muted rounded-md text-sm text-muted-foreground">
                             {formatCurrency(selectedCharacter.bankAccount)}
@@ -198,12 +198,13 @@ export default function CurrencyExchange() {
                             )}
                         </div>
                         <div className="w-32 space-y-1.5">
-                            <Select value={fromCurrency} onValueChange={(v) => setFromCurrency(v as Currency)} disabled={!fromCharacterId}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    {CURRENCY_OPTIONS.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
+                            <SearchableSelect
+                                options={CURRENCY_OPTIONS}
+                                value={fromCurrency}
+                                onValueChange={(v) => setFromCurrency(v as Currency)}
+                                placeholder=""
+                                disabled={!fromCharacterId}
+                            />
                         </div>
                     </div>
 
@@ -217,12 +218,13 @@ export default function CurrencyExchange() {
                             <Input id="toAmount" type="number" value={toAmount || ''} readOnly disabled />
                         </div>
                         <div className="w-32 space-y-1.5">
-                            <Select value={toCurrency} onValueChange={(v) => setToCurrency(v as Currency)} disabled={!fromCharacterId}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    {CURRENCY_OPTIONS.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
+                            <SearchableSelect
+                                options={CURRENCY_OPTIONS}
+                                value={toCurrency}
+                                onValueChange={(v) => setToCurrency(v as Currency)}
+                                placeholder=""
+                                disabled={!fromCharacterId}
+                            />
                         </div>
                     </div>
                 </CardContent>
@@ -258,6 +260,11 @@ export default function CurrencyExchange() {
                         const acceptingCharacters = currentUser?.characters.filter(c => (c.bankAccount?.[req.toCurrency] ?? 0) >= req.toAmount);
                         const canAccept = acceptingCharacters && acceptingCharacters.length > 0;
                         const isAccepting = isAcceptingId === req.id;
+                        
+                        const acceptingCharacterOptions = (acceptingCharacters || []).map(char => ({
+                          value: char.id,
+                          label: `${char.name} (Баланс: ${formatCurrency(char.bankAccount)})`
+                        }))
 
                         return (
                         <Card key={req.id}>
@@ -293,18 +300,12 @@ export default function CurrencyExchange() {
                                         </DialogHeader>
                                         <div className="py-4 space-y-2">
                                             <Label htmlFor="acceptor-char">Ваш персонаж:</Label>
-                                            <Select value={selectedAcceptorCharId} onValueChange={setSelectedAcceptorCharId}>
-                                                <SelectTrigger id="acceptor-char">
-                                                    <SelectValue placeholder="Выберите персонажа..." />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {acceptingCharacters?.map((char: Character) => (
-                                                        <SelectItem key={char.id} value={char.id}>
-                                                            {char.name} (Баланс: {formatCurrency(char.bankAccount)})
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
+                                            <SearchableSelect
+                                                options={acceptingCharacterOptions}
+                                                value={selectedAcceptorCharId}
+                                                onValueChange={setSelectedAcceptorCharId}
+                                                placeholder="Выберите персонажа..."
+                                            />
                                         </div>
                                         <DialogFooter>
                                             <DialogClose asChild>

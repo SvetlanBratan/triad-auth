@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -6,7 +7,6 @@ import type { Character, RelationshipActionType } from '@/lib/types';
 import { useUser } from '@/hooks/use-user';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { useToast } from '@/hooks/use-toast';
@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Gift, Mail, MessageSquarePlus, Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { differenceInHours, differenceInDays } from 'date-fns';
+import { SearchableSelect } from '../ui/searchable-select';
 
 
 interface RelationshipActionsProps {
@@ -101,6 +102,10 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
         return null;
     }
 
+    const sourceCharacterOptions = (currentUser?.characters || [])
+        .filter(char => (char.relationships || []).some(r => r.targetCharacterId === targetCharacter.id))
+        .map(char => ({ value: char.id, label: char.name }));
+
 
     return (
         <Card>
@@ -111,22 +116,12 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
             <CardContent className="space-y-4">
                 <div>
                     <Label htmlFor="source-char-select">От лица:</Label>
-                    <Select value={sourceCharacterId} onValueChange={setSourceCharacterId}>
-                        <SelectTrigger id="source-char-select">
-                            <SelectValue placeholder="Выберите персонажа..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {currentUser?.characters
-                                // Filter to only show characters that actually have a relationship with the target
-                                .filter(char => (char.relationships || []).some(r => r.targetCharacterId === targetCharacter.id))
-                                .map(char => (
-                                    <SelectItem key={char.id} value={char.id}>
-                                        {char.name}
-                                    </SelectItem>
-                                ))
-                            }
-                        </SelectContent>
-                    </Select>
+                    <SearchableSelect
+                        options={sourceCharacterOptions}
+                        value={sourceCharacterId}
+                        onValueChange={setSourceCharacterId}
+                        placeholder="Выберите персонажа..."
+                    />
                 </div>
                 {sourceCharacterId && (
                     <>

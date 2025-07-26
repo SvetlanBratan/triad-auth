@@ -165,11 +165,6 @@ export default function AdminTab() {
       setNewGameDateString(initialGameDate || '');
   }, [initialGameDate]);
 
-    const charactersForRecovery = useMemo(() => {
-    if (!recoveryUserId) return [];
-    return users.find(u => u.id === recoveryUserId)?.characters || [];
-  }, [recoveryUserId, users]);
-
   const handleRecovery = async () => {
     if (!recoveryUserId || !recoveryCharId) {
         toast({ variant: 'destructive', title: 'Ошибка', description: 'Выберите пользователя и персонажа.' });
@@ -538,25 +533,40 @@ export default function AdminTab() {
   };
 
   // --- Memos ---
+   const userOptions = useMemo(() => {
+    const options = users.map(user => ({ value: user.id, label: user.name }));
+    if(options.length > 0) {
+        options.unshift({ value: 'all', label: '*** Всем пользователям ***' });
+    }
+    return options;
+  }, [users]);
+  
+  const userOnlyOptions = useMemo(() => users.map(user => ({ value: user.id, label: user.name })), [users]);
+  
+  const charactersForRecovery = useMemo(() => {
+    if (!recoveryUserId) return [];
+    const user = users.find(u => u.id === recoveryUserId);
+    return (user?.characters || []).map(c => ({ value: c.id, label: c.name }));
+  }, [recoveryUserId, users]);
 
   const charactersForGiveFamiliar = useMemo(() => {
     if (!giveFamiliarUserId) return [];
-    return users.find(u => u.id === giveFamiliarUserId)?.characters || [];
+    return (users.find(u => u.id === giveFamiliarUserId)?.characters || []).map(c => ({ value: c.id, label: c.name }));
   }, [giveFamiliarUserId, users]);
 
   const charactersForMoodletUser = useMemo(() => {
     if (!moodletUserId) return [];
-    return users.find(u => u.id === moodletUserId)?.characters || [];
+    return (users.find(u => u.id === moodletUserId)?.characters || []).map(c => ({ value: c.id, label: c.name }));
   }, [moodletUserId, users]);
 
   const charactersForFamiliarRemoval = useMemo(() => {
     if (!removeFamiliarUserId) return [];
-    return users.find(u => u.id === removeFamiliarUserId)?.characters || [];
+    return (users.find(u => u.id === removeFamiliarUserId)?.characters || []).map(c => ({ value: c.id, label: c.name }));
   }, [removeFamiliarUserId, users]);
 
   const charactersForEconomy = useMemo(() => {
     if (!ecoUserId) return [];
-    return users.find(u => u.id === ecoUserId)?.characters || [];
+    return (users.find(u => u.id === ecoUserId)?.characters || []).map(c => ({ value: c.id, label: c.name }));
   }, [ecoUserId, users]);
 
   const selectedCharacterForEconomy = useMemo(() => {
@@ -567,7 +577,7 @@ export default function AdminTab() {
   
   const charactersForCapital = useMemo(() => {
     if (!capitalUserId) return [];
-    return users.find(u => u.id === capitalUserId)?.characters || [];
+    return (users.find(u => u.id === capitalUserId)?.characters || []).map(c => ({ value: c.id, label: c.name }));
   }, [capitalUserId, users]);
 
   const familiarsForSelectedCharacterOptions = useMemo((): {value: string, label: string}[] => {
@@ -640,6 +650,26 @@ export default function AdminTab() {
     const divineBeings = ["Светлый Бог", "Тёмный Бог", "Неизвестная Богиня"];
     return [...new Set([...divineBeings, ...characterNames])];
   }, [users]);
+  
+  const achievementOptions = useMemo(() => ALL_ACHIEVEMENTS.map(ach => ({
+      value: ach.id,
+      label: ach.name,
+  })), []);
+  
+  const moodletOptions = useMemo(() => Object.entries(MOODLETS_DATA).map(([id, data]) => ({
+      value: id,
+      label: data.name,
+  })), []);
+  
+  const wealthLevelOptions = useMemo(() => WEALTH_LEVELS.map(level => ({
+      value: level.name,
+      label: `${level.name} (${level.description})`,
+  })), []);
+
+  const startingCapitalOptions = useMemo(() => STARTING_CAPITAL_LEVELS.map(level => ({
+      value: level.name,
+      label: level.name,
+  })), []);
 
 
   if (isLoading) {
@@ -667,18 +697,12 @@ export default function AdminTab() {
                     <form onSubmit={handleAwardPoints} className="space-y-4">
                     <div>
                         <Label htmlFor="user-select-award">Пользователь</Label>
-                        <Select value={awardSelectedUserId} onValueChange={setAwardSelectedUserId}>
-                        <SelectTrigger id="user-select-award">
-                            <SelectValue placeholder="Выберите пользователя" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">*** Всем пользователям ***</SelectItem>
-                            <Separator />
-                            {users.map(user => (
-                            <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                        </Select>
+                        <SearchableSelect
+                            options={userOptions}
+                            value={awardSelectedUserId}
+                            onValueChange={setAwardSelectedUserId}
+                            placeholder="Выберите пользователя"
+                        />
                     </div>
                     <div>
                         <Label htmlFor="points-input">Баллы</Label>
@@ -714,16 +738,12 @@ export default function AdminTab() {
                     <form onSubmit={handleDeductPoints} className="space-y-4">
                     <div>
                         <Label htmlFor="user-select-deduct">Пользователь</Label>
-                        <Select value={deductSelectedUserId} onValueChange={setDeductSelectedUserId}>
-                        <SelectTrigger id="user-select-deduct">
-                            <SelectValue placeholder="Выберите пользователя" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {users.map(user => (
-                            <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                        </Select>
+                        <SearchableSelect
+                            options={userOnlyOptions}
+                            value={deductSelectedUserId}
+                            onValueChange={setDeductSelectedUserId}
+                            placeholder="Выберите пользователя"
+                        />
                     </div>
                     <div>
                         <Label htmlFor="points-input-deduct">Баллы</Label>
@@ -842,34 +862,21 @@ export default function AdminTab() {
                     <form onSubmit={handleGrantAchievement} className="space-y-4">
                     <div>
                         <Label htmlFor="user-select-achieve">Пользователь</Label>
-                        <Select value={achieveUserId} onValueChange={setAchieveUserId}>
-                        <SelectTrigger id="user-select-achieve">
-                            <SelectValue placeholder="Выберите пользователя" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {users.map(user => (
-                            <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                        </Select>
+                         <SearchableSelect
+                            options={userOnlyOptions}
+                            value={achieveUserId}
+                            onValueChange={setAchieveUserId}
+                            placeholder="Выберите пользователя"
+                        />
                     </div>
                     <div>
                         <Label htmlFor="achieve-select">Ачивка</Label>
-                        <Select value={achieveId} onValueChange={setAchieveId}>
-                            <SelectTrigger id="achieve-select" className="w-full">
-                                <SelectValue placeholder="Выберите ачивку..." />
-                            </SelectTrigger>
-                            <SelectContent className="max-h-[300px] w-[var(--radix-select-trigger-width)]">
-                                {ALL_ACHIEVEMENTS.map((ach) => (
-                                    <SelectItem key={ach.id} value={ach.id} className="whitespace-normal">
-                                        <div className="flex flex-col items-start py-1">
-                                        <p className="font-semibold">{ach.name}</p>
-                                        <p className="text-xs text-muted-foreground">{ach.description}</p>
-                                        </div>
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <SearchableSelect
+                            options={achievementOptions}
+                            value={achieveId}
+                            onValueChange={setAchieveId}
+                            placeholder="Выберите ачивку..."
+                        />
                     </div>
                     <Button type="submit">Выдать ачивку</Button>
                     </form>
@@ -886,42 +893,31 @@ export default function AdminTab() {
                     <form onSubmit={handleAddMoodlet} className="space-y-4">
                         <div>
                             <Label htmlFor="moodlet-user">Пользователь</Label>
-                            <Select value={moodletUserId} onValueChange={uid => { setMoodletUserId(uid); setMoodletCharId(''); }}>
-                            <SelectTrigger id="moodlet-user">
-                                <SelectValue placeholder="Выберите пользователя" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {users.map(user => (
-                                <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                            </Select>
+                            <SearchableSelect
+                                options={userOnlyOptions}
+                                value={moodletUserId}
+                                onValueChange={uid => { setMoodletUserId(uid); setMoodletCharId(''); }}
+                                placeholder="Выберите пользователя"
+                            />
                         </div>
                         <div>
                             <Label htmlFor="moodlet-char">Персонаж</Label>
-                            <Select value={moodletCharId} onValueChange={setMoodletCharId} disabled={!moodletUserId}>
-                            <SelectTrigger id="moodlet-char">
-                                <SelectValue placeholder="Выберите персонажа" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {charactersForMoodletUser.map(character => (
-                                <SelectItem key={character.id} value={character.id}>{character.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                            </Select>
+                            <SearchableSelect
+                                options={charactersForMoodletUser}
+                                value={moodletCharId}
+                                onValueChange={setMoodletCharId}
+                                placeholder="Выберите персонажа"
+                                disabled={!moodletUserId}
+                            />
                         </div>
                         <div>
                             <Label htmlFor="moodlet-type">Мудлет</Label>
-                            <Select value={moodletId} onValueChange={setMoodletId}>
-                            <SelectTrigger id="moodlet-type">
-                                <SelectValue placeholder="Выберите мудлет" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {Object.entries(MOODLETS_DATA).map(([id, data]) => (
-                                <SelectItem key={id} value={id}>{data.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                            </Select>
+                             <SearchableSelect
+                                options={moodletOptions}
+                                value={moodletId}
+                                onValueChange={setMoodletId}
+                                placeholder="Выберите мудлет"
+                            />
                         </div>
                         <div>
                             <Label htmlFor="moodlet-duration">Длительность (в днях)</Label>
@@ -967,28 +963,21 @@ export default function AdminTab() {
                     <form onSubmit={handleChangeRole} className="space-y-4">
                     <div>
                         <Label htmlFor="user-select-role">Пользователь</Label>
-                        <Select value={roleSelectedUserId} onValueChange={setRoleSelectedUserId}>
-                        <SelectTrigger id="user-select-role">
-                            <SelectValue placeholder="Выберите пользователя" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {users.map(user => (
-                            <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                        </Select>
+                        <SearchableSelect
+                            options={userOnlyOptions}
+                            value={roleSelectedUserId}
+                            onValueChange={setRoleSelectedUserId}
+                            placeholder="Выберите пользователя"
+                        />
                     </div>
                     <div>
                         <Label htmlFor="role-select">Новая роль</Label>
-                        <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as UserRole)}>
-                        <SelectTrigger id="role-select">
-                            <SelectValue placeholder="Выберите роль" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="admin">Администратор</SelectItem>
-                            <SelectItem value="user">Пользователь</SelectItem>
-                        </SelectContent>
-                        </Select>
+                        <SearchableSelect
+                            options={[{value: 'admin', label: 'Администратор'}, {value: 'user', label: 'Пользователь'}]}
+                            value={selectedRole}
+                            onValueChange={(value) => setSelectedRole(value as UserRole)}
+                            placeholder="Выберите роль"
+                        />
                     </div>
                     <Button type="submit">Изменить роль</Button>
                     </form>
@@ -1005,29 +994,21 @@ export default function AdminTab() {
                     <form onSubmit={handleChangeStatus} className="space-y-4">
                     <div>
                         <Label htmlFor="user-select-status">Пользователь</Label>
-                        <Select value={statusSelectedUserId} onValueChange={setStatusSelectedUserId}>
-                        <SelectTrigger id="user-select-status">
-                            <SelectValue placeholder="Выберите пользователя" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {users.map(user => (
-                            <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                        </Select>
+                         <SearchableSelect
+                            options={userOnlyOptions}
+                            value={statusSelectedUserId}
+                            onValueChange={setStatusSelectedUserId}
+                            placeholder="Выберите пользователя"
+                        />
                     </div>
                     <div>
                         <Label htmlFor="status-select">Новый статус</Label>
-                        <Select value={selectedStatus} onValueChange={(value) => setSelectedStatus(value as UserStatus)}>
-                        <SelectTrigger id="status-select">
-                            <SelectValue placeholder="Выберите статус" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="активный">активный</SelectItem>
-                            <SelectItem value="неактивный">неактивный</SelectItem>
-                            <SelectItem value="отпуск">отпуск</SelectItem>
-                        </SelectContent>
-                        </Select>
+                        <SearchableSelect
+                            options={[{value: 'активный', label: 'активный'}, {value: 'неактивный', label: 'неактивный'}, {value: 'отпуск', label: 'отпуск'}]}
+                            value={selectedStatus}
+                            onValueChange={(value) => setSelectedStatus(value as UserStatus)}
+                            placeholder="Выберите статус"
+                        />
                     </div>
                     <Button type="submit">Изменить статус</Button>
                     </form>
@@ -1044,16 +1025,12 @@ export default function AdminTab() {
                     <div>
                         <h4 className="font-semibold text-sm mb-2">Очистка истории баллов (1 игрок)</h4>
                         <div className="flex gap-2 items-center">
-                            <Select value={clearHistoryUserId} onValueChange={setClearHistoryUserId}>
-                                <SelectTrigger id="user-select-clear-history" className="border-destructive/50 text-destructive focus:ring-destructive">
-                                    <SelectValue placeholder="Выберите пользователя" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {users.map(user => (
-                                    <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <SearchableSelect
+                                options={userOnlyOptions}
+                                value={clearHistoryUserId}
+                                onValueChange={setClearHistoryUserId}
+                                placeholder="Выберите пользователя"
+                            />
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                     <Button variant="destructive" size="icon" disabled={!clearHistoryUserId}>
@@ -1141,29 +1118,22 @@ export default function AdminTab() {
                         <form onSubmit={handleGiveFamiliar} className="space-y-4">
                         <div>
                             <Label htmlFor="user-select-give">Пользователь</Label>
-                            <Select value={giveFamiliarUserId} onValueChange={uid => { setGiveFamiliarUserId(uid); setGiveFamiliarCharId(''); }}>
-                            <SelectTrigger id="user-select-give">
-                                <SelectValue placeholder="Выберите пользователя" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {users.map(user => (
-                                <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                            </Select>
+                            <SearchableSelect
+                                options={userOnlyOptions}
+                                value={giveFamiliarUserId}
+                                onValueChange={uid => { setGiveFamiliarUserId(uid); setGiveFamiliarCharId(''); }}
+                                placeholder="Выберите пользователя"
+                            />
                         </div>
                         <div>
                             <Label htmlFor="character-select-give">Персонаж</Label>
-                            <Select value={giveFamiliarCharId} onValueChange={setGiveFamiliarCharId} disabled={!giveFamiliarUserId}>
-                            <SelectTrigger id="character-select-give">
-                                <SelectValue placeholder="Выберите персонажа" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {charactersForGiveFamiliar.map(character => (
-                                <SelectItem key={character.id} value={character.id}>{character.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                            </Select>
+                            <SearchableSelect
+                                options={charactersForGiveFamiliar}
+                                value={giveFamiliarCharId}
+                                onValueChange={setGiveFamiliarCharId}
+                                placeholder="Выберите персонажа"
+                                disabled={!giveFamiliarUserId}
+                            />
                         </div>
                         <div>
                             <Label htmlFor="familiar-select-give">Фамильяр</Label>
@@ -1190,29 +1160,22 @@ export default function AdminTab() {
                     <div className="space-y-4">
                         <div>
                             <Label htmlFor="remove-fam-user">Пользователь</Label>
-                            <Select value={removeFamiliarUserId} onValueChange={uid => { setRemoveFamiliarUserId(uid); setRemoveFamiliarCharId(''); setRemoveFamiliarCardId(''); }}>
-                            <SelectTrigger id="remove-fam-user">
-                                <SelectValue placeholder="Выберите пользователя" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {users.map(user => (
-                                <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                            </Select>
+                             <SearchableSelect
+                                options={userOnlyOptions}
+                                value={removeFamiliarUserId}
+                                onValueChange={uid => { setRemoveFamiliarUserId(uid); setRemoveFamiliarCharId(''); setRemoveFamiliarCardId(''); }}
+                                placeholder="Выберите пользователя"
+                            />
                         </div>
                         <div>
                             <Label htmlFor="remove-fam-char">Персонаж</Label>
-                            <Select value={removeFamiliarCharId} onValueChange={cid => { setRemoveFamiliarCharId(cid); setRemoveFamiliarCardId(''); }} disabled={!removeFamiliarUserId}>
-                            <SelectTrigger id="remove-fam-char">
-                                <SelectValue placeholder="Выберите персонажа" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {charactersForFamiliarRemoval.map(character => (
-                                <SelectItem key={character.id} value={character.id}>{character.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                            </Select>
+                           <SearchableSelect
+                                options={charactersForFamiliarRemoval}
+                                value={removeFamiliarCharId}
+                                onValueChange={cid => { setRemoveFamiliarCharId(cid); setRemoveFamiliarCardId(''); }}
+                                placeholder="Выберите персонажа"
+                                disabled={!removeFamiliarUserId}
+                            />
                         </div>
                         <div>
                             <Label htmlFor="remove-fam-card">Карта для удаления</Label>
@@ -1265,17 +1228,22 @@ export default function AdminTab() {
                     <div className="space-y-4">
                         <div>
                             <Label htmlFor="recovery-user">Пользователь</Label>
-                            <Select value={recoveryUserId} onValueChange={uid => { setRecoveryUserId(uid); setRecoveryCharId(''); }}>
-                                <SelectTrigger id="recovery-user"><SelectValue placeholder="Выберите пользователя" /></SelectTrigger>
-                                <SelectContent>{users.map(user => (<SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>))}</SelectContent>
-                            </Select>
+                            <SearchableSelect
+                                options={userOnlyOptions}
+                                value={recoveryUserId}
+                                onValueChange={uid => { setRecoveryUserId(uid); setRecoveryCharId(''); }}
+                                placeholder="Выберите пользователя"
+                            />
                         </div>
                         <div>
                             <Label htmlFor="recovery-char">Персонаж</Label>
-                            <Select value={recoveryCharId} onValueChange={setRecoveryCharId} disabled={!recoveryUserId}>
-                                <SelectTrigger id="recovery-char"><SelectValue placeholder="Выберите персонажа" /></SelectTrigger>
-                                <SelectContent>{charactersForRecovery.map(c => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}</SelectContent>
-                            </Select>
+                             <SearchableSelect
+                                options={charactersForRecovery}
+                                value={recoveryCharId}
+                                onValueChange={setRecoveryCharId}
+                                placeholder="Выберите персонажа"
+                                disabled={!recoveryUserId}
+                            />
                         </div>
                         <div>
                             <Label htmlFor="recovery-old-name">Старое имя персонажа (если менялось)</Label>
@@ -1310,14 +1278,19 @@ export default function AdminTab() {
                              <div>
                                 <Label>Пользователь и персонаж</Label>
                                 <div className="flex gap-2">
-                                    <Select value={ecoUserId} onValueChange={uid => { setEcoUserId(uid); setEcoCharId(''); }}>
-                                        <SelectTrigger><SelectValue placeholder="Пользователь" /></SelectTrigger>
-                                        <SelectContent>{users.map(user => (<SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>))}</SelectContent>
-                                    </Select>
-                                    <Select value={ecoCharId} onValueChange={setEcoCharId} disabled={!ecoUserId}>
-                                        <SelectTrigger><SelectValue placeholder="Персонаж" /></SelectTrigger>
-                                        <SelectContent>{charactersForEconomy.map(c => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}</SelectContent>
-                                    </Select>
+                                     <SearchableSelect
+                                        options={userOnlyOptions}
+                                        value={ecoUserId}
+                                        onValueChange={uid => { setEcoUserId(uid); setEcoCharId(''); }}
+                                        placeholder="Пользователь"
+                                    />
+                                    <SearchableSelect
+                                        options={charactersForEconomy}
+                                        value={ecoCharId}
+                                        onValueChange={setEcoCharId}
+                                        placeholder="Персонаж"
+                                        disabled={!ecoUserId}
+                                    />
                                 </div>
                             </div>
                              <div>
@@ -1352,14 +1325,19 @@ export default function AdminTab() {
                             <div>
                                 <Label>Пользователь и персонаж</Label>
                                 <div className="flex gap-2">
-                                    <Select value={ecoUserId} onValueChange={uid => { setEcoUserId(uid); setEcoCharId(''); }}>
-                                        <SelectTrigger><SelectValue placeholder="Пользователь" /></SelectTrigger>
-                                        <SelectContent>{users.map(user => (<SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>))}</SelectContent>
-                                    </Select>
-                                    <Select value={ecoCharId} onValueChange={setEcoCharId} disabled={!ecoUserId}>
-                                        <SelectTrigger><SelectValue placeholder="Персонаж" /></SelectTrigger>
-                                        <SelectContent>{charactersForEconomy.map(c => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}</SelectContent>
-                                    </Select>
+                                    <SearchableSelect
+                                        options={userOnlyOptions}
+                                        value={ecoUserId}
+                                        onValueChange={uid => { setEcoUserId(uid); setEcoCharId(''); }}
+                                        placeholder="Пользователь"
+                                    />
+                                    <SearchableSelect
+                                        options={charactersForEconomy}
+                                        value={ecoCharId}
+                                        onValueChange={setEcoCharId}
+                                        placeholder="Персонаж"
+                                        disabled={!ecoUserId}
+                                    />
                                 </div>
                             </div>
                              {selectedCharacterForEconomy && (
@@ -1369,14 +1347,12 @@ export default function AdminTab() {
                             )}
                             <div>
                                 <Label htmlFor="wealth-level">Уровень достатка</Label>
-                                <Select value={ecoWealthLevel} onValueChange={v => setEcoWealthLevel(v as WealthLevel)}>
-                                    <SelectTrigger id="wealth-level"><SelectValue placeholder="Выберите уровень" /></SelectTrigger>
-                                    <SelectContent>
-                                        {WEALTH_LEVELS.map(level => (
-                                            <SelectItem key={level.name} value={level.name}>{level.name} ({level.description})</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <SearchableSelect
+                                    options={wealthLevelOptions}
+                                    value={ecoWealthLevel}
+                                    onValueChange={v => setEcoWealthLevel(v as WealthLevel)}
+                                    placeholder="Выберите уровень"
+                                />
                             </div>
                             <Button type="submit">Сохранить уровень</Button>
                         </form>
@@ -1409,26 +1385,29 @@ export default function AdminTab() {
                             <div>
                                 <Label>Пользователь и персонаж</Label>
                                 <div className="flex gap-2">
-                                    <Select value={capitalUserId} onValueChange={uid => { setCapitalUserId(uid); setCapitalCharId(''); }}>
-                                        <SelectTrigger><SelectValue placeholder="Пользователь" /></SelectTrigger>
-                                        <SelectContent>{users.map(user => (<SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>))}</SelectContent>
-                                    </Select>
-                                    <Select value={capitalCharId} onValueChange={setCapitalCharId} disabled={!capitalUserId}>
-                                        <SelectTrigger><SelectValue placeholder="Персонаж" /></SelectTrigger>
-                                        <SelectContent>{charactersForCapital.map(c => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}</SelectContent>
-                                    </Select>
+                                     <SearchableSelect
+                                        options={userOnlyOptions}
+                                        value={capitalUserId}
+                                        onValueChange={uid => { setCapitalUserId(uid); setCapitalCharId(''); }}
+                                        placeholder="Пользователь"
+                                    />
+                                    <SearchableSelect
+                                        options={charactersForCapital}
+                                        value={capitalCharId}
+                                        onValueChange={setCapitalCharId}
+                                        placeholder="Персонаж"
+                                        disabled={!capitalUserId}
+                                    />
                                 </div>
                             </div>
                             <div>
                                 <Label htmlFor="capital-level">Уровень капитала</Label>
-                                <Select value={capitalLevel} onValueChange={setCapitalLevel}>
-                                    <SelectTrigger id="capital-level"><SelectValue placeholder="Выберите уровень" /></SelectTrigger>
-                                    <SelectContent>
-                                        {STARTING_CAPITAL_LEVELS.map(level => (
-                                            <SelectItem key={level.name} value={level.name}>{level.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <SearchableSelect
+                                    options={startingCapitalOptions}
+                                    value={capitalLevel}
+                                    onValueChange={setCapitalLevel}
+                                    placeholder="Выберите уровень"
+                                />
                             </div>
                             <Button type="submit">Начислить капитал</Button>
                         </form>

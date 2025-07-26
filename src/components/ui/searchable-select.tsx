@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -68,7 +69,7 @@ export const SearchableSelect = ({
           className="w-full justify-between"
           disabled={disabled}
         >
-          {selectedLabel || placeholder}
+          <span className="truncate">{selectedLabel || placeholder}</span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -86,7 +87,7 @@ export const SearchableSelect = ({
                         key={item.value}
                         value={item.label}
                         onSelect={() => {
-                          onValueChange(item.value);
+                          onValueChange(item.value === value ? "" : item.value);
                           setOpen(false);
                         }}
                       >
@@ -103,12 +104,12 @@ export const SearchableSelect = ({
                 );
               }
               return (
-                 <CommandGroup key={`${option.label}-${index}`}>
+                 <CommandGroup key={`${option.value}-${index}`}>
                     <CommandItem
                         key={option.value}
                         value={option.label}
                         onSelect={() => {
-                            onValueChange(option.value);
+                            onValueChange(option.value === value ? "" : option.value);
                             setOpen(false);
                         }}
                         >
