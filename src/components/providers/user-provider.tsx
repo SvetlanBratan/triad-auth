@@ -242,6 +242,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     },
     bankAccount: { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] },
     wealthLevel: 'Бедный',
+    crimeLevel: 5,
   }), []);
 
   const fetchUserById = useCallback(async (userId: string): Promise<User | null> => {
@@ -252,6 +253,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
            userData.characters = userData.characters?.map(char => ({
                 ...initialFormData,
                 ...char,
+                crimeLevel: char.crimeLevel ?? 5, // Ensure crimeLevel has a default value
                 bankAccount: typeof char.bankAccount !== 'object' || char.bankAccount === null 
                     ? { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] } 
                     : { platinum: 0, gold: 0, silver: 0, copper: 0, history: [], ...char.bankAccount },
@@ -512,9 +514,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const oldCharacterState = sourceUserData.characters.find(c => c.id === characterToUpdate.id);
         const oldRelationships = new Map((oldCharacterState?.relationships || []).map(r => [r.targetCharacterId, r]));
 
-        // Ensure bankAccount.history is an array
+        // Ensure bankAccount.history is an array and crimeLevel is defined
         const sanitizedCharacterToUpdate = {
             ...characterToUpdate,
+            crimeLevel: characterToUpdate.crimeLevel ?? 5,
             bankAccount: {
                 ...characterToUpdate.bankAccount,
                 history: Array.isArray(characterToUpdate.bankAccount?.history) ? characterToUpdate.bankAccount.history : [],
