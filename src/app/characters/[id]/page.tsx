@@ -251,8 +251,8 @@ export default function CharacterPage() {
         if (!isVisible && !isOwnerOrAdmin) return null;
         const isEmpty = !value;
         return (
-            <div className="flex justify-between items-start group">
-                <span className="text-muted-foreground">{label}:</span>
+            <div className="flex justify-between items-center group">
+                <span className="text-muted-foreground shrink-0 pr-2">{label}:</span>
                 <div className="flex items-center gap-2 text-right">
                     {isEmpty && isOwnerOrAdmin ? <span className="italic text-muted-foreground/80">Не указано</span> : value}
                     {isOwnerOrAdmin && (
@@ -429,10 +429,10 @@ export default function CharacterPage() {
                             <InfoRow
                                 label="Дата рождения"
                                 value={
-                                    <>
-                                        {character.birthDate || ''}
-                                        {age !== null && <span className="text-muted-foreground ml-1">({age} лет)</span>}
-                                    </>
+                                    <span className="flex items-center justify-end gap-1.5 flex-wrap">
+                                        <span>{character.birthDate || ''}</span>
+                                        {age !== null && <span className="text-muted-foreground">({age} лет)</span>}
+                                    </span>
                                 }
                                 field="birthDate"
                                 section="mainInfo"
@@ -469,73 +469,75 @@ export default function CharacterPage() {
                             )}
                         </CardContent>
                     </Card>
-                     <Card>
-                        <CardHeader className="flex flex-row items-center justify-between">
-                            <CardTitle className="flex items-center gap-2"><Wallet /> Финансы</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-2 text-sm">
-                             <div className="flex justify-between items-center">
-                                <span>Уровень достатка:</span>
-                                <Badge variant="outline">{character.wealthLevel || 'Бедный'}</Badge>
-                            </div>
-                             <div className="flex justify-between items-start pt-2">
-                                <span>Счет в банке:</span>
-                                <div className="text-right font-medium text-primary">
-                                    {formattedCurrency.length > 0 ? (
-                                        formattedCurrency.map(([amount, name]) => (
-                                            <div key={name} className="flex justify-end items-baseline gap-1.5">
-                                                <span>{amount}</span>
-                                                <span className="text-xs text-muted-foreground font-normal">{name}</span>
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <span>0 тыквин</span>
-                                    )}
+                     {isOwnerOrAdmin && (
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between">
+                                <CardTitle className="flex items-center gap-2"><Wallet /> Финансы</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-2 text-sm">
+                                <div className="flex justify-between items-center">
+                                    <span>Уровень достатка:</span>
+                                    <Badge variant="outline">{character.wealthLevel || 'Бедный'}</Badge>
                                 </div>
-                            </div>
-                            {canViewHistory && sortedBankHistory.length > 0 && (
-                                <Accordion type="single" collapsible className="w-full pt-2">
-                                    <AccordionItem value="history">
-                                        <AccordionTrigger className="text-xs text-muted-foreground hover:no-underline">
-                                           <div className="flex items-center gap-2">
-                                                <History className="w-4 h-4" />
-                                                <span>История счёта</span>
-                                           </div>
-                                        </AccordionTrigger>
-                                        <AccordionContent>
-                                            <ScrollArea className="h-48 pr-3">
-                                                <div className="space-y-3">
-                                                {sortedBankHistory.map(tx => {
-                                                    if (!tx.amount) return null;
-                                                    const amounts = Object.entries(tx.amount).filter(([, val]) => val !== 0);
-                                                    const isCredit = Object.values(tx.amount).some(v => v > 0);
-                                                    const isDebit = Object.values(tx.amount).some(v => v < 0);
-                                                    let colorClass = '';
-                                                    if(isCredit && !isDebit) colorClass = 'text-green-600';
-                                                    if(isDebit && !isCredit) colorClass = 'text-destructive';
-
-                                                    return (
-                                                        <div key={tx.id} className="text-xs p-2 bg-muted/50 rounded-md">
-                                                            <p className="font-semibold">{tx.reason}</p>
-                                                            <p className="text-muted-foreground">{new Date(tx.date).toLocaleString()}</p>
-                                                            <div className={cn("font-mono font-semibold", colorClass)}>
-                                                                {amounts.map(([currency, value]) => (
-                                                                    <div key={currency}>
-                                                                        {value > 0 ? '+' : ''}{value.toLocaleString()} {currencyNames[currency] || currency}
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    )
-                                                })}
+                                <div className="flex justify-between items-start pt-2">
+                                    <span>Счет в банке:</span>
+                                    <div className="text-right font-medium text-primary">
+                                        {formattedCurrency.length > 0 ? (
+                                            formattedCurrency.map(([amount, name]) => (
+                                                <div key={name} className="flex justify-end items-baseline gap-1.5">
+                                                    <span>{amount}</span>
+                                                    <span className="text-xs text-muted-foreground font-normal">{name}</span>
                                                 </div>
-                                            </ScrollArea>
-                                        </AccordionContent>
-                                    </AccordionItem>
-                                </Accordion>
-                            )}
-                        </CardContent>
-                    </Card>
+                                            ))
+                                        ) : (
+                                            <span>0 тыквин</span>
+                                        )}
+                                    </div>
+                                </div>
+                                {canViewHistory && sortedBankHistory.length > 0 && (
+                                    <Accordion type="single" collapsible className="w-full pt-2">
+                                        <AccordionItem value="history">
+                                            <AccordionTrigger className="text-xs text-muted-foreground hover:no-underline">
+                                            <div className="flex items-center gap-2">
+                                                    <History className="w-4 h-4" />
+                                                    <span>История счёта</span>
+                                            </div>
+                                            </AccordionTrigger>
+                                            <AccordionContent>
+                                                <ScrollArea className="h-48 pr-3">
+                                                    <div className="space-y-3">
+                                                    {sortedBankHistory.map(tx => {
+                                                        if (!tx.amount) return null;
+                                                        const amounts = Object.entries(tx.amount).filter(([, val]) => val !== 0);
+                                                        const isCredit = Object.values(tx.amount).some(v => v > 0);
+                                                        const isDebit = Object.values(tx.amount).some(v => v < 0);
+                                                        let colorClass = '';
+                                                        if(isCredit && !isDebit) colorClass = 'text-green-600';
+                                                        if(isDebit && !isCredit) colorClass = 'text-destructive';
+
+                                                        return (
+                                                            <div key={tx.id} className="text-xs p-2 bg-muted/50 rounded-md">
+                                                                <p className="font-semibold">{tx.reason}</p>
+                                                                <p className="text-muted-foreground">{new Date(tx.date).toLocaleString()}</p>
+                                                                <div className={cn("font-mono font-semibold", colorClass)}>
+                                                                    {amounts.map(([currency, value]) => (
+                                                                        <div key={currency}>
+                                                                            {value > 0 ? '+' : ''}{value.toLocaleString()} {currencyNames[currency] || currency}
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )
+                                                    })}
+                                                    </div>
+                                                </ScrollArea>
+                                            </AccordionContent>
+                                        </AccordionItem>
+                                    </Accordion>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
                     
                     {!isOwnerOrAdmin && currentUser && <RelationshipActions targetCharacter={character} />}
 
