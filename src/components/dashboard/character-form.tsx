@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 export type EditableSection = 
     | 'mainInfo' | 'appearance' | 'personality' 
     | 'biography' | 'abilities' | 'weaknesses' | 'marriage' 
-    | 'training' | 'lifeGoal' | 'pets' | 'diary';
+    | 'training' | 'lifeGoal' | 'pets' | 'diary' | 'criminalRecords';
 
 export type EditingState = {
     type: 'section',
@@ -74,6 +74,7 @@ const initialFormData: Omit<Character, 'id'> = {
     weaknesses: '',
     lifeGoal: '',
     pets: '',
+    criminalRecords: '',
     familiarCards: [],
     moodlets: [],
     inventory: {
@@ -106,6 +107,7 @@ const SectionTitles: Record<EditableSection, string> = {
     lifeGoal: 'Жизненная цель',
     pets: 'Питомцы',
     diary: 'Личный дневник',
+    criminalRecords: 'Судимости',
 };
 
 const FieldLabels: Partial<Record<keyof Character, string>> = {
@@ -325,6 +327,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                     case 'marriage': return <div><Label htmlFor="marriedTo">В браке с</Label><MultiSelect placeholder="Выберите персонажей..." options={characterOptions} selected={formData.marriedTo ?? []} onChange={(v) => handleMultiSelectChange('marriedTo', v)} /></div>;
                     case 'training': return <div><Label htmlFor="training">Обучение</Label><MultiSelect placeholder="Выберите варианты..." options={TRAINING_OPTIONS} selected={formData.training ?? []} onChange={(v) => handleMultiSelectChange('training', v)} /></div>;
                     case 'lifeGoal': return <div><Label htmlFor="lifeGoal">Жизненная цель</Label><Textarea id="lifeGoal" value={formData.lifeGoal ?? ''} onChange={(e) => handleFieldChange('lifeGoal', e.target.value)} rows={4} placeholder="Какова главная цель или мечта вашего персонажа?"/></div>;
+                    case 'criminalRecords': return <div><Label htmlFor="criminalRecords">Судимости</Label><Textarea id="criminalRecords" value={formData.criminalRecords ?? ''} onChange={(e) => handleFieldChange('criminalRecords', e.target.value)} rows={4} placeholder="Опишите судимости персонажа."/></div>;
                     case 'pets': return <div><Label htmlFor="pets">Питомцы</Label><Textarea id="pets" value={formData.pets ?? ''} onChange={(e) => handleFieldChange('pets', e.target.value)} rows={4} placeholder="Есть ли у вашего персонажа питомцы? Расскажите о них."/></div>;
                     case 'diary': return <div><Label htmlFor="diary">Личный дневник</Label><Textarea id="diary" value={formData.diary ?? ''} onChange={(e) => handleFieldChange('diary', e.target.value)} rows={8} placeholder="Здесь можно вести записи от лица персонажа. Этот раздел виден только вам и администраторам."/></div>;
                     default: return <p>Неизвестная секция для редактирования.</p>;
@@ -430,5 +433,3 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
 };
 
 export default CharacterForm;
-    
-    

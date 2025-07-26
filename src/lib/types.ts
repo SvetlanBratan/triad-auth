@@ -180,6 +180,7 @@ export interface Character {
   bankAccount: BankAccount;
   wealthLevel: WealthLevel;
   crimeLevel?: CrimeLevel;
+  criminalRecords?: string;
   // Deprecated fields, kept for migration
   skillLevels?: CharacterLevel[];
   fameLevels?: CharacterLevel[];

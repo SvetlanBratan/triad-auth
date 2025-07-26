@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FAMILIARS_BY_ID, MOODLETS_DATA, TRAINING_OPTIONS, CRIME_LEVELS } from '@/lib/data';
 import FamiliarCardDisplay from '@/components/dashboard/familiar-card';
-import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users, HeartHandshake, Wallet, Coins, Award, Zap, ShieldOff, History, Info, PlusCircle, BookUser } from 'lucide-react';
+import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users, HeartHandshake, Wallet, Coins, Award, Zap, ShieldOff, History, Info, PlusCircle, BookUser, Gavel } from 'lucide-react';
 import Link from 'next/link';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -701,6 +701,13 @@ export default function CharacterPage() {
                                 isEmpty={!character.lifeGoal}
                                 content={<p className="whitespace-pre-wrap text-sm pt-2">{character.lifeGoal}</p>}
                             />
+                             <SubSection 
+                                title="Судимости"
+                                section="criminalRecords"
+                                isVisible={!!character.criminalRecords || isOwnerOrAdmin}
+                                isEmpty={!character.criminalRecords}
+                                content={<p className="whitespace-pre-wrap text-sm pt-2">{character.criminalRecords}</p>}
+                            />
                             <SubSection 
                                 title="Питомцы"
                                 section="pets"
@@ -736,5 +743,3 @@ export default function CharacterPage() {
         </div>
     );
 }
-
-    

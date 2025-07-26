@@ -216,6 +216,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     weaknesses: '',
     lifeGoal: '',
     pets: '',
+    criminalRecords: '',
     familiarCards: [],
     moodlets: [],
     inventory: {
