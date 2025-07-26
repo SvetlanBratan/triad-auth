@@ -7,19 +7,12 @@ import { Check, X, ChevronsUpDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList
-} from "@/components/ui/command"
-import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Badge } from "./badge"
+import { ScrollArea } from "./scroll-area"
 
 export type OptionType = {
   label: string;
@@ -93,40 +86,34 @@ function MultiSelect({ options, selected, onChange, className, placeholder = "В
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
-        <Command>
-          <CommandInput placeholder="Поиск..." />
-          <CommandEmpty>Ничего не найдено.</CommandEmpty>
-          <CommandList>
-            <CommandGroup>
-              {options.map((option) => (
-                <CommandItem
-                  key={option.value}
-                  onSelect={() => {
-                    onChange(
-                      selected.includes(option.value)
-                        ? selected.filter((item) => item !== option.value)
-                        : [...selected, option.value]
-                    )
-                    setOpen(true)
-                  }}
+        <ScrollArea className="max-h-72">
+            <div className="p-1">
+            {options.map((option) => (
+                <div
+                    key={option.value}
+                    className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+                    onClick={() => {
+                        onChange(
+                        selected.includes(option.value)
+                            ? selected.filter((item) => item !== option.value)
+                            : [...selected, option.value]
+                        )
+                    }}
                 >
-                  <Check
+                <Check
                     className={cn(
-                      "mr-2 h-4 w-4",
-                      selected.includes(option.value) ? "opacity-100" : "opacity-0"
+                    "mr-2 h-4 w-4",
+                    selected.includes(option.value) ? "opacity-100" : "opacity-0"
                     )}
-                  />
-                  {option.label}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
+                />
+                {option.label}
+                </div>
+            ))}
+            </div>
+        </ScrollArea>
       </PopoverContent>
     </Popover>
   )
 }
 
 export { MultiSelect };
-
-    
