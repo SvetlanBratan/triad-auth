@@ -34,11 +34,6 @@ const nextConfig: NextConfig = {
   experimental: {
     // This is to allow the Next.js dev server to be proxied in the Studio editor.
   },
-  // This is to allow the Next.js dev server to be proxied in the Studio editor.
-  allowedDevOrigins: [
-    '9000-firebase-studio-1753179014285.cluster-c23mj7ubf5fxwq6nrbev4ugaxa.cloudworkstations.dev',
-    '6000-firebase-studio-1753179014285.cluster-c23mj7ubf5fxwq6nrbev4ugaxa.cloudworkstations.dev'
-  ],
 };
 
 export default nextConfig;
