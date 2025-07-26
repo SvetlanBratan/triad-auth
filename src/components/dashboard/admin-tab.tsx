@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
@@ -49,7 +50,8 @@ export default function AdminTab() {
     updateUserRole, 
     grantAchievementToUser, 
     fetchUsersForAdmin, 
-    clearPointHistoryForUser, 
+    clearPointHistoryForUser,
+    clearAllPointHistories,
     addMoodletToCharacter, 
     removeMoodletFromCharacter, 
     removeFamiliarFromCharacter,
@@ -398,6 +400,13 @@ export default function AdminTab() {
     
     setClearHistoryUserId('');
   };
+  
+  const handleClearAllHistories = async () => {
+    await clearAllPointHistories();
+    await refetchUsers();
+    toast({ title: 'Все истории очищены!', description: `Журналы баллов всех пользователей были успешно очищены.` });
+  };
+
 
   const handleAddMoodlet = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1016,7 +1025,7 @@ export default function AdminTab() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div>
-                        <Label htmlFor="user-select-clear-history">Очистка истории баллов</Label>
+                        <h4 className="font-semibold text-sm mb-2">Очистка истории баллов (1 игрок)</h4>
                         <div className="flex gap-2 items-center">
                             <Select value={clearHistoryUserId} onValueChange={setClearHistoryUserId}>
                                 <SelectTrigger id="user-select-clear-history" className="border-destructive/50 text-destructive focus:ring-destructive">
@@ -1040,7 +1049,7 @@ export default function AdminTab() {
                                     <AlertDialogDescription>
                                         Это действие необратимо. Вся история начисления и списания баллов для пользователя 
                                         <span className="font-bold"> {users.find(u => u.id === clearHistoryUserId)?.name} </span>
-                                        будет навсегда удалена.
+                                        будет навсегда удалена. Баланс баллов не изменится.
                                     </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
@@ -1052,6 +1061,30 @@ export default function AdminTab() {
                                 </AlertDialogContent>
                             </AlertDialog>
                         </div>
+                    </div>
+                     <div>
+                        <h4 className="font-semibold text-sm mb-2">Очистка истории баллов (ВСЕ)</h4>
+                         <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" className="w-full">Очистить историю у всех</Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                <AlertDialogTitle>Вы абсолютно уверены?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Это действие необратимо. Вся история начисления и списания баллов для <strong>ВСЕХ</strong> пользователей будет навсегда удалена.
+                                    <br/><br/>
+                                    <strong>Баланс баллов игроков не изменится.</strong> Однако, функция восстановления фамильяров по истории перестанет работать.
+                                </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                <AlertDialogCancel>Отмена</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleClearAllHistories} className="bg-destructive hover:bg-destructive/90">
+                                    Да, я понимаю, очистить всё
+                                </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
                     </div>
                 </CardContent>
             </Card>
