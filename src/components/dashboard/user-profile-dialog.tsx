@@ -201,13 +201,13 @@ export default function UserProfileDialog({ user }: { user: User }) {
   }, [user.characters]);
 
   return (
-    <>
+    <div className="flex flex-col h-full">
       <DialogHeader>
           <DialogTitle className="text-2xl pr-8">Профиль игрока: {user.name}</DialogTitle>
       </DialogHeader>
 
-      <ScrollArea className="max-h-[80vh] w-full">
-        <div className="pr-6 mt-4 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+      <ScrollArea className="flex-1 mt-4 pr-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
             {/* Left Column */}
             <div className={cn("space-y-6 min-w-0", !isAdminViewer && "md:col-span-2")}>
                 <Card>
@@ -217,7 +217,7 @@ export default function UserProfileDialog({ user }: { user: User }) {
                         <AvatarImage src={user.avatar} alt={user.name} />
                         <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
                         </Avatar>
-                        <div className="flex-1 overflow-hidden">
+                        <div className="flex-1 overflow-hidden min-w-0">
                             <CardTitle className="text-2xl font-headline truncate">{user.name}</CardTitle>
                             <CardDescription className="truncate">{user.email}</CardDescription>
                         </div>
@@ -327,6 +327,6 @@ export default function UserProfileDialog({ user }: { user: User }) {
             )}
         </div>
       </ScrollArea>
-    </>
+    </div>
   );
 }
