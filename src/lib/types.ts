@@ -16,6 +16,7 @@ export type FamiliarTradeRequestStatus = 'в ожидании' | 'принято
 export interface GameSettings {
   gameDateString: string;
   gameDate: Date;
+  lastWeeklyBonusAwardedAt?: string; // ISO string date
 }
 
 export interface Achievement {

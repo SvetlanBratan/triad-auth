@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
-import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info } from 'lucide-react';
+import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info, AlertTriangle, Bell, CheckCircle } from 'lucide-react';
 import type { UserStatus, UserRole, User, FamiliarCard, BankAccount, WealthLevel, FamiliarRank } from '@/lib/types';
 import { FAME_LEVELS_POINTS, EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, FAMILIARS_BY_ID, WEALTH_LEVELS, ALL_FAMILIARS, STARTING_CAPITAL_LEVELS } from '@/lib/data';
 import {
@@ -27,6 +27,9 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { SearchableSelect } from '../ui/searchable-select';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { differenceInDays } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 const rankNames: Record<FamiliarRank, string> = {
     'мифический': 'Мифический',
@@ -52,6 +55,8 @@ export default function AdminTab() {
     removeFamiliarFromCharacter,
     updateGameDate,
     gameDateString: initialGameDate,
+    lastWeeklyBonusAwardedAt,
+    processWeeklyBonus,
     recoverFamiliarsFromHistory,
     addBankPointsToCharacter,
     processMonthlySalary,
@@ -120,6 +125,9 @@ export default function AdminTab() {
   const [capitalUserId, setCapitalUserId] = useState('');
   const [capitalCharId, setCapitalCharId] = useState('');
   const [capitalLevel, setCapitalLevel] = useState('');
+
+  // Weekly bonus state
+  const [isProcessingWeekly, setIsProcessingWeekly] = useState(false);
 
 
   const { toast } = useToast();
@@ -290,17 +298,31 @@ export default function AdminTab() {
     setRoleSelectedUserId('');
     setSelectedRole('');
   };
+  
+  const weeklyBonusStatus = useMemo(() => {
+    if (!lastWeeklyBonusAwardedAt) return { canAward: false, daysSinceLast: 0, isOverdue: false };
+    const daysSinceLast = differenceInDays(new Date(), new Date(lastWeeklyBonusAwardedAt));
+    const canAward = daysSinceLast >= 7;
+    const isOverdue = daysSinceLast > 7;
+    return { canAward, daysSinceLast, isOverdue };
+  }, [lastWeeklyBonusAwardedAt]);
 
   const handleWeeklyCalculations = async () => {
-    const activeUsers = users.filter(u => u.status === 'активный');
-    for(const user of activeUsers) {
-        await addPointsToUser(user.id, 800, 'Еженедельный бонус за активность');
+    setIsProcessingWeekly(true);
+    try {
+        const { awardedCount, isOverdue } = await processWeeklyBonus();
+        await refetchUsers();
+        let description = `Бонусы за активность начислены ${awardedCount} активным пользователям.`;
+        if (isOverdue) {
+            description += ' Была также начислена компенсация за просрочку.';
+        }
+        toast({ title: "Еженедельные расчеты завершены", description });
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Неизвестная ошибка";
+        toast({ variant: 'destructive', title: 'Ошибка', description: errorMessage });
+    } finally {
+        setIsProcessingWeekly(false);
     }
-    await refetchUsers();
-    toast({
-        title: "Еженедельные расчеты завершены",
-        description: `Бонусы за активность начислены ${activeUsers.length} активным пользователям.`,
-    });
   };
 
   const handleInactivityPenalty = async () => {
@@ -749,7 +771,38 @@ export default function AdminTab() {
                     <div>
                         <h3 className="font-semibold mb-2 flex items-center gap-2"><Users /> Еженедельный бонус за активность</h3>
                         <p className="text-sm text-muted-foreground mb-3">Начисляет 800 баллов всем 'активным' игрокам.</p>
-                        <Button onClick={handleWeeklyCalculations} variant="outline">Запустить еженедельный расчет</Button>
+                        <div className="p-4 rounded-md border space-y-3">
+                            {weeklyBonusStatus.canAward ? (
+                                weeklyBonusStatus.isOverdue ? (
+                                <Alert variant="destructive">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    <AlertTitle>Просрочено!</AlertTitle>
+                                    <AlertDescription>
+                                        Начисление просрочено на {weeklyBonusStatus.daysSinceLast - 7} д. Игроки получат компенсацию 1000 баллов.
+                                    </AlertDescription>
+                                </Alert>
+                                ) : (
+                                <Alert className="border-green-500/50 text-green-700">
+                                     <Bell className="h-4 w-4" />
+                                    <AlertTitle>Время начислять!</AlertTitle>
+                                    <AlertDescription>
+                                        Прошло 7 дней. Пора начислить еженедельные бонусы.
+                                    </AlertDescription>
+                                </Alert>
+                                )
+                            ) : (
+                                 <Alert variant="default">
+                                    <CheckCircle className="h-4 w-4" />
+                                    <AlertTitle>Все в порядке</AlertTitle>
+                                    <AlertDescription>
+                                       Следующее начисление через {7 - weeklyBonusStatus.daysSinceLast} д.
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+                            <Button onClick={handleWeeklyCalculations} disabled={!weeklyBonusStatus.canAward || isProcessingWeekly} className="w-full">
+                                {isProcessingWeekly ? 'Обработка...' : 'Запустить еженедельный расчет'}
+                            </Button>
+                        </div>
                     </div>
                     <Separator />
                     <div>
@@ -1380,3 +1433,4 @@ export default function AdminTab() {
     
 
     
+

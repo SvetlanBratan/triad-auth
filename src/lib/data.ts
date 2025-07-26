@@ -7,6 +7,7 @@ import type { OptionType } from '@/components/ui/multi-select';
 export const DEFAULT_GAME_SETTINGS: GameSettings = {
     gameDateString: "21 марта 2709 год",
     gameDate: new Date(2709, 2, 21), // Month is 0-indexed (2 = March)
+    lastWeeklyBonusAwardedAt: new Date(0).toISOString(), // Initialize with a very old date
 }
 
 export const WEALTH_LEVELS: { name: WealthLevel; salary: Partial<BankAccount>; description: string }[] = [
