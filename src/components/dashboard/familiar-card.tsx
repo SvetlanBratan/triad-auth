@@ -37,13 +37,13 @@ const FamiliarCardDisplay = ({ cardId, isRevealed = false }: { cardId: string, i
                     />
                 </div>
             </DialogTrigger>
-            <DialogContent className="p-0 bg-transparent border-none max-w-[400px]">
+            <DialogContent className="p-0 bg-transparent border-none max-w-[300px] w-full">
                  <DialogTitle className="sr-only">{card.name}</DialogTitle>
                 <Image 
                   src={card.imageUrl} 
                   alt={card.name} 
-                  width={400}
-                  height={600}
+                  width={300}
+                  height={420}
                   className="rounded-lg w-full h-auto"
                    data-ai-hint={card['data-ai-hint']}
                 />
