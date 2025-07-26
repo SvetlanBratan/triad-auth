@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React from 'react';
 import type { Character, User, Accomplishment, WealthLevel } from '@/lib/types';
 import { SKILL_LEVELS, FAME_LEVELS, TRAINING_OPTIONS, WEALTH_LEVELS } from '@/lib/data';
 import { Button } from '@/components/ui/button';
@@ -82,9 +82,9 @@ const SectionTitles: Record<EditableSection, string> = {
 
 const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingSection }: CharacterFormProps) => {
     const isCreating = !character;
-    const [formData, setFormData] = useState<Character>(character || { ...initialFormData, id: `c-${Date.now()}`});
+    const [formData, setFormData] = React.useState<Character>(character || { ...initialFormData, id: `c-${Date.now()}`});
 
-     useEffect(() => {
+     React.useEffect(() => {
         if (character) {
              const initializedCharacter = {
                 ...initialFormData,
@@ -104,7 +104,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingSect
         }
     }, [character]);
 
-    const characterOptions = useMemo(() => {
+    const characterOptions = React.useMemo(() => {
         if (!allUsers) return [];
         return allUsers.flatMap(user =>
             user.characters
@@ -227,7 +227,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingSect
     }
     
     return (
-         <form onSubmit={handleSubmit} className="flex flex-col h-full max-h-[85vh]">
+         <form onSubmit={handleSubmit} className="flex flex-col h-full">
              <DialogHeader>
                 <DialogTitle>{getDialogTitle()}</DialogTitle>
                 <DialogDescription>
@@ -237,10 +237,12 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingSect
                     }
                 </DialogDescription>
              </DialogHeader>
-             <div className="relative flex-1 py-4">
-                 <ScrollArea className="absolute inset-0 pr-6">
-                    {renderSection()}
-                 </ScrollArea>
+             <div className="flex-1 min-h-0 py-4">
+                 <div className="h-full relative">
+                    <ScrollArea className="absolute inset-0 pr-6">
+                        {renderSection()}
+                    </ScrollArea>
+                 </div>
              </div>
             <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t">
               <DialogClose asChild>
