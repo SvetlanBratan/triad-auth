@@ -697,7 +697,7 @@ export default function CharacterPage() {
             </div>
 
             <Dialog open={!!editingState} onOpenChange={(isOpen) => !isOpen && closeDialog()}>
-                <DialogContent>
+                <DialogContent className="w-auto max-w-sm mx-auto">
                     <CharacterForm
                         character={character}
                         allUsers={allUsers}

@@ -110,54 +110,55 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
                     </Select>
                 </div>
                 {sourceCharacterId && (
-                     <TooltipProvider delayDuration={100}>
-                        <div className="grid grid-cols-2 gap-2">
-                             <Tooltip>
-                                <TooltipTrigger asChild>
-                                    {/* Wrapping button in a span is required for Tooltip when button is disabled */}
-                                    <span>
-                                        <Button
-                                            variant="outline"
-                                            className="w-full"
-                                            onClick={() => handleSimpleAction('подарок')}
-                                            disabled={!canSendGift || isLoading}
-                                        >
-                                            <Gift className="w-4 h-4" />
-                                        </Button>
-                                    </span>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>Отправить подарок (+25)</p>
-                                    {!canSendGift && <p className="text-xs text-muted-foreground">{giftTimeLeft}</p>}
-                                </TooltipContent>
-                            </Tooltip>
-                             <Tooltip>
-                                <TooltipTrigger asChild>
-                                     <span>
-                                        <Button
-                                            variant="outline"
-                                            className="w-full"
-                                            onClick={() => handleSimpleAction('письмо')}
-                                            disabled={!canSendLetter || isLoading}
-                                        >
-                                            <Mail className="w-4 h-4" />
-                                        </Button>
-                                    </span>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>Отправить письмо (+10)</p>
-                                    {!canSendLetter && <p className="text-xs text-muted-foreground">{letterTimeLeft}</p>}
-                                </TooltipContent>
-                            </Tooltip>
-                        </div>
-                    </TooltipProvider>
+                    <>
+                        <TooltipProvider delayDuration={100}>
+                            <div className="grid grid-cols-2 gap-2">
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <span>
+                                            <Button
+                                                variant="outline"
+                                                className="w-full"
+                                                onClick={() => handleSimpleAction('подарок')}
+                                                disabled={!canSendGift || isLoading}
+                                            >
+                                                <Gift className="w-4 h-4" />
+                                            </Button>
+                                        </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Отправить подарок (+25)</p>
+                                        {!canSendGift && <p className="text-xs text-muted-foreground">{giftTimeLeft}</p>}
+                                    </TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <span>
+                                            <Button
+                                                variant="outline"
+                                                className="w-full"
+                                                onClick={() => handleSimpleAction('письмо')}
+                                                disabled={!canSendLetter || isLoading}
+                                            >
+                                                <Mail className="w-4 h-4" />
+                                            </Button>
+                                        </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Отправить письмо (+10)</p>
+                                        {!canSendLetter && <p className="text-xs text-muted-foreground">{letterTimeLeft}</p>}
+                                    </TooltipContent>
+                                </Tooltip>
+                            </div>
+                        </TooltipProvider>
+                        {!relationship && (
+                            <div className="text-sm text-muted-foreground p-2 bg-muted/50 rounded-md flex items-start gap-2">
+                                <Info className="w-4 h-4 mt-0.5 shrink-0" />
+                                <span>Чтобы совершать действия, попросите администратора установить начальные отношения между вашими персонажами.</span>
+                            </div>
+                        )}
+                    </>
                 )}
-                 {!relationship && sourceCharacterId && (
-                    <div className="text-sm text-muted-foreground p-2 bg-muted/50 rounded-md flex items-start gap-2">
-                        <Info className="w-4 h-4 mt-0.5 shrink-0" />
-                        <span>Чтобы совершать действия, попросите администратора установить начальные отношения между вашими персонажами.</span>
-                    </div>
-                 )}
             </CardContent>
         </Card>
     );
