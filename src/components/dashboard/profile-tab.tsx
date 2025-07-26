@@ -164,7 +164,7 @@ const CharacterDisplay = ({ character, onDelete }: { character: Character, onDel
                                         return (
                                             <div key={rank}>
                                             <h4 className="font-semibold capitalize text-muted-foreground mb-2">{rankNames[rank]}</h4>
-                                            <div className="grid grid-cols-3 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                                 {groupedFamiliars[rank].map(card => (
                                                     <FamiliarCardDisplay key={card.uniqueKey} cardId={card.id} />
                                                 ))}
@@ -348,7 +348,7 @@ export default function ProfileTab() {
                 <TooltipProvider>
                     <Popover open={!canAddCharacter ? undefined : false}>
                         <PopoverTrigger asChild>
-                            <Button variant="ghost" size="icon" onClick={handleAddClick} disabled={!canAddCharacter}>
+                            <Button variant="ghost" size="icon" onClick={handleAddClick}>
                                 <PlusCircle className="h-5 w-5" />
                                 <span className="sr-only">Добавить персонажа</span>
                             </Button>
