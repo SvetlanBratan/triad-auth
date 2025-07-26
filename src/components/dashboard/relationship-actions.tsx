@@ -64,6 +64,17 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
 
     const handleSimpleAction = async (actionType: 'подарок' | 'письмо') => {
         if (!currentUser || !sourceCharacterId) return;
+
+        // Check if a relationship exists. If not, this action cannot be performed yet.
+        if (!relationship) {
+            toast({
+                variant: "destructive",
+                title: "Отношения не установлены",
+                description: "Сначала администратор должен установить базовые отношения между персонажами."
+            });
+            return;
+        }
+
         setIsLoading(true);
         try {
             await performRelationshipAction(currentUser.id, sourceCharacterId, targetCharacter.id, actionType, `Отправлен ${actionType === 'подарок' ? 'подарок' : 'письмо'}`);
@@ -75,11 +86,6 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
             setIsLoading(false);
         }
     };
-    
-    if (!currentUser?.characters.some(c => c.relationships?.some(r => r.targetCharacterId === targetCharacter.id))) {
-        return null;
-    }
-
 
     return (
         <Card>
@@ -95,18 +101,16 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
                             <SelectValue placeholder="Выберите персонажа..." />
                         </SelectTrigger>
                         <SelectContent>
-                            {currentUser.characters
-                                .filter(c => c.relationships?.some(r => r.targetCharacterId === targetCharacter.id))
-                                .map(char => (
-                                    <SelectItem key={char.id} value={char.id}>
-                                        {char.name}
-                                    </SelectItem>
-                                ))}
+                            {currentUser?.characters.map(char => (
+                                <SelectItem key={char.id} value={char.id}>
+                                    {char.name}
+                                </SelectItem>
+                            ))}
                         </SelectContent>
                     </Select>
                 </div>
-                {sourceCharacterId && relationship && (
-                    <TooltipProvider delayDuration={100}>
+                {sourceCharacterId && (
+                     <TooltipProvider delayDuration={100}>
                         <div className="grid grid-cols-2 gap-2">
                              <Tooltip>
                                 <TooltipTrigger asChild>
@@ -148,6 +152,12 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
                         </div>
                     </TooltipProvider>
                 )}
+                 {!relationship && sourceCharacterId && (
+                    <div className="text-sm text-muted-foreground p-2 bg-muted/50 rounded-md flex items-start gap-2">
+                        <Info className="w-4 h-4 mt-0.5 shrink-0" />
+                        <span>Чтобы совершать действия, попросите администратора установить начальные отношения между вашими персонажами.</span>
+                    </div>
+                 )}
             </CardContent>
         </Card>
     );
