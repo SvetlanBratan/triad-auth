@@ -97,15 +97,27 @@ export default function FamiliarExchange() {
     return FAMILIARS_BY_ID[initiatorFamiliarId]?.rank;
   }, [initiatorFamiliarId]);
 
+  const getTargetRanks = (rank: FamiliarRank | null): FamiliarRank[] => {
+    if (!rank) return [];
+    if (rank === 'мифический') return ['ивентовый', 'мифический'];
+    if (rank === 'ивентовый') return ['мифический', 'ивентовый'];
+    return [rank];
+  };
+
+  const targetRanks = useMemo(() => getTargetRanks(selectedFamiliarRank), [selectedFamiliarRank]);
+
   const otherCharactersOptions = useMemo(() => {
-    if (!selectedFamiliarRank) return [];
+    if (targetRanks.length === 0) return [];
     const ownerMap = new Map<string, string>();
     allUsers.forEach(u => u.characters.forEach(c => ownerMap.set(c.id, u.name)));
 
     return allUsers.flatMap(u => u.characters.filter(c => 
-        c.id !== initiatorCharId && (c.inventory?.familiarCards || []).some(f => FAMILIARS_BY_ID[f.id]?.rank === selectedFamiliarRank)
+        c.id !== initiatorCharId && (c.inventory?.familiarCards || []).some(f => {
+            const card = FAMILIARS_BY_ID[f.id];
+            return card && targetRanks.includes(card.rank);
+        })
     )).map(c => ({ value: c.id, label: `${c.name} (${ownerMap.get(c.id)})` }));
-  }, [allUsers, initiatorCharId, selectedFamiliarRank]);
+  }, [allUsers, initiatorCharId, targetRanks]);
   
   const targetSelectedChar = useMemo(() => {
       if(!targetCharId) return null;
@@ -117,12 +129,12 @@ export default function FamiliarExchange() {
   }, [allUsers, targetCharId]);
 
   const targetFamiliarsOptions = useMemo(() => {
-      if (!targetSelectedChar || !selectedFamiliarRank) return [];
+      if (!targetSelectedChar || targetRanks.length === 0) return [];
       return (targetSelectedChar.inventory?.familiarCards || [])
           .map(owned => FAMILIARS_BY_ID[owned.id])
-          .filter((card): card is FamiliarCard => !!card && card.rank === selectedFamiliarRank)
+          .filter((card): card is FamiliarCard => !!card && targetRanks.includes(card.rank))
           .map(fam => ({ value: fam.id, label: `${fam.name} (${rankNames[fam.rank]})` }));
-  }, [targetSelectedChar, selectedFamiliarRank]);
+  }, [targetSelectedChar, targetRanks]);
 
 
   const handleSubmit = async () => {
@@ -199,7 +211,7 @@ export default function FamiliarExchange() {
         <Card className="lg:col-span-1">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Repeat /> Обмен Фамильярами</CardTitle>
-                <CardDescription>Создайте запрос на обмен фамильярами одного ранга с другим игроком.</CardDescription>
+                <CardDescription>Создайте запрос на обмен фамильярами. Обмен возможен между картами одного ранга, а также между ивентовыми и мифическими картами.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 {/* Step 1: My side */}

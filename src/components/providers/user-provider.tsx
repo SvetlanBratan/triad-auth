@@ -1471,8 +1471,13 @@ const processMonthlySalary = useCallback(async () => {
     const targetFamiliar = FAMILIARS_BY_ID[targetFamiliarId];
     if (!targetFamiliar) throw new Error("Целевой фамильяр не найден.");
 
-    if (initiatorFamiliar.rank !== targetFamiliar.rank) {
-        throw new Error("Фамильяры должны быть одного ранга.");
+    const ranksAreDifferent = initiatorFamiliar.rank !== targetFamiliar.rank;
+    const isMythicEventTrade = 
+        (initiatorFamiliar.rank === 'мифический' && targetFamiliar.rank === 'ивентовый') ||
+        (initiatorFamiliar.rank === 'ивентовый' && targetFamiliar.rank === 'мифический');
+
+    if (ranksAreDifferent && !isMythicEventTrade) {
+        throw new Error("Обмен возможен только между фамильярами одного ранга, или между мифическим и ивентовым.");
     }
     
     const newRequest: Omit<FamiliarTradeRequest, 'id'> = {
