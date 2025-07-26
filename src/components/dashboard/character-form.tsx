@@ -237,13 +237,11 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingSect
                     }
                 </DialogDescription>
              </DialogHeader>
-             <div className="flex-1 min-h-0 py-4">
-                 <div className="h-full relative">
-                    <ScrollArea className="absolute inset-0 pr-6">
-                        {renderSection()}
-                    </ScrollArea>
-                 </div>
-             </div>
+            <div className="flex-1 min-h-0 py-4">
+                <ScrollArea className="h-full pr-6">
+                    {renderSection()}
+                </ScrollArea>
+            </div>
             <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t">
               <DialogClose asChild>
                 <Button type="button" variant="ghost">Отмена</Button>
