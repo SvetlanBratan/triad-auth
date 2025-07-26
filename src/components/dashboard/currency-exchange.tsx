@@ -253,7 +253,7 @@ export default function CurrencyExchange() {
                 <Button variant="ghost" size="icon" onClick={fetchRequests}><Repeat className="h-4 w-4" /></Button>
              </div>
              {otherOpenRequests.length > 0 ? (
-                <div className="grid grid-cols-1 @[30rem]:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                     {otherOpenRequests.map(req => {
                         const acceptingCharacters = currentUser?.characters.filter(c => (c.bankAccount?.[req.toCurrency] ?? 0) >= req.toAmount);
                         const canAccept = acceptingCharacters && acceptingCharacters.length > 0;
@@ -265,11 +265,11 @@ export default function CurrencyExchange() {
                                 <CardTitle className="text-base leading-tight">Обмен от {req.creatorCharacterName}</CardTitle>
                             </CardHeader>
                              <CardContent className="space-y-3">
-                               <div className="flex justify-between items-center p-2 rounded-md bg-destructive/10 text-destructive-foreground/80">
+                               <div className="flex justify-between items-center p-2 rounded-md bg-red-500/10 text-red-700">
                                  <span className="text-sm">Отдают:</span>
                                  <span className="font-bold">{req.fromAmount.toLocaleString()} {CURRENCY_OPTIONS.find(c => c.value === req.fromCurrency)?.label}</span>
                                </div>
-                                <div className="flex justify-between items-center p-2 rounded-md bg-green-600/10 text-green-700">
+                                <div className="flex justify-between items-center p-2 rounded-md bg-green-500/10 text-green-700">
                                   <span className="text-sm">Хотят получить:</span>
                                   <span className="font-bold">{req.toAmount.toLocaleString()} {CURRENCY_OPTIONS.find(c => c.value === req.toCurrency)?.label}</span>
                                </div>
