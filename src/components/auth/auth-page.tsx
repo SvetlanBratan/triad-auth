@@ -51,27 +51,34 @@ export default function AuthPage() {
         .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
         .join(' ');
 
-    const fakeEmail = `${data.nickname.toLowerCase().replace(/\s/g, '')}@pumpkin.com`;
+    const fakeEmailForRegistration = `${data.nickname.toLowerCase().replace(/\s/g, '')}@pumpkin.com`;
 
     try {
       if (isLogin) {
-        // Login
-        await signInWithEmailAndPassword(auth, fakeEmail, data.password);
+        // Login: Find user by nickname first to get their actual email
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('name', '==', formattedNickname));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+            throw new FirebaseError('auth/invalid-credential', 'Неверный никнейм или пароль.');
+        }
+
+        const userData = querySnapshot.docs[0].data() as User;
+        const actualEmail = userData.email;
+
+        await signInWithEmailAndPassword(auth, actualEmail, data.password);
         toast({ title: 'Вход выполнен', description: `Добро пожаловать!` });
+
       } else {
         // Register
         try {
-            const userCredential = await createUserWithEmailAndPassword(auth, fakeEmail, data.password);
+            const userCredential = await createUserWithEmailAndPassword(auth, fakeEmailForRegistration, data.password);
             
-            // This profile update is crucial for associating the nickname with the Firebase user
-            // and triggering the onAuthStateChanged listener which will then create the user doc.
             await updateProfile(userCredential.user, { displayName: formattedNickname });
 
             toast({ title: 'Регистрация успешна', description: 'Ваш аккаунт создан. Сейчас вы будете авторизованы.' });
             
-            // The onAuthStateChanged listener in UserProvider will handle creating the user document.
-            // This component will unmount and the main app will load.
-
         } catch (error) {
             if (error instanceof FirebaseError && error.code === 'auth/email-already-in-use') {
                 toast({ variant: 'destructive', title: 'Пользователь уже существует', description: 'Этот никнейм уже используется. Попробуйте войти в систему.' });
