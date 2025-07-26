@@ -368,8 +368,24 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                                     <Trash2 className="h-4 w-4 text-destructive" />
                                 </Button>
                             )}
-                            <div><Label>Известность</Label><SearchableSelect options={fameLevelOptions} value={acc.fameLevel} onValueChange={(v) => handleItemChange('fameLevel', v)} placeholder="Уровень..." /></div>
-                            <div><Label>Навык</Label><SearchableSelect options={skillLevelOptions} value={acc.skillLevel} onValueChange={(v) => handleItemChange('skillLevel', v)} placeholder="Уровень..." /></div>
+                             <div>
+                                <Label>Известность</Label>
+                                <Select value={acc.fameLevel} onValueChange={(v) => handleItemChange('fameLevel', v)}>
+                                    <SelectTrigger><SelectValue placeholder="Уровень..." /></SelectTrigger>
+                                    <SelectContent>
+                                        {fameLevelOptions.map(opt => (<SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div>
+                                <Label>Навык</Label>
+                                <Select value={acc.skillLevel} onValueChange={(v) => handleItemChange('skillLevel', v)}>
+                                    <SelectTrigger><SelectValue placeholder="Уровень..." /></SelectTrigger>
+                                    <SelectContent>
+                                        {skillLevelOptions.map(opt => (<SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
                             <div><Label>Пояснение</Label><Input value={acc.description} onChange={(e) => handleItemChange('description', e.target.value)} placeholder="Например, в области зельеварения"/></div>
                         </div>
                     </div>
