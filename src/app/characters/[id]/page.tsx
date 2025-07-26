@@ -14,7 +14,7 @@ import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield,
 import Link from 'next/link';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import CharacterForm from '@/components/dashboard/character-form';
+import CharacterForm, { type EditableSection } from '@/components/dashboard/character-form';
 import { useToast } from '@/hooks/use-toast';
 import { cn, formatTimeLeft, calculateAge, calculateRelationshipLevel, formatCurrency } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -123,7 +123,8 @@ export default function CharacterPage() {
     const [owner, setOwner] = useState<User | null>(null);
     const [allUsers, setAllUsers] = useState<User[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [isFormOpen, setIsFormOpen] = useState(false);
+    const [editingSection, setEditingSection] = useState<EditableSection | null>(null);
+
     const { toast } = useToast();
 
     useEffect(() => {
@@ -160,7 +161,7 @@ export default function CharacterPage() {
         updateCharacterInUser(owner.id, characterData);
         setCharacter(characterData); // Optimistic update
         toast({ title: "Анкета обновлена", description: "Данные персонажа успешно сохранены." });
-        setIsFormOpen(false);
+        setEditingSection(null);
     };
 
     const spouses = useMemo(() => {
@@ -214,6 +215,13 @@ export default function CharacterPage() {
     const isViewingOwnProfile = currentUser?.id === owner.id;
     const canViewHistory = isViewingOwnProfile || currentUser?.role === 'admin';
     const accomplishments = character.accomplishments || [];
+    
+    const SectionHeader = ({ title, icon, section }: { title: string; icon: React.ReactNode; section: EditableSection }) => (
+        <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="flex items-center gap-2">{icon} {title}</CardTitle>
+            {canEdit && <Button variant="ghost" size="icon" onClick={() => setEditingSection(section)}><Edit className="w-4 h-4" /></Button>}
+        </CardHeader>
+    );
 
 
     return (
@@ -251,15 +259,12 @@ export default function CharacterPage() {
                     <p className="text-muted-foreground">{character.activity}</p>
                     <p className="text-sm text-muted-foreground">Владелец: {owner.name}</p>
                 </div>
-                {canEdit && <Button onClick={() => setIsFormOpen(true)} className="mt-2 sm:mt-0 self-start sm:self-center"><Edit className="mr-2"/>Редактировать анкету</Button>}
             </header>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">
                      <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><PersonStanding /> Внешность</CardTitle>
-                        </CardHeader>
+                        <SectionHeader title="Внешность" icon={<PersonStanding />} section="appearance" />
                         <CardContent>
                             <ScrollArea className="h-40 w-full">
                                 <p className="whitespace-pre-wrap pr-4">{character.appearance || 'Описание отсутствует.'}</p>
@@ -267,9 +272,7 @@ export default function CharacterPage() {
                         </CardContent>
                     </Card>
                      <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><Heart /> Характер</CardTitle>
-                        </CardHeader>
+                        <SectionHeader title="Характер" icon={<Heart />} section="personality" />
                         <CardContent>
                             <ScrollArea className="h-40 w-full">
                                 <p className="whitespace-pre-wrap pr-4">{character.personality || 'Описание отсутствует.'}</p>
@@ -277,9 +280,7 @@ export default function CharacterPage() {
                         </CardContent>
                     </Card>
                      <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><BookOpen /> Биография</CardTitle>
-                        </CardHeader>
+                        <SectionHeader title="Биография" icon={<BookOpen />} section="biography" />
                         <CardContent>
                             <ScrollArea className="h-64 w-full">
                                 <p className="whitespace-pre-wrap pr-4">{character.biography || 'Описание отсутствует.'}</p>
@@ -287,36 +288,26 @@ export default function CharacterPage() {
                         </CardContent>
                     </Card>
                     
-                    {character.abilities && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><Zap /> Способности</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <ScrollArea className="h-40 w-full">
-                                    <p className="whitespace-pre-wrap pr-4">{character.abilities}</p>
-                                </ScrollArea>
-                            </CardContent>
-                        </Card>
-                    )}
+                    <Card>
+                        <SectionHeader title="Способности" icon={<Zap />} section="abilities" />
+                        <CardContent>
+                            <ScrollArea className="h-40 w-full">
+                                <p className="whitespace-pre-wrap pr-4">{character.abilities || 'Описание отсутствует.'}</p>
+                            </ScrollArea>
+                        </CardContent>
+                    </Card>
                     
-                    {character.weaknesses && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><ShieldOff /> Слабости</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <ScrollArea className="h-40 w-full">
-                                    <p className="whitespace-pre-wrap pr-4">{character.weaknesses}</p>
-                                </ScrollArea>
-                            </CardContent>
-                        </Card>
-                    )}
+                     <Card>
+                        <SectionHeader title="Слабости" icon={<ShieldOff />} section="weaknesses" />
+                        <CardContent>
+                            <ScrollArea className="h-40 w-full">
+                                <p className="whitespace-pre-wrap pr-4">{character.weaknesses || 'Описание отсутствует.'}</p>
+                            </ScrollArea>
+                        </CardContent>
+                    </Card>
                     
                     <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><HeartHandshake /> Отношения</CardTitle>
-                        </CardHeader>
+                         <SectionHeader title="Отношения" icon={<HeartHandshake />} section="relationships" />
                         <CardContent>
                             {(character.relationships && character.relationships.length > 0) ? (
                                 <div className="space-y-4">
@@ -347,9 +338,7 @@ export default function CharacterPage() {
                 </div>
                 <div className="space-y-6">
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Основная информация</CardTitle>
-                        </CardHeader>
+                        <SectionHeader title="Основная информация" icon={<Info />} section="mainInfo" />
                         <CardContent className="space-y-4 text-sm">
                             <div className="flex justify-between"><span>Раса:</span> <span className="text-right">{character.race || 'N/A'}</span></div>
                              <div className="flex justify-between">
@@ -364,9 +353,7 @@ export default function CharacterPage() {
                         </CardContent>
                     </Card>
                     <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><Award /> Достижения</CardTitle>
-                        </CardHeader>
+                        <SectionHeader title="Достижения" icon={<Award />} section="accomplishments" />
                         <CardContent>
                             {accomplishments.length > 0 ? (
                                 <div className="space-y-2">
@@ -382,9 +369,7 @@ export default function CharacterPage() {
                         </CardContent>
                     </Card>
                      <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><Wallet /> Финансы</CardTitle>
-                        </CardHeader>
+                        <SectionHeader title="Финансы" icon={<Wallet />} section="finance" />
                         <CardContent className="space-y-2 text-sm">
                              <div className="flex justify-between items-center">
                                 <span>Уровень достатка:</span>
@@ -451,23 +436,19 @@ export default function CharacterPage() {
                     
                     {!isViewingOwnProfile && currentUser && <RelationshipActions targetCharacter={character} />}
 
-                    {spouses.length > 0 && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><Users /> Семейное положение</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-1">
-                                    <span className="text-sm">В браке с:</span>
-                                    {spouses.map(spouse => (
-                                        <Link key={spouse.id} href={`/characters/${spouse.id}`} className="block text-sm font-semibold text-primary hover:underline">
-                                            {spouse.name}
-                                        </Link>
-                                    ))}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )}
+                    <Card>
+                        <SectionHeader title="Семейное положение" icon={<Users />} section="marriage" />
+                        <CardContent>
+                            <div className="space-y-1">
+                                <span className="text-sm">В браке с:</span>
+                                {spouses.length > 0 ? spouses.map(spouse => (
+                                    <Link key={spouse.id} href={`/characters/${spouse.id}`} className="block text-sm font-semibold text-primary hover:underline">
+                                        {spouse.name}
+                                    </Link>
+                                )) : <p className="text-sm text-muted-foreground">Не в браке</p>}
+                            </div>
+                        </CardContent>
+                    </Card>
 
 
                      {activeMoodlets.length > 0 && (
@@ -568,9 +549,7 @@ export default function CharacterPage() {
                     </Card>
                     
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Дополнительно</CardTitle>
-                        </CardHeader>
+                        <SectionHeader title="Дополнительно" icon={<Info />} section="additionalInfo" />
                         <CardContent>
                              <Accordion type="multiple" className="w-full">
                                 <AccordionItem value="training">
@@ -616,19 +595,14 @@ export default function CharacterPage() {
                 </div>
             </div>
 
-            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+            <Dialog open={!!editingSection} onOpenChange={(isOpen) => !isOpen && setEditingSection(null)}>
                 <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Редактировать анкету: {character.name}</DialogTitle>
-                        <DialogDescription>
-                            Внесите изменения в анкету персонажа.
-                        </DialogDescription>
-                    </DialogHeader>
                     <CharacterForm
                         character={character}
                         allUsers={allUsers}
                         onSubmit={handleFormSubmit}
-                        closeDialog={() => setIsFormOpen(false)}
+                        closeDialog={() => setEditingSection(null)}
+                        editingSection={editingSection}
                     />
                 </DialogContent>
             </Dialog>
@@ -636,3 +610,4 @@ export default function CharacterPage() {
         </div>
     );
 }
+
