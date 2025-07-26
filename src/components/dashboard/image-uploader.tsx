@@ -8,6 +8,7 @@ import { UploadCloud, X } from 'lucide-react';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
 import { env } from '@/lib/env';
+import { Label } from '@/components/ui/label';
 
 interface ImageUploaderProps {
   currentImageUrl?: string | null;
