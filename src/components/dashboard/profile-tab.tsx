@@ -164,7 +164,7 @@ const CharacterDisplay = ({ character, onDelete }: { character: Character, onDel
                                         return (
                                             <div key={rank}>
                                             <h4 className="font-semibold capitalize text-muted-foreground mb-2">{rankNames[rank]}</h4>
-                                            <div className="flex flex-wrap gap-2">
+                                            <div className="grid grid-cols-3 sm:grid-cols-2 md:grid-cols-3 gap-2">
                                                 {groupedFamiliars[rank].map(card => (
                                                     <FamiliarCardDisplay key={card.uniqueKey} cardId={card.id} />
                                                 ))}
@@ -293,7 +293,7 @@ export default function ProfileTab() {
                 </div>
                 <div className="flex-1 overflow-hidden">
                     <CardTitle className="text-xl sm:text-2xl font-headline truncate">{currentUser.name}</CardTitle>
-                    <CardDescription className="truncate">{currentUser.email}</CardDescription>
+                    <CardDescription className="truncate text-sm sm:text-base">{currentUser.email}</CardDescription>
                 </div>
             </div>
           </CardHeader>

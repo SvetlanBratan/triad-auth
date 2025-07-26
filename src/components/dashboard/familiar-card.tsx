@@ -26,7 +26,7 @@ const FamiliarCardDisplay = ({ cardId, isRevealed = false }: { cardId: string, i
     return (
         <Dialog>
             <DialogTrigger asChild>
-                <div className="w-24 h-36 relative cursor-pointer group">
+                <div className="w-28 sm:w-24 h-auto aspect-[2/3] relative cursor-pointer group">
                     <Image 
                         src={card.imageUrl} 
                         alt={card.name} 
