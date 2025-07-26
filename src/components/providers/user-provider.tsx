@@ -29,6 +29,7 @@ interface UserContextType {
   setCurrentUser: (user: User | null) => void;
   gameDate: Date | null;
   gameDateString: string | null;
+  lastWeeklyBonusAwardedAt: string | undefined;
   fetchUserById: (userId: string) => Promise<User | null>;
   fetchUsersForAdmin: () => Promise<User[]>;
   fetchLeaderboardUsers: () => Promise<User[]>;
@@ -45,7 +46,7 @@ interface UserContextType {
   createNewUser: (uid: string, nickname: string) => Promise<User>;
   createRewardRequest: (rewardRequest: Omit<RewardRequest, 'id' | 'status' | 'createdAt'>) => Promise<void>;
   updateRewardRequestStatus: (request: RewardRequest, newStatus: RewardRequestStatus) => Promise<RewardRequest | null>;
-  pullGachaForCharacter: (userId: string, characterId: string) => Promise<{newCard: FamiliarCard, isDuplicate: boolean}>;
+  pullGachaForCharacter: (userId: string, characterId: string) => Promise<{updatedUser: User, newCard: FamiliarCard, isDuplicate: boolean}>;
   giveAnyFamiliarToCharacter: (userId: string, characterId: string, familiarId: string) => Promise<void>;
   clearPointHistoryForUser: (userId: string) => Promise<void>;
   addMoodletToCharacter: (userId: string, characterId: string, moodletId: string, durationInDays: number, source?: string) => Promise<void>;
@@ -55,6 +56,7 @@ interface UserContextType {
   updateUser: (userId: string, updates: Partial<User>) => Promise<void>;
   updateUserAvatar: (userId: string, avatarUrl: string) => Promise<void>;
   updateGameDate: (newDateString: string) => Promise<void>;
+  processWeeklyBonus: () => Promise<{awardedCount: number, isOverdue: boolean}>;
   checkExtraCharacterSlots: (userId: string) => Promise<number>;
   performRelationshipAction: (
     sourceUserId: string,
@@ -165,6 +167,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const data = docSnap.data() as GameSettings;
             const dateStr = data.gameDateString;
             const dateParts = dateStr.match(/(\d+)\s(\S+)\s(\d+)/);
+            let finalSettings: GameSettings = { ...DEFAULT_GAME_SETTINGS, ...data };
             if (dateParts) {
                 const months: { [key: string]: number } = { "января":0, "февраля":1, "марта":2, "апреля":3, "мая":4, "июня":5, "июля":6, "августа":7, "сентября":8, "октября":9, "ноября":10, "декабря":11 };
                 const day = parseInt(dateParts[1]);
@@ -172,9 +175,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 const year = parseInt(dateParts[3]);
                 const gameDate = new Date(year, month, day);
                  if (!isNaN(gameDate.getTime())) {
-                    setGameSettings({ gameDateString: dateStr, gameDate });
+                    finalSettings.gameDate = gameDate;
                 }
             }
+            setGameSettings(finalSettings);
+        } else {
+            // If no settings exist, create them with defaults
+            await setDoc(doc(db, 'game_settings', 'main'), DEFAULT_GAME_SETTINGS);
+            setGameSettings(DEFAULT_GAME_SETTINGS);
         }
     } catch (error) {
         console.error("Error fetching game settings. Using default.", error);
@@ -183,7 +191,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   const updateGameDate = useCallback(async (newDateString: string) => {
     const settingsRef = doc(db, 'game_settings', 'main');
-    await setDoc(settingsRef, { gameDateString: newDateString }, { merge: true });
+    await updateDoc(settingsRef, { gameDateString: newDateString });
     await fetchGameSettings();
   }, [fetchGameSettings]);
 
@@ -794,17 +802,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     return allMythicCards.length - claimedMythicIds.size;
   }, [fetchUsersForAdmin]);
 
-  const pullGachaForCharacter = useCallback(async (userId: string, characterId: string): Promise<{newCard: FamiliarCard, isDuplicate: boolean}> => {
-    let user: User | null = null;
+  const pullGachaForCharacter = useCallback(async (userId: string, characterId: string): Promise<{updatedUser: User, newCard: FamiliarCard, isDuplicate: boolean}> => {
+    let finalUser: User | null = null;
     let newCard: FamiliarCard;
     let isDuplicate = false;
-    let finalPointChange = 0;
     
     await runTransaction(db, async (transaction) => {
         const userRef = doc(db, "users", userId);
         const userDoc = await transaction.get(userRef);
         if (!userDoc.exists()) throw new Error("Пользователь не найден.");
-        user = userDoc.data() as User;
+        const user = userDoc.data() as User;
     
         const characterIndex = user.characters.findIndex(c => c.id === characterId);
         if (characterIndex === -1) throw new Error("Персонаж не найден.");
@@ -813,7 +820,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const isFirstPullForChar = !user.pointHistory.some(log => log.characterId === characterId && log.reason.includes('Рулетка'));
         const cost = isFirstPullForChar ? 0 : ROULETTE_COST;
         if (user.points < cost) throw new Error("Недостаточно очков.");
-        finalPointChange = -cost;
+        let finalPointChange = -cost;
 
         // Globally check for claimed mythic cards
         const allUsersSnapshot = await getDocs(collection(db, 'users'));
@@ -872,20 +879,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         };
         updatedUser.pointHistory.unshift(newPointLog);
         
-        user = updatedUser; // Update the user object to be returned
+        finalUser = updatedUser; // Update the user object to be returned
         transaction.set(userRef, updatedUser);
     });
 
-    if (!user || !newCard!) {
+    if (!finalUser || !newCard!) {
       throw new Error("Транзакция не удалась, попробуйте еще раз.");
     }
-    
-    if (currentUser?.id === userId) {
-        setCurrentUser(user);
-    }
 
-    return { newCard: newCard!, isDuplicate };
-  }, [currentUser?.id]);
+    return { updatedUser: finalUser, newCard: newCard!, isDuplicate };
+  }, []);
   
 
   const giveAnyFamiliarToCharacter = useCallback(async (userId: string, characterId: string, familiarId: string) => {
@@ -1548,6 +1551,49 @@ const processMonthlySalary = useCallback(async () => {
     loading,
     signOutUser,
   }), [firebaseUser, loading, signOutUser]);
+  
+  const processWeeklyBonus = useCallback(async (): Promise<{awardedCount: number, isOverdue: boolean}> => {
+    const now = new Date();
+    const lastAwarded = gameSettings.lastWeeklyBonusAwardedAt ? new Date(gameSettings.lastWeeklyBonusAwardedAt) : new Date(0);
+    const daysSinceLast = (now.getTime() - lastAwarded.getTime()) / (1000 * 3600 * 24);
+
+    if (daysSinceLast < 7) {
+        throw new Error(`Еженедельные бонусы уже были начислены. Следующее начисление через ${Math.ceil(7 - daysSinceLast)} д.`);
+    }
+    
+    const isOverdue = daysSinceLast > 7;
+    const allUsers = await fetchUsersForAdmin();
+    const activeUsers = allUsers.filter(u => u.status === 'активный');
+    const batch = writeBatch(db);
+    
+    activeUsers.forEach(user => {
+        const bonus = 800;
+        const compensation = isOverdue ? 1000 : 0;
+        const totalAward = bonus + compensation;
+        
+        const newPointLog: PointLog = {
+            id: `h-${Date.now()}-weekly`,
+            date: now.toISOString(),
+            amount: totalAward,
+            reason: `Еженедельный бонус за активность${isOverdue ? ' (+ компенсация)' : ''}`,
+        };
+        
+        const userRef = doc(db, "users", user.id);
+        batch.update(userRef, {
+            points: user.points + totalAward,
+            pointHistory: [newPointLog, ...user.pointHistory]
+        });
+    });
+    
+    const settingsRef = doc(db, 'game_settings', 'main');
+    batch.update(settingsRef, { lastWeeklyBonusAwardedAt: now.toISOString() });
+
+    await batch.commit();
+    await fetchGameSettings(); // Refetch settings to update the context state
+
+    return { awardedCount: activeUsers.length, isOverdue };
+
+  }, [gameSettings.lastWeeklyBonusAwardedAt, fetchUsersForAdmin, fetchGameSettings]);
 
 
   const userContextValue = useMemo(
@@ -1556,6 +1602,7 @@ const processMonthlySalary = useCallback(async () => {
       setCurrentUser,
       gameDate: gameSettings.gameDate,
       gameDateString: gameSettings.gameDateString,
+      lastWeeklyBonusAwardedAt: gameSettings.lastWeeklyBonusAwardedAt,
       fetchUserById,
       fetchUsersForAdmin,
       fetchLeaderboardUsers,
@@ -1582,6 +1629,7 @@ const processMonthlySalary = useCallback(async () => {
       updateUser,
       updateUserAvatar,
       updateGameDate,
+      processWeeklyBonus,
       checkExtraCharacterSlots,
       performRelationshipAction,
       recoverFamiliarsFromHistory,
@@ -1597,7 +1645,7 @@ const processMonthlySalary = useCallback(async () => {
       acceptFamiliarTradeRequest,
       declineOrCancelFamiliarTradeRequest,
     }),
-    [currentUser, gameSettings, fetchUserById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest]
+    [currentUser, gameSettings, fetchUserById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest]
   );
 
   return (

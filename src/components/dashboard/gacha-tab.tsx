@@ -37,7 +37,7 @@ interface PullResult {
 }
 
 export default function RouletteTab() {
-  const { currentUser, pullGachaForCharacter, fetchAvailableMythicCardsCount } = useUser();
+  const { currentUser, pullGachaForCharacter, fetchAvailableMythicCardsCount, setCurrentUser } = useUser();
   const { toast } = useToast();
   const [selectedCharacterId, setSelectedCharacterId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
@@ -52,11 +52,15 @@ export default function RouletteTab() {
   const isFirstSpinForChar = useMemo(() => {
     if (!currentUser || !selectedCharacterId) return false;
     const character = currentUser.characters.find(c => c.id === selectedCharacterId);
-    if (!character || (character.familiarCards && character.familiarCards.length > 0)) {
-        return false;
-    }
+    if (!character) return false;
+    
+    // Check if the character has any familiar cards yet
+    const hasCards = character.inventory?.familiarCards && character.inventory.familiarCards.length > 0;
+    if(hasCards) return false;
+    
+    // Check if there is any roulette log for this character
     return !currentUser.pointHistory.some(log => 
-        log.characterName === character.name && log.reason.includes('Рулетка')
+        log.characterId === character.id && log.reason.includes('Рулетка')
     );
   }, [currentUser, selectedCharacterId]);
 
@@ -87,12 +91,13 @@ export default function RouletteTab() {
     setIsFlipping(false);
 
     try {
-      const result = await pullGachaForCharacter(
+      const { updatedUser, ...result } = await pullGachaForCharacter(
         currentUser.id,
         selectedCharacterId
       );
       
       setPullResult(result);
+      setCurrentUser(updatedUser); // Immediately update user state
 
     } catch (error) {
       const errorMessage =
