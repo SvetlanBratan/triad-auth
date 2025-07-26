@@ -348,8 +348,9 @@ export default function ProfileTab() {
                 <TooltipProvider>
                     <Popover open={!canAddCharacter ? undefined : false}>
                         <PopoverTrigger asChild>
-                             <Button variant="outline" size="sm" onClick={handleAddClick} disabled={!canAddCharacter}>
-                                <PlusCircle className="mr-2 h-4 w-4" /> Добавить
+                            <Button variant="ghost" size="icon" onClick={handleAddClick} disabled={!canAddCharacter}>
+                                <PlusCircle className="h-5 w-5" />
+                                <span className="sr-only">Добавить персонажа</span>
                             </Button>
                         </PopoverTrigger>
                          <PopoverContent className="w-auto max-w-xs text-sm" side="top">
