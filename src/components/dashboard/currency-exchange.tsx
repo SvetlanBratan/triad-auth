@@ -253,7 +253,7 @@ export default function CurrencyExchange() {
                 <Button variant="ghost" size="icon" onClick={fetchRequests}><Repeat className="h-4 w-4" /></Button>
              </div>
              {otherOpenRequests.length > 0 ? (
-                <div className="grid grid-cols-1 @lg:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 @[30rem]:grid-cols-2 gap-4">
                     {otherOpenRequests.map(req => {
                         const acceptingCharacters = currentUser?.characters.filter(c => (c.bankAccount?.[req.toCurrency] ?? 0) >= req.toAmount);
                         const canAccept = acceptingCharacters && acceptingCharacters.length > 0;
@@ -262,10 +262,10 @@ export default function CurrencyExchange() {
                         return (
                         <Card key={req.id}>
                             <CardHeader>
-                                <CardTitle className="text-lg">Обмен от {req.creatorCharacterName}</CardTitle>
+                                <CardTitle className="text-base leading-tight">Обмен от {req.creatorCharacterName}</CardTitle>
                             </CardHeader>
                              <CardContent className="space-y-3">
-                               <div className="flex justify-between items-center p-2 rounded-md bg-destructive/10 text-destructive">
+                               <div className="flex justify-between items-center p-2 rounded-md bg-destructive/10 text-destructive-foreground/80">
                                  <span className="text-sm">Отдают:</span>
                                  <span className="font-bold">{req.fromAmount.toLocaleString()} {CURRENCY_OPTIONS.find(c => c.value === req.fromCurrency)?.label}</span>
                                </div>
