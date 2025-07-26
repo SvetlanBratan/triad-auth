@@ -46,6 +46,7 @@ const rankOrder: FamiliarRank[] = ['мифический', 'ивентовый',
 export default function AdminTab() {
   const { 
     addPointsToUser, 
+    addPointsToAllUsers,
     updateUserStatus, 
     updateUserRole, 
     grantAchievementToUser, 
@@ -220,13 +221,21 @@ export default function AdminTab() {
       return;
     }
     
-    await addPointsToUser(awardSelectedUserId, pointsToAward, reason);
-    await refetchUsers();
+    if (awardSelectedUserId === 'all') {
+        await addPointsToAllUsers(pointsToAward, reason);
+        toast({
+            title: "Баллы начислены всем!",
+            description: `Начислено по ${pointsToAward} баллов каждому игроку.`,
+        });
+    } else {
+        await addPointsToUser(awardSelectedUserId, pointsToAward, reason);
+        toast({
+            title: "Баллы начислены!",
+            description: `Начислено ${pointsToAward} баллов.`,
+        });
+    }
     
-    toast({
-        title: "Баллы начислены!",
-        description: `Начислено ${pointsToAward} баллов.`,
-    });
+    await refetchUsers();
 
     setAwardSelectedUserId('');
     setPoints('');
@@ -663,6 +672,8 @@ export default function AdminTab() {
                             <SelectValue placeholder="Выберите пользователя" />
                         </SelectTrigger>
                         <SelectContent>
+                            <SelectItem value="all">*** Всем пользователям ***</SelectItem>
+                            <Separator />
                             {users.map(user => (
                             <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
                             ))}

@@ -38,6 +38,7 @@ interface UserContextType {
   fetchRewardRequestsForUser: (userId: string) => Promise<RewardRequest[]>;
   fetchAvailableMythicCardsCount: () => Promise<number>;
   addPointsToUser: (userId: string, amount: number, reason: string, characterId?: string) => Promise<User | null>;
+  addPointsToAllUsers: (amount: number, reason: string) => Promise<void>;
   addCharacterToUser: (userId: string, character: Character) => Promise<void>;
   updateCharacterInUser: (userId: string, character: Character) => Promise<void>;
   deleteCharacterFromUser: (userId: string, characterId: string) => Promise<void>;
@@ -453,6 +454,31 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
     return finalUser;
   }, [fetchUserById, currentUser?.id, grantAchievementToUser, fetchLeaderboardUsers]);
+  
+  const addPointsToAllUsers = useCallback(async (amount: number, reason: string) => {
+    const allUsers = await fetchUsersForAdmin();
+    const batch = writeBatch(db);
+    
+    for (const user of allUsers) {
+        const userRef = doc(db, "users", user.id);
+        const newPointLog: PointLog = {
+            id: `h-${Date.now()}-${user.id.slice(0, 4)}`,
+            date: new Date().toISOString(),
+            amount,
+            reason,
+        };
+        const newPoints = user.points + amount;
+        const newHistory = [newPointLog, ...user.pointHistory].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        batch.update(userRef, { points: newPoints, pointHistory: newHistory });
+    }
+
+    await batch.commit();
+
+    if (currentUser) {
+        const updatedCurrentUser = await fetchUserById(currentUser.id);
+        setCurrentUser(updatedCurrentUser);
+    }
+  }, [fetchUsersForAdmin, fetchUserById, currentUser]);
 
   const addCharacterToUser = useCallback(async (userId: string, characterData: Character) => {
     const user = await fetchUserById(userId);
@@ -499,7 +525,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const usersToUpdate = new Map<string, User>();
         usersToUpdate.set(userId, { ...sourceUserData, characters: updatedCharacters });
 
-        const newRelationships = new Map(sanitizedCharacterToUpdate.relationships.map(r => [r.targetCharacterId, r]));
+        const newRelationships = new Map((sanitizedCharacterToUpdate.relationships || []).map(r => [r.targetCharacterId, r]));
 
         // Check for new/updated relationships
         for (const [targetCharId, newRel] of newRelationships.entries()) {
@@ -1674,6 +1700,7 @@ const processMonthlySalary = useCallback(async () => {
       fetchRewardRequestsForUser,
       fetchAvailableMythicCardsCount,
       addPointsToUser,
+      addPointsToAllUsers,
       addCharacterToUser,
       updateCharacterInUser,
       deleteCharacterFromUser,
@@ -1710,7 +1737,7 @@ const processMonthlySalary = useCallback(async () => {
       acceptFamiliarTradeRequest,
       declineOrCancelFamiliarTradeRequest,
     }),
-    [currentUser, gameSettings, fetchUserById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest]
+    [currentUser, gameSettings, fetchUserById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest]
   );
 
   return (
