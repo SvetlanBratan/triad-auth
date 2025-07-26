@@ -212,187 +212,189 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
     
     return (
         <form onSubmit={handleSubmit} className="flex flex-col h-full overflow-hidden">
-            <ScrollArea className="flex-auto pr-6 -mr-6">
-                <div className="space-y-4 pb-4">
-                    {/* Basic Info */}
-                    <div>
-                        <Label htmlFor="name">Имя персонажа</Label>
-                        <Input id="name" value={formData.name ?? ''} onChange={handleChange} placeholder="например, Гидеон" required />
-                    </div>
-                    <div>
-                        <Label htmlFor="activity">Деятельность/профессия</Label>
-                        <Input id="activity" value={formData.activity ?? ''} onChange={handleChange} placeholder="например, Кузнец" required />
-                    </div>
-                     <div>
-                        <Label htmlFor="race">Раса</Label>
-                        <Input id="race" value={formData.race ?? ''} onChange={handleChange} placeholder="например, Человек" required />
-                    </div>
-                     <div>
-                        <Label htmlFor="birthDate">Дата рождения</Label>
-                        <Input id="birthDate" value={formData.birthDate ?? ''} onChange={handleChange} placeholder="например, 15.06.2680" required />
-                    </div>
-                    <div>
-                        <Label htmlFor="workLocation">Место работы (необязательно)</Label>
-                        <Input id="workLocation" value={formData.workLocation ?? ''} onChange={handleChange} placeholder="например, Железная кузница" />
-                    </div>
-
-                    {/* Accomplishments */}
-                    <div className="space-y-4 rounded-lg border p-4">
-                        <h3 className="text-lg font-medium">Достижения</h3>
-                         <p className="text-sm text-muted-foreground">Здесь вы можете комбинировать уровни известности и навыков с пояснениями.</p>
-                        <Separator />
-                        <div className="space-y-4">
-                            {(formData.accomplishments || []).map((acc, index) => (
-                                <div key={acc.id} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_auto] gap-2 items-end p-2 border rounded-md relative">
-                                    <Button type="button" variant="ghost" size="icon" onClick={() => removeAccomplishment(index)} className="absolute -top-2 -right-2 h-6 w-6 bg-background">
-                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                    <div>
-                                        <Label>Известность</Label>
-                                        <SearchableSelect
-                                            options={fameLevelOptions}
-                                            value={acc.fameLevel}
-                                            onValueChange={(value) => handleAccomplishmentChange(index, 'fameLevel', value)}
-                                            placeholder="Уровень..."
-                                        />
-                                    </div>
-                                     <div>
-                                        <Label>Навык</Label>
-                                        <SearchableSelect
-                                            options={skillLevelOptions}
-                                            value={acc.skillLevel}
-                                            onValueChange={(value) => handleAccomplishmentChange(index, 'skillLevel', value)}
-                                            placeholder="Уровень..."
-                                        />
-                                    </div>
-                                    <div className="md:col-span-2">
-                                        <Label>Пояснение</Label>
-                                        <Input value={acc.description} onChange={(e) => handleAccomplishmentChange(index, 'description', e.target.value)} placeholder="...в области интриг"/>
-                                    </div>
-                                </div>
-                            ))}
+             <div className="flex-1 relative">
+                <ScrollArea className="absolute inset-0 pr-6">
+                    <div className="space-y-4">
+                        {/* Basic Info */}
+                        <div>
+                            <Label htmlFor="name">Имя персонажа</Label>
+                            <Input id="name" value={formData.name ?? ''} onChange={handleChange} placeholder="например, Гидеон" required />
                         </div>
-                        <Button type="button" variant="outline" size="sm" onClick={addAccomplishment}><PlusCircle className="mr-2 h-4 w-4"/>Добавить достижение</Button>
-                    </div>
-                    
-                    {/* Main Section */}
-                    <div>
-                        <Label htmlFor="appearance">Внешность</Label>
-                        <Textarea id="appearance" value={formData.appearance ?? ''} onChange={handleChange} placeholder="Подробное описание внешности персонажа..." rows={5}/>
-                    </div>
-                    <div>
-                        <Label htmlFor="personality">Характер</Label>
-                        <Textarea id="personality" value={formData.personality ?? ''} onChange={handleChange} placeholder="Описание характера, привычек, мировоззрения..." rows={5}/>
-                    </div>
-                     <div>
-                        <Label htmlFor="biography">Биография</Label>
-                        <Textarea id="biography" value={formData.biography ?? ''} onChange={handleChange} placeholder="История жизни персонажа..." rows={8}/>
-                    </div>
-                    <div>
-                        <Label htmlFor="abilities">Способности</Label>
-                        <Textarea id="abilities" value={formData.abilities ?? ''} onChange={handleChange} placeholder="Магические или физические способности..." rows={4}/>
-                    </div>
-                     <div>
-                        <Label htmlFor="weaknesses">Слабости</Label>
-                        <Textarea id="weaknesses" value={formData.weaknesses ?? ''} onChange={handleChange} placeholder="Физические или психологические уязвимости..." rows={4}/>
-                    </div>
+                        <div>
+                            <Label htmlFor="activity">Деятельность/профессия</Label>
+                            <Input id="activity" value={formData.activity ?? ''} onChange={handleChange} placeholder="например, Кузнец" required />
+                        </div>
+                        <div>
+                            <Label htmlFor="race">Раса</Label>
+                            <Input id="race" value={formData.race ?? ''} onChange={handleChange} placeholder="например, Человек" required />
+                        </div>
+                        <div>
+                            <Label htmlFor="birthDate">Дата рождения</Label>
+                            <Input id="birthDate" value={formData.birthDate ?? ''} onChange={handleChange} placeholder="например, 15.06.2680" required />
+                        </div>
+                        <div>
+                            <Label htmlFor="workLocation">Место работы (необязательно)</Label>
+                            <Input id="workLocation" value={formData.workLocation ?? ''} onChange={handleChange} placeholder="например, Железная кузница" />
+                        </div>
 
-                    {/* Relationships Section */}
-                    <div className="space-y-4 rounded-lg border p-4">
-                        <h3 className="text-lg font-medium">Отношения</h3>
-                        <Separator />
-                        <div className="space-y-6">
-                            {(formData.relationships || []).map((rel, index) => (
-                                <div key={rel.id} className="space-y-3 rounded-md border p-3 relative">
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        className="absolute top-1 right-1 h-7 w-7"
-                                        onClick={() => removeRelationship(index)}
-                                    >
-                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                    
-                                    <div>
-                                        <Label>Персонаж</Label>
-                                        <Select
-                                            value={rel.targetCharacterId}
-                                            onValueChange={(value) => handleRelationshipChange(index, 'targetCharacterId', value)}
+                        {/* Accomplishments */}
+                        <div className="space-y-4 rounded-lg border p-4">
+                            <h3 className="text-lg font-medium">Достижения</h3>
+                            <p className="text-sm text-muted-foreground">Здесь вы можете комбинировать уровни известности и навыков с пояснениями.</p>
+                            <Separator />
+                            <div className="space-y-4">
+                                {(formData.accomplishments || []).map((acc, index) => (
+                                    <div key={acc.id} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_auto] gap-2 items-end p-2 border rounded-md relative">
+                                        <Button type="button" variant="ghost" size="icon" onClick={() => removeAccomplishment(index)} className="absolute -top-2 -right-2 h-6 w-6 bg-background">
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                        <div>
+                                            <Label>Известность</Label>
+                                            <SearchableSelect
+                                                options={fameLevelOptions}
+                                                value={acc.fameLevel}
+                                                onValueChange={(value) => handleAccomplishmentChange(index, 'fameLevel', value)}
+                                                placeholder="Уровень..."
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label>Навык</Label>
+                                            <SearchableSelect
+                                                options={skillLevelOptions}
+                                                value={acc.skillLevel}
+                                                onValueChange={(value) => handleAccomplishmentChange(index, 'skillLevel', value)}
+                                                placeholder="Уровень..."
+                                            />
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <Label>Пояснение</Label>
+                                            <Input value={acc.description} onChange={(e) => handleAccomplishmentChange(index, 'description', e.target.value)} placeholder="...в области интриг"/>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <Button type="button" variant="outline" size="sm" onClick={addAccomplishment}><PlusCircle className="mr-2 h-4 w-4"/>Добавить достижение</Button>
+                        </div>
+                        
+                        {/* Main Section */}
+                        <div>
+                            <Label htmlFor="appearance">Внешность</Label>
+                            <Textarea id="appearance" value={formData.appearance ?? ''} onChange={handleChange} placeholder="Подробное описание внешности персонажа..." rows={5}/>
+                        </div>
+                        <div>
+                            <Label htmlFor="personality">Характер</Label>
+                            <Textarea id="personality" value={formData.personality ?? ''} onChange={handleChange} placeholder="Описание характера, привычек, мировоззрения..." rows={5}/>
+                        </div>
+                        <div>
+                            <Label htmlFor="biography">Биография</Label>
+                            <Textarea id="biography" value={formData.biography ?? ''} onChange={handleChange} placeholder="История жизни персонажа..." rows={8}/>
+                        </div>
+                        <div>
+                            <Label htmlFor="abilities">Способности</Label>
+                            <Textarea id="abilities" value={formData.abilities ?? ''} onChange={handleChange} placeholder="Магические или физические способности..." rows={4}/>
+                        </div>
+                        <div>
+                            <Label htmlFor="weaknesses">Слабости</Label>
+                            <Textarea id="weaknesses" value={formData.weaknesses ?? ''} onChange={handleChange} placeholder="Физические или психологические уязвимости..." rows={4}/>
+                        </div>
+
+                        {/* Relationships Section */}
+                        <div className="space-y-4 rounded-lg border p-4">
+                            <h3 className="text-lg font-medium">Отношения</h3>
+                            <Separator />
+                            <div className="space-y-6">
+                                {(formData.relationships || []).map((rel, index) => (
+                                    <div key={rel.id} className="space-y-3 rounded-md border p-3 relative">
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="absolute top-1 right-1 h-7 w-7"
+                                            onClick={() => removeRelationship(index)}
                                         >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Выберите персонажа..." />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectGroup>
-                                                    {characterOptions.map(opt => (
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                        
+                                        <div>
+                                            <Label>Персонаж</Label>
+                                            <Select
+                                                value={rel.targetCharacterId}
+                                                onValueChange={(value) => handleRelationshipChange(index, 'targetCharacterId', value)}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Выберите персонажа..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectGroup>
+                                                        {characterOptions.map(opt => (
+                                                            <SelectItem key={opt.value} value={opt.value}>
+                                                                {opt.label}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectGroup>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div>
+                                            <Label>Тип отношений</Label>
+                                            <Select
+                                                value={rel.type}
+                                                onValueChange={(value: RelationshipType) => handleRelationshipChange(index, 'type', value)}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Выберите тип..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {relationshipTypeOptions.map(opt => (
                                                         <SelectItem key={opt.value} value={opt.value}>
                                                             {opt.label}
                                                         </SelectItem>
                                                     ))}
-                                                </SelectGroup>
-                                            </SelectContent>
-                                        </Select>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <Label>Тип отношений</Label>
-                                        <Select
-                                            value={rel.type}
-                                            onValueChange={(value: RelationshipType) => handleRelationshipChange(index, 'type', value)}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Выберите тип..." />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {relationshipTypeOptions.map(opt => (
-                                                    <SelectItem key={opt.value} value={opt.value}>
-                                                        {opt.label}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
+                            <Button type="button" variant="outline" onClick={addRelationship}>
+                                Добавить отношение
+                            </Button>
                         </div>
-                        <Button type="button" variant="outline" onClick={addRelationship}>
-                            Добавить отношение
-                        </Button>
-                    </div>
 
-                    {/* Additional Section */}
-                     <div>
-                        <Label htmlFor="marriedTo">В браке с</Label>
-                        <MultiSelect
-                            options={characterOptions}
-                            selected={formData.marriedTo ?? []}
-                            onChange={(selectedValues) => handleMultiSelectChange('marriedTo', selectedValues)}
-                            placeholder="Выберите персонажей..."
-                        />
+                        {/* Additional Section */}
+                        <div>
+                            <Label htmlFor="marriedTo">В браке с</Label>
+                            <MultiSelect
+                                options={characterOptions}
+                                selected={formData.marriedTo ?? []}
+                                onChange={(selectedValues) => handleMultiSelectChange('marriedTo', selectedValues)}
+                                placeholder="Выберите персонажей..."
+                            />
+                        </div>
+                        <div>
+                            <Label htmlFor="training">Обучение</Label>
+                            <MultiSelect
+                                options={TRAINING_OPTIONS}
+                                selected={formData.training ?? []}
+                                onChange={(selectedValues) => handleMultiSelectChange('training', selectedValues)}
+                                placeholder="Выберите учебные заведения..."
+                            />
+                        </div>
+                        <div>
+                            <Label htmlFor="lifeGoal">Жизненная цель</Label>
+                            <Textarea id="lifeGoal" value={formData.lifeGoal ?? ''} onChange={handleChange} placeholder="Главная цель или мечта персонажа..." rows={4}/>
+                        </div>
+                        <div>
+                            <Label htmlFor="pets">Питомцы</Label>
+                            <Textarea id="pets" value={formData.pets ?? ''} onChange={handleChange} placeholder="Список и описание питомцев..." rows={3}/>
+                        </div>
+                        <div>
+                            <Label htmlFor="diary">Личный дневник</Label>
+                            <Textarea id="diary" value={formData.diary ?? ''} onChange={handleChange} placeholder="Мысли, секреты и личные записи персонажа..." rows={6}/>
+                        </div>
                     </div>
-                     <div>
-                        <Label htmlFor="training">Обучение</Label>
-                        <MultiSelect
-                            options={TRAINING_OPTIONS}
-                            selected={formData.training ?? []}
-                            onChange={(selectedValues) => handleMultiSelectChange('training', selectedValues)}
-                            placeholder="Выберите учебные заведения..."
-                        />
-                    </div>
-                     <div>
-                        <Label htmlFor="lifeGoal">Жизненная цель</Label>
-                        <Textarea id="lifeGoal" value={formData.lifeGoal ?? ''} onChange={handleChange} placeholder="Главная цель или мечта персонажа..." rows={4}/>
-                    </div>
-                     <div>
-                        <Label htmlFor="pets">Питомцы</Label>
-                        <Textarea id="pets" value={formData.pets ?? ''} onChange={handleChange} placeholder="Список и описание питомцев..." rows={3}/>
-                    </div>
-                    <div>
-                        <Label htmlFor="diary">Личный дневник</Label>
-                        <Textarea id="diary" value={formData.diary ?? ''} onChange={handleChange} placeholder="Мысли, секреты и личные записи персонажа..." rows={6}/>
-                    </div>
-                </div>
-            </ScrollArea>
+                </ScrollArea>
+             </div>
             <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t">
               <DialogClose asChild>
                 <Button type="button" variant="ghost">Отмена</Button>
@@ -404,5 +406,3 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
 };
 
 export default CharacterForm;
-
-    
