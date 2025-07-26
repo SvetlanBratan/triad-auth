@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FAMILIARS_BY_ID, MOODLETS_DATA, TRAINING_OPTIONS } from '@/lib/data';
 import FamiliarCardDisplay from '@/components/dashboard/familiar-card';
-import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users, HeartHandshake, Wallet, Coins, Award, Zap, ShieldOff, History, Info } from 'lucide-react';
+import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users, HeartHandshake, Wallet, Coins, Award, Zap, ShieldOff, History, Info, PlusCircle } from 'lucide-react';
 import Link from 'next/link';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -212,14 +212,24 @@ export default function CharacterPage() {
     const isBlessed = character.blessingExpires && new Date(character.blessingExpires) > new Date();
     const activeMoodlets = (character.moodlets || []).filter(m => new Date(m.expiresAt) > new Date());
     const age = gameDate ? calculateAge(character.birthDate, gameDate) : null;
-    const isViewingOwnProfile = currentUser?.id === owner.id;
-    const canViewHistory = isViewingOwnProfile || currentUser?.role === 'admin';
+    const isOwnerOrAdmin = currentUser?.id === owner.id || currentUser?.role === 'admin';
+    const canViewHistory = isOwnerOrAdmin;
     const accomplishments = character.accomplishments || [];
     
-    const SectionHeader = ({ title, icon, section }: { title: string; icon: React.ReactNode; section: EditableSection }) => (
+    const SectionHeader = ({ title, icon, section, isEmpty }: { title: string; icon: React.ReactNode; section: EditableSection, isEmpty?: boolean }) => (
         <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">{icon} {title}</CardTitle>
-            {canEdit && <Button variant="ghost" size="icon" onClick={() => setEditingSection(section)}><Edit className="w-4 h-4" /></Button>}
+            {isOwnerOrAdmin && (
+                isEmpty ? (
+                     <Button variant="outline-dashed" size="sm" onClick={() => setEditingSection(section)}>
+                        <PlusCircle className="mr-2 h-4 w-4" /> Добавить
+                    </Button>
+                ) : (
+                    <Button variant="ghost" size="icon" onClick={() => setEditingSection(section)}>
+                        <Edit className="w-4 h-4" />
+                    </Button>
+                )
+            )}
         </CardHeader>
     );
 
@@ -288,23 +298,31 @@ export default function CharacterPage() {
                         </CardContent>
                     </Card>
                     
-                    <Card>
-                        <SectionHeader title="Способности" icon={<Zap />} section="abilities" />
-                        <CardContent>
-                            <ScrollArea className="h-40 w-full">
-                                <p className="whitespace-pre-wrap pr-4">{character.abilities || 'Описание отсутствует.'}</p>
-                            </ScrollArea>
-                        </CardContent>
-                    </Card>
+                    {(character.abilities || isOwnerOrAdmin) && (
+                        <Card>
+                            <SectionHeader title="Способности" icon={<Zap />} section="abilities" isEmpty={!character.abilities} />
+                            {character.abilities && (
+                                <CardContent>
+                                    <ScrollArea className="h-40 w-full">
+                                        <p className="whitespace-pre-wrap pr-4">{character.abilities}</p>
+                                    </ScrollArea>
+                                </CardContent>
+                            )}
+                        </Card>
+                    )}
                     
-                     <Card>
-                        <SectionHeader title="Слабости" icon={<ShieldOff />} section="weaknesses" />
-                        <CardContent>
-                            <ScrollArea className="h-40 w-full">
-                                <p className="whitespace-pre-wrap pr-4">{character.weaknesses || 'Описание отсутствует.'}</p>
-                            </ScrollArea>
-                        </CardContent>
-                    </Card>
+                    {(character.weaknesses || isOwnerOrAdmin) && (
+                         <Card>
+                            <SectionHeader title="Слабости" icon={<ShieldOff />} section="weaknesses" isEmpty={!character.weaknesses} />
+                            {character.weaknesses && (
+                                <CardContent>
+                                    <ScrollArea className="h-40 w-full">
+                                        <p className="whitespace-pre-wrap pr-4">{character.weaknesses}</p>
+                                    </ScrollArea>
+                                </CardContent>
+                            )}
+                        </Card>
+                    )}
                     
                     <Card>
                          <SectionHeader title="Отношения" icon={<HeartHandshake />} section="relationships" />
@@ -369,7 +387,10 @@ export default function CharacterPage() {
                         </CardContent>
                     </Card>
                      <Card>
-                        <SectionHeader title="Финансы" icon={<Wallet />} section="finance" />
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <CardTitle className="flex items-center gap-2"><Wallet /> Финансы</CardTitle>
+                            {currentUser?.role === 'admin' && <Button variant="ghost" size="icon" onClick={() => setEditingSection('finance')}><Edit className="w-4 h-4" /></Button>}
+                        </CardHeader>
                         <CardContent className="space-y-2 text-sm">
                              <div className="flex justify-between items-center">
                                 <span>Уровень достатка:</span>
@@ -434,7 +455,7 @@ export default function CharacterPage() {
                         </CardContent>
                     </Card>
                     
-                    {!isViewingOwnProfile && currentUser && <RelationshipActions targetCharacter={character} />}
+                    {!isOwnerOrAdmin && currentUser && <RelationshipActions targetCharacter={character} />}
 
                     <Card>
                         <SectionHeader title="Семейное положение" icon={<Users />} section="marriage" />
@@ -564,29 +585,53 @@ export default function CharacterPage() {
                                         )}
                                     </AccordionContent>
                                 </AccordionItem>
-                                {character.lifeGoal && (
-                                 <AccordionItem value="lifeGoal">
-                                    <AccordionTrigger>Жизненная цель</AccordionTrigger>
-                                    <AccordionContent>
-                                        <p className="whitespace-pre-wrap">{character.lifeGoal}</p>
-                                    </AccordionContent>
-                                </AccordionItem>
+                                {(character.lifeGoal || isOwnerOrAdmin) && (
+                                    <AccordionItem value="lifeGoal">
+                                        <AccordionTrigger>Жизненная цель</AccordionTrigger>
+                                        <AccordionContent>
+                                            {character.lifeGoal ? (
+                                                <p className="whitespace-pre-wrap">{character.lifeGoal}</p>
+                                            ) : (
+                                                 isOwnerOrAdmin && (
+                                                    <div className="text-center py-2">
+                                                        <Button variant="outline-dashed" size="sm" onClick={() => setEditingSection('additionalInfo')}><PlusCircle className="mr-2 h-4 w-4" /> Добавить</Button>
+                                                    </div>
+                                                )
+                                            )}
+                                        </AccordionContent>
+                                    </AccordionItem>
                                 )}
-                                {character.pets && (
-                                 <AccordionItem value="pets">
-                                    <AccordionTrigger>Питомцы</AccordionTrigger>
-                                    <AccordionContent>
-                                        <p className="whitespace-pre-wrap">{character.pets}</p>
-                                    </AccordionContent>
-                                </AccordionItem>
+                                {(character.pets || isOwnerOrAdmin) && (
+                                    <AccordionItem value="pets">
+                                        <AccordionTrigger>Питомцы</AccordionTrigger>
+                                        <AccordionContent>
+                                            {character.pets ? (
+                                                <p className="whitespace-pre-wrap">{character.pets}</p>
+                                            ) : (
+                                                 isOwnerOrAdmin && (
+                                                    <div className="text-center py-2">
+                                                        <Button variant="outline-dashed" size="sm" onClick={() => setEditingSection('additionalInfo')}><PlusCircle className="mr-2 h-4 w-4" /> Добавить</Button>
+                                                    </div>
+                                                )
+                                            )}
+                                        </AccordionContent>
+                                    </AccordionItem>
                                 )}
-                                {character.diary && (
-                                 <AccordionItem value="diary">
-                                    <AccordionTrigger>Личный дневник</AccordionTrigger>
-                                    <AccordionContent>
-                                        <p className="whitespace-pre-wrap">{character.diary}</p>
-                                    </AccordionContent>
-                                </AccordionItem>
+                                {(character.diary || isOwnerOrAdmin) && (
+                                    <AccordionItem value="diary">
+                                        <AccordionTrigger>Личный дневник</AccordionTrigger>
+                                        <AccordionContent>
+                                            {character.diary ? (
+                                                <p className="whitespace-pre-wrap">{character.diary}</p>
+                                            ) : (
+                                                isOwnerOrAdmin && (
+                                                    <div className="text-center py-2">
+                                                        <Button variant="outline-dashed" size="sm" onClick={() => setEditingSection('additionalInfo')}><PlusCircle className="mr-2 h-4 w-4" /> Добавить</Button>
+                                                    </div>
+                                                )
+                                            )}
+                                        </AccordionContent>
+                                    </AccordionItem>
                                 )}
                              </Accordion>
                         </CardContent>

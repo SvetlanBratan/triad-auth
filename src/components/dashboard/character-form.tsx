@@ -151,6 +151,33 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingSect
         onSubmit(formData);
     };
 
+    const isFieldEmpty = (fieldName: keyof Character) => {
+        const value = formData[fieldName];
+        return value === null || value === undefined || (typeof value === 'string' && value.trim() === '');
+    };
+
+    const getDialogTitle = () => {
+        if (!editingSection) return '';
+        
+        let titleAction = "Редактировать";
+
+        switch(editingSection) {
+            case 'abilities':
+                if (isFieldEmpty('abilities')) titleAction = "Добавить";
+                break;
+            case 'weaknesses':
+                if (isFieldEmpty('weaknesses')) titleAction = "Добавить";
+                break;
+            case 'additionalInfo':
+                 if (isFieldEmpty('lifeGoal') && isFieldEmpty('pets') && isFieldEmpty('diary')) {
+                     titleAction = "Добавить";
+                 }
+                break;
+        }
+
+        return `${titleAction}: ${SectionTitles[editingSection]}`;
+    }
+
     const renderSection = () => {
         switch(editingSection) {
             case 'mainInfo':
@@ -201,7 +228,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingSect
     return (
         <form onSubmit={handleSubmit} className="flex flex-col h-full max-h-[85vh] overflow-hidden">
              <DialogHeader>
-                <DialogTitle>Редактировать: {SectionTitles[editingSection!]}</DialogTitle>
+                <DialogTitle>{getDialogTitle()}</DialogTitle>
                 <DialogDescription>
                     Внесите изменения и нажмите "Сохранить".
                 </DialogDescription>
