@@ -111,14 +111,19 @@ const drawFamiliarCard = (hasBlessing: boolean, unavailableMythicIds: Set<string
     
     let rand = Math.random() * 100;
 
-    let mythicChance = 2;
-    let legendaryChance = 10;
-    let rareChance = 25;
+    // Define base chances
+    const chances = {
+        мифический: 2,
+        легендарный: 10,
+        редкий: 25,
+        обычный: 100, // Common is the remainder
+    };
     
+    // Apply blessing bonus
     if (hasBlessing) {
-        mythicChance = 5;
-        legendaryChance = 20;
-        rareChance = 40;
+        chances.мифический = 5;
+        chances.легендарный = 20;
+        chances.редкий = 40;
     }
     
     const availableCards = ALL_FAMILIARS;
@@ -130,26 +135,31 @@ const drawFamiliarCard = (hasBlessing: boolean, unavailableMythicIds: Set<string
 
     let chosenPool: FamiliarCard[] = [];
 
-    if (rand < mythicChance && availableMythic.length > 0) {
+    // Correctly check ranges
+    if (rand < chances.мифический && availableMythic.length > 0) {
         chosenPool = availableMythic;
-    } else if (rand < mythicChance + legendaryChance && availableLegendary.length > 0) {
+    } else if (rand < chances.мифический + chances.легендарный && availableLegendary.length > 0) {
         chosenPool = availableLegendary;
-    } else if (rand < mythicChance + legendaryChance + rareChance && availableRare.length > 0) {
+    } else if (rand < chances.мифический + chances.легендарный + chances.редкий && availableRare.length > 0) {
         chosenPool = availableRare;
-    } else if (availableCommon.length > 0) {
+    } else { // Default to common
         chosenPool = availableCommon;
-    } else {
-        // Fallback to rare if common is empty for some reason
-        chosenPool = availableRare;
     }
     
-    // Final fallback if all pools are somehow empty
+    // Fallback logic if a chosen pool is empty but shouldn't be
     if (chosenPool.length === 0) {
-      chosenPool = availableCards.filter(c => c.rank !== 'мифический' || (c.rank === 'мифический' && !unavailableMythicIds.has(c.id)));
-      if (chosenPool.length === 0) {
-          // Absolute fallback: if even non-mythics are gone, pick any non-event card
-          chosenPool = ALL_FAMILIARS.filter(c => c.rank !== 'ивентовый');
-      }
+        if (availableCommon.length > 0) {
+            chosenPool = availableCommon;
+        } else if (availableRare.length > 0) {
+            chosenPool = availableRare;
+        } else if (availableLegendary.length > 0) {
+            chosenPool = availableLegendary;
+        } else if (availableMythic.length > 0) {
+            chosenPool = availableMythic;
+        } else {
+             // Absolute fallback: if even non-mythics are gone, pick any non-event card
+            chosenPool = ALL_FAMILIARS.filter(c => c.rank !== 'ивентовый');
+        }
     }
 
     return chosenPool[Math.floor(Math.random() * chosenPool.length)];
