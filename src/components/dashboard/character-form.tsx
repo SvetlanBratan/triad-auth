@@ -137,34 +137,35 @@ const relationshipTypeOptions: { value: RelationshipType, label: string }[] = [
 
 const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingState }: CharacterFormProps) => {
     const isCreating = editingState?.type === 'createCharacter';
-    const [formData, setFormData] = React.useState<Character>(character || { ...initialFormData, id: `c-${Date.now()}`});
+    const [formData, setFormData] = React.useState<Character>({ ...initialFormData, id: `c-${Date.now()}`});
     
     // State for the single item being edited/added
     const [currentItem, setCurrentItem] = React.useState<Relationship | Accomplishment | null>(null);
 
      React.useEffect(() => {
-        if (character) {
-             const initializedCharacter = {
-                ...initialFormData,
-                ...character,
-                crimeLevel: character.crimeLevel || 5,
-                accomplishments: character.accomplishments || [],
-                inventory: { ...initialFormData.inventory, ...(character.inventory || {}) },
-                training: Array.isArray(character.training) ? character.training : [],
-                marriedTo: Array.isArray(character.marriedTo) ? character.marriedTo : [],
-                relationships: (Array.isArray(character.relationships) ? character.relationships : []).map(r => ({...r, id: r.id || `rel-${Math.random()}`})),
-                bankAccount: character.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] },
-                wealthLevel: character.wealthLevel || 'Бедный',
-            };
-            setFormData(initializedCharacter);
-        }
-        if (isCreating) {
-             const newCharacterWithId = { ...initialFormData, id: `c-${Date.now()}` };
-             setFormData(newCharacterWithId);
-        }
-    }, [character, isCreating]);
-    
-    React.useEffect(() => {
+        const initializeState = () => {
+            if (isCreating) {
+                const newCharacterWithId = { ...initialFormData, id: `c-${Date.now()}` };
+                setFormData(newCharacterWithId);
+            } else if (character) {
+                const initializedCharacter = {
+                    ...initialFormData,
+                    ...character,
+                    crimeLevel: character.crimeLevel || 5,
+                    accomplishments: character.accomplishments || [],
+                    inventory: { ...initialFormData.inventory, ...(character.inventory || {}) },
+                    training: Array.isArray(character.training) ? character.training : [],
+                    marriedTo: Array.isArray(character.marriedTo) ? character.marriedTo : [],
+                    relationships: (Array.isArray(character.relationships) ? character.relationships : []).map(r => ({...r, id: r.id || `rel-${Math.random()}`})),
+                    bankAccount: character.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] },
+                    wealthLevel: character.wealthLevel || 'Бедный',
+                };
+                setFormData(initializedCharacter);
+            }
+        };
+
+        initializeState();
+
         if (editingState?.type === 'relationship') {
             if (editingState.mode === 'edit') setCurrentItem(editingState.relationship);
             else setCurrentItem({ id: `rel-${Date.now()}`, targetCharacterId: '', targetCharacterName: '', type: 'нейтралитет', points: 0, history: [] });
@@ -174,8 +175,8 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
         } else {
             setCurrentItem(null);
         }
-    }, [editingState]);
-
+    }, [editingState, character, isCreating]);
+    
 
     const characterOptions = React.useMemo(() => {
         if (!allUsers) return [];
