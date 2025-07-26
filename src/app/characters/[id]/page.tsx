@@ -697,7 +697,7 @@ export default function CharacterPage() {
             </div>
 
             <Dialog open={!!editingState} onOpenChange={(isOpen) => !isOpen && closeDialog()}>
-                <DialogContent className="w-auto max-w-sm mx-auto">
+                <DialogContent>
                     <CharacterForm
                         character={character}
                         allUsers={allUsers}
@@ -711,4 +711,3 @@ export default function CharacterPage() {
         </div>
     );
 }
-
