@@ -391,7 +391,7 @@ export default function CharacterPage() {
                                         const { level, progressToNextLevel, maxPointsForCurrentLevel } = calculateRelationshipLevel(rel.points);
                                         const pointsInCurrentLevel = rel.points - (level * 100);
                                         return (
-                                        <div key={rel.targetCharacterId} className="relative group">
+                                        <div key={`${rel.targetCharacterId}-${rel.type}`} className="relative group">
                                             {isOwnerOrAdmin && (
                                                 <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'relationship', mode: 'edit', relationship: rel })} className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <Edit className="w-4 h-4" />
