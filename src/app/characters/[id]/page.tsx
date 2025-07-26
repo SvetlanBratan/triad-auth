@@ -251,15 +251,17 @@ export default function CharacterPage() {
         if (!isVisible && !isOwnerOrAdmin) return null;
         const isEmpty = !value;
         return (
-            <div className="flex justify-between items-center group flex-wrap">
-                <span className="text-muted-foreground shrink-0 pr-2">{label}:</span>
-                <div className="flex items-center gap-2 text-right">
-                    {isEmpty && isOwnerOrAdmin ? <span className="italic text-muted-foreground/80">Не указано</span> : value}
+            <div className="grid grid-cols-1 sm:grid-cols-3 sm:items-center gap-1 sm:gap-4 group">
+                <span className="text-muted-foreground col-span-1">{label}:</span>
+                <div className="flex items-center justify-between col-span-1 sm:col-span-2">
+                    <div className="flex-1 text-left">
+                        {isEmpty && isOwnerOrAdmin ? <span className="italic text-muted-foreground/80">Не указано</span> : value}
+                    </div>
                     {isOwnerOrAdmin && (
                          <Button
                             variant="ghost"
                             size="icon"
-                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
                             onClick={() => setEditingState({ type: 'field', section, field })}
                         >
                             {isEmpty ? <PlusCircle className="w-4 h-4 text-muted-foreground" /> : <Edit className="w-4 h-4" />}
