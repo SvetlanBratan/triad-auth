@@ -215,6 +215,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
             updatedData.accomplishments = (formData.accomplishments || []).filter(a => a.id !== currentItem.id);
         }
         onSubmit(updatedData);
+        closeDialog(); // Close dialog after removing
     };
 
 
