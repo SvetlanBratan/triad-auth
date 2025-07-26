@@ -300,7 +300,6 @@ export default function AdminTab() {
   };
   
   const weeklyBonusStatus = useMemo(() => {
-    // If never awarded, it's time to award for the first time.
     if (!lastWeeklyBonusAwardedAt || new Date(lastWeeklyBonusAwardedAt).getFullYear() < 2000) {
         return { canAward: true, daysSinceLast: 7, isOverdue: false };
     }
@@ -316,7 +315,7 @@ export default function AdminTab() {
     try {
         const { awardedCount, isOverdue } = await processWeeklyBonus();
         await refetchUsers();
-        let description = `Бонусы за активность начислены ${awardedCount} активным пользователям.`;
+        let description = `Еженедельные бонусы (активность + известность) начислены ${awardedCount} активным пользователям.`;
         if (isOverdue) {
             description += ' Была также начислена компенсация за просрочку.';
         }
@@ -339,47 +338,6 @@ export default function AdminTab() {
         title: "Применен штраф за неактивность",
         description: `Штраф применен к ${inactiveUsers.length} неактивным пользователям.`,
     });
-  };
-
- const handleFameAwards = async () => {
-    let usersAwardedCount = 0;
-    let totalPointsAwarded = 0;
-
-    for (const user of users) {
-      if (user.characters && user.characters.length > 0) {
-        let pointsForUser = 0;
-        user.characters.forEach(character => {
-          if (character.accomplishments && character.accomplishments.length > 0) {
-            character.accomplishments.forEach(acc => {
-              const fameLevelKey = acc.fameLevel as keyof typeof FAME_LEVELS_POINTS;
-              if (FAME_LEVELS_POINTS[fameLevelKey]) {
-                pointsForUser += FAME_LEVELS_POINTS[fameLevelKey];
-              }
-            });
-          }
-        });
-
-        if (pointsForUser > 0) {
-          await addPointsToUser(user.id, pointsForUser, 'Награда за известность персонажей');
-          usersAwardedCount++;
-          totalPointsAwarded += pointsForUser;
-        }
-      }
-    }
-    
-    await refetchUsers();
-
-    if (usersAwardedCount > 0) {
-      toast({
-        title: "Награды за известность начислены",
-        description: `Начислено ${totalPointsAwarded} баллов для ${usersAwardedCount} пользователей.`,
-      });
-    } else {
-      toast({
-        title: "Награды за известность",
-        description: "Не найдено персонажей с подходящим уровнем известности.",
-      });
-    }
   };
 
 
@@ -773,8 +731,8 @@ export default function AdminTab() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div>
-                        <h3 className="font-semibold mb-2 flex items-center gap-2"><Users /> Еженедельный бонус за активность</h3>
-                        <p className="text-sm text-muted-foreground mb-3">Начисляет 800 баллов всем 'активным' игрокам.</p>
+                        <h3 className="font-semibold mb-2 flex items-center gap-2"><Users /> Еженедельный бонус</h3>
+                        <p className="text-sm text-muted-foreground mb-3">Начисляет 800 баллов за активность и баллы за известность всем 'активным' игрокам.</p>
                         <div className="p-4 rounded-md border space-y-3">
                             {weeklyBonusStatus.canAward ? (
                                 weeklyBonusStatus.isOverdue ? (
@@ -807,12 +765,6 @@ export default function AdminTab() {
                                 {isProcessingWeekly ? 'Обработка...' : 'Запустить еженедельный расчет'}
                             </Button>
                         </div>
-                    </div>
-                    <Separator />
-                    <div>
-                        <h3 className="font-semibold mb-2 flex items-center gap-2"><Trophy /> Награда за известность</h3>
-                        <p className="text-sm text-muted-foreground mb-3">Начисляет баллы всем игрокам в зависимости от известности их персонажей.</p>
-                        <Button onClick={handleFameAwards} variant="outline">Начислить награды</Button>
                     </div>
                     <Separator />
                     <div>
@@ -1437,5 +1389,3 @@ export default function AdminTab() {
     
 
     
-
-

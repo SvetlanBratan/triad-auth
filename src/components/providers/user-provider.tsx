@@ -6,7 +6,7 @@ import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, Re
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter } from "firebase/firestore";
-import { ALL_FAMILIARS, FAMILIARS_BY_ID, MOODLETS_DATA, DEFAULT_GAME_SETTINGS, WEALTH_LEVELS } from '@/lib/data';
+import { ALL_FAMILIARS, FAMILIARS_BY_ID, MOODLETS_DATA, DEFAULT_GAME_SETTINGS, WEALTH_LEVELS, FAME_LEVELS_POINTS } from '@/lib/data';
 
 interface AuthContextType {
     user: FirebaseUser | null;
@@ -1556,7 +1556,6 @@ const processMonthlySalary = useCallback(async () => {
     const now = new Date();
     const lastAwarded = gameSettings.lastWeeklyBonusAwardedAt ? new Date(gameSettings.lastWeeklyBonusAwardedAt) : new Date(0);
     
-    // If lastAwarded is the epoch time, it means it was never awarded.
     const isFirstTime = lastAwarded.getFullYear() < 2000;
     const daysSinceLast = isFirstTime ? 7 : (now.getTime() - lastAwarded.getTime()) / (1000 * 3600 * 24);
 
@@ -1564,29 +1563,71 @@ const processMonthlySalary = useCallback(async () => {
         throw new Error(`Еженедельные бонусы уже были начислены. Следующее начисление через ${Math.ceil(7 - daysSinceLast)} д.`);
     }
     
-    const isOverdue = daysSinceLast > 7;
+    const isOverdue = !isFirstTime && daysSinceLast > 7;
     const allUsers = await fetchUsersForAdmin();
     const activeUsers = allUsers.filter(u => u.status === 'активный');
     const batch = writeBatch(db);
-    
+
+    const userPointsToAdd = new Map<string, { points: number; reasons: string[] }>();
+
+    // Initialize map for active users
     activeUsers.forEach(user => {
-        const bonus = 800;
+        userPointsToAdd.set(user.id, { points: 0, reasons: [] });
+    });
+
+    // 1. Calculate Activity Bonus
+    activeUsers.forEach(user => {
+        const currentData = userPointsToAdd.get(user.id)!;
+        const activityBonus = 800;
         const compensation = isOverdue ? 1000 : 0;
-        const totalAward = bonus + compensation;
         
+        currentData.points += activityBonus + compensation;
+        let reason = `Еженедельный бонус за активность`;
+        if (isOverdue) reason += ' (+ компенсация)';
+        currentData.reasons.push(reason);
+    });
+
+    // 2. Calculate Fame Bonus
+    activeUsers.forEach(user => {
+        if (!user.characters || user.characters.length === 0) return;
+
+        let pointsForFame = 0;
+        user.characters.forEach(character => {
+            (character.accomplishments || []).forEach(acc => {
+                const fameLevelKey = acc.fameLevel as keyof typeof FAME_LEVELS_POINTS;
+                if (FAME_LEVELS_POINTS[fameLevelKey]) {
+                    pointsForFame += FAME_LEVELS_POINTS[fameLevelKey];
+                }
+            });
+        });
+
+        if (pointsForFame > 0) {
+            const currentData = userPointsToAdd.get(user.id)!;
+            currentData.points += pointsForFame;
+            currentData.reasons.push(`Награда за известность персонажей`);
+        }
+    });
+    
+    // 3. Commit to Batch
+    for (const user of activeUsers) {
+        const data = userPointsToAdd.get(user.id);
+        if (!data || data.points === 0) continue;
+
+        const combinedReason = data.reasons.join(', ');
+
         const newPointLog: PointLog = {
             id: `h-${Date.now()}-weekly`,
             date: now.toISOString(),
-            amount: totalAward,
-            reason: `Еженедельный бонус за активность${isOverdue ? ' (+ компенсация)' : ''}`,
+            amount: data.points,
+            reason: combinedReason,
         };
         
         const userRef = doc(db, "users", user.id);
         batch.update(userRef, {
-            points: user.points + totalAward,
+            points: user.points + data.points,
             pointHistory: [newPointLog, ...user.pointHistory]
         });
-    });
+    }
     
     const settingsRef = doc(db, 'game_settings', 'main');
     batch.update(settingsRef, { lastWeeklyBonusAwardedAt: now.toISOString() });
@@ -1595,8 +1636,7 @@ const processMonthlySalary = useCallback(async () => {
     await fetchGameSettings(); // Refetch settings to update the context state
 
     return { awardedCount: activeUsers.length, isOverdue };
-
-  }, [gameSettings.lastWeeklyBonusAwardedAt, fetchUsersForAdmin, fetchGameSettings]);
+}, [gameSettings.lastWeeklyBonusAwardedAt, fetchUsersForAdmin, fetchGameSettings]);
 
 
   const userContextValue = useMemo(
