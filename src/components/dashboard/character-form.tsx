@@ -215,7 +215,6 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
             updatedData.accomplishments = (formData.accomplishments || []).filter(a => a.id !== currentItem.id);
         }
         onSubmit(updatedData);
-        closeDialog(); // Close dialog after removing
     };
 
 
@@ -227,12 +226,14 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
              
              let updatedData = { ...formData };
              if (editingState.type === 'relationship' && 'targetCharacterId' in currentItem) {
-                const items = [...(formData.relationships || [])];
-                const index = items.findIndex(r => r.id === currentItem.id);
-                if (index > -1) items[index] = currentItem as Relationship;
-                else items.push(currentItem as Relationship);
-                updatedData.relationships = items;
-
+                // Only add/update if a target character is selected
+                if (currentItem.targetCharacterId) {
+                    const items = [...(formData.relationships || [])];
+                    const index = items.findIndex(r => r.id === currentItem.id);
+                    if (index > -1) items[index] = currentItem as Relationship;
+                    else items.push(currentItem as Relationship);
+                    updatedData.relationships = items;
+                }
              } else if (editingState.type === 'accomplishment' && 'fameLevel' in currentItem) {
                  const items = [...(formData.accomplishments || [])];
                  const index = items.findIndex(a => a.id === currentItem.id);
