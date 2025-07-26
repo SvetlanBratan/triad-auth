@@ -549,6 +549,12 @@ export default function AdminTab() {
     if (!ecoUserId) return [];
     return users.find(u => u.id === ecoUserId)?.characters || [];
   }, [ecoUserId, users]);
+
+  const selectedCharacterForEconomy = useMemo(() => {
+    if (!ecoUserId || !ecoCharId) return null;
+    const user = users.find(u => u.id === ecoUserId);
+    return user?.characters.find(c => c.id === ecoCharId) || null;
+  }, [ecoUserId, ecoCharId, users]);
   
   const charactersForCapital = useMemo(() => {
     if (!capitalUserId) return [];
@@ -1345,6 +1351,11 @@ export default function AdminTab() {
                                     </Select>
                                 </div>
                             </div>
+                             {selectedCharacterForEconomy && (
+                                <div className="text-sm text-muted-foreground p-2 bg-muted rounded-md">
+                                    Текущий уровень: <span className="font-semibold text-foreground">{selectedCharacterForEconomy.wealthLevel}</span>
+                                </div>
+                            )}
                             <div>
                                 <Label htmlFor="wealth-level">Уровень достатка</Label>
                                 <Select value={ecoWealthLevel} onValueChange={v => setEcoWealthLevel(v as WealthLevel)}>
@@ -1422,3 +1433,4 @@ export default function AdminTab() {
     
 
     
+
