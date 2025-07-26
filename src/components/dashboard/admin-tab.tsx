@@ -300,12 +300,16 @@ export default function AdminTab() {
   };
   
   const weeklyBonusStatus = useMemo(() => {
-    if (!lastWeeklyBonusAwardedAt) return { canAward: false, daysSinceLast: 0, isOverdue: false };
+    // If never awarded, it's time to award for the first time.
+    if (!lastWeeklyBonusAwardedAt || new Date(lastWeeklyBonusAwardedAt).getFullYear() < 2000) {
+        return { canAward: true, daysSinceLast: 7, isOverdue: false };
+    }
     const daysSinceLast = differenceInDays(new Date(), new Date(lastWeeklyBonusAwardedAt));
     const canAward = daysSinceLast >= 7;
     const isOverdue = daysSinceLast > 7;
     return { canAward, daysSinceLast, isOverdue };
   }, [lastWeeklyBonusAwardedAt]);
+
 
   const handleWeeklyCalculations = async () => {
     setIsProcessingWeekly(true);
@@ -1433,4 +1437,5 @@ export default function AdminTab() {
     
 
     
+
 

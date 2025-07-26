@@ -1555,7 +1555,10 @@ const processMonthlySalary = useCallback(async () => {
   const processWeeklyBonus = useCallback(async (): Promise<{awardedCount: number, isOverdue: boolean}> => {
     const now = new Date();
     const lastAwarded = gameSettings.lastWeeklyBonusAwardedAt ? new Date(gameSettings.lastWeeklyBonusAwardedAt) : new Date(0);
-    const daysSinceLast = (now.getTime() - lastAwarded.getTime()) / (1000 * 3600 * 24);
+    
+    // If lastAwarded is the epoch time, it means it was never awarded.
+    const isFirstTime = lastAwarded.getFullYear() < 2000;
+    const daysSinceLast = isFirstTime ? 7 : (now.getTime() - lastAwarded.getTime()) / (1000 * 3600 * 24);
 
     if (daysSinceLast < 7) {
         throw new Error(`Еженедельные бонусы уже были начислены. Следующее начисление через ${Math.ceil(7 - daysSinceLast)} д.`);
