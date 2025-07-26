@@ -101,109 +101,6 @@ const relationshipTypeOptions: { value: RelationshipType, label: string }[] = [
 ];
 
 
-const RelationshipForm = ({ formData, setFormData, characterOptions, editingRelationship }: {
-    formData: Character,
-    setFormData: React.Dispatch<React.SetStateAction<Character>>,
-    characterOptions: OptionType[],
-    editingRelationship: EditingRelationship
-}) => {
-    const [localRelationship, setLocalRelationship] = React.useState<Relationship>(() => {
-        if (editingRelationship.mode === 'edit') {
-            return editingRelationship.relationship;
-        }
-        return {
-            id: `rel-${Date.now()}`,
-            targetCharacterId: '',
-            targetCharacterName: '',
-            type: 'нейтралитет',
-            points: 0,
-            history: [],
-        };
-    });
-
-    const handleRelationshipChange = (field: keyof Omit<Relationship, 'id' | 'points' | 'history'>, value: any) => {
-        const updatedRelationship = { ...localRelationship, [field]: value };
-        
-        if (field === 'targetCharacterId') {
-            const targetChar = characterOptions.find(opt => opt.value === value);
-            updatedRelationship.targetCharacterName = targetChar ? targetChar.label.split(' (')[0] : 'Неизвестно';
-        }
-
-        setLocalRelationship(updatedRelationship);
-
-        if (editingRelationship.mode === 'add') {
-             setFormData(prev => ({ ...prev, relationships: [updatedRelationship] }));
-        } else {
-            const newRelationships = (formData.relationships || []).map(r => 
-                r.id === updatedRelationship.id ? updatedRelationship : r
-            );
-            setFormData(prev => ({ ...prev, relationships: newRelationships }));
-        }
-    };
-    
-    const handleRemove = () => {
-         setFormData(prev => ({
-            ...prev,
-            relationships: (prev.relationships || []).filter(r => r.id !== localRelationship.id)
-        }));
-    };
-
-    return (
-        <div className="space-y-4">
-            <div className="space-y-3 rounded-md border p-3 relative">
-                {editingRelationship.mode === 'edit' && (
-                     <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="absolute top-1 right-1 h-7 w-7"
-                        onClick={handleRemove}
-                    >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                )}
-                <div>
-                    <Label>Персонаж</Label>
-                    <Select
-                        value={localRelationship.targetCharacterId}
-                        onValueChange={(value) => handleRelationshipChange('targetCharacterId', value)}
-                    >
-                        <SelectTrigger>
-                            <SelectValue placeholder="Выберите персонажа..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {characterOptions.map(opt => (
-                                <SelectItem key={opt.value} value={opt.value}>
-                                    {opt.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div>
-                    <Label>Тип отношений</Label>
-                    <Select
-                        value={localRelationship.type}
-                        onValueChange={(value: RelationshipType) => handleRelationshipChange('type', value)}
-                    >
-                        <SelectTrigger>
-                            <SelectValue placeholder="Выберите тип..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {relationshipTypeOptions.map(opt => (
-                                <SelectItem key={opt.value} value={opt.value}>
-                                    {opt.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-
 const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingSection, editingRelationship }: CharacterFormProps) => {
     const isCreating = !character;
     const [formData, setFormData] = React.useState<Character>(character || { ...initialFormData, id: `c-${Date.now()}`});
@@ -227,19 +124,37 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingSect
              setFormData(newCharacterWithId);
         }
     }, [character]);
+    
+    // State for the single relationship being edited/added
+    const [currentRelationship, setCurrentRelationship] = React.useState<Relationship | null>(() => {
+        if (editingRelationship?.mode === 'edit') {
+            return editingRelationship.relationship;
+        }
+        if (editingRelationship?.mode === 'add') {
+            return {
+                id: `rel-${Date.now()}`,
+                targetCharacterId: '',
+                targetCharacterName: '',
+                type: 'нейтралитет',
+                points: 0,
+                history: [],
+            };
+        }
+        return null;
+    });
+
 
     const characterOptions = React.useMemo(() => {
         if (!allUsers) return [];
-        let currentRelationships = new Set<string>();
-        if(editingRelationship?.mode === 'edit'){
-            currentRelationships = new Set((character?.relationships || []).filter(r => r.id !== editingRelationship?.relationship?.id).map(r => r.targetCharacterId))
-        } else {
-            currentRelationships = new Set((character?.relationships || []).map(r => r.targetCharacterId))
+        let currentRelationshipIds = new Set<string>((character?.relationships || []).map(r => r.targetCharacterId));
+        // If editing, allow the current relationship's target to be in the list
+        if(editingRelationship?.mode === 'edit') {
+            currentRelationshipIds.delete(editingRelationship.relationship.targetCharacterId);
         }
 
         return allUsers.flatMap(user =>
             user.characters
-                .filter(c => c.id !== formData.id && !currentRelationships.has(c.id))
+                .filter(c => c.id !== formData.id && !currentRelationshipIds.has(c.id))
                 .map(c => ({
                     value: c.id,
                     label: `${c.name} (${user.name})`
@@ -276,27 +191,44 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingSect
         const newAccomplishments = (formData.accomplishments || []).filter((_, i) => i !== index);
         setFormData(prev => ({ ...prev, accomplishments: newAccomplishments }));
     };
+    
+     const handleRelationshipChange = (field: keyof Relationship, value: any) => {
+        if (!currentRelationship) return;
+        const updatedRelationship = { ...currentRelationship, [field]: value };
+        
+        if (field === 'targetCharacterId') {
+            const targetChar = characterOptions.find(opt => opt.value === value);
+            updatedRelationship.targetCharacterName = targetChar ? targetChar.label.split(' (')[0] : 'Неизвестно';
+        }
+
+        setCurrentRelationship(updatedRelationship);
+    };
+
+    const handleRemoveRelationship = () => {
+        if (!currentRelationship) return;
+        const updatedRelationships = (formData.relationships || []).filter(r => r.id !== currentRelationship.id);
+        onSubmit({ ...formData, relationships: updatedRelationships });
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         
-        if (editingRelationship?.mode === 'add') {
-            const newRel = formData.relationships[0];
-            const existingRelationships = character?.relationships || [];
-            const finalRelationships = [...existingRelationships, newRel];
-            onSubmit({ ...character!, relationships: finalRelationships });
+        if (editingRelationship) {
+             if (!currentRelationship) return;
+             
+             let finalRelationships: Relationship[] = [...(formData.relationships || [])];
 
-        } else if (editingRelationship?.mode === 'edit') {
-            const editedRel = formData.relationships.find(r => r.id === editingRelationship.relationship.id);
-            if(editedRel){
-                const existingRelationships = (character?.relationships || []).map(r => r.id === editedRel.id ? editedRel : r);
-                 onSubmit({ ...character!, relationships: existingRelationships });
-            } else { // It was removed
-                 const finalRelationships = (character?.relationships || []).filter(r => r.id !== editingRelationship.relationship.id);
-                 onSubmit({ ...character!, relationships: finalRelationships });
-            }
+             if (editingRelationship.mode === 'add') {
+                 finalRelationships.push(currentRelationship);
+             } else { // 'edit'
+                const index = finalRelationships.findIndex(r => r.id === currentRelationship.id);
+                if (index > -1) {
+                    finalRelationships[index] = currentRelationship;
+                }
+             }
+             onSubmit({ ...formData, relationships: finalRelationships });
         } else {
-            onSubmit(formData);
+             onSubmit(formData);
         }
     };
 
@@ -322,12 +254,60 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingSect
         const sectionToRender = isCreating ? 'mainInfo' : editingSection;
 
         if (editingRelationship) {
-            return <RelationshipForm 
-                        formData={formData} 
-                        setFormData={setFormData} 
-                        characterOptions={characterOptions} 
-                        editingRelationship={editingRelationship}
-                    />;
+            if (!currentRelationship) return null;
+            return (
+                 <div className="space-y-4">
+                    <div className="space-y-3 rounded-md border p-3 relative">
+                        {editingRelationship.mode === 'edit' && (
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="absolute top-1 right-1 h-7 w-7"
+                                onClick={handleRemoveRelationship}
+                            >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                        )}
+                        <div>
+                            <Label>Персонаж</Label>
+                            <Select
+                                value={currentRelationship.targetCharacterId}
+                                onValueChange={(value) => handleRelationshipChange('targetCharacterId', value)}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Выберите персонажа..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {characterOptions.map(opt => (
+                                        <SelectItem key={opt.value} value={opt.value}>
+                                            {opt.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <Label>Тип отношений</Label>
+                            <Select
+                                value={currentRelationship.type}
+                                onValueChange={(value: RelationshipType) => handleRelationshipChange('type', value)}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Выберите тип..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {relationshipTypeOptions.map(opt => (
+                                        <SelectItem key={opt.value} value={opt.value}>
+                                            {opt.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                </div>
+            )
         }
 
         switch(sectionToRender) {

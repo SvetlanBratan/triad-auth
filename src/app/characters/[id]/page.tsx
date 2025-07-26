@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FAMILIARS_BY_ID, MOODLETS_DATA, TRAINING_OPTIONS } from '@/lib/data';
 import FamiliarCardDisplay from '@/components/dashboard/familiar-card';
-import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users, HeartHandshake, Wallet, Coins, Award, Zap, ShieldOff, History, Info, PlusCircle } from 'lucide-react';
+import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users, HeartHandshake, Wallet, Coins, Award, Zap, ShieldOff, History, Info, PlusCircle, BookUser } from 'lucide-react';
 import Link from 'next/link';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -222,22 +222,33 @@ export default function CharacterPage() {
     const canViewHistory = isOwnerOrAdmin;
     const accomplishments = character.accomplishments || [];
     
-    const SectionHeader = ({ title, icon, section, isEmpty }: { title: string; icon: React.ReactNode; section: EditableSection, isEmpty?: boolean }) => (
+    const SectionHeader = ({ title, icon, section }: { title: string; icon: React.ReactNode; section: EditableSection }) => (
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <CardTitle className="flex items-center gap-2">{icon} {title}</CardTitle>
             {isOwnerOrAdmin && (
-                isEmpty ? (
-                     <Button variant="outline-dashed" size="sm" onClick={() => setEditingSection(section)} className="shrink-0 self-start sm:self-auto">
-                        <PlusCircle className="mr-2 h-4 w-4" /> Добавить
-                    </Button>
-                ) : (
-                    <Button variant="ghost" size="icon" onClick={() => setEditingSection(section)} className="shrink-0 self-start sm:self-center">
-                        <Edit className="w-4 h-4" />
-                    </Button>
-                )
+                <Button variant="ghost" size="icon" onClick={() => setEditingSection(section)} className="shrink-0 self-start sm:self-center">
+                    <Edit className="w-4 h-4" />
+                </Button>
             )}
         </CardHeader>
     );
+
+    const SubSection = ({ title, content, section, isVisible, isEmpty }: { title: string; content: React.ReactNode; section: EditableSection; isVisible: boolean; isEmpty: boolean; }) => {
+        if (!isVisible) return null;
+        return (
+             <div className="py-2">
+                <div className="flex justify-between items-center mb-1">
+                    <h4 className="font-semibold text-muted-foreground">{title}</h4>
+                    {isOwnerOrAdmin && (
+                        <Button variant="ghost" size="icon" onClick={() => setEditingSection(section)} className="h-7 w-7">
+                            {isEmpty ? <PlusCircle className="w-4 h-4 text-muted-foreground" /> : <Edit className="w-4 h-4" />}
+                        </Button>
+                    )}
+                </div>
+                {!isEmpty ? content : <p className="text-sm text-muted-foreground italic">Информация отсутствует.</p>}
+            </div>
+        );
+    };
 
 
     return (
@@ -306,7 +317,14 @@ export default function CharacterPage() {
                     
                     {(character.abilities || isOwnerOrAdmin) && (
                         <Card>
-                            <SectionHeader title="Способности" icon={<Zap />} section="abilities" isEmpty={!character.abilities} />
+                             <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <CardTitle className="flex items-center gap-2"><Zap /> Способности</CardTitle>
+                                {isOwnerOrAdmin && (
+                                    <Button variant={character.abilities ? "ghost" : "outline-dashed"} size={character.abilities ? "icon" : "sm"} onClick={() => setEditingSection("abilities")} className="shrink-0 self-start sm:self-auto">
+                                        {character.abilities ? <Edit className="w-4 h-4" /> : <><PlusCircle className="mr-2 h-4 w-4" /> Добавить</>}
+                                    </Button>
+                                )}
+                            </CardHeader>
                             {character.abilities && (
                                 <CardContent>
                                     <ScrollArea className="h-40 w-full">
@@ -319,7 +337,14 @@ export default function CharacterPage() {
                     
                     {(character.weaknesses || isOwnerOrAdmin) && (
                          <Card>
-                            <SectionHeader title="Слабости" icon={<ShieldOff />} section="weaknesses" isEmpty={!character.weaknesses} />
+                            <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <CardTitle className="flex items-center gap-2"><ShieldOff /> Слабости</CardTitle>
+                                {isOwnerOrAdmin && (
+                                     <Button variant={character.weaknesses ? "ghost" : "outline-dashed"} size={character.weaknesses ? "icon" : "sm"} onClick={() => setEditingSection("weaknesses")} className="shrink-0 self-start sm:self-auto">
+                                        {character.weaknesses ? <Edit className="w-4 h-4" /> : <><PlusCircle className="mr-2 h-4 w-4" /> Добавить</>}
+                                    </Button>
+                                )}
+                            </CardHeader>
                             {character.weaknesses && (
                                 <CardContent>
                                     <ScrollArea className="h-40 w-full">
@@ -587,39 +612,42 @@ export default function CharacterPage() {
                     </Card>
                     
                     <Card>
-                        <SectionHeader title="Обучение" icon={<Info />} section="training" isEmpty={!character.training || character.training.length === 0} />
-                        {(character.training && character.training.length > 0) && (
-                             <CardContent>
-                                <ul className="list-disc pl-5 space-y-1">
-                                    {trainingLabels.map((label, index) => <li key={`${label}-${index}`}>{label}</li>)}
-                                </ul>
-                            </CardContent>
-                        )}
-                    </Card>
-                    
-                    <Card>
-                        <SectionHeader title="Дополнительно" icon={<Info />} section="lifeGoal" />
-                        <CardContent>
-                            <Accordion type="multiple" className="w-full">
-                                { (character.lifeGoal || isOwnerOrAdmin) && (
-                                    <AccordionItem value="lifeGoal">
-                                        <AccordionTrigger>Жизненная цель</AccordionTrigger>
-                                        <AccordionContent><p className="whitespace-pre-wrap">{character.lifeGoal || 'Описание отсутствует.'}</p></AccordionContent>
-                                    </AccordionItem>
-                                )}
-                                { (character.pets || isOwnerOrAdmin) && (
-                                    <AccordionItem value="pets">
-                                        <AccordionTrigger>Питомцы</AccordionTrigger>
-                                        <AccordionContent><p className="whitespace-pre-wrap">{character.pets || 'Описание отсутствует.'}</p></AccordionContent>
-                                    </AccordionItem>
-                                )}
-                                { (character.diary || isOwnerOrAdmin) && (
-                                    <AccordionItem value="diary">
-                                        <AccordionTrigger>Личный дневник</AccordionTrigger>
-                                        <AccordionContent><p className="whitespace-pre-wrap">{character.diary || 'Описание отсутствует.'}</p></AccordionContent>
-                                    </AccordionItem>
-                                )}
-                            </Accordion>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><BookUser /> Дополнительно</CardTitle>
+                        </CardHeader>
+                        <CardContent className="divide-y">
+                             <SubSection 
+                                title="Обучение"
+                                section="training"
+                                isVisible={true}
+                                isEmpty={!character.training || character.training.length === 0}
+                                content={
+                                     <ul className="list-disc pl-5 space-y-1 text-sm pt-2">
+                                        {trainingLabels.map((label, index) => <li key={`${label}-${index}`}>{label}</li>)}
+                                    </ul>
+                                }
+                            />
+                            <SubSection 
+                                title="Жизненная цель"
+                                section="lifeGoal"
+                                isVisible={!!character.lifeGoal || isOwnerOrAdmin}
+                                isEmpty={!character.lifeGoal}
+                                content={<p className="whitespace-pre-wrap text-sm pt-2">{character.lifeGoal}</p>}
+                            />
+                            <SubSection 
+                                title="Питомцы"
+                                section="pets"
+                                isVisible={!!character.pets || isOwnerOrAdmin}
+                                isEmpty={!character.pets}
+                                content={<p className="whitespace-pre-wrap text-sm pt-2">{character.pets}</p>}
+                            />
+                             <SubSection 
+                                title="Личный дневник"
+                                section="diary"
+                                isVisible={!!character.diary || isOwnerOrAdmin}
+                                isEmpty={!character.diary}
+                                content={<p className="whitespace-pre-wrap text-sm pt-2">{character.diary}</p>}
+                            />
                         </CardContent>
                     </Card>
 
