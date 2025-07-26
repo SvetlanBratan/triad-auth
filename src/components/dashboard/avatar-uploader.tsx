@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { UploadCloud, X } from 'lucide-react';
 import Image from 'next/image';
-import { Progress } from '../ui/progress';
+import { Progress } from '@/components/ui/progress';
 
 interface AvatarUploaderProps {
   closeDialog: () => void;
