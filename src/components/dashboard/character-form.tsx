@@ -211,9 +211,9 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
     };
     
     return (
-        <form onSubmit={handleSubmit}>
-            <ScrollArea className="h-[70vh] pr-6">
-                <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="flex flex-col h-full">
+            <ScrollArea className="flex-grow pr-6 -mr-6">
+                <div className="space-y-4 pb-4">
                     {/* Basic Info */}
                     <div>
                         <Label htmlFor="name">Имя персонажа</Label>
@@ -393,7 +393,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog }: Character
                     </div>
                 </div>
             </ScrollArea>
-            <div className="flex justify-end gap-2 pt-6">
+            <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t">
               <DialogClose asChild>
                 <Button type="button" variant="ghost">Отмена</Button>
               </DialogClose>
