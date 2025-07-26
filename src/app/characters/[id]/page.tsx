@@ -178,13 +178,13 @@ export default function CharacterPage() {
     }, [character, allUsers]);
 
     const formattedCurrency = useMemo(() => {
-        if (!character) return [];
+        if (!character || !character.bankAccount) return [];
         const result = formatCurrency(character.bankAccount, true);
         return typeof result === 'string' ? [[result, '']] : result;
     }, [character]);
     
     const sortedBankHistory = useMemo(() => {
-        if (!character || !character.bankAccount.history) return [];
+        if (!character || !character.bankAccount?.history) return [];
         return [...character.bankAccount.history].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }, [character]);
 
@@ -639,4 +639,3 @@ export default function CharacterPage() {
     
 
     
-
