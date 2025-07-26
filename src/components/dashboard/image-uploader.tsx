@@ -26,11 +26,11 @@ export default function ImageUploader({ currentImageUrl, onUpload, uploadPreset 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
     if (selectedFile) {
-      if (selectedFile.size > 5 * 1024 * 1024) { // 5MB limit
+      if (selectedFile.size > 7 * 1024 * 1024) { // 7MB limit
         toast({
           variant: 'destructive',
           title: 'Файл слишком большой',
-          description: 'Пожалуйста, выберите изображение размером до 5 МБ.',
+          description: 'Пожалуйста, выберите изображение размером до 7 МБ.',
         });
         return;
       }
@@ -138,7 +138,7 @@ export default function ImageUploader({ currentImageUrl, onUpload, uploadPreset 
           <div className="text-center text-muted-foreground">
             <UploadCloud className="w-12 h-12 mx-auto mb-4" />
             <p className="font-semibold">Нажмите, чтобы загрузить файл</p>
-            <p className="text-xs">PNG, JPG или GIF (до 5MB)</p>
+            <p className="text-xs">PNG, JPG или GIF (до 7MB)</p>
           </div>
         )}
       </div>
