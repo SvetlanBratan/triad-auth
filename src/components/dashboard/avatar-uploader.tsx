@@ -58,7 +58,7 @@ export default function AvatarUploader({ closeDialog }: AvatarUploaderProps) {
 
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
+    formData.append('upload_preset', 'ankets');
 
     try {
         const response = await fetch(`https://api.cloudinary.com/v1_1/${env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, {
@@ -153,3 +153,4 @@ export default function AvatarUploader({ closeDialog }: AvatarUploaderProps) {
     </div>
   );
 }
+

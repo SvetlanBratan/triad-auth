@@ -3,16 +3,14 @@ import { z } from 'zod';
 
 const envSchema = z.object({
   NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: z.string().min(1),
-  // We don't need to load the preset here as it's passed via props, but we keep the logic flexible.
+  NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET: z.string().min(1),
 });
 
-// This object will hold the validated environment variables.
-// We use a proxy to throw a clear error if a client-side variable is accessed on the server.
 const clientEnv = {
   NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+  NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET: process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET,
 };
 
-// Validate the environment variables.
 try {
   envSchema.parse(clientEnv);
 } catch (err) {
@@ -23,4 +21,5 @@ try {
 }
 
 
-export const env = clientEnv as z.infer<typeof envSchema> & { NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: string };
+export const env = clientEnv as z.infer<typeof envSchema> & { NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: string, NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET: string };
+
