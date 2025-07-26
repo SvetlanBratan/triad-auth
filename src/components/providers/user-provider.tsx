@@ -511,16 +511,31 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const sourceUserData = userDoc.data() as User;
         const oldCharacterState = sourceUserData.characters.find(c => c.id === characterToUpdate.id);
         const oldRelationships = new Map((oldCharacterState?.relationships || []).map(r => [r.targetCharacterId, r]));
-
-        // Ensure bankAccount.history is an array and crimeLevel is defined
-        const sanitizedCharacterToUpdate = {
-            ...characterToUpdate,
-            crimeLevel: characterToUpdate.crimeLevel ?? 5,
-            bankAccount: {
-                ...characterToUpdate.bankAccount,
-                history: Array.isArray(characterToUpdate.bankAccount?.history) ? characterToUpdate.bankAccount.history : [],
-            },
+        
+        const sanitizeCharacterForWrite = (char: Character): Character => {
+            return {
+                ...initialFormData, // Start with a complete, default-filled object
+                ...char, // Overwrite with actual character data
+                crimeLevel: char.crimeLevel ?? 5,
+                relationships: char.relationships || [],
+                marriedTo: char.marriedTo || [],
+                moodlets: char.moodlets || [],
+                abilities: char.abilities ?? '',
+                weaknesses: char.weaknesses ?? '',
+                lifeGoal: char.lifeGoal ?? '',
+                pets: char.pets ?? '',
+                criminalRecords: char.criminalRecords ?? '',
+                inventory: char.inventory || initialFormData.inventory,
+                bankAccount: char.bankAccount || initialFormData.bankAccount,
+                bankAccount: {
+                  ...initialFormData.bankAccount,
+                  ...(char.bankAccount || {}),
+                  history: Array.isArray(char.bankAccount?.history) ? char.bankAccount.history : [],
+                },
+            };
         };
+
+        const sanitizedCharacterToUpdate = sanitizeCharacterForWrite(characterToUpdate);
 
         const updatedCharacters = [...sourceUserData.characters];
         const characterIndex = updatedCharacters.findIndex(char => char.id === sanitizedCharacterToUpdate.id);
@@ -538,17 +553,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         usersToUpdate.set(userId, { ...sourceUserData, characters: updatedCharacters });
 
         const newRelationships = new Map((sanitizedCharacterToUpdate.relationships || []).map(r => [r.targetCharacterId, r]));
-        
-        const sanitizeCharacterForWrite = (char: Character): Character => {
-            return {
-                ...char,
-                crimeLevel: char.crimeLevel ?? 5,
-                relationships: char.relationships || [],
-                bankAccount: char.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] },
-                // ... add other fields that might be undefined
-            };
-        };
-
 
         // Check for new/updated relationships
         for (const [targetCharId, newRel] of newRelationships.entries()) {
@@ -640,7 +644,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         setCurrentUser(updatedUser);
       }
     }
-}, [currentUser?.id, fetchUserById]);
+}, [currentUser?.id, fetchUserById, initialFormData]);
 
 
 
@@ -1775,5 +1779,7 @@ const processMonthlySalary = useCallback(async () => {
     </AuthContext.Provider>
   );
 }
+
+    
 
     
