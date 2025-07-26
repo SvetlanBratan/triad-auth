@@ -116,6 +116,8 @@ export interface ExchangeRequest {
     toAmount: number;
     status: ExchangeRequestStatus;
     createdAt: string; // ISO string date
+    acceptorCharacterId?: string;
+    acceptorCharacterName?: string;
 }
 
 export interface FamiliarTradeRequest {

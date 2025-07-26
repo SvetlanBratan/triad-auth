@@ -23,10 +23,11 @@ import { useToast } from '@/hooks/use-toast';
 import { ArrowRightLeft, Coins, Trash2, Repeat, Info } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { BankAccount, Currency, ExchangeRequest } from '@/lib/types';
+import { BankAccount, Character, Currency, ExchangeRequest } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 
 const CURRENCY_OPTIONS: { value: Currency, label: string }[] = [
     { value: 'platinum', label: 'Платина' },
@@ -57,6 +58,9 @@ export default function CurrencyExchange() {
   const [isAcceptingId, setIsAcceptingId] = useState<string | null>(null);
 
   const [openRequests, setOpenRequests] = useState<ExchangeRequest[]>([]);
+  
+  const [selectedAcceptorCharId, setSelectedAcceptorCharId] = useState('');
+
 
   const fetchRequests = async () => {
     try {
@@ -111,10 +115,10 @@ export default function CurrencyExchange() {
   }
 
   const handleAccept = async (request: ExchangeRequest) => {
-      if (!currentUser) return;
+      if (!currentUser || !selectedAcceptorCharId) return;
       setIsAcceptingId(request.id);
       try {
-          await acceptExchangeRequest(currentUser.id, request);
+          await acceptExchangeRequest(currentUser.id, selectedAcceptorCharId, request);
           toast({ title: 'Сделка совершена!', description: 'Обмен валюты прошел успешно.' });
           await fetchRequests();
       } catch (error) {
@@ -122,6 +126,7 @@ export default function CurrencyExchange() {
           toast({ variant: 'destructive', title: 'Ошибка', description: errorMessage });
       } finally {
           setIsAcceptingId(null);
+          setSelectedAcceptorCharId('');
       }
   };
 
@@ -250,8 +255,8 @@ export default function CurrencyExchange() {
              {otherOpenRequests.length > 0 ? (
                 <div className="grid grid-cols-1 @lg:grid-cols-2 gap-4">
                     {otherOpenRequests.map(req => {
-                        const acceptorCharacter = currentUser?.characters.find(c => c.bankAccount[req.toCurrency] >= req.toAmount);
-                        const canAccept = !!acceptorCharacter;
+                        const acceptingCharacters = currentUser?.characters.filter(c => (c.bankAccount?.[req.toCurrency] ?? 0) >= req.toAmount);
+                        const canAccept = acceptingCharacters && acceptingCharacters.length > 0;
                         const isAccepting = isAcceptingId === req.id;
 
                         return (
@@ -270,13 +275,52 @@ export default function CurrencyExchange() {
                                </div>
                              </CardContent>
                              <CardFooter>
-                                 <Button 
-                                    className="w-full" 
-                                    onClick={() => handleAccept(req)}
-                                    disabled={!canAccept || isAccepting}
-                                >
-                                     {isAccepting ? 'Принимаем...' : (canAccept ? `Принять (от ${acceptorCharacter.name})` : 'Недостаточно средств')}
-                                </Button>
+                                <Dialog onOpenChange={(isOpen) => !isOpen && setSelectedAcceptorCharId('')}>
+                                    <DialogTrigger asChild>
+                                        <Button 
+                                            className="w-full" 
+                                            disabled={!canAccept || isAccepting}
+                                        >
+                                             {isAccepting ? 'Принимаем...' : (canAccept ? `Принять` : 'Недостаточно средств')}
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                        <DialogHeader>
+                                            <DialogTitle>Принять запрос на обмен</DialogTitle>
+                                            <DialogDescription>
+                                                Выберите персонажа, от лица которого вы хотите совершить обмен. У персонажа должно быть достаточно средств.
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                        <div className="py-4 space-y-2">
+                                            <Label htmlFor="acceptor-char">Ваш персонаж:</Label>
+                                            <Select value={selectedAcceptorCharId} onValueChange={setSelectedAcceptorCharId}>
+                                                <SelectTrigger id="acceptor-char">
+                                                    <SelectValue placeholder="Выберите персонажа..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {acceptingCharacters?.map((char: Character) => (
+                                                        <SelectItem key={char.id} value={char.id}>
+                                                            {char.name} (Баланс: {formatCurrency(char.bankAccount)})
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <DialogFooter>
+                                            <DialogClose asChild>
+                                                <Button variant="ghost">Отмена</Button>
+                                            </DialogClose>
+                                            <DialogClose asChild>
+                                                <Button 
+                                                    onClick={() => handleAccept(req)} 
+                                                    disabled={!selectedAcceptorCharId}
+                                                >
+                                                    Подтвердить обмен
+                                                </Button>
+                                            </DialogClose>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
                              </CardFooter>
                         </Card>
                         )

@@ -69,7 +69,7 @@ interface UserContextType {
   updateCharacterWealthLevel: (userId: string, characterId: string, wealthLevel: WealthLevel) => Promise<void>;
   createExchangeRequest: (creatorUserId: string, creatorCharacterId: string, fromCurrency: Currency, fromAmount: number, toCurrency: Currency, toAmount: number) => Promise<void>;
   fetchOpenExchangeRequests: () => Promise<ExchangeRequest[]>;
-  acceptExchangeRequest: (acceptorUserId: string, request: ExchangeRequest) => Promise<void>;
+  acceptExchangeRequest: (acceptorUserId: string, acceptorCharacterId: string, request: ExchangeRequest) => Promise<void>;
   cancelExchangeRequest: (request: ExchangeRequest) => Promise<void>;
   createFamiliarTradeRequest: (initiatorCharacterId: string, initiatorFamiliarId: string, targetCharacterId: string, targetFamiliarId: string) => Promise<void>;
   fetchFamiliarTradeRequestsForUser: () => Promise<FamiliarTradeRequest[]>;
@@ -1294,7 +1294,7 @@ const processMonthlySalary = useCallback(async () => {
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ExchangeRequest));
   }, []);
 
-  const acceptExchangeRequest = useCallback(async (acceptorUserId: string, request: ExchangeRequest) => {
+  const acceptExchangeRequest = useCallback(async (acceptorUserId: string, acceptorCharacterId: string, request: ExchangeRequest) => {
     await runTransaction(db, async (transaction) => {
         const requestRef = doc(db, "exchange_requests", request.id);
         const requestDoc = await transaction.get(requestRef);
@@ -1308,10 +1308,15 @@ const processMonthlySalary = useCallback(async () => {
         if (!acceptorUserDoc.exists()) throw new Error("Принимающий пользователь не найден.");
         
         const acceptorUserData = acceptorUserDoc.data() as User;
-        const acceptorChar = acceptorUserData.characters.find(c => (c.bankAccount?.[request.toCurrency] ?? 0) >= request.toAmount);
+        const acceptorCharIndex = acceptorUserData.characters.findIndex(c => c.id === acceptorCharacterId);
         
-        if (!acceptorChar) {
-            throw new Error("У вас нет персонажа с достаточным количеством средств для этой сделки.");
+        if (acceptorCharIndex === -1) {
+             throw new Error("Выбранный персонаж не найден.");
+        }
+        const acceptorChar = acceptorUserData.characters[acceptorCharIndex];
+
+        if ((acceptorChar.bankAccount?.[request.toCurrency] ?? 0) < request.toAmount) {
+             throw new Error("У выбранного персонажа недостаточно средств.");
         }
         
         // Get creator
@@ -1340,7 +1345,7 @@ const processMonthlySalary = useCallback(async () => {
         // Commit changes
         transaction.update(acceptorUserRef, { characters: acceptorUserData.characters });
         transaction.update(creatorUserRef, { characters: creatorUserData.characters });
-        transaction.update(requestRef, { status: 'closed' });
+        transaction.update(requestRef, { status: 'closed', acceptorCharacterId: acceptorCharacterId, acceptorCharacterName: acceptorChar.name });
     });
     
     if (currentUser) {
