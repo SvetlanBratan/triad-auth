@@ -209,7 +209,7 @@ export default function UserProfileDialog({ user }: { user: User }) {
       <ScrollArea className="max-h-[80vh] w-full">
         <div className="pr-6 mt-4 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
             {/* Left Column */}
-            <div className={cn("space-y-6", !isAdminViewer && "md:col-span-2")}>
+            <div className={cn("space-y-6 min-w-0", !isAdminViewer && "md:col-span-2")}>
                 <Card>
                     <CardHeader>
                     <div className="flex items-center gap-4">
@@ -285,7 +285,7 @@ export default function UserProfileDialog({ user }: { user: User }) {
 
             {/* Right Column */}
             {isAdminViewer && (
-                <Card>
+                <Card className="min-w-0">
                     <CardHeader>
                         <CardTitle>История баллов</CardTitle>
                         <CardDescription>Журнал заработанных и потраченных баллов.</CardDescription>
