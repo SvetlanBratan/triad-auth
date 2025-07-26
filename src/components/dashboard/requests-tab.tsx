@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import type { RewardRequest, RewardRequestStatus } from '@/lib/types';
-import { CheckCircle, XCircle, Clock, Trash2, MessageSquare, Users, GitPullRequest } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   AlertDialog,
@@ -22,7 +22,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { ScrollArea } from '../ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 
 
 const RewardRequestsList = ({ requests, onUpdate }: { requests: RewardRequest[], onUpdate: (req: RewardRequest, status: RewardRequestStatus) => void }) => {
@@ -110,7 +109,7 @@ const RewardRequestsList = ({ requests, onUpdate }: { requests: RewardRequest[],
 
 
 export default function RequestsTab() {
-    const { fetchAllRewardRequests, updateRewardRequestStatus } = useUser();
+    const { fetchAllRewardRequests, updateRewardRequestStatus, clearRewardRequestsHistory } = useUser();
     const [rewardRequests, setRewardRequests] = useState<RewardRequest[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const { toast } = useToast();
@@ -146,6 +145,16 @@ export default function RequestsTab() {
             toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось обновить запрос на награду.' });
         }
     };
+    
+    const handleClearHistory = async () => {
+        try {
+            await clearRewardRequestsHistory();
+            await loadRequests();
+            toast({ title: "История очищена", description: "Все обработанные запросы были удалены." });
+        } catch (error) {
+             toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось очистить историю запросов.' });
+        }
+    }
 
     const pendingRewardRequests = rewardRequests.filter(r => r.status === 'в ожидании');
     const processedRewardRequests = rewardRequests.filter(r => r.status !== 'в ожидании').sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -168,6 +177,29 @@ export default function RequestsTab() {
             <div className="flex flex-col h-full">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-2xl font-bold">История запросов</h2>
+                     {processedRewardRequests.length > 0 && (
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" size="icon">
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                <AlertDialogTitle>Вы уверены?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Это действие удалит все обработанные запросы (одобренные и отклоненные) для всех пользователей. Ожидающие запросы останутся.
+                                </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                <AlertDialogCancel>Отмена</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleClearHistory} className="bg-destructive hover:bg-destructive/90">
+                                    Да, очистить историю
+                                </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    )}
                 </div>
                 {processedRewardRequests.length > 0 ? (
                     <ScrollArea className="h-[75vh] pr-4">
