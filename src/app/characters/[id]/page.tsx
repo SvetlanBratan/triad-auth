@@ -322,18 +322,20 @@ export default function CharacterPage() {
                      <Card>
                         <SectionHeader title="Внешность" icon={<PersonStanding />} section="appearance" />
                         <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div className="md:col-span-1">
-                                    <Image
-                                        src={character.appearanceImage || 'https://placehold.co/400x600.png'}
-                                        alt={`Внешность ${character.name}`}
-                                        width={400}
-                                        height={600}
-                                        className="rounded-lg object-cover w-full h-auto aspect-[4/6]"
-                                        data-ai-hint="character portrait"
-                                    />
-                                </div>
-                                <div className="md:col-span-2">
+                            <div className={cn("grid grid-cols-1 gap-6", character.appearanceImage && "md:grid-cols-3")}>
+                                {character.appearanceImage && (
+                                    <div className="md:col-span-1">
+                                        <Image
+                                            src={character.appearanceImage}
+                                            alt={`Внешность ${character.name}`}
+                                            width={400}
+                                            height={600}
+                                            className="rounded-lg object-contain w-full h-auto max-h-96"
+                                            data-ai-hint="character portrait"
+                                        />
+                                    </div>
+                                )}
+                                <div className={cn(character.appearanceImage ? "md:col-span-2" : "md:col-span-3")}>
                                     <ScrollArea className="h-96 w-full">
                                         <p className="whitespace-pre-wrap pr-4">{character.appearance || 'Описание отсутствует.'}</p>
                                     </ScrollArea>
