@@ -164,7 +164,7 @@ const CharacterDisplay = ({ character, onDelete }: { character: Character, onDel
                                         return (
                                             <div key={rank}>
                                             <h4 className="font-semibold capitalize text-muted-foreground mb-2">{rankNames[rank]}</h4>
-                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                            <div className="flex flex-wrap gap-2">
                                                 {groupedFamiliars[rank].map(card => (
                                                     <FamiliarCardDisplay key={card.uniqueKey} cardId={card.id} />
                                                 ))}
