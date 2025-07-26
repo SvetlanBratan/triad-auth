@@ -2,8 +2,8 @@
 'use client';
 
 import React from 'react';
-import type { Character, User, Accomplishment, WealthLevel } from '@/lib/types';
-import { SKILL_LEVELS, FAME_LEVELS, TRAINING_OPTIONS, WEALTH_LEVELS } from '@/lib/data';
+import type { Character, User, Accomplishment, Relationship } from '@/lib/types';
+import { SKILL_LEVELS, FAME_LEVELS, TRAINING_OPTIONS } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { DialogClose, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -11,14 +11,21 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '../ui/textarea';
 import { ScrollArea } from '../ui/scroll-area';
 import { MultiSelect, OptionType } from '../ui/multi-select';
-import { useUser } from '@/hooks/use-user';
 import { Trash2, PlusCircle } from 'lucide-react';
-import { Separator } from '../ui/separator';
 import { SearchableSelect } from '../ui/searchable-select';
 import RelationshipForm from './relationship-form';
-import FinanceForm from './finance-form';
 
-export type EditableSection = 'mainInfo' | 'accomplishments' | 'appearance' | 'personality' | 'biography' | 'abilities' | 'weaknesses' | 'relationships' | 'marriage' | 'additionalInfo';
+export type EditableSection = 
+    | 'mainInfo' | 'accomplishments' | 'appearance' | 'personality' 
+    | 'biography' | 'abilities' | 'weaknesses' | 'marriage' 
+    | 'training' | 'lifeGoal' | 'pets' | 'diary';
+
+export type EditingRelationship = {
+    mode: 'add'
+} | {
+    mode: 'edit',
+    relationship: Relationship
+};
 
 interface CharacterFormProps {
     character: Character | null;
@@ -26,6 +33,7 @@ interface CharacterFormProps {
     onSubmit: (data: Character) => void;
     closeDialog: () => void;
     editingSection: EditableSection | null;
+    editingRelationship: EditingRelationship | null;
 }
 
 const initialFormData: Omit<Character, 'id'> = {
@@ -74,13 +82,15 @@ const SectionTitles: Record<EditableSection, string> = {
     biography: 'Биография',
     abilities: 'Способности',
     weaknesses: 'Слабости',
-    relationships: 'Отношения',
     marriage: 'Семейное положение',
-    additionalInfo: 'Дополнительно',
+    training: 'Обучение',
+    lifeGoal: 'Жизненная цель',
+    pets: 'Питомцы',
+    diary: 'Личный дневник',
 };
 
 
-const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingSection }: CharacterFormProps) => {
+const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingSection, editingRelationship }: CharacterFormProps) => {
     const isCreating = !character;
     const [formData, setFormData] = React.useState<Character>(character || { ...initialFormData, id: `c-${Date.now()}`});
 
@@ -153,34 +163,34 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingSect
 
     const isFieldEmpty = (fieldName: keyof Character) => {
         const value = formData[fieldName];
-        return value === null || value === undefined || (typeof value === 'string' && value.trim() === '');
+        return value === null || value === undefined || (typeof value === 'string' && value.trim() === '') || (Array.isArray(value) && value.length === 0);
     };
 
     const getDialogTitle = () => {
         if (isCreating) return 'Добавить нового персонажа';
+        if (editingRelationship) {
+             return editingRelationship.mode === 'add' ? 'Добавить отношение' : 'Редактировать отношение';
+        }
         if (!editingSection) return '';
         
-        let titleAction = "Редактировать";
-
-        switch(editingSection) {
-            case 'abilities':
-                if (isFieldEmpty('abilities')) titleAction = "Добавить";
-                break;
-            case 'weaknesses':
-                if (isFieldEmpty('weaknesses')) titleAction = "Добавить";
-                break;
-            case 'additionalInfo':
-                 if (isFieldEmpty('lifeGoal') && isFieldEmpty('pets') && isFieldEmpty('diary')) {
-                     titleAction = "Добавить";
-                 }
-                break;
-        }
+        const sectionIsEmpty = isFieldEmpty(editingSection as keyof Character);
+        const titleAction = sectionIsEmpty ? "Добавить" : "Редактировать";
 
         return `${titleAction}: ${SectionTitles[editingSection]}`;
     }
 
     const renderSection = () => {
         const sectionToRender = isCreating ? 'mainInfo' : editingSection;
+
+        if (editingRelationship) {
+            return <RelationshipForm 
+                        formData={formData} 
+                        setFormData={setFormData} 
+                        characterOptions={characterOptions} 
+                        editingRelationship={editingRelationship}
+                    />;
+        }
+
         switch(sectionToRender) {
             case 'mainInfo':
                 return (
@@ -211,23 +221,17 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingSect
             case 'biography': return <div><Label htmlFor="biography">Биография</Label><Textarea id="biography" value={formData.biography ?? ''} onChange={handleChange} rows={15}/></div>;
             case 'abilities': return <div><Label htmlFor="abilities">Способности</Label><Textarea id="abilities" value={formData.abilities ?? ''} onChange={handleChange} rows={8}/></div>;
             case 'weaknesses': return <div><Label htmlFor="weaknesses">Слабости</Label><Textarea id="weaknesses" value={formData.weaknesses ?? ''} onChange={handleChange} rows={8}/></div>;
-            case 'relationships': return <RelationshipForm formData={formData} setFormData={setFormData} characterOptions={characterOptions} />;
             case 'marriage': return <div><Label htmlFor="marriedTo">В браке с</Label><MultiSelect options={characterOptions} selected={formData.marriedTo ?? []} onChange={(v) => handleMultiSelectChange('marriedTo', v)} /></div>;
-            case 'additionalInfo':
-                return (
-                    <div className="space-y-4">
-                        <div><Label htmlFor="training">Обучение</Label><MultiSelect options={TRAINING_OPTIONS} selected={formData.training ?? []} onChange={(v) => handleMultiSelectChange('training', v)} /></div>
-                        <div><Label htmlFor="lifeGoal">Жизненная цель</Label><Textarea id="lifeGoal" value={formData.lifeGoal ?? ''} onChange={handleChange} rows={4}/></div>
-                        <div><Label htmlFor="pets">Питомцы</Label><Textarea id="pets" value={formData.pets ?? ''} onChange={handleChange} rows={4}/></div>
-                        <div><Label htmlFor="diary">Личный дневник</Label><Textarea id="diary" value={formData.diary ?? ''} onChange={handleChange} rows={8}/></div>
-                    </div>
-                );
+            case 'training': return <div><Label htmlFor="training">Обучение</Label><MultiSelect options={TRAINING_OPTIONS} selected={formData.training ?? []} onChange={(v) => handleMultiSelectChange('training', v)} /></div>;
+            case 'lifeGoal': return <div><Label htmlFor="lifeGoal">Жизненная цель</Label><Textarea id="lifeGoal" value={formData.lifeGoal ?? ''} onChange={handleChange} rows={4}/></div>;
+            case 'pets': return <div><Label htmlFor="pets">Питомцы</Label><Textarea id="pets" value={formData.pets ?? ''} onChange={handleChange} rows={4}/></div>;
+            case 'diary': return <div><Label htmlFor="diary">Личный дневник</Label><Textarea id="diary" value={formData.diary ?? ''} onChange={handleChange} rows={8}/></div>;
             default: return isCreating ? renderSection() : <p>Выберите секцию для редактирования.</p>
         }
     }
     
     return (
-         <form onSubmit={handleSubmit} className="flex flex-col h-full">
+         <form onSubmit={handleSubmit} className="flex flex-col h-[70vh] md:h-auto">
              <DialogHeader>
                 <DialogTitle>{getDialogTitle()}</DialogTitle>
                 <DialogDescription>
@@ -237,7 +241,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingSect
                     }
                 </DialogDescription>
              </DialogHeader>
-            <div className="flex-1 min-h-0 py-4">
+            <div className="flex-1 py-4 overflow-hidden">
                 <ScrollArea className="h-full pr-6">
                     {renderSection()}
                 </ScrollArea>
@@ -253,3 +257,4 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingSect
 };
 
 export default CharacterForm;
+
