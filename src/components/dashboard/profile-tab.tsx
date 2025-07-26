@@ -291,9 +291,9 @@ export default function ProfileTab() {
                         <Pencil className="w-6 h-6 text-white" />
                     </div>
                 </div>
-                <div>
-                <CardTitle className="text-2xl font-headline">{currentUser.name}</CardTitle>
-                <CardDescription>{currentUser.email}</CardDescription>
+                <div className="flex-1 overflow-hidden">
+                    <CardTitle className="text-xl sm:text-2xl font-headline truncate">{currentUser.name}</CardTitle>
+                    <CardDescription className="truncate">{currentUser.email}</CardDescription>
                 </div>
             </div>
           </CardHeader>

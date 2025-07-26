@@ -211,7 +211,7 @@ export default function UserProfileDialog({ user }: { user: User }) {
                   <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 overflow-hidden min-w-0">
-                  <CardTitle className="text-2xl font-headline truncate">{user.name}</CardTitle>
+                  <CardTitle className="text-xl sm:text-2xl font-headline truncate">{user.name}</CardTitle>
                   <CardDescription className="truncate">{user.email}</CardDescription>
                 </div>
               </div>
