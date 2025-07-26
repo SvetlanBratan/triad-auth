@@ -2,7 +2,7 @@
 'use client';
 
 import React from 'react';
-import type { Character, User, Accomplishment, Relationship } from '@/lib/types';
+import type { Character, User, Accomplishment, Relationship, RelationshipType } from '@/lib/types';
 import { SKILL_LEVELS, FAME_LEVELS, TRAINING_OPTIONS } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { DialogClose, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -13,7 +13,8 @@ import { ScrollArea } from '../ui/scroll-area';
 import { MultiSelect, OptionType } from '../ui/multi-select';
 import { Trash2, PlusCircle } from 'lucide-react';
 import { SearchableSelect } from '../ui/searchable-select';
-import RelationshipForm from './relationship-form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+
 
 export type EditableSection = 
     | 'mainInfo' | 'accomplishments' | 'appearance' | 'personality' 
@@ -89,6 +90,119 @@ const SectionTitles: Record<EditableSection, string> = {
     diary: 'Личный дневник',
 };
 
+const relationshipTypeOptions: { value: RelationshipType, label: string }[] = [
+    { value: 'романтика', label: 'Романтика' },
+    { value: 'любовь', label: 'Любовь' },
+    { value: 'дружба', label: 'Дружба' },
+    { value: 'семья', label: 'Семья' },
+    { value: 'вражда', label: 'Вражда' },
+    { value: 'конкуренция', label: 'Конкуренция' },
+    { value: 'нейтралитет', label: 'Нейтралитет' },
+];
+
+
+const RelationshipForm = ({ formData, setFormData, characterOptions, editingRelationship }: {
+    formData: Character,
+    setFormData: React.Dispatch<React.SetStateAction<Character>>,
+    characterOptions: OptionType[],
+    editingRelationship: EditingRelationship
+}) => {
+    const [localRelationship, setLocalRelationship] = React.useState<Relationship>(() => {
+        if (editingRelationship.mode === 'edit') {
+            return editingRelationship.relationship;
+        }
+        return {
+            id: `rel-${Date.now()}`,
+            targetCharacterId: '',
+            targetCharacterName: '',
+            type: 'нейтралитет',
+            points: 0,
+            history: [],
+        };
+    });
+
+    const handleRelationshipChange = (field: keyof Omit<Relationship, 'id' | 'points' | 'history'>, value: any) => {
+        const updatedRelationship = { ...localRelationship, [field]: value };
+        
+        if (field === 'targetCharacterId') {
+            const targetChar = characterOptions.find(opt => opt.value === value);
+            updatedRelationship.targetCharacterName = targetChar ? targetChar.label.split(' (')[0] : 'Неизвестно';
+        }
+
+        setLocalRelationship(updatedRelationship);
+
+        if (editingRelationship.mode === 'add') {
+             setFormData(prev => ({ ...prev, relationships: [updatedRelationship] }));
+        } else {
+            const newRelationships = (formData.relationships || []).map(r => 
+                r.id === updatedRelationship.id ? updatedRelationship : r
+            );
+            setFormData(prev => ({ ...prev, relationships: newRelationships }));
+        }
+    };
+    
+    const handleRemove = () => {
+         setFormData(prev => ({
+            ...prev,
+            relationships: (prev.relationships || []).filter(r => r.id !== localRelationship.id)
+        }));
+    };
+
+    return (
+        <div className="space-y-4">
+            <div className="space-y-3 rounded-md border p-3 relative">
+                {editingRelationship.mode === 'edit' && (
+                     <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-1 right-1 h-7 w-7"
+                        onClick={handleRemove}
+                    >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                )}
+                <div>
+                    <Label>Персонаж</Label>
+                    <Select
+                        value={localRelationship.targetCharacterId}
+                        onValueChange={(value) => handleRelationshipChange('targetCharacterId', value)}
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder="Выберите персонажа..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {characterOptions.map(opt => (
+                                <SelectItem key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div>
+                    <Label>Тип отношений</Label>
+                    <Select
+                        value={localRelationship.type}
+                        onValueChange={(value: RelationshipType) => handleRelationshipChange('type', value)}
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder="Выберите тип..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {relationshipTypeOptions.map(opt => (
+                                <SelectItem key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 
 const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingSection, editingRelationship }: CharacterFormProps) => {
     const isCreating = !character;
@@ -116,15 +230,22 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingSect
 
     const characterOptions = React.useMemo(() => {
         if (!allUsers) return [];
+        let currentRelationships = new Set<string>();
+        if(editingRelationship?.mode === 'edit'){
+            currentRelationships = new Set((character?.relationships || []).filter(r => r.id !== editingRelationship?.relationship?.id).map(r => r.targetCharacterId))
+        } else {
+            currentRelationships = new Set((character?.relationships || []).map(r => r.targetCharacterId))
+        }
+
         return allUsers.flatMap(user =>
             user.characters
-                .filter(c => c.id !== formData.id)
+                .filter(c => c.id !== formData.id && !currentRelationships.has(c.id))
                 .map(c => ({
                     value: c.id,
                     label: `${c.name} (${user.name})`
                 }))
         );
-    }, [allUsers, formData.id]);
+    }, [allUsers, formData.id, character, editingRelationship]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { id, value } = e.target;
@@ -158,7 +279,25 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingSect
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSubmit(formData);
+        
+        if (editingRelationship?.mode === 'add') {
+            const newRel = formData.relationships[0];
+            const existingRelationships = character?.relationships || [];
+            const finalRelationships = [...existingRelationships, newRel];
+            onSubmit({ ...character!, relationships: finalRelationships });
+
+        } else if (editingRelationship?.mode === 'edit') {
+            const editedRel = formData.relationships.find(r => r.id === editingRelationship.relationship.id);
+            if(editedRel){
+                const existingRelationships = (character?.relationships || []).map(r => r.id === editedRel.id ? editedRel : r);
+                 onSubmit({ ...character!, relationships: existingRelationships });
+            } else { // It was removed
+                 const finalRelationships = (character?.relationships || []).filter(r => r.id !== editingRelationship.relationship.id);
+                 onSubmit({ ...character!, relationships: finalRelationships });
+            }
+        } else {
+            onSubmit(formData);
+        }
     };
 
     const isFieldEmpty = (fieldName: keyof Character) => {
@@ -231,13 +370,13 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingSect
     }
     
     return (
-         <form onSubmit={handleSubmit} className="flex flex-col h-[70vh] md:h-auto">
+         <form onSubmit={handleSubmit} className="flex flex-col h-full">
              <DialogHeader>
                 <DialogTitle>{getDialogTitle()}</DialogTitle>
                 <DialogDescription>
                     {isCreating 
                         ? 'Заполните основные данные. Остальную анкету можно будет заполнить позже.' 
-                        : 'Внесите изменения и нажмите "Сохранить".'
+                        : (editingRelationship ? 'Внесите изменения и нажмите "Сохранить".' : 'Внесите изменения и нажмите "Сохранить".')
                     }
                 </DialogDescription>
              </DialogHeader>
@@ -257,4 +396,3 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingSect
 };
 
 export default CharacterForm;
-
