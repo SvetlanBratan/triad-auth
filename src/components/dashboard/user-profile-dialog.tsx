@@ -291,35 +291,37 @@ export default function UserProfileDialog({ user }: { user: User }) {
                         <CardDescription>Журнал заработанных и потраченных баллов.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Table>
-                            <TableHeader>
-                            <TableRow>
-                                <TableHead>Дата</TableHead>
-                                <TableHead>Причина</TableHead>
-                                <TableHead className="text-right">Сумма</TableHead>
-                            </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                            {sortedPointHistory.length > 0 ? sortedPointHistory.map((log: PointLog) => (
-                                <TableRow key={log.id}>
-                                <TableCell className="text-muted-foreground">{formatDate(log.date)}</TableCell>
-                                <TableCell>
-                                    <p>{log.reason}</p>
-                                    {log.characterId && <p className="text-xs text-muted-foreground">Персонаж: {characterMap.get(log.characterId) || 'Неизвестно'}</p>}
-                                </TableCell>
-                                <TableCell className={`text-right font-semibold ${log.amount > 0 ? 'text-green-600' : 'text-destructive'}`}>
-                                    {log.amount > 0 ? '+' : ''}{log.amount.toLocaleString()}
-                                </TableCell>
-                                </TableRow>
-                            )) : (
+                         <div className="relative w-full overflow-auto">
+                            <Table>
+                                <TableHeader>
                                 <TableRow>
-                                <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
-                                    Истории баллов пока нет.
-                                </TableCell>
+                                    <TableHead>Дата</TableHead>
+                                    <TableHead>Причина</TableHead>
+                                    <TableHead className="text-right">Сумма</TableHead>
                                 </TableRow>
-                            )}
-                            </TableBody>
-                        </Table>
+                                </TableHeader>
+                                <TableBody>
+                                {sortedPointHistory.length > 0 ? sortedPointHistory.map((log: PointLog) => (
+                                    <TableRow key={log.id}>
+                                    <TableCell className="text-muted-foreground">{formatDate(log.date)}</TableCell>
+                                    <TableCell>
+                                        <p>{log.reason}</p>
+                                        {log.characterId && <p className="text-xs text-muted-foreground">Персонаж: {characterMap.get(log.characterId) || 'Неизвестно'}</p>}
+                                    </TableCell>
+                                    <TableCell className={`text-right font-semibold ${log.amount > 0 ? 'text-green-600' : 'text-destructive'}`}>
+                                        {log.amount > 0 ? '+' : ''}{log.amount.toLocaleString()}
+                                    </TableCell>
+                                    </TableRow>
+                                )) : (
+                                    <TableRow>
+                                    <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                                        Истории баллов пока нет.
+                                    </TableCell>
+                                    </TableRow>
+                                )}
+                                </TableBody>
+                            </Table>
+                         </div>
                     </CardContent>
                 </Card>
             )}
