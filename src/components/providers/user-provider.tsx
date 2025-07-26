@@ -130,19 +130,14 @@ const drawFamiliarCard = (hasBlessing: boolean, unavailableMythicIds: Set<string
     const availableCommon = availableCards.filter(c => c.rank === 'обычный');
 
     let chosenPool: FamiliarCard[] = [];
-    let chosenRank: FamiliarRank;
 
     if (rand < chances.мифический && availableMythic.length > 0) {
-        chosenRank = 'мифический';
         chosenPool = availableMythic;
     } else if (rand < chances.мифический + chances.легендарный && availableLegendary.length > 0) {
-        chosenRank = 'легендарный';
         chosenPool = availableLegendary;
     } else if (rand < chances.мифический + chances.легендарный + chances.редкий && availableRare.length > 0) {
-        chosenRank = 'редкий';
         chosenPool = availableRare;
     } else { 
-        chosenRank = 'обычный';
         chosenPool = availableCommon;
     }
     

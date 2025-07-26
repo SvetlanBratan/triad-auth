@@ -91,11 +91,12 @@ export default function RewardRequestsHistory() {
                                                 {statusProps.text}
                                             </Badge>
                                         </div>
-                                        {request.characterName && (
-                                            <p className="text-xs text-muted-foreground mt-1">
-                                                Для персонажа: <span className="font-medium">{request.characterName}</span>
-                                            </p>
-                                        )}
+                                         <p className="text-xs text-muted-foreground mt-1">
+                                            {request.characterName 
+                                                ? <>Для персонажа: <span className="font-medium">{request.characterName}</span></>
+                                                : <>Для игрока: <span className="font-medium">{request.userName}</span></>
+                                            }
+                                        </p>
                                     </div>
                                 );
                             })}

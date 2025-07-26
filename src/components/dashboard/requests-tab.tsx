@@ -54,11 +54,12 @@ const RewardRequestsList = ({ requests, onUpdate }: { requests: RewardRequest[],
                                     <CardDescription className="text-xs">
                                         От: <strong>{request.userName}</strong> | Стоимость: {request.rewardCost.toLocaleString()} баллов
                                     </CardDescription>
-                                    {request.characterName && (
-                                        <p className="text-xs text-muted-foreground mt-1">
-                                            Для персонажа: <strong>{request.characterName}</strong>
-                                        </p>
-                                    )}
+                                     <p className="text-xs text-muted-foreground mt-1">
+                                        {request.characterName 
+                                            ? <>Для персонажа: <strong>{request.characterName}</strong></>
+                                            : <>Для игрока: <strong>{request.userName}</strong></>
+                                        }
+                                    </p>
                                 </div>
                                 <Badge variant="outline" className={cn("flex items-center gap-2 text-xs", statusProps.badgeClass)}>
                                     {statusProps.icon}
