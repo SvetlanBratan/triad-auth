@@ -7,7 +7,7 @@ import { QueryProvider } from '@/components/providers/query-provider';
 import { ThemeProvider } from '@/components/theme-provider';
 
 export const metadata: Metadata = {
-  title: 'Награды Triad Roleplay',
+  title: 'Triad Roleplay | Система наград',
   description: 'Система очков и наград для Triad Roleplay.',
 };
 
