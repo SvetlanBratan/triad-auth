@@ -39,6 +39,7 @@ import CharacterForm from './character-form';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import FamiliarCardDisplay from './familiar-card';
 import RewardRequestsHistory from './reward-requests-history';
+import AvatarUploader from './avatar-uploader';
 
 
 type IconName = keyof typeof LucideIcons;
@@ -189,6 +190,7 @@ const CharacterDisplay = ({ character, onDelete }: { character: Character, onDel
 export default function ProfileTab() {
   const { currentUser, updateCharacterInUser, deleteCharacterFromUser, fetchUsersForAdmin, checkExtraCharacterSlots, setCurrentUser } = useUser();
   const [isFormDialogOpen, setFormDialogOpen] = React.useState(false);
+  const [isAvatarDialogOpen, setAvatarDialogOpen] = React.useState(false);
   const [editingCharacter, setEditingCharacter] = React.useState<Character | null>(null);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const { toast } = useToast();
@@ -284,10 +286,18 @@ export default function ProfileTab() {
         <Card>
           <CardHeader>
              <div className="flex items-center gap-4">
-                <Avatar className="h-16 w-16">
-                <AvatarImage src={currentUser.avatar} alt={currentUser.name} />
-                <AvatarFallback>{currentUser.name.slice(0, 2)}</AvatarFallback>
-                </Avatar>
+                <div 
+                    className="relative group cursor-pointer"
+                    onClick={() => setAvatarDialogOpen(true)}
+                >
+                    <Avatar className="h-16 w-16">
+                        <AvatarImage src={currentUser.avatar} alt={currentUser.name} />
+                        <AvatarFallback>{currentUser.name.slice(0, 2)}</AvatarFallback>
+                    </Avatar>
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Pencil className="w-6 h-6 text-white" />
+                    </div>
+                </div>
                 <div>
                 <CardTitle className="text-2xl font-headline">{currentUser.name}</CardTitle>
                 <CardDescription>{currentUser.email}</CardDescription>
@@ -424,6 +434,18 @@ export default function ProfileTab() {
                     allUsers={allUsers}
                     closeDialog={() => setFormDialogOpen(false)} 
                 />
+            </DialogContent>
+        </Dialog>
+        
+        <Dialog open={isAvatarDialogOpen} onOpenChange={setAvatarDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Обновить аватар</DialogTitle>
+                    <DialogDescription>
+                        Выберите новое изображение для вашего профиля.
+                    </DialogDescription>
+                </DialogHeader>
+                <AvatarUploader closeDialog={() => setAvatarDialogOpen(false)} />
             </DialogContent>
         </Dialog>
     </div>

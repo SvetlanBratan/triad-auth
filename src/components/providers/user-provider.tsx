@@ -53,6 +53,7 @@ interface UserContextType {
   clearRewardRequestsHistory: () => Promise<void>;
   removeFamiliarFromCharacter: (userId: string, characterId: string, cardId: string) => Promise<void>;
   updateUser: (userId: string, updates: Partial<User>) => Promise<void>;
+  updateUserAvatar: (userId: string, avatarUrl: string) => Promise<void>;
   updateGameDate: (newDateString: string) => Promise<void>;
   checkExtraCharacterSlots: (userId: string) => Promise<number>;
   performRelationshipAction: (
@@ -252,7 +253,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         id: uid,
         name: nickname,
         email: `${nickname.toLowerCase().replace(/\s/g, '')}@pumpkin.com`,
-        avatar: `https://placehold.co/100x100/888888/FFFFFF.png?text=${nickname.charAt(0)}`,
+        avatar: `https://placehold.co/100x100/A050A0/FFFFFF.png?text=${nickname.charAt(0)}`,
         role: ADMIN_UIDS.includes(uid) ? 'admin' : 'user',
         points: 1000,
         status: 'активный',
@@ -391,6 +392,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         setCurrentUser(prev => prev ? { ...prev, ...updates } : null);
       }
   }, [currentUser?.id]);
+  
+  const updateUserAvatar = useCallback(async (userId: string, avatarUrl: string) => {
+    await updateUser(userId, { avatar: avatarUrl });
+  }, [updateUser]);
 
   const grantAchievementToUser = useCallback(async (userId: string, achievementId: string) => {
     const user = await fetchUserById(userId);
@@ -1570,6 +1575,7 @@ const processMonthlySalary = useCallback(async () => {
       clearRewardRequestsHistory,
       removeFamiliarFromCharacter,
       updateUser,
+      updateUserAvatar,
       updateGameDate,
       checkExtraCharacterSlots,
       performRelationshipAction,
@@ -1586,7 +1592,7 @@ const processMonthlySalary = useCallback(async () => {
       acceptFamiliarTradeRequest,
       declineOrCancelFamiliarTradeRequest,
     }),
-    [currentUser, gameSettings, fetchUserById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateGameDate, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest]
+    [currentUser, gameSettings, fetchUserById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest]
   );
 
   return (
