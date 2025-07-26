@@ -14,7 +14,7 @@ import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield,
 import Link from 'next/link';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import CharacterForm, { type EditableSection, type EditingRelationship } from '@/components/dashboard/character-form';
+import CharacterForm, { type EditableSection, type EditingState } from '@/components/dashboard/character-form';
 import { useToast } from '@/hooks/use-toast';
 import { cn, formatTimeLeft, calculateAge, calculateRelationshipLevel, formatCurrency } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -123,8 +123,7 @@ export default function CharacterPage() {
     const [owner, setOwner] = useState<User | null>(null);
     const [allUsers, setAllUsers] = useState<User[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [editingSection, setEditingSection] = useState<EditableSection | null>(null);
-    const [editingRelationship, setEditingRelationship] = useState<EditingRelationship | null>(null);
+    const [editingState, setEditingState] = useState<EditingState | null>(null);
 
     const { toast } = useToast();
 
@@ -162,13 +161,11 @@ export default function CharacterPage() {
         updateCharacterInUser(owner.id, characterData);
         setCharacter(characterData); // Optimistic update
         toast({ title: "Анкета обновлена", description: "Данные персонажа успешно сохранены." });
-        setEditingSection(null);
-        setEditingRelationship(null);
+        setEditingState(null);
     };
     
     const closeDialog = () => {
-        setEditingSection(null);
-        setEditingRelationship(null);
+        setEditingState(null);
     }
 
     const spouses = useMemo(() => {
@@ -226,7 +223,7 @@ export default function CharacterPage() {
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <CardTitle className="flex items-center gap-2">{icon} {title}</CardTitle>
             {isOwnerOrAdmin && (
-                <Button variant="ghost" size="icon" onClick={() => setEditingSection(section)} className="shrink-0 self-start sm:self-center">
+                <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'section', section })} className="shrink-0 self-start sm:self-center">
                     <Edit className="w-4 h-4" />
                 </Button>
             )}
@@ -240,7 +237,7 @@ export default function CharacterPage() {
                 <div className="flex justify-between items-center mb-1">
                     <h4 className="font-semibold text-muted-foreground">{title}</h4>
                     {isOwnerOrAdmin && (
-                        <Button variant="ghost" size="icon" onClick={() => setEditingSection(section)} className="h-7 w-7">
+                        <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'section', section })} className="h-7 w-7">
                             {isEmpty ? <PlusCircle className="w-4 h-4 text-muted-foreground" /> : <Edit className="w-4 h-4" />}
                         </Button>
                     )}
@@ -249,6 +246,29 @@ export default function CharacterPage() {
             </div>
         );
     };
+    
+     const InfoRow = ({ label, value, field, section, isVisible = true }: { label: string, value: React.ReactNode, field: keyof Character, section: EditableSection, isVisible?: boolean }) => {
+        if (!isVisible && !isOwnerOrAdmin) return null;
+        const isEmpty = !value;
+        return (
+            <div className="flex justify-between items-start group">
+                <span className="text-muted-foreground">{label}:</span>
+                <div className="flex items-center gap-2 text-right">
+                    {isEmpty && isOwnerOrAdmin ? <span className="italic text-muted-foreground/80">Не указано</span> : value}
+                    {isOwnerOrAdmin && (
+                         <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => setEditingState({ type: 'field', section, field })}
+                        >
+                            {isEmpty ? <PlusCircle className="w-4 h-4 text-muted-foreground" /> : <Edit className="w-4 h-4" />}
+                        </Button>
+                    )}
+                </div>
+            </div>
+        );
+     };
 
 
     return (
@@ -320,7 +340,7 @@ export default function CharacterPage() {
                              <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                 <CardTitle className="flex items-center gap-2"><Zap /> Способности</CardTitle>
                                 {isOwnerOrAdmin && (
-                                    <Button variant={character.abilities ? "ghost" : "outline-dashed"} size={character.abilities ? "icon" : "sm"} onClick={() => setEditingSection("abilities")} className="shrink-0 self-start sm:self-auto">
+                                    <Button variant={character.abilities ? "ghost" : "outline-dashed"} size={character.abilities ? "icon" : "sm"} onClick={() => setEditingState({type: 'section', section: "abilities"})} className="shrink-0 self-start sm:self-auto">
                                         {character.abilities ? <Edit className="w-4 h-4" /> : <><PlusCircle className="mr-2 h-4 w-4" /> Добавить</>}
                                     </Button>
                                 )}
@@ -340,7 +360,7 @@ export default function CharacterPage() {
                             <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                 <CardTitle className="flex items-center gap-2"><ShieldOff /> Слабости</CardTitle>
                                 {isOwnerOrAdmin && (
-                                     <Button variant={character.weaknesses ? "ghost" : "outline-dashed"} size={character.weaknesses ? "icon" : "sm"} onClick={() => setEditingSection("weaknesses")} className="shrink-0 self-start sm:self-auto">
+                                     <Button variant={character.weaknesses ? "ghost" : "outline-dashed"} size={character.weaknesses ? "icon" : "sm"} onClick={() => setEditingState({ type: 'section', section: "weaknesses"})} className="shrink-0 self-start sm:self-auto">
                                         {character.weaknesses ? <Edit className="w-4 h-4" /> : <><PlusCircle className="mr-2 h-4 w-4" /> Добавить</>}
                                     </Button>
                                 )}
@@ -359,7 +379,7 @@ export default function CharacterPage() {
                         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                             <CardTitle className="flex items-center gap-2"><HeartHandshake /> Отношения</CardTitle>
                              {isOwnerOrAdmin && (
-                                <Button variant="outline-dashed" size="sm" onClick={() => setEditingRelationship({ mode: 'add' })} className="shrink-0 self-start sm:self-auto">
+                                <Button variant="outline-dashed" size="sm" onClick={() => setEditingState({ type: 'relationship', mode: 'add' })} className="shrink-0 self-start sm:self-auto">
                                     <PlusCircle className="mr-2 h-4 w-4" /> Добавить отношение
                                 </Button>
                              )}
@@ -373,7 +393,7 @@ export default function CharacterPage() {
                                         return (
                                         <div key={rel.targetCharacterId} className="relative group">
                                             {isOwnerOrAdmin && (
-                                                <Button variant="ghost" size="icon" onClick={() => setEditingRelationship({ mode: 'edit', relationship: rel })} className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'relationship', mode: 'edit', relationship: rel })} className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <Edit className="w-4 h-4" />
                                                 </Button>
                                             )}
@@ -399,29 +419,49 @@ export default function CharacterPage() {
                 </div>
                 <div className="space-y-6">
                     <Card>
-                        <SectionHeader title="Основная информация" icon={<Info />} section="mainInfo" />
+                         <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><Info /> Основная информация</CardTitle>
+                         </CardHeader>
                         <CardContent className="space-y-4 text-sm">
-                            <div className="flex justify-between"><span>Раса:</span> <span className="text-right">{character.race || 'N/A'}</span></div>
-                             <div className="flex justify-between">
-                                <span>Дата рождения:</span> 
-                                <span className="text-right">
-                                    {character.birthDate || 'N/A'}
-                                    {age !== null && <span className="text-muted-foreground ml-1">({age} лет)</span>}
-                                </span>
-                            </div>
-                           
-                             {character.workLocation && <div className="flex justify-between"><span>Место работы:</span> <span className="text-right">{character.workLocation}</span></div>}
+                            <InfoRow label="Имя" value={character.name} field="name" section="mainInfo" />
+                            <InfoRow label="Деятельность" value={character.activity} field="activity" section="mainInfo" />
+                            <InfoRow label="Раса" value={character.race} field="race" section="mainInfo" />
+                            <InfoRow
+                                label="Дата рождения"
+                                value={
+                                    <>
+                                        {character.birthDate || ''}
+                                        {age !== null && <span className="text-muted-foreground ml-1">({age} лет)</span>}
+                                    </>
+                                }
+                                field="birthDate"
+                                section="mainInfo"
+                            />
+                            <InfoRow label="Место работы" value={character.workLocation} field="workLocation" section="mainInfo" isVisible={!!character.workLocation}/>
                         </CardContent>
                     </Card>
                     <Card>
-                        <SectionHeader title="Достижения" icon={<Award />} section="accomplishments" />
+                         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <CardTitle className="flex items-center gap-2"><Award /> Достижения</CardTitle>
+                             {isOwnerOrAdmin && (
+                                <Button variant="outline-dashed" size="sm" onClick={() => setEditingState({ type: 'accomplishment', mode: 'add' })} className="shrink-0 self-start sm:self-auto">
+                                    <PlusCircle className="mr-2 h-4 w-4" /> Добавить
+                                </Button>
+                             )}
+                        </CardHeader>
                         <CardContent>
                             {accomplishments.length > 0 ? (
                                 <div className="space-y-2">
                                     {accomplishments.map(acc => (
-                                        <p key={acc.id} className="text-sm p-2 bg-muted/50 rounded-md">
-                                            <span className="font-semibold">{acc.fameLevel}</span> <span className="text-primary font-semibold">{acc.skillLevel}</span> <span className="text-muted-foreground">{acc.description}</span>
-                                        </p>
+                                        <div key={acc.id} className="text-sm p-2 bg-muted/50 rounded-md group relative">
+                                             {isOwnerOrAdmin && (
+                                                <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'accomplishment', mode: 'edit', accomplishment: acc })} className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7">
+                                                    <Edit className="w-4 h-4" />
+                                                </Button>
+                                            )}
+                                            <p><span className="font-semibold">{acc.fameLevel}</span> <span className="text-primary font-semibold">{acc.skillLevel}</span></p>
+                                            <p className="text-muted-foreground">{acc.description}</p>
+                                        </div>
                                     ))}
                                 </div>
                             ) : (
@@ -654,15 +694,14 @@ export default function CharacterPage() {
                 </div>
             </div>
 
-            <Dialog open={!!editingSection || !!editingRelationship} onOpenChange={(isOpen) => !isOpen && closeDialog()}>
+            <Dialog open={!!editingState} onOpenChange={(isOpen) => !isOpen && closeDialog()}>
                 <DialogContent>
                     <CharacterForm
                         character={character}
                         allUsers={allUsers}
                         onSubmit={handleFormSubmit}
                         closeDialog={closeDialog}
-                        editingSection={editingSection}
-                        editingRelationship={editingRelationship}
+                        editingState={editingState}
                     />
                 </DialogContent>
             </Dialog>
@@ -670,3 +709,4 @@ export default function CharacterPage() {
         </div>
     );
 }
+

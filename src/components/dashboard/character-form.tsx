@@ -17,24 +17,42 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 
 
 export type EditableSection = 
-    | 'mainInfo' | 'accomplishments' | 'appearance' | 'personality' 
+    | 'mainInfo' | 'appearance' | 'personality' 
     | 'biography' | 'abilities' | 'weaknesses' | 'marriage' 
     | 'training' | 'lifeGoal' | 'pets' | 'diary';
 
-export type EditingRelationship = {
+export type EditingState = {
+    type: 'section',
+    section: EditableSection
+} | {
+    type: 'field',
+    section: EditableSection,
+    field: keyof Character
+} | {
+    type: 'relationship',
     mode: 'add'
 } | {
+    type: 'relationship',
     mode: 'edit',
     relationship: Relationship
+} | {
+    type: 'accomplishment',
+    mode: 'add'
+} | {
+    type: 'accomplishment',
+    mode: 'edit',
+    accomplishment: Accomplishment
+} | {
+    type: 'createCharacter'
 };
+
 
 interface CharacterFormProps {
     character: Character | null;
     allUsers: User[];
     onSubmit: (data: Character) => void;
     closeDialog: () => void;
-    editingSection: EditableSection | null;
-    editingRelationship: EditingRelationship | null;
+    editingState: EditingState | null;
 }
 
 const initialFormData: Omit<Character, 'id'> = {
@@ -77,7 +95,6 @@ const skillLevelOptions: OptionType[] = SKILL_LEVELS.map(level => ({ value: leve
 
 const SectionTitles: Record<EditableSection, string> = {
     mainInfo: 'Основная информация',
-    accomplishments: 'Достижения',
     appearance: 'Внешность',
     personality: 'Характер',
     biography: 'Биография',
@@ -88,6 +105,14 @@ const SectionTitles: Record<EditableSection, string> = {
     lifeGoal: 'Жизненная цель',
     pets: 'Питомцы',
     diary: 'Личный дневник',
+};
+
+const FieldLabels: Partial<Record<keyof Character, string>> = {
+    name: 'Имя персонажа',
+    activity: 'Деятельность/профессия',
+    race: 'Раса',
+    birthDate: 'Дата рождения',
+    workLocation: 'Место работы'
 };
 
 const relationshipTypeOptions: { value: RelationshipType, label: string }[] = [
@@ -101,9 +126,12 @@ const relationshipTypeOptions: { value: RelationshipType, label: string }[] = [
 ];
 
 
-const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingSection, editingRelationship }: CharacterFormProps) => {
-    const isCreating = !character;
+const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingState }: CharacterFormProps) => {
+    const isCreating = editingState?.type === 'createCharacter';
     const [formData, setFormData] = React.useState<Character>(character || { ...initialFormData, id: `c-${Date.now()}`});
+    
+    // State for the single item being edited/added
+    const [currentItem, setCurrentItem] = React.useState<Relationship | Accomplishment | null>(null);
 
      React.useEffect(() => {
         if (character) {
@@ -119,37 +147,32 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingSect
                 wealthLevel: character.wealthLevel || 'Бедный',
             };
             setFormData(initializedCharacter);
-        } else {
+        }
+        if (isCreating) {
              const newCharacterWithId = { ...initialFormData, id: `c-${Date.now()}` };
              setFormData(newCharacterWithId);
         }
-    }, [character]);
+    }, [character, isCreating]);
     
-    // State for the single relationship being edited/added
-    const [currentRelationship, setCurrentRelationship] = React.useState<Relationship | null>(() => {
-        if (editingRelationship?.mode === 'edit') {
-            return editingRelationship.relationship;
+    React.useEffect(() => {
+        if (editingState?.type === 'relationship') {
+            if (editingState.mode === 'edit') setCurrentItem(editingState.relationship);
+            else setCurrentItem({ id: `rel-${Date.now()}`, targetCharacterId: '', targetCharacterName: '', type: 'нейтралитет', points: 0, history: [] });
+        } else if (editingState?.type === 'accomplishment') {
+            if (editingState.mode === 'edit') setCurrentItem(editingState.accomplishment);
+            else setCurrentItem({ id: `acc-${Date.now()}`, fameLevel: '', skillLevel: '', description: '' });
+        } else {
+            setCurrentItem(null);
         }
-        if (editingRelationship?.mode === 'add') {
-            return {
-                id: `rel-${Date.now()}`,
-                targetCharacterId: '',
-                targetCharacterName: '',
-                type: 'нейтралитет',
-                points: 0,
-                history: [],
-            };
-        }
-        return null;
-    });
+    }, [editingState]);
 
 
     const characterOptions = React.useMemo(() => {
         if (!allUsers) return [];
         let currentRelationshipIds = new Set<string>((character?.relationships || []).map(r => r.targetCharacterId));
-        // If editing, allow the current relationship's target to be in the list
-        if(editingRelationship?.mode === 'edit') {
-            currentRelationshipIds.delete(editingRelationship.relationship.targetCharacterId);
+        
+        if(editingState?.type === 'relationship' && editingState.mode === 'edit') {
+            currentRelationshipIds.delete(editingState.relationship.targetCharacterId);
         }
 
         return allUsers.flatMap(user =>
@@ -160,192 +183,168 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingSect
                     label: `${c.name} (${user.name})`
                 }))
         );
-    }, [allUsers, formData.id, character, editingRelationship]);
+    }, [allUsers, formData.id, character, editingState]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { id, value } = e.target;
-        setFormData(prev => ({ ...prev, [id]: value }));
+    const handleFieldChange = (field: keyof Character, value: any) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
     };
 
     const handleMultiSelectChange = (id: 'marriedTo' | 'training', values: string[]) => {
         setFormData(prev => ({ ...prev, [id]: values }));
     };
     
-    const handleAccomplishmentChange = (index: number, field: keyof Omit<Accomplishment, 'id'>, value: string) => {
-        const newAccomplishments = [...(formData.accomplishments || [])];
-        newAccomplishments[index] = { ...newAccomplishments[index], [field]: value };
-        setFormData(prev => ({ ...prev, accomplishments: newAccomplishments }));
-    };
-    
-    const addAccomplishment = () => {
-        const newAccomplishment: Accomplishment = { 
-            id: `acc-${Date.now()}`, 
-            fameLevel: '', 
-            skillLevel: '', 
-            description: '' 
-        };
-        setFormData(prev => ({ ...prev, accomplishments: [...(prev.accomplishments || []), newAccomplishment] }));
-    };
-
-    const removeAccomplishment = (index: number) => {
-        const newAccomplishments = (formData.accomplishments || []).filter((_, i) => i !== index);
-        setFormData(prev => ({ ...prev, accomplishments: newAccomplishments }));
-    };
-    
-     const handleRelationshipChange = (field: keyof Relationship, value: any) => {
-        if (!currentRelationship) return;
-        const updatedRelationship = { ...currentRelationship, [field]: value };
+    const handleItemChange = (field: string, value: any) => {
+        if (!currentItem) return;
+        const updatedItem = { ...currentItem, [field]: value };
         
-        if (field === 'targetCharacterId') {
+        if ('targetCharacterId' in updatedItem && field === 'targetCharacterId') {
             const targetChar = characterOptions.find(opt => opt.value === value);
-            updatedRelationship.targetCharacterName = targetChar ? targetChar.label.split(' (')[0] : 'Неизвестно';
+            updatedItem.targetCharacterName = targetChar ? targetChar.label.split(' (')[0] : 'Неизвестно';
         }
 
-        setCurrentRelationship(updatedRelationship);
+        setCurrentItem(updatedItem);
     };
 
-    const handleRemoveRelationship = () => {
-        if (!currentRelationship) return;
-        const updatedRelationships = (formData.relationships || []).filter(r => r.id !== currentRelationship.id);
-        onSubmit({ ...formData, relationships: updatedRelationships });
+    const handleRemoveItem = () => {
+        if (!currentItem || !editingState) return;
+
+        let updatedData = { ...formData };
+        if (editingState.type === 'relationship' && 'targetCharacterId' in currentItem) {
+            updatedData.relationships = (formData.relationships || []).filter(r => r.id !== currentItem.id);
+        } else if (editingState.type === 'accomplishment' && 'fameLevel' in currentItem) {
+            updatedData.accomplishments = (formData.accomplishments || []).filter(a => a.id !== currentItem.id);
+        }
+        onSubmit(updatedData);
     };
+
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         
-        if (editingRelationship) {
-             if (!currentRelationship) return;
+        if (editingState?.type === 'relationship' || editingState?.type === 'accomplishment') {
+             if (!currentItem) return;
              
-             let finalRelationships: Relationship[] = [...(formData.relationships || [])];
+             let updatedData = { ...formData };
+             if (editingState.type === 'relationship' && 'targetCharacterId' in currentItem) {
+                const items = [...(formData.relationships || [])];
+                const index = items.findIndex(r => r.id === currentItem.id);
+                if (index > -1) items[index] = currentItem as Relationship;
+                else items.push(currentItem as Relationship);
+                updatedData.relationships = items;
 
-             if (editingRelationship.mode === 'add') {
-                 finalRelationships.push(currentRelationship);
-             } else { // 'edit'
-                const index = finalRelationships.findIndex(r => r.id === currentRelationship.id);
-                if (index > -1) {
-                    finalRelationships[index] = currentRelationship;
-                }
+             } else if (editingState.type === 'accomplishment' && 'fameLevel' in currentItem) {
+                 const items = [...(formData.accomplishments || [])];
+                 const index = items.findIndex(a => a.id === currentItem.id);
+                 if (index > -1) items[index] = currentItem as Accomplishment;
+                 else items.push(currentItem as Accomplishment);
+                 updatedData.accomplishments = items;
              }
-             onSubmit({ ...formData, relationships: finalRelationships });
+             onSubmit(updatedData);
         } else {
              onSubmit(formData);
         }
     };
 
-    const isFieldEmpty = (fieldName: keyof Character) => {
-        const value = formData[fieldName];
-        return value === null || value === undefined || (typeof value === 'string' && value.trim() === '') || (Array.isArray(value) && value.length === 0);
-    };
 
     const getDialogTitle = () => {
-        if (isCreating) return 'Добавить нового персонажа';
-        if (editingRelationship) {
-             return editingRelationship.mode === 'add' ? 'Добавить отношение' : 'Редактировать отношение';
+        if (!editingState) return '';
+        switch(editingState.type) {
+            case 'createCharacter': return 'Добавить нового персонажа';
+            case 'relationship': return editingState.mode === 'add' ? 'Добавить отношение' : 'Редактировать отношение';
+            case 'accomplishment': return editingState.mode === 'add' ? 'Добавить достижение' : 'Редактировать достижение';
+            case 'section':
+                 const sectionIsEmpty = !formData[editingState.section] || (Array.isArray(formData[editingState.section]) && (formData[editingState.section] as any[]).length === 0);
+                 const titleAction = sectionIsEmpty ? "Добавить" : "Редактировать";
+                 return `${titleAction}: ${SectionTitles[editingState.section]}`;
+            case 'field': return `Редактировать: ${FieldLabels[editingState.field] || 'поле'}`;
         }
-        if (!editingSection) return '';
-        
-        const sectionIsEmpty = isFieldEmpty(editingSection as keyof Character);
-        const titleAction = sectionIsEmpty ? "Добавить" : "Редактировать";
-
-        return `${titleAction}: ${SectionTitles[editingSection]}`;
     }
 
-    const renderSection = () => {
-        const sectionToRender = isCreating ? 'mainInfo' : editingSection;
-
-        if (editingRelationship) {
-            if (!currentRelationship) return null;
-            return (
-                 <div className="space-y-4">
-                    <div className="space-y-3 rounded-md border p-3 relative">
-                        {editingRelationship.mode === 'edit' && (
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="absolute top-1 right-1 h-7 w-7"
-                                onClick={handleRemoveRelationship}
-                            >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                        )}
-                        <div>
-                            <Label>Персонаж</Label>
-                            <Select
-                                value={currentRelationship.targetCharacterId}
-                                onValueChange={(value) => handleRelationshipChange('targetCharacterId', value)}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Выберите персонажа..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {characterOptions.map(opt => (
-                                        <SelectItem key={opt.value} value={opt.value}>
-                                            {opt.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div>
-                            <Label>Тип отношений</Label>
-                            <Select
-                                value={currentRelationship.type}
-                                onValueChange={(value: RelationshipType) => handleRelationshipChange('type', value)}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Выберите тип..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {relationshipTypeOptions.map(opt => (
-                                        <SelectItem key={opt.value} value={opt.value}>
-                                            {opt.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-                </div>
-            )
-        }
-
-        switch(sectionToRender) {
-            case 'mainInfo':
-                return (
+    const renderContent = () => {
+        if (!editingState) return null;
+        
+        switch(editingState.type) {
+            case 'createCharacter':
+                 return (
                     <div className="space-y-4">
-                        <div><Label htmlFor="name">Имя персонажа</Label><Input id="name" value={formData.name ?? ''} onChange={handleChange} required /></div>
-                        <div><Label htmlFor="activity">Деятельность/профессия</Label><Input id="activity" value={formData.activity ?? ''} onChange={handleChange} required /></div>
-                        <div><Label htmlFor="race">Раса</Label><Input id="race" value={formData.race ?? ''} onChange={handleChange} required /></div>
-                        <div><Label htmlFor="birthDate">Дата рождения</Label><Input id="birthDate" value={formData.birthDate ?? ''} onChange={handleChange} placeholder="например, 15.06.2680" required /></div>
-                        <div><Label htmlFor="workLocation">Место работы</Label><Input id="workLocation" value={formData.workLocation ?? ''} onChange={handleChange} /></div>
+                        <div><Label htmlFor="name">Имя персонажа</Label><Input id="name" value={formData.name ?? ''} onChange={(e) => handleFieldChange('name', e.target.value)} required /></div>
+                        <div><Label htmlFor="activity">Деятельность/профессия</Label><Input id="activity" value={formData.activity ?? ''} onChange={(e) => handleFieldChange('activity', e.target.value)} required /></div>
+                        <div><Label htmlFor="race">Раса</Label><Input id="race" value={formData.race ?? ''} onChange={(e) => handleFieldChange('race', e.target.value)} required /></div>
+                        <div><Label htmlFor="birthDate">Дата рождения</Label><Input id="birthDate" value={formData.birthDate ?? ''} onChange={(e) => handleFieldChange('birthDate', e.target.value)} placeholder="например, 15.06.2680" required /></div>
+                        <div><Label htmlFor="workLocation">Место работы</Label><Input id="workLocation" value={formData.workLocation ?? ''} onChange={(e) => handleFieldChange('workLocation', e.target.value)} /></div>
                     </div>
                 );
-            case 'accomplishments':
+
+            case 'field':
+                const field = editingState.field;
+                return (
+                    <div>
+                        <Label htmlFor={field}>{FieldLabels[field] || 'Значение'}</Label>
+                        <Input id={field} value={(formData[field] as string) ?? ''} onChange={(e) => handleFieldChange(field, e.target.value)} />
+                    </div>
+                );
+            
+            case 'accomplishment':
+                const acc = currentItem as Accomplishment;
+                if (!acc) return null;
+                 return (
+                    <div className="space-y-4">
+                        <div className="space-y-3 rounded-md border p-3 relative">
+                            {editingState.mode === 'edit' && (
+                                <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={handleRemoveItem}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                            )}
+                            <div><Label>Известность</Label><SearchableSelect options={fameLevelOptions} value={acc.fameLevel} onValueChange={(v) => handleItemChange('fameLevel', v)} placeholder="Уровень..." /></div>
+                            <div><Label>Навык</Label><SearchableSelect options={skillLevelOptions} value={acc.skillLevel} onValueChange={(v) => handleItemChange('skillLevel', v)} placeholder="Уровень..." /></div>
+                            <div><Label>Пояснение</Label><Input value={acc.description} onChange={(e) => handleItemChange('description', e.target.value)} /></div>
+                        </div>
+                    </div>
+                );
+
+            case 'relationship':
+                const rel = currentItem as Relationship;
+                if (!rel) return null;
                 return (
                     <div className="space-y-4">
-                        {(formData.accomplishments || []).map((acc, index) => (
-                            <div key={acc.id} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-2 items-end p-2 border rounded-md relative">
-                                <Button type="button" variant="ghost" size="icon" onClick={() => removeAccomplishment(index)} className="absolute -top-2 -right-2 h-6 w-6 bg-background"><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                                <div><Label>Известность</Label><SearchableSelect options={fameLevelOptions} value={acc.fameLevel} onValueChange={(v) => handleAccomplishmentChange(index, 'fameLevel', v)} placeholder="Уровень..." /></div>
-                                <div><Label>Навык</Label><SearchableSelect options={skillLevelOptions} value={acc.skillLevel} onValueChange={(v) => handleAccomplishmentChange(index, 'skillLevel', v)} placeholder="Уровень..." /></div>
-                                <div className="md:col-span-3"><Label>Пояснение</Label><Input value={acc.description} onChange={(e) => handleAccomplishmentChange(index, 'description', e.target.value)} /></div>
+                        <div className="space-y-3 rounded-md border p-3 relative">
+                            {editingState.mode === 'edit' && (
+                                <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={handleRemoveItem}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                            )}
+                            <div>
+                                <Label>Персонаж</Label>
+                                <Select value={rel.targetCharacterId} onValueChange={(value) => handleItemChange('targetCharacterId', value)}>
+                                    <SelectTrigger><SelectValue placeholder="Выберите персонажа..." /></SelectTrigger>
+                                    <SelectContent>{characterOptions.map(opt => (<SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>))}</SelectContent>
+                                </Select>
                             </div>
-                        ))}
-                        <Button type="button" variant="outline" size="sm" onClick={addAccomplishment}><PlusCircle className="mr-2 h-4 w-4"/>Добавить</Button>
+                            <div>
+                                <Label>Тип отношений</Label>
+                                <Select value={rel.type} onValueChange={(value: RelationshipType) => handleItemChange('type', value)}>
+                                    <SelectTrigger><SelectValue placeholder="Выберите тип..." /></SelectTrigger>
+                                    <SelectContent>{relationshipTypeOptions.map(opt => (<SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>))}</SelectContent>
+                                </Select>
+                            </div>
+                        </div>
                     </div>
                 );
-            case 'appearance': return <div><Label htmlFor="appearance">Внешность</Label><Textarea id="appearance" value={formData.appearance ?? ''} onChange={handleChange} rows={10}/></div>;
-            case 'personality': return <div><Label htmlFor="personality">Характер</Label><Textarea id="personality" value={formData.personality ?? ''} onChange={handleChange} rows={10}/></div>;
-            case 'biography': return <div><Label htmlFor="biography">Биография</Label><Textarea id="biography" value={formData.biography ?? ''} onChange={handleChange} rows={15}/></div>;
-            case 'abilities': return <div><Label htmlFor="abilities">Способности</Label><Textarea id="abilities" value={formData.abilities ?? ''} onChange={handleChange} rows={8}/></div>;
-            case 'weaknesses': return <div><Label htmlFor="weaknesses">Слабости</Label><Textarea id="weaknesses" value={formData.weaknesses ?? ''} onChange={handleChange} rows={8}/></div>;
-            case 'marriage': return <div><Label htmlFor="marriedTo">В браке с</Label><MultiSelect options={characterOptions} selected={formData.marriedTo ?? []} onChange={(v) => handleMultiSelectChange('marriedTo', v)} /></div>;
-            case 'training': return <div><Label htmlFor="training">Обучение</Label><MultiSelect options={TRAINING_OPTIONS} selected={formData.training ?? []} onChange={(v) => handleMultiSelectChange('training', v)} /></div>;
-            case 'lifeGoal': return <div><Label htmlFor="lifeGoal">Жизненная цель</Label><Textarea id="lifeGoal" value={formData.lifeGoal ?? ''} onChange={handleChange} rows={4}/></div>;
-            case 'pets': return <div><Label htmlFor="pets">Питомцы</Label><Textarea id="pets" value={formData.pets ?? ''} onChange={handleChange} rows={4}/></div>;
-            case 'diary': return <div><Label htmlFor="diary">Личный дневник</Label><Textarea id="diary" value={formData.diary ?? ''} onChange={handleChange} rows={8}/></div>;
-            default: return isCreating ? renderSection() : <p>Выберите секцию для редактирования.</p>
+
+            case 'section':
+                switch(editingState.section) {
+                    case 'appearance': return <div><Label htmlFor="appearance">Внешность</Label><Textarea id="appearance" value={formData.appearance ?? ''} onChange={(e) => handleFieldChange('appearance', e.target.value)} rows={10}/></div>;
+                    case 'personality': return <div><Label htmlFor="personality">Характер</Label><Textarea id="personality" value={formData.personality ?? ''} onChange={(e) => handleFieldChange('personality', e.target.value)} rows={10}/></div>;
+                    case 'biography': return <div><Label htmlFor="biography">Биография</Label><Textarea id="biography" value={formData.biography ?? ''} onChange={(e) => handleFieldChange('biography', e.target.value)} rows={15}/></div>;
+                    case 'abilities': return <div><Label htmlFor="abilities">Способности</Label><Textarea id="abilities" value={formData.abilities ?? ''} onChange={(e) => handleFieldChange('abilities', e.target.value)} rows={8}/></div>;
+                    case 'weaknesses': return <div><Label htmlFor="weaknesses">Слабости</Label><Textarea id="weaknesses" value={formData.weaknesses ?? ''} onChange={(e) => handleFieldChange('weaknesses', e.target.value)} rows={8}/></div>;
+                    case 'marriage': return <div><Label htmlFor="marriedTo">В браке с</Label><MultiSelect options={characterOptions} selected={formData.marriedTo ?? []} onChange={(v) => handleMultiSelectChange('marriedTo', v)} /></div>;
+                    case 'training': return <div><Label htmlFor="training">Обучение</Label><MultiSelect options={TRAINING_OPTIONS} selected={formData.training ?? []} onChange={(v) => handleMultiSelectChange('training', v)} /></div>;
+                    case 'lifeGoal': return <div><Label htmlFor="lifeGoal">Жизненная цель</Label><Textarea id="lifeGoal" value={formData.lifeGoal ?? ''} onChange={(e) => handleFieldChange('lifeGoal', e.target.value)} rows={4}/></div>;
+                    case 'pets': return <div><Label htmlFor="pets">Питомцы</Label><Textarea id="pets" value={formData.pets ?? ''} onChange={(e) => handleFieldChange('pets', e.target.value)} rows={4}/></div>;
+                    case 'diary': return <div><Label htmlFor="diary">Личный дневник</Label><Textarea id="diary" value={formData.diary ?? ''} onChange={(e) => handleFieldChange('diary', e.target.value)} rows={8}/></div>;
+                    default: return <p>Неизвестная секция для редактирования.</p>;
+                }
         }
     }
     
@@ -356,13 +355,13 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingSect
                 <DialogDescription>
                     {isCreating 
                         ? 'Заполните основные данные. Остальную анкету можно будет заполнить позже.' 
-                        : (editingRelationship ? 'Внесите изменения и нажмите "Сохранить".' : 'Внесите изменения и нажмите "Сохранить".')
+                        : 'Внесите изменения и нажмите "Сохранить".'
                     }
                 </DialogDescription>
              </DialogHeader>
             <div className="flex-1 py-4 overflow-hidden">
                 <ScrollArea className="h-full pr-6">
-                    {renderSection()}
+                    {renderContent()}
                 </ScrollArea>
             </div>
             <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t">
@@ -376,3 +375,4 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingSect
 };
 
 export default CharacterForm;
+

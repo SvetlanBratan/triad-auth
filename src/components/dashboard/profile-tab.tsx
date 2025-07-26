@@ -35,7 +35,7 @@ import { ACHIEVEMENTS_BY_ID, FAMILIARS_BY_ID } from '@/lib/data';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import * as LucideIcons from 'lucide-react';
-import CharacterForm, { type EditableSection } from './character-form';
+import CharacterForm, { type EditingState } from './character-form';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import FamiliarCardDisplay from './familiar-card';
 import RewardRequestsHistory from './reward-requests-history';
@@ -189,7 +189,7 @@ const CharacterDisplay = ({ character, onDelete }: { character: Character, onDel
 
 export default function ProfileTab() {
   const { currentUser, updateCharacterInUser, deleteCharacterFromUser, fetchUsersForAdmin, checkExtraCharacterSlots, setCurrentUser } = useUser();
-  const [isFormDialogOpen, setFormDialogOpen] = React.useState(false);
+  const [editingState, setEditingState] = useState<EditingState | null>(null);
   const [isAvatarDialogOpen, setAvatarDialogOpen] = React.useState(false);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const { toast } = useToast();
@@ -199,10 +199,10 @@ export default function ProfileTab() {
   const canAddCharacter = currentUser ? currentUser.characters.length < totalSlots : false;
 
    useEffect(() => {
-    if (isFormDialogOpen) {
+    if (editingState) {
       fetchUsersForAdmin().then(setAllUsers);
     }
-  }, [isFormDialogOpen, fetchUsersForAdmin]);
+  }, [editingState, fetchUsersForAdmin]);
 
   useEffect(() => {
     // Check and update extra slots when component mounts or currentUser changes
@@ -229,7 +229,7 @@ export default function ProfileTab() {
         });
         return;
     }
-    setFormDialogOpen(true);
+    setEditingState({ type: 'createCharacter' });
   };
 
   const handleDeleteCharacter = (characterId: string) => {
@@ -245,7 +245,7 @@ export default function ProfileTab() {
       
       toast({ title: "Успешно", description: "Персонаж добавлен. Теперь вы можете настроить его анкету." });
 
-      setFormDialogOpen(false);
+      setEditingState(null);
   };
 
   const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString();
@@ -413,14 +413,14 @@ export default function ProfileTab() {
         </Card>
       </div>
 
-       <Dialog open={isFormDialogOpen} onOpenChange={setFormDialogOpen}>
+       <Dialog open={!!editingState} onOpenChange={(isOpen) => !isOpen && setEditingState(null)}>
             <DialogContent>
                 <CharacterForm 
                     onSubmit={handleFormSubmit as (data: Character) => void}
-                    character={null}
+                    character={currentUser.characters[0] || null}
                     allUsers={allUsers}
-                    closeDialog={() => setFormDialogOpen(false)}
-                    editingSection={'mainInfo'}
+                    closeDialog={() => setEditingState(null)}
+                    editingState={editingState}
                 />
             </DialogContent>
         </Dialog>
@@ -439,3 +439,4 @@ export default function ProfileTab() {
     </div>
   );
 }
+
