@@ -211,6 +211,7 @@ export default function CharacterPage() {
     const activeMoodlets = (character.moodlets || []).filter(m => new Date(m.expiresAt) > new Date());
     const age = gameDate ? calculateAge(character.birthDate, gameDate) : null;
     const isViewingOwnProfile = currentUser?.id === owner.id;
+    const canViewHistory = isViewingOwnProfile || currentUser?.role === 'admin';
     const accomplishments = character.accomplishments || [];
 
 
@@ -403,7 +404,7 @@ export default function CharacterPage() {
                                     )}
                                 </div>
                             </div>
-                            {isViewingOwnProfile && sortedBankHistory.length > 0 && (
+                            {canViewHistory && sortedBankHistory.length > 0 && (
                                 <Accordion type="single" collapsible className="w-full pt-2">
                                     <AccordionItem value="history">
                                         <AccordionTrigger className="text-xs text-muted-foreground hover:no-underline">
