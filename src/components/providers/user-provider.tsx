@@ -663,120 +663,90 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, [fetchUserById, currentUser?.id, grantAchievementToUser]);
   
  const updateRewardRequestStatus = useCallback(async (request: RewardRequest, newStatus: RewardRequestStatus): Promise<RewardRequest | null> => {
-      let user = await fetchUserById(request.userId);
-      if (!user) throw new Error("User for the request not found");
+    await runTransaction(db, async (transaction) => {
+        const requestRef = doc(db, "users", request.userId, "reward_requests", request.id);
+        const requestDoc = await transaction.get(requestRef);
+        if (!requestDoc.exists()) throw new Error("Request not found");
 
-      const batch = writeBatch(db);
-      const requestRef = doc(db, "users", request.userId, "reward_requests", request.id);
-      batch.update(requestRef, { status: newStatus });
-      
-      let updatedUser = { ...user };
-      let updatesForUser: Partial<User> = {};
-
-      if (newStatus === 'одобрено') {
-        let characterToUpdateIndex = -1;
-        if (request.characterId) {
-            characterToUpdateIndex = updatedUser.characters.findIndex(c => c.id === request.characterId);
-        }
+        const userRef = doc(db, "users", request.userId);
+        const userDoc = await transaction.get(userRef);
+        if (!userDoc.exists()) throw new Error("User for the request not found");
+        const user = userDoc.data() as User;
         
-        const achievementMap: Record<string, string> = {
-          'r-race-1': 'ach-unique-character',
-          'r-race-2': 'ach-unique-character',
-          'r-race-3': 'ach-unique-character',
-          'r-race-4': 'ach-unique-character',
-          'r-extra-char': 'ach-multi-hand',
-          'r-wild-pet': 'ach-tamer',
-          'r-crime-connections': 'ach-mafiosi',
-          'r-leviathan': 'ach-submariner',
-          'r-ship': 'ach-seaman',
-          'r-airship': 'ach-sky-master',
-          'r-archmage': 'ach-big-mage',
-          'r-court-position': 'ach-important-person',
-          'r-baron': 'ach-baron',
-          'r-land-titled': 'ach-sir-lady',
-          'r-extra-element': 'ach-warlock',
-          'r-extra-doctrine': 'ach-wizard',
-          'r-guild': 'ach-guildmaster',
-          'r-hybrid': 'ach-hybrid',
-          'r-swap-element': 'ach-exchange-master',
-          'r-forbidden-magic': 'ach-dark-lord',
-          'r-body-parts': 'ach-chimera-mancer',
-          'r-pumpkin-wife': PUMPKIN_SPOUSE_ACHIEVEMENT_ID,
-          'r-pumpkin-husband': PUMPKIN_HUSBAND_ACHIEVEMENT_ID,
-          'r-blessing': GODS_FAVORITE_ACHIEVEMENT_ID,
-        };
+        transaction.update(requestRef, { status: newStatus });
+        let updatesForUser: Partial<User> = {};
 
-        const achievementIdToGrant = achievementMap[request.rewardId];
-        if (achievementIdToGrant) {
-            const currentAchievements = updatedUser.achievementIds || [];
-            if (!currentAchievements.includes(achievementIdToGrant)) {
-                updatedUser.achievementIds = [...currentAchievements, achievementIdToGrant];
-                updatesForUser.achievementIds = updatedUser.achievementIds;
-            }
-        }
-
-        if(request.rewardId === EXTRA_CHARACTER_REWARD_ID) {
-            const currentSlots = updatedUser.extraCharacterSlots || 0;
-            updatesForUser.extraCharacterSlots = currentSlots + 1;
-            updatedUser.extraCharacterSlots = currentSlots + 1;
-        }
-
-        if (characterToUpdateIndex !== -1) {
-            let characterToUpdate = { ...updatedUser.characters[characterToUpdateIndex] };
-            let inventory = characterToUpdate.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: [] };
-
-            if (request.rewardId === PUMPKIN_WIFE_REWARD_ID) {
-                 const currentCards = inventory.familiarCards || [];
-                 if (!currentCards.some(card => card.id === PUMPKIN_WIFE_CARD_ID)) {
-                    inventory.familiarCards = [...currentCards, { id: PUMPKIN_WIFE_CARD_ID }];
-                 }
-            } else if (request.rewardId === PUMPKIN_HUSBAND_REWARD_ID) {
-                const currentCards = inventory.familiarCards || [];
-                if (!currentCards.some(card => card.id === PUMPKIN_HUSBAND_CARD_ID)) {
-                   inventory.familiarCards = [...currentCards, { id: PUMPKIN_HUSBAND_CARD_ID }];
-                }
-            } else if (request.rewardId === 'r-blessing') {
-                const expiryDate = new Date();
-                expiryDate.setDate(expiryDate.getDate() + 5);
-                characterToUpdate.blessingExpires = expiryDate.toISOString();
-            } else if (request.rewardId === 'r-leviathan') {
-                characterToUpdate.hasLeviathanFriendship = true;
-            } else if (request.rewardId === 'r-crime-connections') {
-                characterToUpdate.hasCrimeConnections = true;
+        if (newStatus === 'одобрено') {
+            let characterToUpdateIndex = -1;
+            if (request.characterId) {
+                characterToUpdateIndex = user.characters.findIndex(c => c.id === request.characterId);
             }
             
-            characterToUpdate.inventory = inventory;
-            updatedUser.characters[characterToUpdateIndex] = characterToUpdate;
-            updatesForUser.characters = updatedUser.characters;
+            const achievementMap: Record<string, string> = {
+              'r-race-1': 'ach-unique-character', 'r-race-2': 'ach-unique-character', 'r-race-3': 'ach-unique-character', 'r-race-4': 'ach-unique-character',
+              'r-extra-char': 'ach-multi-hand', 'r-wild-pet': 'ach-tamer', 'r-crime-connections': 'ach-mafiosi', 'r-leviathan': 'ach-submariner',
+              'r-ship': 'ach-seaman', 'r-airship': 'ach-sky-master', 'r-archmage': 'ach-big-mage', 'r-court-position': 'ach-important-person',
+              'r-baron': 'ach-baron', 'r-land-titled': 'ach-sir-lady', 'r-extra-element': 'ach-warlock', 'r-extra-doctrine': 'ach-wizard',
+              'r-guild': 'ach-guildmaster', 'r-hybrid': 'ach-hybrid', 'r-swap-element': 'ach-exchange-master', 'r-forbidden-magic': 'ach-dark-lord',
+              'r-body-parts': 'ach-chimera-mancer', 'r-pumpkin-wife': PUMPKIN_SPOUSE_ACHIEVEMENT_ID, 'r-pumpkin-husband': PUMPKIN_HUSBAND_ACHIEVEMENT_ID,
+              'r-blessing': GODS_FAVORITE_ACHIEVEMENT_ID,
+            };
+
+            const achievementIdToGrant = achievementMap[request.rewardId];
+            if (achievementIdToGrant) {
+                const currentAchievements = user.achievementIds || [];
+                if (!currentAchievements.includes(achievementIdToGrant)) {
+                    updatesForUser.achievementIds = [...currentAchievements, achievementIdToGrant];
+                }
+            }
+
+            if(request.rewardId === EXTRA_CHARACTER_REWARD_ID) {
+                updatesForUser.extraCharacterSlots = (user.extraCharacterSlots || 0) + 1;
+            }
+
+            if (characterToUpdateIndex !== -1) {
+                const updatedCharacters = [...user.characters];
+                let characterToUpdate = { ...updatedCharacters[characterToUpdateIndex] };
+                let inventory = characterToUpdate.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: [] };
+
+                if (request.rewardId === PUMPKIN_WIFE_REWARD_ID) {
+                     inventory.familiarCards = [...(inventory.familiarCards || []), { id: PUMPKIN_WIFE_CARD_ID }];
+                } else if (request.rewardId === PUMPKIN_HUSBAND_REWARD_ID) {
+                   inventory.familiarCards = [...(inventory.familiarCards || []), { id: PUMPKIN_HUSBAND_CARD_ID }];
+                } else if (request.rewardId === 'r-blessing') {
+                    const expiryDate = new Date();
+                    expiryDate.setDate(expiryDate.getDate() + 5);
+                    characterToUpdate.blessingExpires = expiryDate.toISOString();
+                } else if (request.rewardId === 'r-leviathan') {
+                    characterToUpdate.hasLeviathanFriendship = true;
+                } else if (request.rewardId === 'r-crime-connections') {
+                    characterToUpdate.hasCrimeConnections = true;
+                }
+                
+                characterToUpdate.inventory = inventory;
+                updatedCharacters[characterToUpdateIndex] = characterToUpdate;
+                updatesForUser.characters = updatedCharacters;
+            }
+        } else if (newStatus === 'отклонено') {
+              const reason = `Возврат за отклоненный запрос: ${request.rewardTitle}`;
+              const newPointLog: PointLog = {
+                  id: `h-${Date.now()}-refund`, date: new Date().toISOString(), amount: request.rewardCost, reason,
+              };
+              updatesForUser.points = user.points + request.rewardCost;
+              updatesForUser.pointHistory = [newPointLog, ...user.pointHistory];
         }
-      } else if (newStatus === 'отклонено') {
-          const reason = `Возврат за отклоненный запрос: ${request.rewardTitle}`;
-          const newPointLog: PointLog = {
-              id: `h-${Date.now()}-refund`,
-              date: new Date().toISOString(),
-              amount: request.rewardCost,
-              reason,
-          };
-          updatedUser.points += request.rewardCost;
-          updatedUser.pointHistory.unshift(newPointLog);
-          updatesForUser.points = updatedUser.points;
-          updatesForUser.pointHistory = updatedUser.pointHistory;
-      }
 
-      if (Object.keys(updatesForUser).length > 0) {
-        const userRef = doc(db, "users", user.id);
-        batch.update(userRef, updatesForUser);
-      }
-
-      await batch.commit();
-
-      if (Object.keys(updatesForUser).length > 0) {
-        if (currentUser?.id === updatedUser.id) {
-            setCurrentUser(prev => ({...prev!, ...updatesForUser}));
+        if (Object.keys(updatesForUser).length > 0) {
+            transaction.update(userRef, updatesForUser);
         }
-      }
-      return {...request, status: newStatus};
-  }, [fetchUserById, currentUser?.id, grantAchievementToUser]);
+    });
+
+    const updatedUser = await fetchUserById(request.userId);
+    if (updatedUser && currentUser?.id === request.userId) {
+        setCurrentUser(updatedUser);
+    }
+    return {...request, status: newStatus};
+}, [fetchUserById, currentUser?.id]);
 
   const fetchAvailableMythicCardsCount = useCallback(async (): Promise<number> => {
     const allUsers = await fetchUsersForAdmin();
