@@ -236,6 +236,7 @@ export interface RewardRequest {
 export interface ShopItem {
     id: string;
     name: string;
+    description?: string;
     price: Omit<BankAccount, 'history'>;
 }
 

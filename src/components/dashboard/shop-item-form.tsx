@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
+import { Textarea } from '../ui/textarea';
 
 interface ShopItemFormProps {
     shopId: string;
@@ -18,6 +19,7 @@ interface ShopItemFormProps {
 
 const initialFormData: Omit<ShopItem, 'id'> = {
     name: '',
+    description: '',
     price: { platinum: 0, gold: 0, silver: 0, copper: 0 },
 };
 
@@ -31,6 +33,7 @@ export default function ShopItemForm({ shopId, item, closeDialog }: ShopItemForm
         if (item) {
             setFormData({
                 name: item.name,
+                description: item.description || '',
                 price: {
                     platinum: item.price.platinum || 0,
                     gold: item.price.gold || 0,
@@ -57,7 +60,6 @@ export default function ShopItemForm({ shopId, item, closeDialog }: ShopItemForm
 
         try {
             if (item) {
-                // When updating, we need to include the existing imageUrl
                 const itemDataToUpdate = { ...item, ...formData };
                 await updateShopItem(shopId, itemDataToUpdate);
                 toast({ title: "Товар обновлен" });
@@ -85,6 +87,16 @@ export default function ShopItemForm({ shopId, item, closeDialog }: ShopItemForm
                             value={formData.name}
                             onChange={(e) => setFormData(prev => ({...prev, name: e.target.value}))}
                             required
+                        />
+                    </div>
+                    
+                    <div>
+                        <Label htmlFor="description">Описание товара</Label>
+                        <Textarea
+                            id="description"
+                            value={formData.description}
+                            onChange={(e) => setFormData(prev => ({...prev, description: e.target.value}))}
+                            placeholder="Расскажите о товаре..."
                         />
                     </div>
 
