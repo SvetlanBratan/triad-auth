@@ -19,16 +19,16 @@ import { SearchableMultiSelect } from '../ui/searchable-multi-select';
 
 
 export type EditableSection = 
-    | 'mainInfo' | 'appearance' | 'personality' 
+    | 'appearance' | 'personality' 
     | 'biography' | 'abilities' | 'weaknesses' | 'marriage' 
     | 'training' | 'lifeGoal' | 'pets' | 'diary' | 'criminalRecords';
 
 export type EditingState = {
     type: 'section',
-    section: EditableSection
+    section: EditableSection | 'mainInfo'
 } | {
     type: 'field',
-    section: EditableSection,
+    section: EditableSection | 'mainInfo',
     field: keyof Character
 } | {
     type: 'relationship',
@@ -99,7 +99,7 @@ const initialFormData: Omit<Character, 'id'> = {
 const fameLevelOptions = FAME_LEVELS.map(level => ({ value: level, label: level }));
 const skillLevelOptions = SKILL_LEVELS.map(level => ({ value: level, label: level }));
 
-const SectionTitles: Record<EditableSection, string> = {
+const SectionTitles: Record<EditableSection | 'mainInfo', string> = {
     mainInfo: 'Основная информация',
     appearance: 'Внешность',
     personality: 'Характер',
@@ -266,9 +266,13 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
             case 'relationship': return editingState.mode === 'add' ? 'Добавить отношение' : 'Редактировать отношение';
             case 'accomplishment': return editingState.mode === 'add' ? 'Добавить достижение' : 'Редактировать достижение';
             case 'section':
-                 const sectionIsEmpty = !formData[editingState.section] || (Array.isArray(formData[editingState.section]) && (formData[editingState.section] as any[]).length === 0);
+                 const sectionKey = editingState.section;
+                 if (sectionKey === 'mainInfo') {
+                     return SectionTitles.mainInfo;
+                 }
+                 const sectionIsEmpty = !formData[sectionKey] || (Array.isArray(formData[sectionKey]) && (formData[sectionKey] as any[]).length === 0);
                  const titleAction = sectionIsEmpty ? "Добавить" : "Редактировать";
-                 return `${titleAction}: ${SectionTitles[editingState.section]}`;
+                 return `${titleAction}: ${SectionTitles[sectionKey]}`;
             case 'field': return `Редактировать: ${FieldLabels[editingState.field] || 'поле'}`;
         }
     }
