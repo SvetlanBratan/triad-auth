@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useUser } from '@/hooks/use-user';
@@ -23,14 +22,14 @@ import { SearchableSelect } from '../ui/searchable-select';
 type IconName = keyof typeof LucideIcons;
 
 const DynamicIcon = ({ name, className }: { name: string, className?: string }) => {
-    const IconComponent = LucideIcons[name as IconName];
+    const IconComponent = (LucideIcons as any)[name];
 
-    if (!IconComponent) {
-        // Fallback icon
+    if (!IconComponent || typeof IconComponent !== 'function') {
         return <Star className={className} />;
     }
-
-    return <IconComponent className={className} />;
+    
+    const Icon = IconComponent as React.ComponentType<{ className?: string }>;
+    return <Icon className={className} />;
 };
 
 
@@ -59,7 +58,16 @@ export default function RewardsTab() {
   };
 
   const handleConfirmRequest = async () => {
-    if (!currentUser || !selectedReward || !selectedCharacterId) return;
+    if (!currentUser || !selectedReward) return;
+
+    // For player-wide rewards, character ID is not strictly needed but we can pass a dummy or the first one.
+    // Let's check if the reward is character-specific implicitly by its logic or explicitly.
+    // For now, we'll require a character for all requests to keep it simple.
+    if (!selectedCharacterId) {
+        toast({ variant: "destructive", title: "Ошибка", description: "Пожалуйста, выберите персонажа." });
+        return;
+    }
+    
     setIsLoading(true);
 
     const character = currentUser.characters.find(c => c.id === selectedCharacterId);
@@ -138,7 +146,7 @@ export default function RewardsTab() {
               <p className="font-bold text-lg text-primary flex items-center gap-1.5">
                 <Star className="w-5 h-5" /> {reward.cost.toLocaleString()}
               </p>
-              <Button size="sm" onClick={() => handleRedeemClick(reward)} disabled={(currentUser?.points ?? 0) < reward.cost || isLoading}>
+              <Button size="sm" onClick={() => handleRedeemClick(reward)} disabled={(currentUser?.points ?? 0) < reward.cost || isLoading || currentUser?.characters.length === 0}>
                 {isLoading ? 'Обработка...' : 'Запросить'}
               </Button>
             </CardFooter>
