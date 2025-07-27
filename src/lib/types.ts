@@ -232,3 +232,14 @@ export interface RewardRequest {
   status: RewardRequestStatus;
   createdAt: string; // ISO string date
 }
+
+export interface Shop {
+  id: string;
+  title: string;
+  description: string;
+  image: string;
+  aiHint: string;
+  ownerUserId?: string;
+  ownerCharacterId?: string;
+  ownerCharacterName?: string;
+}

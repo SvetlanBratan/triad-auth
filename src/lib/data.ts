@@ -1,5 +1,5 @@
 
-import type { Reward, FamiliarCard, Achievement, GameSettings, WealthLevel, BankAccount, CapitalLevel, CrimeLevel } from './types';
+import type { Reward, FamiliarCard, Achievement, GameSettings, WealthLevel, BankAccount, CapitalLevel, CrimeLevel, Shop } from './types';
 import type { OptionType } from '@/components/ui/multi-select';
 
 // Game Date is now fetched from Firestore. See UserProvider.
@@ -426,4 +426,101 @@ export const FAMILIARS_BY_ID: Record<string, FamiliarCard> = [...ALL_FAMILIARS, 
     return acc;
 }, {} as Record<string, FamiliarCard>);
 
-    
+export const ALL_SHOPS: Shop[] = [
+  {
+    id: 'potions-licorice',
+    title: "Магазинчик зелий 'Ликорис'",
+    description: "Уютная лавка, где воздух пропитан ароматами сушеных трав и магических эссенций. Здесь можно найти зелья на любой случай жизни.",
+    image: "https://placehold.co/600x400.png",
+    aiHint: "potion shop"
+  },
+  {
+    id: 'tailor-pavlo',
+    title: "Портной-башмачник 'Павло'",
+    description: "Мастерская, где пахнет кожей и свежей тканью. Павло может сшить как прочную походную одежду, так и роскошный бальный наряд.",
+    image: "https://placehold.co/600x400.png",
+    aiHint: "tailor workshop"
+  },
+  {
+    id: 'bar-three-salamanders',
+    title: "Бар 'Три саламандры'",
+    description: "Полумрачное заведение с тихой музыкой и крепкими напитками. Идеальное место для тайных встреч и спокойных бесед.",
+    image: "https://placehold.co/600x400.png",
+    aiHint: "fantasy tavern"
+  },
+  {
+    id: 'tavern-jolly-joker',
+    title: "Трактир 'Весёлый Джокер'",
+    description: "Шумное и веселое место, где всегда можно найти выпивку, еду и последние сплетни. Излюбленное место встреч авантюристов и местных жителей.",
+    image: "https://placehold.co/600x400.png",
+    aiHint: "jolly inn"
+  },
+  {
+    id: 'dumpling-house',
+    title: "Пельменная 'Тесто и мясо'",
+    description: "Простое, но очень популярное место. Аромат свежесваренных пельменей слышен за квартал и привлекает всех, от стражников до аристократов.",
+    image: "https://placehold.co/600x400.png",
+    aiHint: "dumpling house"
+  },
+  {
+    id: 'jewelry-shop',
+    title: "Ювелирная Лавка",
+    description: "Витрины этой лавки сверкают блеском драгоценных камней и благородных металлов. Здесь можно найти украшения на любой вкус и кошелек.",
+    image: "https://placehold.co/600x400.png",
+    aiHint: "jewelry store"
+  },
+  {
+    id: 'real-estate-dragons-nest',
+    title: "Агентство недвижимости 'Гнездо Дракона'",
+    description: "Ищете уютный домик в лесу или роскошный особняк в центре города? Мы подберем идеальное жилье для вас и вашей семьи.",
+    image: "https://placehold.co/600x400.png",
+    aiHint: "real estate"
+  },
+  {
+    id: 'transport-path-reins',
+    title: "Транспортная лавка 'Путь и Поводья'",
+    description: "От быстрых скакунов до надежных карет. Все, что нужно для комфортного и безопасного путешествия по землям Триады.",
+    image: "https://placehold.co/600x400.png",
+    aiHint: "carriage shop"
+  },
+  {
+    id: 'ritual-bureau-last-feast',
+    title: "Ритуальное бюро 'Последний праздник'",
+    description: "Мы позаботимся о том, чтобы проводы в последний путь были достойными и запоминающимися. Все виды ритуальных услуг.",
+    image: "https://placehold.co/600x400.png",
+    aiHint: "funeral home"
+  },
+  {
+    id: 'entertainment-box-office',
+    title: "Касса развлечений",
+    description: "Продажа билетов в парки аттракционов, зоопарки, аквапарки, на экскурсии и другие захватывающие мероприятия города.",
+    image: "https://placehold.co/600x400.png",
+    aiHint: "ticket booth"
+  },
+  {
+    id: 'souvenir-shop-surprise-madam',
+    title: "Сувенирная лавка 'Сюрприз-Мадам'",
+    description: "Удивительные и необычные сувениры со всего света! Найдите идеальный подарок для себя или своих близких.",
+    image: "https://placehold.co/600x400.png",
+    aiHint: "souvenir shop"
+  },
+  {
+    id: 'artifacts-sherlas-vihelmsky',
+    title: "Лавка артефактов и зелий Шерласа Вихельмского",
+    description: "Редчайшие магические артефакты и мощные зелья от известного мастера. Качество гарантировано именем Шерласа.",
+    image: "https://placehold.co/600x400.png",
+    aiHint: "artifact shop"
+  },
+  {
+    id: 'weapon-shop-dead-man-in-armor',
+    title: "Оружейная лавка 'Покойник в Доспехах'",
+    description: "Лучшее оружие и доспехи для любого воина. Каждый клинок проверен в бою, каждый щит готов выдержать удар.",
+    image: "https://placehold.co/600x400.png",
+    aiHint: "weapon shop"
+  },
+];
+
+export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) => {
+    acc[shop.id] = shop;
+    return acc;
+}, {} as Record<string, Shop>);
