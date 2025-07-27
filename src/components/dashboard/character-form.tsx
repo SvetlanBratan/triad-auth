@@ -21,14 +21,14 @@ import { SearchableMultiSelect } from '../ui/searchable-multi-select';
 export type EditableSection = 
     | 'appearance' | 'personality' 
     | 'biography' | 'abilities' | 'weaknesses' | 'marriage' 
-    | 'training' | 'lifeGoal' | 'pets' | 'diary' | 'criminalRecords';
+    | 'training' | 'lifeGoal' | 'pets' | 'diary' | 'criminalRecords' | 'mainInfo';
 
 export type EditingState = {
     type: 'section',
-    section: EditableSection | 'mainInfo'
+    section: EditableSection
 } | {
     type: 'field',
-    section: EditableSection | 'mainInfo',
+    section: EditableSection,
     field: keyof Character
 } | {
     type: 'relationship',
@@ -99,7 +99,7 @@ const initialFormData: Omit<Character, 'id'> = {
 const fameLevelOptions = FAME_LEVELS.map(level => ({ value: level, label: level }));
 const skillLevelOptions = SKILL_LEVELS.map(level => ({ value: level, label: level }));
 
-const SectionTitles: Record<EditableSection | 'mainInfo', string> = {
+const SectionTitles: Record<EditableSection, string> = {
     mainInfo: 'Основная информация',
     appearance: 'Внешность',
     personality: 'Характер',

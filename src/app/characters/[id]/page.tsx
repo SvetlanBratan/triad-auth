@@ -258,7 +258,7 @@ export default function CharacterPage() {
         );
     };
     
-     const InfoRow = ({ label, value, field, section, isVisible = true, icon }: { label: string, value: React.ReactNode, field: keyof Character, section: EditableSection, isVisible?: boolean, icon?: React.ReactNode }) => {
+     const InfoRow = ({ label, value, field, section, isVisible = true, icon }: { label: string, value: React.ReactNode, field: keyof Character, section: EditableSection | 'mainInfo', isVisible?: boolean, icon?: React.ReactNode }) => {
         if (!isVisible && !isOwnerOrAdmin) return null;
         const isEmpty = !value;
         return (
