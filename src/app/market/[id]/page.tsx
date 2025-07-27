@@ -1,10 +1,10 @@
 
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, 'react';
 import { useParams, notFound, useRouter } from 'next/navigation';
 import { useUser } from '@/hooks/use-user';
-import type { Shop, ShopItem, Character } from '@/lib/types';
+import type { Shop, ShopItem } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, UserCircle, PlusCircle, Edit, Trash2, ShoppingCart, Info } from 'lucide-react';
@@ -26,62 +26,47 @@ import {
 } from "@/components/ui/alert-dialog"
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useQuery } from '@tanstack/react-query';
 
 export default function ShopPage() {
     const { id } = useParams();
     const router = useRouter();
     const { currentUser, fetchShopById, deleteShopItem, purchaseShopItem } = useUser();
     const { toast } = useToast();
-    const [shop, setShop] = useState<Shop | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isFormOpen, setIsFormOpen] = useState(false);
-    const [editingItem, setEditingItem] = useState<ShopItem | null>(null);
-    const [isPurchaseDialogOpen, setIsPurchaseDialogOpen] = useState(false);
-    const [selectedItemForPurchase, setSelectedItemForPurchase] = useState<ShopItem | null>(null);
-    const [buyerCharacterId, setBuyerCharacterId] = useState('');
-    const [isPurchasing, setIsPurchasing] = useState(false);
-
-
+    
     const shopId = Array.isArray(id) ? id[0] : id;
 
-    const isOwnerOrAdmin = useMemo(() => {
+    const { data: shop, isLoading, refetch } = useQuery<Shop | null>({
+        queryKey: ['shop', shopId],
+        queryFn: () => fetchShopById(shopId),
+        enabled: !!shopId,
+    });
+
+    const [isFormOpen, setIsFormOpen] = React.useState(false);
+    const [editingItem, setEditingItem] = React.useState<ShopItem | null>(null);
+    const [isPurchaseDialogOpen, setIsPurchaseDialogOpen] = React.useState(false);
+    const [selectedItemForPurchase, setSelectedItemForPurchase] = React.useState<ShopItem | null>(null);
+    const [buyerCharacterId, setBuyerCharacterId] = React.useState('');
+    const [isPurchasing, setIsPurchasing] = React.useState(false);
+
+
+    const isOwnerOrAdmin = React.useMemo(() => {
         if (!currentUser || !shop) return false;
         return currentUser.role === 'admin' || currentUser.id === shop.ownerUserId;
     }, [currentUser, shop]);
-
-    const loadShop = async () => {
-        setIsLoading(true);
-        try {
-            const fetchedShop = await fetchShopById(shopId);
-            if (fetchedShop) {
-                setShop(fetchedShop);
-            } else {
-                notFound();
-            }
-        } catch (error) {
-            console.error("Failed to load shop data", error);
-            notFound();
-        } finally {
-            setIsLoading(false);
-        }
-    };
     
-    useEffect(() => {
-        if (!shopId) return;
-        loadShop();
-    }, [shopId, fetchShopById]);
-
     const handleFormClose = () => {
         setIsFormOpen(false);
         setEditingItem(null);
-        loadShop(); // Refetch shop data after form is closed
+        refetch();
     };
     
     const handleDelete = async (itemId: string) => {
+        if (!shopId) return;
         try {
             await deleteShopItem(shopId, itemId);
             toast({ title: "Товар удален", description: "Товар был успешно удален из вашего магазина." });
-            loadShop();
+            refetch();
         } catch (e) {
             toast({ variant: 'destructive', title: "Ошибка", description: "Не удалось удалить товар." });
         }
@@ -93,7 +78,7 @@ export default function ShopPage() {
     };
 
     const handleConfirmPurchase = async () => {
-        if (!currentUser || !selectedItemForPurchase || !buyerCharacterId) return;
+        if (!currentUser || !selectedItemForPurchase || !buyerCharacterId || !shopId) return;
         setIsPurchasing(true);
         try {
             await purchaseShopItem(shopId, selectedItemForPurchase.id, currentUser.id, buyerCharacterId);
@@ -109,7 +94,7 @@ export default function ShopPage() {
         }
     }
     
-    const buyerCharacterOptions = useMemo(() => {
+    const buyerCharacterOptions = React.useMemo(() => {
         if (!currentUser || !selectedItemForPurchase) return [];
         return currentUser.characters
             .filter(char => {
@@ -132,12 +117,12 @@ export default function ShopPage() {
     }
 
     if (!shop) {
-        return notFound();
+        notFound();
     }
 
     return (
         <div className="container mx-auto p-4 md:p-8 space-y-6">
-             <Button onClick={() => router.back()} variant="ghost" className="mb-4 pl-1">
+             <Button onClick={() => router.push('/?tab=market')} variant="ghost" className="mb-4 pl-1">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Назад на рынок
             </Button>
