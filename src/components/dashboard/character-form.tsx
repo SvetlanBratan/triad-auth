@@ -265,14 +265,21 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
             case 'createCharacter': return 'Добавить нового персонажа';
             case 'relationship': return editingState.mode === 'add' ? 'Добавить отношение' : 'Редактировать отношение';
             case 'accomplishment': return editingState.mode === 'add' ? 'Добавить достижение' : 'Редактировать достижение';
-            case 'section':
+            case 'section': {
                  const sectionKey = editingState.section;
                  if (sectionKey === 'mainInfo') {
                      return SectionTitles.mainInfo;
                  }
-                 const sectionIsEmpty = !formData[sectionKey] || (Array.isArray(formData[sectionKey]) && (formData[sectionKey] as any[]).length === 0);
+                 let sectionIsEmpty: boolean;
+                 if (sectionKey === 'marriage') {
+                    sectionIsEmpty = !formData.marriedTo || formData.marriedTo.length === 0;
+                 } else {
+                    const sectionData = formData[sectionKey as keyof Omit<Character, 'marriage'>];
+                    sectionIsEmpty = !sectionData || (Array.isArray(sectionData) && sectionData.length === 0);
+                 }
                  const titleAction = sectionIsEmpty ? "Добавить" : "Редактировать";
                  return `${titleAction}: ${SectionTitles[sectionKey]}`;
+            }
             case 'field': return `Редактировать: ${FieldLabels[editingState.field] || 'поле'}`;
         }
     }
@@ -371,8 +378,8 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                 }
                 return (
                     <div>
-                        <Label htmlFor={field}>{FieldLabels[field] || 'Значение'}</Label>
-                        <Input id={field} value={(formData[field] as string) ?? ''} onChange={(e) => handleFieldChange(field, e.target.value)} />
+                        <Label htmlFor={field as string}>{FieldLabels[field] || 'Значение'}</Label>
+                        <Input id={field as string} value={(formData[field] as string) ?? ''} onChange={(e) => handleFieldChange(field, e.target.value)} />
                     </div>
                 );
             
