@@ -19,17 +19,14 @@ import {
 } from "@/components/ui/dialog"
 import { SearchableSelect } from '../ui/searchable-select';
 
-type IconName = keyof typeof LucideIcons;
+const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
+    const IconComponent = (LucideIcons as any)[name] as React.ComponentType<{ className?: string }>;
 
-const DynamicIcon = ({ name, className }: { name: string, className?: string }) => {
-    const IconComponent = (LucideIcons as any)[name];
-
-    if (!IconComponent || typeof IconComponent !== 'function') {
+    if (!IconComponent) {
         return <Star className={className} />;
     }
-    
-    const Icon = IconComponent as React.ComponentType<{ className?: string }>;
-    return <Icon className={className} />;
+
+    return <IconComponent className={className} />;
 };
 
 
