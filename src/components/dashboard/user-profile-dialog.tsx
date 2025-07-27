@@ -19,17 +19,16 @@ import { Button } from '../ui/button';
 import { useUser } from '@/hooks/use-user';
 import Link from 'next/link';
 
-type IconName = keyof typeof LucideIcons;
-
-const DynamicIcon = ({ name, className }: { name: string, className?: string }) => {
-    const IconComponent = LucideIcons[name as IconName];
-
+const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
+    const IconComponent = (LucideIcons as any)[name] as React.ComponentType<{ className?: string }>;
+    
     if (!IconComponent) {
         return <Star className={className} />;
     }
-
+    
     return <IconComponent className={className} />;
 };
+
 
 const rankOrder: FamiliarRank[] = ['мифический', 'ивентовый', 'легендарный', 'редкий', 'обычный'];
 const rankNames: Record<FamiliarRank, string> = {
