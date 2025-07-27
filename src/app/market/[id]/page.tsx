@@ -7,7 +7,6 @@ import { useUser } from '@/hooks/use-user';
 import type { Shop, ShopItem, Character } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import Image from 'next/image';
 import { ArrowLeft, UserCircle, PlusCircle, Edit, Trash2, ShoppingCart, Info } from 'lucide-react';
 import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -138,20 +137,16 @@ export default function ShopPage() {
 
     return (
         <div className="container mx-auto p-4 md:p-8 space-y-6">
-            <Button variant="ghost" onClick={() => router.back()} className="mb-4">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Назад на рынок
+             <Button asChild variant="ghost" className="mb-4 pl-1">
+                <Link href="/">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Назад на рынок
+                </Link>
             </Button>
 
             <Card className="overflow-hidden">
-                <div className="relative h-64 w-full">
-                    <Image
-                        src={shop.image}
-                        alt={shop.title}
-                        layout="fill"
-                        objectFit="cover"
-                        data-ai-hint={shop.aiHint}
-                    />
+                 <div className="relative h-64 w-full bg-muted">
+                    {/* Image can be re-added here if needed */}
                 </div>
                 <CardHeader>
                     <CardTitle className="text-3xl font-headline">{shop.title}</CardTitle>
@@ -284,3 +279,5 @@ export default function ShopPage() {
         </div>
     );
 }
+
+    
