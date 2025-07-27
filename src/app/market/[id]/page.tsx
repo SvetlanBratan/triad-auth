@@ -137,11 +137,9 @@ export default function ShopPage() {
 
     return (
         <div className="container mx-auto p-4 md:p-8 space-y-6">
-             <Button asChild variant="ghost" className="mb-4 pl-1">
-                <Link href="/">
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Назад на рынок
-                </Link>
+             <Button onClick={() => router.back()} variant="ghost" className="mb-4 pl-1">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Назад на рынок
             </Button>
 
             <Card className="overflow-hidden">
@@ -279,5 +277,3 @@ export default function ShopPage() {
         </div>
     );
 }
-
-    
