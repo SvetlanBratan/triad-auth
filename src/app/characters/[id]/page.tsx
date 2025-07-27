@@ -26,15 +26,13 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import Image from 'next/image';
 
 
-type IconName = keyof typeof LucideIcons;
-
-const DynamicIcon = ({ name, className }: { name: string, className?: string }) => {
-    const IconComponent = LucideIcons[name as IconName];
-
+const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
+    const IconComponent = (LucideIcons as any)[name] as React.ComponentType<{ className?: string }>;
+    
     if (!IconComponent) {
         return <Star className={className} />;
     }
-
+    
     return <IconComponent className={className} />;
 };
 
@@ -130,33 +128,39 @@ export default function CharacterPage() {
     const { toast } = useToast();
 
     useEffect(() => {
-        const findCharacterAndUsers = async () => {
-            setIsLoading(true);
-            const fetchedUsers = await fetchUsersForAdmin();
-            setAllUsers(fetchedUsers);
-            let found = false;
-            for (const user of fetchedUsers) {
-                const foundChar = user.characters.find(c => c.id === id);
-                if (foundChar) {
-                    setCharacter(foundChar);
-                    setOwner(user);
-                    found = true;
-                     if (currentUser && user.id === currentUser.id) {
-                        const charInContext = currentUser.characters.find(c => c.id === id);
-                        if (JSON.stringify(charInContext) !== JSON.stringify(foundChar)) {
-                           setCurrentUser({ ...currentUser, characters: currentUser.characters.map(c => c.id === id ? foundChar : c) });
-                        }
-                    }
-                    break;
+        if (!id) return;
+    
+        let cancelled = false;
+        setIsLoading(true);
+    
+        (async () => {
+            try {
+                const users = await fetchUsersForAdmin();
+                if (cancelled) return;
+    
+                setAllUsers(users);
+    
+                const ownerUser = users.find(u => u.characters.some(c => c.id === id)) || null;
+                const char = ownerUser?.characters.find(c => c.id === id) || null;
+    
+                setOwner(ownerUser);
+                setCharacter(char);
+    
+            } catch (e) {
+                console.error('Failed to fetch character data:', e);
+                if (!cancelled) {
+                    setOwner(null);
+                    setCharacter(null);
+                }
+            } finally {
+                if (!cancelled) {
+                    setIsLoading(false);
                 }
             }
-            setIsLoading(false);
-        };
-
-        if(id) {
-          findCharacterAndUsers();
-        }
-    }, [id, fetchUsersForAdmin, setCurrentUser, gameDate]); 
+        })();
+    
+        return () => { cancelled = true };
+    }, [id, fetchUsersForAdmin]);
 
     const handleFormSubmit = (characterData: Character) => {
         if (!owner) return;
@@ -757,5 +761,7 @@ export default function CharacterPage() {
         </div>
     );
 }
+
+    
 
     
