@@ -44,11 +44,11 @@ import AvatarUploader from './avatar-uploader';
 
 const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
     const IconComponent = (LucideIcons as any)[name] as React.ComponentType<{ className?: string }>;
-    
+
     if (!IconComponent) {
         return <Star className={className} />;
     }
-    
+
     return <IconComponent className={className} />;
 };
 
@@ -445,5 +445,9 @@ export default function ProfileTab() {
     </div>
   );
 }
+
+    
+
+    
 
     
