@@ -31,7 +31,7 @@ import { useQuery } from '@tanstack/react-query';
 export default function ShopPage() {
     const { id } = useParams();
     const router = useRouter();
-    const { currentUser, fetchShopById, deleteShopItem, purchaseShopItem } = useUser();
+    const { currentUser, fetchShopById, deleteShopItem, purchaseShopItem } from useUser();
     const { toast } = useToast();
     
     const shopId = Array.isArray(id) ? id[0] : id;
@@ -231,7 +231,7 @@ export default function ShopPage() {
                     </DialogHeader>
                     <div className="py-4 space-y-2">
                          <label htmlFor="buyer-character" className="text-sm font-medium">Выберите персонажа для оплаты:</label>
-                         {buyerCharacterOptions.length > 0 ? (
+                         {buyerCharacterOptions && buyerCharacterOptions.length > 0 ? (
                             <SearchableSelect
                                 options={buyerCharacterOptions}
                                 value={buyerCharacterId}
