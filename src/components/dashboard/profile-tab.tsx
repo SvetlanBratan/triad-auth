@@ -42,15 +42,13 @@ import RewardRequestsHistory from './reward-requests-history';
 import AvatarUploader from './avatar-uploader';
 
 
-type IconName = keyof typeof LucideIcons;
-
-const DynamicIcon = ({ name, className }: { name: string, className?: string }) => {
-    const IconComponent = LucideIcons[name as IconName];
-
+const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
+    const IconComponent = (LucideIcons as any)[name] as React.ComponentType<{ className?: string }>;
+    
     if (!IconComponent) {
         return <Star className={className} />;
     }
-
+    
     return <IconComponent className={className} />;
 };
 
