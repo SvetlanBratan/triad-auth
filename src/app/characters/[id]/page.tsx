@@ -192,7 +192,7 @@ export default function CharacterPage() {
     const formattedCurrency = useMemo(() => {
         if (!character || !character.bankAccount) return [];
         const result = formatCurrency(character.bankAccount, true);
-        return typeof result === 'string' ? [[result, '']] : result;
+        return Array.isArray(result) ? result : [];
     }, [character]);
     
     const sortedBankHistory = useMemo(() => {
