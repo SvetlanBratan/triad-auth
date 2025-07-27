@@ -98,10 +98,10 @@ export default function ShopItemForm({ shopId, item, closeDialog }: ShopItemForm
                     <div>
                         <Label>Цена</Label>
                         <div className="grid grid-cols-2 gap-2">
-                            <Input type="number" placeholder="Платина" value={formData.price.platinum} onChange={e => handlePriceChange('platinum', e.target.value)} />
-                            <Input type="number" placeholder="Золото" value={formData.price.gold} onChange={e => handlePriceChange('gold', e.target.value)} />
-                            <Input type="number" placeholder="Серебро" value={formData.price.silver} onChange={e => handlePriceChange('silver', e.target.value)} />
-                            <Input type="number" placeholder="Медь" value={formData.price.copper} onChange={e => handlePriceChange('copper', e.target.value)} />
+                            <Input type="number" placeholder="Платина" value={formData.price.platinum || ''} onChange={e => handlePriceChange('platinum', e.target.value)} />
+                            <Input type="number" placeholder="Золото" value={formData.price.gold || ''} onChange={e => handlePriceChange('gold', e.target.value)} />
+                            <Input type="number" placeholder="Серебро" value={formData.price.silver || ''} onChange={e => handlePriceChange('silver', e.target.value)} />
+                            <Input type="number" placeholder="Медь" value={formData.price.copper || ''} onChange={e => handlePriceChange('copper', e.target.value)} />
                         </div>
                     </div>
                 </div>
