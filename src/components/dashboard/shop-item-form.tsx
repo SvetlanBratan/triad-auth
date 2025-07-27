@@ -2,13 +2,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import type { ShopItem, BankAccount, Currency } from '@/lib/types';
+import type { ShopItem, Currency } from '@/lib/types';
 import { useUser } from '@/hooks/use-user';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import ImageUploader from './image-uploader';
 import { ScrollArea } from '../ui/scroll-area';
 
 interface ShopItemFormProps {
@@ -17,23 +16,21 @@ interface ShopItemFormProps {
     closeDialog: () => void;
 }
 
-const initialFormData: Omit<ShopItem, 'id'> = {
+const initialFormData: Omit<ShopItem, 'id' | 'imageUrl'> = {
     name: '',
-    imageUrl: '',
     price: { platinum: 0, gold: 0, silver: 0, copper: 0 },
 };
 
 export default function ShopItemForm({ shopId, item, closeDialog }: ShopItemFormProps) {
     const { addShopItem, updateShopItem } = useUser();
     const { toast } = useToast();
-    const [formData, setFormData] = useState(initialFormData);
+    const [formData, setFormData] = useState<Omit<ShopItem, 'id' | 'imageUrl'>>(initialFormData);
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         if (item) {
             setFormData({
                 name: item.name,
-                imageUrl: item.imageUrl,
                 price: {
                     platinum: item.price.platinum || 0,
                     gold: item.price.gold || 0,
@@ -60,7 +57,9 @@ export default function ShopItemForm({ shopId, item, closeDialog }: ShopItemForm
 
         try {
             if (item) {
-                await updateShopItem(shopId, { ...item, ...formData });
+                // When updating, we need to include the existing imageUrl
+                const itemDataToUpdate = { ...item, ...formData };
+                await updateShopItem(shopId, itemDataToUpdate);
                 toast({ title: "Товар обновлен" });
             } else {
                 await addShopItem(shopId, formData);
@@ -88,12 +87,6 @@ export default function ShopItemForm({ shopId, item, closeDialog }: ShopItemForm
                             required
                         />
                     </div>
-
-                    <ImageUploader
-                        currentImageUrl={formData.imageUrl}
-                        onUpload={(url) => setFormData(prev => ({...prev, imageUrl: url}))}
-                        uploadPreset="shop_items"
-                    />
 
                     <div>
                         <Label>Цена</Label>

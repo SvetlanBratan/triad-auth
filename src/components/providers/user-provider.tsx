@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
@@ -82,7 +83,7 @@ interface UserContextType {
   fetchAllShops: () => Promise<Shop[]>;
   fetchShopById: (shopId: string) => Promise<Shop | null>;
   updateShopOwner: (shopId: string, ownerUserId: string, ownerCharacterId: string, ownerCharacterName: string) => Promise<void>;
-  addShopItem: (shopId: string, item: Omit<ShopItem, 'id'>) => Promise<void>;
+  addShopItem: (shopId: string, item: Omit<ShopItem, 'id' | 'imageUrl'>) => Promise<void>;
   updateShopItem: (shopId: string, item: ShopItem) => Promise<void>;
   deleteShopItem: (shopId: string, itemId: string) => Promise<void>;
   purchaseShopItem: (shopId: string, itemId: string, buyerUserId: string, buyerCharacterId: string) => Promise<void>;
@@ -1554,12 +1555,16 @@ const processMonthlySalary = useCallback(async () => {
       }, { merge: true });
   }, []);
   
-  const addShopItem = useCallback(async (shopId: string, item: Omit<ShopItem, 'id'>) => {
+  const addShopItem = useCallback(async (shopId: string, item: Omit<ShopItem, 'id' | 'imageUrl'>) => {
     const shopRef = doc(db, "shops", shopId);
     const shopDoc = await getDoc(shopRef);
     const shopData = shopDoc.data() || {};
     const items = shopData.items || [];
-    const newItem = { ...item, id: `item-${Date.now()}`};
+    const newItem: ShopItem = { 
+        ...item, 
+        id: `item-${Date.now()}`,
+        imageUrl: "https://placehold.co/400x400.png"
+    };
     const updatedItems = [...items, newItem];
     await setDoc(shopRef, { items: updatedItems }, { merge: true });
   }, []);
