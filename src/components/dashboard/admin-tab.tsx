@@ -12,9 +12,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
-import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info, AlertTriangle, Bell, CheckCircle } from 'lucide-react';
-import type { UserStatus, UserRole, User, FamiliarCard, BankAccount, WealthLevel, FamiliarRank } from '@/lib/types';
-import { FAME_LEVELS_POINTS, EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, FAMILIARS_BY_ID, WEALTH_LEVELS, ALL_FAMILIARS, STARTING_CAPITAL_LEVELS } from '@/lib/data';
+import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info, AlertTriangle, Bell, CheckCircle, Store } from 'lucide-react';
+import type { UserStatus, UserRole, User, FamiliarCard, BankAccount, WealthLevel, FamiliarRank, Shop } from '@/lib/types';
+import { FAME_LEVELS_POINTS, EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, FAMILIARS_BY_ID, WEALTH_LEVELS, ALL_FAMILIARS, STARTING_CAPITAL_LEVELS, ALL_SHOPS } from '@/lib/data';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,7 +30,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { SearchableSelect } from '../ui/searchable-select';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { differenceInDays } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 
 const rankNames: Record<FamiliarRank, string> = {
     'мифический': 'Мифический',
@@ -64,7 +64,8 @@ export default function AdminTab() {
     addBankPointsToCharacter,
     processMonthlySalary,
     updateCharacterWealthLevel,
-    giveAnyFamiliarToCharacter
+    giveAnyFamiliarToCharacter,
+    updateShopOwner
   } = useUser();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -131,6 +132,11 @@ export default function AdminTab() {
 
   // Weekly bonus state
   const [isProcessingWeekly, setIsProcessingWeekly] = useState(false);
+
+  // Shop management state
+  const [shopId, setShopId] = useState('');
+  const [shopOwnerUserId, setShopOwnerUserId] = useState('');
+  const [shopOwnerCharId, setShopOwnerCharId] = useState('');
 
 
   const { toast } = useToast();
@@ -531,6 +537,28 @@ export default function AdminTab() {
     // Reset only the level
     setCapitalLevel('');
   };
+  
+  const handleAssignShopOwner = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!shopId || !shopOwnerUserId || !shopOwnerCharId) {
+        toast({ variant: 'destructive', title: 'Ошибка', description: 'Пожалуйста, выберите магазин, пользователя и персонажа.' });
+        return;
+    }
+
+    const user = users.find(u => u.id === shopOwnerUserId);
+    const character = user?.characters.find(c => c.id === shopOwnerCharId);
+    if (!character) {
+        toast({ variant: 'destructive', title: 'Ошибка', description: 'Выбранный персонаж не найден.' });
+        return;
+    }
+    
+    await updateShopOwner(shopId, shopOwnerUserId, shopOwnerCharId, character.name);
+    toast({ title: 'Владелец назначен!', description: `Владелец магазина успешно изменен.` });
+    
+    setShopId('');
+    setShopOwnerUserId('');
+    setShopOwnerCharId('');
+  };
 
   // --- Memos ---
    const userOptions = useMemo(() => {
@@ -579,6 +607,15 @@ export default function AdminTab() {
     if (!capitalUserId) return [];
     return (users.find(u => u.id === capitalUserId)?.characters || []).map(c => ({ value: c.id, label: c.name }));
   }, [capitalUserId, users]);
+  
+  const charactersForShopOwner = useMemo(() => {
+    if (!shopOwnerUserId) return [];
+    const user = users.find(u => u.id === shopOwnerUserId);
+    return (user?.characters || []).map(c => ({ 
+        value: c.id, 
+        label: `${c.name} (${formatCurrency(c.bankAccount)})`
+    }));
+  }, [shopOwnerUserId, users]);
 
   const familiarsForSelectedCharacterOptions = useMemo((): {value: string, label: string}[] => {
     if (!removeFamiliarUserId || !removeFamiliarCharId) return [];
@@ -671,6 +708,11 @@ export default function AdminTab() {
       label: level.name,
   })), []);
 
+  const shopOptions = useMemo(() => ALL_SHOPS.map(shop => ({
+      value: shop.id,
+      label: shop.title,
+  })), []);
+
 
   if (isLoading) {
     return <div className="flex justify-center items-center h-64"><p>Загрузка данных...</p></div>
@@ -678,11 +720,12 @@ export default function AdminTab() {
   
   return (
     <Tabs defaultValue="points" className="w-full">
-      <TabsList className="grid w-full grid-cols-4">
+      <TabsList className="grid w-full grid-cols-5">
         <TabsTrigger value="points">Баллы</TabsTrigger>
         <TabsTrigger value="general">Общее</TabsTrigger>
         <TabsTrigger value="familiars">Фамильяры</TabsTrigger>
         <TabsTrigger value="economy">Экономика</TabsTrigger>
+        <TabsTrigger value="shops">Магазины</TabsTrigger>
       </TabsList>
 
       <TabsContent value="points" className="mt-4">
@@ -1416,6 +1459,52 @@ export default function AdminTab() {
             </div>
         </div>
       </TabsContent>
+      
+      <TabsContent value="shops" className="mt-4">
+        <div className="gap-6 column-1 md:column-2 lg:column-3">
+          <div className="break-inside-avoid mb-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Store /> Управление магазинами</CardTitle>
+                    <CardDescription>Назначьте владельца для магазина или таверны на рынке.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleAssignShopOwner} className="space-y-4">
+                        <div>
+                            <Label>Магазин</Label>
+                            <SearchableSelect
+                                options={shopOptions}
+                                value={shopId}
+                                onValueChange={setShopId}
+                                placeholder="Выберите магазин..."
+                            />
+                        </div>
+                        <div>
+                            <Label>Пользователь-владелец</Label>
+                            <SearchableSelect
+                                options={userOnlyOptions}
+                                value={shopOwnerUserId}
+                                onValueChange={uid => { setShopOwnerUserId(uid); setShopOwnerCharId(''); }}
+                                placeholder="Выберите пользователя..."
+                            />
+                        </div>
+                        <div>
+                            <Label>Персонаж-владелец</Label>
+                            <SearchableSelect
+                                options={charactersForShopOwner}
+                                value={shopOwnerCharId}
+                                onValueChange={setShopOwnerCharId}
+                                placeholder="Выберите персонажа..."
+                                disabled={!shopOwnerUserId}
+                            />
+                        </div>
+                        <Button type="submit">Назначить владельца</Button>
+                    </form>
+                </CardContent>
+            </Card>
+           </div>
+        </div>
+      </TabsContent>
     </Tabs>
   );
 }
@@ -1423,4 +1512,5 @@ export default function AdminTab() {
     
 
     
+
 
