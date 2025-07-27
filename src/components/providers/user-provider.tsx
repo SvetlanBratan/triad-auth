@@ -2,7 +2,7 @@
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
-import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop } from '@/lib/types';
+import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter } from "firebase/firestore";
@@ -82,6 +82,10 @@ interface UserContextType {
   fetchAllShops: () => Promise<Shop[]>;
   fetchShopById: (shopId: string) => Promise<Shop | null>;
   updateShopOwner: (shopId: string, ownerUserId: string, ownerCharacterId: string, ownerCharacterName: string) => Promise<void>;
+  addShopItem: (shopId: string, item: Omit<ShopItem, 'id'>) => Promise<void>;
+  updateShopItem: (shopId: string, item: ShopItem) => Promise<void>;
+  deleteShopItem: (shopId: string, itemId: string) => Promise<void>;
+  purchaseShopItem: (shopId: string, itemId: string, buyerUserId: string, buyerCharacterId: string) => Promise<void>;
 }
 
 export const UserContext = createContext<UserContextType | null>(null);
@@ -1549,6 +1553,108 @@ const processMonthlySalary = useCallback(async () => {
           ownerCharacterName
       }, { merge: true });
   }, []);
+  
+  const addShopItem = useCallback(async (shopId: string, item: Omit<ShopItem, 'id'>) => {
+    const shopRef = doc(db, "shops", shopId);
+    const shopDoc = await getDoc(shopRef);
+    const shopData = shopDoc.data() || {};
+    const items = shopData.items || [];
+    const newItem = { ...item, id: `item-${Date.now()}`};
+    const updatedItems = [...items, newItem];
+    await setDoc(shopRef, { items: updatedItems }, { merge: true });
+  }, []);
+
+  const updateShopItem = useCallback(async (shopId: string, itemToUpdate: ShopItem) => {
+    const shopRef = doc(db, "shops", shopId);
+    const shopDoc = await getDoc(shopRef);
+    const shopData = shopDoc.data() || {};
+    const items = shopData.items || [];
+    const updatedItems = items.map((item: ShopItem) => item.id === itemToUpdate.id ? itemToUpdate : item);
+    await setDoc(shopRef, { items: updatedItems }, { merge: true });
+  }, []);
+
+  const deleteShopItem = useCallback(async (shopId: string, itemId: string) => {
+    const shopRef = doc(db, "shops", shopId);
+    const shopDoc = await getDoc(shopRef);
+    const shopData = shopDoc.data() || {};
+    const items = shopData.items || [];
+    const updatedItems = items.filter((item: ShopItem) => item.id !== itemId);
+    await setDoc(shopRef, { items: updatedItems }, { merge: true });
+  }, []);
+  
+  const purchaseShopItem = useCallback(async (shopId: string, itemId: string, buyerUserId: string, buyerCharacterId: string) => {
+    await runTransaction(db, async (transaction) => {
+        // 1. Get all necessary documents
+        const shopRef = doc(db, "shops", shopId);
+        const shopDoc = await transaction.get(shopRef);
+        if (!shopDoc.exists()) throw new Error("Магазин не найден.");
+        const shopData = shopDoc.data() as Shop;
+        
+        const item = (shopData.items || []).find(i => i.id === itemId);
+        if (!item) throw new Error("Товар не найден.");
+
+        const buyerUserRef = doc(db, "users", buyerUserId);
+        const buyerUserDoc = await transaction.get(buyerUserRef);
+        if (!buyerUserDoc.exists()) throw new Error("Покупатель не найден.");
+        const buyerUserData = buyerUserDoc.data() as User;
+
+        const buyerCharIndex = buyerUserData.characters.findIndex(c => c.id === buyerCharacterId);
+        if (buyerCharIndex === -1) throw new Error("Персонаж покупателя не найден.");
+        const buyerChar = buyerUserData.characters[buyerCharIndex];
+        
+        // 2. Check funds
+        const price = item.price;
+        const balance = buyerChar.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 };
+        if (
+            balance.platinum < (price.platinum || 0) ||
+            balance.gold < (price.gold || 0) ||
+            balance.silver < (price.silver || 0) ||
+            balance.copper < (price.copper || 0)
+        ) {
+            throw new Error("Недостаточно средств у персонажа.");
+        }
+
+        // 3. Perform transactions
+        // Deduct from buyer
+        buyerChar.bankAccount.platinum -= (price.platinum || 0);
+        buyerChar.bankAccount.gold -= (price.gold || 0);
+        buyerChar.bankAccount.silver -= (price.silver || 0);
+        buyerChar.bankAccount.copper -= (price.copper || 0);
+        
+        const buyerTx: BankTransaction = { id: `txn-buy-${Date.now()}`, date: new Date().toISOString(), reason: `Покупка: ${item.name}`, amount: { platinum: -(price.platinum || 0), gold: -(price.gold || 0), silver: -(price.silver || 0), copper: -(price.copper || 0) } };
+        buyerChar.bankAccount.history = [buyerTx, ...(buyerChar.bankAccount.history || [])];
+
+        // Add to owner
+        if (shopData.ownerUserId && shopData.ownerCharacterId) {
+            const ownerUserRef = doc(db, "users", shopData.ownerUserId);
+            const ownerUserDoc = await transaction.get(ownerUserRef);
+            if (ownerUserDoc.exists()) {
+                const ownerUserData = ownerUserDoc.data() as User;
+                const ownerCharIndex = ownerUserData.characters.findIndex(c => c.id === shopData.ownerCharacterId);
+                if (ownerCharIndex !== -1) {
+                    const ownerChar = ownerUserData.characters[ownerCharIndex];
+                    ownerChar.bankAccount.platinum += (price.platinum || 0);
+                    ownerChar.bankAccount.gold += (price.gold || 0);
+                    ownerChar.bankAccount.silver += (price.silver || 0);
+                    ownerChar.bankAccount.copper += (price.copper || 0);
+                    
+                    const ownerTx: BankTransaction = { id: `txn-sell-${Date.now()}`, date: new Date().toISOString(), reason: `Продажа: ${item.name}`, amount: price };
+                    ownerChar.bankAccount.history = [ownerTx, ...(ownerChar.bankAccount.history || [])];
+                    
+                    transaction.update(ownerUserRef, { characters: ownerUserData.characters });
+                }
+            }
+        }
+        
+        // 4. Update buyer's character data
+        transaction.update(buyerUserRef, { characters: buyerUserData.characters });
+    });
+    
+     if (currentUser?.id === buyerUserId) {
+        const updatedUser = await fetchUserById(buyerUserId);
+        if (updatedUser) setCurrentUser(updatedUser);
+    }
+  }, [currentUser, fetchUserById]);
 
   const signOutUser = useCallback(() => {
     signOut(auth);
@@ -1696,8 +1802,12 @@ const processMonthlySalary = useCallback(async () => {
       fetchAllShops,
       fetchShopById,
       updateShopOwner,
+      addShopItem,
+      updateShopItem,
+      deleteShopItem,
+      purchaseShopItem,
     }),
-    [currentUser, gameSettings, fetchUserById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner]
+    [currentUser, gameSettings, fetchUserById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem]
   );
 
   return (

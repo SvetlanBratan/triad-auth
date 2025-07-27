@@ -233,6 +233,13 @@ export interface RewardRequest {
   createdAt: string; // ISO string date
 }
 
+export interface ShopItem {
+    id: string;
+    name: string;
+    imageUrl: string;
+    price: Omit<BankAccount, 'history'>;
+}
+
 export interface Shop {
   id: string;
   title: string;
@@ -242,4 +249,5 @@ export interface Shop {
   ownerUserId?: string;
   ownerCharacterId?: string;
   ownerCharacterName?: string;
+  items?: ShopItem[];
 }
