@@ -136,7 +136,7 @@ const drawFamiliarCard = (hasBlessing: boolean, unavailableMythicIds: Set<string
     } else if (rand < chances.мифический + chances.легендарный && availableLegendary.length > 0) {
         chosenPool = availableLegendary;
     } else if (rand < chances.мифический + chances.легендарный + chances.редкий && availableRare.length > 0) {
-        chosenPool = availableRare;
+        chosenPool = availableCommon;
     } else { 
         chosenPool = availableCommon;
     }
@@ -217,6 +217,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     training: [],
     relationships: [],
     marriedTo: [],
+    marriage: undefined,
     abilities: '',
     weaknesses: '',
     lifeGoal: '',
@@ -249,9 +250,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 ...initialFormData,
                 ...char,
                 crimeLevel: char.crimeLevel ?? 5, 
-                bankAccount: typeof char.bankAccount !== 'object' || char.bankAccount === null
+                bankAccount:
+                  typeof char.bankAccount !== 'object' || char.bankAccount === null
                     ? { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] }
-                    : { platinum: 0, gold: 0, silver: 0, copper: 0, history: [], ...char.bankAccount },
+                    : {
+                        platinum: char.bankAccount.platinum ?? 0,
+                        gold: char.bankAccount.gold ?? 0,
+                        silver: char.bankAccount.silver ?? 0,
+                        copper: char.bankAccount.copper ?? 0,
+                        history: Array.isArray(char.bankAccount.history) ? char.bankAccount.history : []
+                      },
                 accomplishments: char.accomplishments || [],
                 training: Array.isArray(char.training) ? char.training : [],
                 marriedTo: Array.isArray(char.marriedTo) ? char.marriedTo : [],
@@ -354,10 +362,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             userData.characters = userData.characters?.map(char => ({
                 ...initialFormData,
                 ...char,
-                 bankAccount: {
-                    platinum: 0, gold: 0, silver: 0, copper: 0, history: [], 
-                    ...(typeof char.bankAccount === 'object' && char.bankAccount !== null ? char.bankAccount : {})
-                 },
+                 bankAccount:
+                    typeof char.bankAccount !== 'object' || char.bankAccount === null
+                        ? { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] }
+                        : {
+                            platinum: char.bankAccount.platinum ?? 0,
+                            gold: char.bankAccount.gold ?? 0,
+                            silver: char.bankAccount.silver ?? 0,
+                            copper: char.bankAccount.copper ?? 0,
+                            history: Array.isArray(char.bankAccount.history) ? char.bankAccount.history : []
+                          },
                 inventory: { ...initialFormData.inventory, ...(char.inventory || {}) },
                 moodlets: char.moodlets || [],
             })) || [];
