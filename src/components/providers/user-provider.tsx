@@ -249,8 +249,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 ...initialFormData,
                 ...char,
                 crimeLevel: char.crimeLevel ?? 5, 
-                bankAccount: typeof char.bankAccount !== 'object' || char.bankAccount === null 
-                    ? { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] } 
+                bankAccount: typeof char.bankAccount !== 'object' || char.bankAccount === null
+                    ? { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] }
                     : { platinum: 0, gold: 0, silver: 0, copper: 0, history: [], ...char.bankAccount },
                 accomplishments: char.accomplishments || [],
                 training: Array.isArray(char.training) ? char.training : [],
@@ -354,9 +354,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             userData.characters = userData.characters?.map(char => ({
                 ...initialFormData,
                 ...char,
-                 bankAccount: typeof char.bankAccount !== 'object' || char.bankAccount === null 
-                    ? { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] } 
-                    : { platinum: 0, gold: 0, silver: 0, copper: 0, history: [], ...char.bankAccount },
+                 bankAccount: {
+                    platinum: 0, gold: 0, silver: 0, copper: 0, history: [], 
+                    ...(typeof char.bankAccount === 'object' && char.bankAccount !== null ? char.bankAccount : {})
+                 },
                 inventory: { ...initialFormData.inventory, ...(char.inventory || {}) },
                 moodlets: char.moodlets || [],
             })) || [];
