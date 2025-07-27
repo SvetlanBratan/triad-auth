@@ -166,9 +166,13 @@ export default function RouletteTab() {
           </div>
 
           {availableMythicCount !== null && (
-            <div className="flex justify-between items-center p-3 rounded-lg bg-amber-500/10 text-amber-800 text-sm">
-                 <span className="font-semibold flex items-center gap-2"><ShieldAlert className="w-4 h-4" /> Мифические карты:</span>
-                 <span className="font-bold">{availableMythicCount} / {totalMythicCount} доступно</span>
+             <div className="flex justify-between items-center p-3 rounded-lg bg-amber-500/10 text-amber-800 text-sm">
+                 <span className="font-semibold flex items-center gap-2"><ShieldAlert className="w-4 h-4" />
+                    {availableMythicCount > 0 
+                        ? `В рулетке мифических карт: ${availableMythicCount}`
+                        : 'В рулетке пока нет мифических карт :('
+                    }
+                 </span>
             </div>
           )}
 
