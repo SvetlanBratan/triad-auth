@@ -2,11 +2,11 @@
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
-import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction } from '@/lib/types';
+import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter } from "firebase/firestore";
-import { ALL_FAMILIARS, FAMILIARS_BY_ID, MOODLETS_DATA, DEFAULT_GAME_SETTINGS, WEALTH_LEVELS, FAME_LEVELS_POINTS } from '@/lib/data';
+import { ALL_FAMILIARS, FAMILIARS_BY_ID, MOODLETS_DATA, DEFAULT_GAME_SETTINGS, WEALTH_LEVELS, FAME_LEVELS_POINTS, ALL_SHOPS, SHOPS_BY_ID } from '@/lib/data';
 
 interface AuthContextType {
     user: FirebaseUser | null;
@@ -79,7 +79,9 @@ interface UserContextType {
   fetchFamiliarTradeRequestsForUser: () => Promise<FamiliarTradeRequest[]>;
   acceptFamiliarTradeRequest: (request: FamiliarTradeRequest) => Promise<void>;
   declineOrCancelFamiliarTradeRequest: (request: FamiliarTradeRequest, status: 'отклонено' | 'отменено') => Promise<void>;
-
+  fetchAllShops: () => Promise<Shop[]>;
+  fetchShopById: (shopId: string) => Promise<Shop | null>;
+  updateShopOwner: (shopId: string, ownerUserId: string, ownerCharacterId: string, ownerCharacterName: string) => Promise<void>;
 }
 
 export const UserContext = createContext<UserContextType | null>(null);
@@ -671,7 +673,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const userRef = doc(db, "users", request.userId);
         const userDoc = await transaction.get(userRef);
         if (!userDoc.exists()) throw new Error("User for the request not found");
-        const user = userDoc.data() as User;
+        let user = userDoc.data() as User;
         
         transaction.update(requestRef, { status: newStatus });
         let updatesForUser: Partial<User> = {};
@@ -1510,6 +1512,44 @@ const processMonthlySalary = useCallback(async () => {
       await updateDoc(requestRef, { status });
   }, []);
 
+  const fetchAllShops = useCallback(async (): Promise<Shop[]> => {
+      const shopsCollection = collection(db, "shops");
+      const snapshot = await getDocs(shopsCollection);
+      const dbShops = new Map<string, Partial<Shop>>();
+      snapshot.forEach(doc => {
+          dbShops.set(doc.id, doc.data());
+      });
+
+      const allShopsWithData = ALL_SHOPS.map(baseShop => {
+          const dbData = dbShops.get(baseShop.id);
+          return { ...baseShop, ...(dbData || {}) };
+      });
+      
+      return allShopsWithData;
+  }, []);
+
+  const fetchShopById = useCallback(async (shopId: string): Promise<Shop | null> => {
+      const baseShop = SHOPS_BY_ID[shopId];
+      if (!baseShop) return null;
+
+      const shopRef = doc(db, "shops", shopId);
+      const docSnap = await getDoc(shopRef);
+
+      if (docSnap.exists()) {
+          return { ...baseShop, ...docSnap.data() };
+      }
+      return baseShop;
+  }, []);
+
+  const updateShopOwner = useCallback(async (shopId: string, ownerUserId: string, ownerCharacterId: string, ownerCharacterName: string) => {
+      const shopRef = doc(db, "shops", shopId);
+      await setDoc(shopRef, {
+          ownerUserId,
+          ownerCharacterId,
+          ownerCharacterName
+      }, { merge: true });
+  }, []);
+
   const signOutUser = useCallback(() => {
     signOut(auth);
   }, []);
@@ -1653,8 +1693,11 @@ const processMonthlySalary = useCallback(async () => {
       fetchFamiliarTradeRequestsForUser,
       acceptFamiliarTradeRequest,
       declineOrCancelFamiliarTradeRequest,
+      fetchAllShops,
+      fetchShopById,
+      updateShopOwner,
     }),
-    [currentUser, gameSettings, fetchUserById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest]
+    [currentUser, gameSettings, fetchUserById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner]
   );
 
   return (
