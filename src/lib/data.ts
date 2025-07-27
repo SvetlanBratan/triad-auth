@@ -72,7 +72,7 @@ export const rewards: Reward[] = [
     { id: 'r-swap-element', title: 'Обмен стихии на учения', description: 'Поменять 1 стихию на 2 учения', cost: 100, type: 'permanent', iconName: 'Replace' },
     { id: 'r-hybrid', title: 'Полукровка/гибрид', description: 'Полукровка/гибрид из двух рас', cost: 150000, type: 'permanent', iconName: 'Combine' },
     { id: 'r-pumpkin-wife', title: 'Приобрести Тыкво-Жену', description: 'Приобрести Тыкво-Жену', cost: 100000, type: 'permanent', iconName: 'Heart' },
-    { id: 'r-pumpkin-husband', title: 'Приобрести Тыкво-Мужа', cost: 100000, type: 'permanent', iconName: 'Heart' },
+    { id: 'r-pumpkin-husband', title: 'Приобрести Тыкво-Мужа', description: 'Приобрести Тыкво-Мужа', cost: 100000, type: 'permanent', iconName: 'Heart' },
 ];
 
 export const ALL_ACHIEVEMENTS: Achievement[] = [
