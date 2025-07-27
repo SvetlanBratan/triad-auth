@@ -185,14 +185,14 @@ export default function ShopPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                 {shop.items.map(item => (
                                     <Card key={item.id} className="flex flex-col group">
-                                         <div className="relative aspect-square">
-                                            <Image src={item.imageUrl} alt={item.name} layout="fill" objectFit="cover" className="rounded-t-lg" data-ai-hint="fantasy item" />
-                                            {isOwnerOrAdmin && (
-                                                <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <Button size="icon" variant="secondary" onClick={() => { setEditingItem(item); setIsFormOpen(true); }}><Edit className="h-4 w-4"/></Button>
+                                        <CardHeader className="flex-grow flex-row justify-between items-start">
+                                            <CardTitle className="text-lg">{item.name}</CardTitle>
+                                             {isOwnerOrAdmin && (
+                                                <div className="flex gap-2">
+                                                    <Button size="icon" variant="secondary" className="h-8 w-8" onClick={() => { setEditingItem(item); setIsFormOpen(true); }}><Edit className="h-4 w-4"/></Button>
                                                     <AlertDialog>
                                                         <AlertDialogTrigger asChild>
-                                                            <Button size="icon" variant="destructive"><Trash2 className="h-4 w-4"/></Button>
+                                                            <Button size="icon" variant="destructive" className="h-8 w-8"><Trash2 className="h-4 w-4"/></Button>
                                                         </AlertDialogTrigger>
                                                         <AlertDialogContent>
                                                             <AlertDialogHeader>
@@ -209,11 +209,8 @@ export default function ShopPage() {
                                                     </AlertDialog>
                                                 </div>
                                             )}
-                                        </div>
-                                        <CardHeader className="flex-grow">
-                                            <CardTitle className="text-lg">{item.name}</CardTitle>
                                         </CardHeader>
-                                        <CardFooter className="flex-col items-start gap-4">
+                                        <CardFooter className="flex-col items-start gap-4 pt-0">
                                             <div className="text-primary font-bold">
                                                 {formatCurrency(item.price)}
                                             </div>

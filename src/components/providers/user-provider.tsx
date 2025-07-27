@@ -83,7 +83,7 @@ interface UserContextType {
   fetchAllShops: () => Promise<Shop[]>;
   fetchShopById: (shopId: string) => Promise<Shop | null>;
   updateShopOwner: (shopId: string, ownerUserId: string, ownerCharacterId: string, ownerCharacterName: string) => Promise<void>;
-  addShopItem: (shopId: string, item: Omit<ShopItem, 'id' | 'imageUrl'>) => Promise<void>;
+  addShopItem: (shopId: string, item: Omit<ShopItem, 'id'>) => Promise<void>;
   updateShopItem: (shopId: string, item: ShopItem) => Promise<void>;
   deleteShopItem: (shopId: string, itemId: string) => Promise<void>;
   purchaseShopItem: (shopId: string, itemId: string, buyerUserId: string, buyerCharacterId: string) => Promise<void>;
@@ -371,14 +371,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 ...char,
                  bankAccount:
                     typeof char.bankAccount !== 'object' || char.bankAccount === null
-                        ? { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] }
-                        : {
-                            platinum: char.bankAccount.platinum ?? 0,
-                            gold: char.bankAccount.gold ?? 0,
-                            silver: char.bankAccount.silver ?? 0,
-                            copper: char.bankAccount.copper ?? 0,
-                            history: Array.isArray(char.bankAccount.history) ? char.bankAccount.history : []
-                          },
+                      ? { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] }
+                      : {
+                          platinum: char.bankAccount.platinum ?? 0,
+                          gold: char.bankAccount.gold ?? 0,
+                          silver: char.bankAccount.silver ?? 0,
+                          copper: char.bankAccount.copper ?? 0,
+                          history: Array.isArray(char.bankAccount.history) ? char.bankAccount.history : [],
+                        },
                 inventory: { ...initialFormData.inventory, ...(char.inventory || {}) },
                 moodlets: char.moodlets || [],
             })) || [];
@@ -1555,15 +1555,14 @@ const processMonthlySalary = useCallback(async () => {
       }, { merge: true });
   }, []);
   
-  const addShopItem = useCallback(async (shopId: string, item: Omit<ShopItem, 'id' | 'imageUrl'>) => {
+  const addShopItem = useCallback(async (shopId: string, item: Omit<ShopItem, 'id'>) => {
     const shopRef = doc(db, "shops", shopId);
     const shopDoc = await getDoc(shopRef);
     const shopData = shopDoc.data() || {};
     const items = shopData.items || [];
     const newItem: ShopItem = { 
         ...item, 
-        id: `item-${Date.now()}`,
-        imageUrl: "https://placehold.co/400x400.png"
+        id: `item-${Date.now()}`
     };
     const updatedItems = [...items, newItem];
     await setDoc(shopRef, { items: updatedItems }, { merge: true });

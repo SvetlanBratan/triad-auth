@@ -16,7 +16,7 @@ interface ShopItemFormProps {
     closeDialog: () => void;
 }
 
-const initialFormData: Omit<ShopItem, 'id' | 'imageUrl'> = {
+const initialFormData: Omit<ShopItem, 'id'> = {
     name: '',
     price: { platinum: 0, gold: 0, silver: 0, copper: 0 },
 };
@@ -24,7 +24,7 @@ const initialFormData: Omit<ShopItem, 'id' | 'imageUrl'> = {
 export default function ShopItemForm({ shopId, item, closeDialog }: ShopItemFormProps) {
     const { addShopItem, updateShopItem } = useUser();
     const { toast } = useToast();
-    const [formData, setFormData] = useState<Omit<ShopItem, 'id' | 'imageUrl'>>(initialFormData);
+    const [formData, setFormData] = useState<Omit<ShopItem, 'id'>>(initialFormData);
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
