@@ -73,13 +73,10 @@ export function calculateRelationshipLevel(points: number): { level: number; pro
     return { level, progressToNextLevel, maxPointsForCurrentLevel };
 }
 
-export function formatCurrency(bankAccount: BankAccount | undefined): string | [string, string][] {
+export function formatCurrency(bankAccount: BankAccount | undefined, isForMultiLine: boolean = false): string | [string, string][] {
   if (!bankAccount) {
     return '0 тыквин';
   }
-
-  // Check if we are in a context that needs the array for multi-line display
-  const isForMultiLine = (arguments[1] === true);
 
   const { platinum = 0, gold = 0, silver = 0, copper = 0 } = bankAccount;
   const parts: [string, string][] = [];
