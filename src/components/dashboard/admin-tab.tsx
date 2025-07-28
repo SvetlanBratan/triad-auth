@@ -848,7 +848,7 @@ export default function AdminTab() {
   
   return (
     <Tabs defaultValue="points" className="w-full">
-      <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
+      <TabsList className="flex flex-wrap h-auto justify-center">
         <TabsTrigger value="points" className="text-xs sm:text-sm">Баллы</TabsTrigger>
         <TabsTrigger value="general" className="text-xs sm:text-sm">Общее</TabsTrigger>
         <TabsTrigger value="familiars" className="text-xs sm:text-sm">Фамильяры</TabsTrigger>
