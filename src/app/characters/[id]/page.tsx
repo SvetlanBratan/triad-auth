@@ -701,7 +701,7 @@ export default function CharacterPage() {
                                                     </AccordionTrigger>
                                                     <AccordionContent>
                                                         <ul className="list-disc pl-5 space-y-1 text-sm pt-2">
-                                                            {items.map(item => <li key={item.id}>{item.name}</li>)}
+                                                            {items.map(item => <li key={item.id}>{item.name} {item.quantity > 1 ? `(x${item.quantity})` : ''}</li>)}
                                                         </ul>
                                                     </AccordionContent>
                                                 </AccordionItem>

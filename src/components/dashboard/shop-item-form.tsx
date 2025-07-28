@@ -24,6 +24,7 @@ const initialFormData: Omit<ShopItem, 'id'> = {
     description: '',
     price: { platinum: 0, gold: 0, silver: 0, copper: 0 },
     inventoryTag: 'прочее',
+    quantity: undefined, // undefined for infinite
 };
 
 export default function ShopItemForm({ shopId, item, closeDialog }: ShopItemFormProps) {
@@ -44,6 +45,7 @@ export default function ShopItemForm({ shopId, item, closeDialog }: ShopItemForm
                     copper: item.price.copper || 0,
                 },
                 inventoryTag: item.inventoryTag || 'прочее',
+                quantity: item.quantity,
             });
         } else {
             setFormData(initialFormData);
@@ -63,12 +65,17 @@ export default function ShopItemForm({ shopId, item, closeDialog }: ShopItemForm
         setIsLoading(true);
 
         try {
+             const finalData = {
+                ...formData,
+                quantity: formData.quantity === null || isNaN(Number(formData.quantity)) ? undefined : Number(formData.quantity),
+            };
+
             if (item) {
-                const itemDataToUpdate = { ...item, ...formData };
+                const itemDataToUpdate = { ...item, ...finalData };
                 await updateShopItem(shopId, itemDataToUpdate);
                 toast({ title: "Товар обновлен" });
             } else {
-                await addShopItem(shopId, formData);
+                await addShopItem(shopId, finalData);
                 toast({ title: "Товар добавлен" });
             }
             closeDialog();
@@ -127,13 +134,27 @@ export default function ShopItemForm({ shopId, item, closeDialog }: ShopItemForm
                     </div>
 
                     <div>
-                        <Label>Цена</Label>
+                        <Label>Цена за 1 шт.</Label>
                         <div className="grid grid-cols-2 gap-2">
                             <Input type="number" placeholder="Платина" value={formData.price.platinum || ''} onChange={e => handlePriceChange('platinum', e.target.value)} />
                             <Input type="number" placeholder="Золото" value={formData.price.gold || ''} onChange={e => handlePriceChange('gold', e.target.value)} />
                             <Input type="number" placeholder="Серебро" value={formData.price.silver || ''} onChange={e => handlePriceChange('silver', e.target.value)} />
                             <Input type="number" placeholder="Медь" value={formData.price.copper || ''} onChange={e => handlePriceChange('copper', e.target.value)} />
                         </div>
+                    </div>
+
+                     <div>
+                        <Label htmlFor="quantity">Количество в наличии</Label>
+                        <Input
+                            id="quantity"
+                            type="number"
+                            value={formData.quantity ?? ''}
+                            onChange={(e) => setFormData(prev => ({ ...prev, quantity: e.target.value === '' ? undefined : parseInt(e.target.value, 10) }))}
+                            placeholder="Оставьте пустым для бесконечного"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                           Если оставить поле пустым, товар будет считаться бесконечным.
+                        </p>
                     </div>
                 </div>
              </ScrollArea>

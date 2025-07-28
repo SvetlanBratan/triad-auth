@@ -53,6 +53,7 @@ export interface InventoryItem {
     id: string;
     name: string;
     description?: string;
+    quantity: number;
 }
 
 export interface Inventory {
@@ -245,6 +246,7 @@ export interface ShopItem {
     description?: string;
     price: Omit<BankAccount, 'history'>;
     inventoryTag?: InventoryCategory;
+    quantity?: number; // undefined or -1 for infinite
 }
 
 export interface Shop {
@@ -263,6 +265,7 @@ export type AdminGiveItemForm = {
     name: string;
     description: string;
     inventoryTag: InventoryCategory;
+    quantity: number;
 }
 
 export interface UserContextType {
@@ -326,6 +329,6 @@ export interface UserContextType {
   addShopItem: (shopId: string, item: Omit<ShopItem, 'id'>) => Promise<void>;
   updateShopItem: (shopId: string, item: ShopItem) => Promise<void>;
   deleteShopItem: (shopId: string, itemId: string) => Promise<void>;
-  purchaseShopItem: (shopId: string, itemId: string, buyerUserId: string, buyerCharacterId: string) => Promise<void>;
+  purchaseShopItem: (shopId: string, itemId: string, buyerUserId: string, buyerCharacterId: string, quantity: number) => Promise<void>;
   adminGiveItemToCharacter: (userId: string, characterId: string, itemData: AdminGiveItemForm) => Promise<void>;
 }

@@ -4,10 +4,10 @@
 import React from 'react';
 import { useParams, notFound, useRouter } from 'next/navigation';
 import { useUser } from '@/hooks/use-user';
-import type { Shop, ShopItem } from '@/lib/types';
+import type { Shop, ShopItem, BankAccount } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, UserCircle, PlusCircle, Edit, Trash2, ShoppingCart, Info } from 'lucide-react';
+import { ArrowLeft, UserCircle, PlusCircle, Edit, Trash2, ShoppingCart, Info, Package } from 'lucide-react';
 import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import ShopItemForm from '@/components/dashboard/shop-item-form';
@@ -27,6 +27,8 @@ import {
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useQuery } from '@tanstack/react-query';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export default function ShopPage() {
     const { id } = useParams();
@@ -48,6 +50,7 @@ export default function ShopPage() {
     const [selectedItemForPurchase, setSelectedItemForPurchase] = React.useState<ShopItem | null>(null);
     const [buyerCharacterId, setBuyerCharacterId] = React.useState('');
     const [isPurchasing, setIsPurchasing] = React.useState(false);
+    const [purchaseQuantity, setPurchaseQuantity] = React.useState(1);
 
 
     const isOwnerOrAdmin = React.useMemo(() => {
@@ -74,18 +77,20 @@ export default function ShopPage() {
 
     const handlePurchaseClick = (item: ShopItem) => {
         setSelectedItemForPurchase(item);
+        setPurchaseQuantity(1);
         setIsPurchaseDialogOpen(true);
     };
 
     const handleConfirmPurchase = async () => {
-        if (!currentUser || !selectedItemForPurchase || !buyerCharacterId || !shopId) return;
+        if (!currentUser || !selectedItemForPurchase || !buyerCharacterId || !shopId || purchaseQuantity <= 0) return;
         setIsPurchasing(true);
         try {
-            await purchaseShopItem(shopId, selectedItemForPurchase.id, currentUser.id, buyerCharacterId);
-            toast({ title: "Покупка совершена!", description: `Вы приобрели "${selectedItemForPurchase.name}".` });
+            await purchaseShopItem(shopId, selectedItemForPurchase.id, currentUser.id, buyerCharacterId, purchaseQuantity);
+            toast({ title: "Покупка совершена!", description: `Вы приобрели "${selectedItemForPurchase.name}" x${purchaseQuantity}.` });
             setIsPurchaseDialogOpen(false);
             setSelectedItemForPurchase(null);
             setBuyerCharacterId('');
+            refetch();
         } catch (e) {
             const message = e instanceof Error ? e.message : "Произошла неизвестная ошибка.";
             toast({ variant: 'destructive', title: "Ошибка покупки", description: message });
@@ -94,22 +99,32 @@ export default function ShopPage() {
         }
     }
     
+     const totalPrice = React.useMemo(() => {
+        if (!selectedItemForPurchase) return null;
+        const { platinum = 0, gold = 0, silver = 0, copper = 0 } = selectedItemForPurchase.price;
+        return {
+            platinum: platinum * purchaseQuantity,
+            gold: gold * purchaseQuantity,
+            silver: silver * purchaseQuantity,
+            copper: copper * purchaseQuantity,
+        };
+    }, [selectedItemForPurchase, purchaseQuantity]);
+
     const buyerCharacterOptions = React.useMemo(() => {
-        if (!currentUser || !selectedItemForPurchase) return [];
+        if (!currentUser || !totalPrice) return [];
         return currentUser.characters
             .filter(char => {
-                const price = selectedItemForPurchase.price;
                 const balance = char.bankAccount;
-                return (balance.platinum >= (price.platinum || 0)) &&
-                       (balance.gold >= (price.gold || 0)) &&
-                       (balance.silver >= (price.silver || 0)) &&
-                       (balance.copper >= (price.copper || 0));
+                return (balance.platinum >= totalPrice.platinum) &&
+                       (balance.gold >= totalPrice.gold) &&
+                       (balance.silver >= totalPrice.silver) &&
+                       (balance.copper >= totalPrice.copper);
             })
             .map(char => ({
                 value: char.id,
                 label: `${char.name} (${formatCurrency(char.bankAccount)})`
             }));
-    }, [currentUser, selectedItemForPurchase]);
+    }, [currentUser, totalPrice]);
 
 
     if (isLoading) {
@@ -161,7 +176,9 @@ export default function ShopPage() {
                         <h3 className="text-2xl font-semibold mb-4">Ассортимент</h3>
                         {shop.items && shop.items.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                {shop.items.map(item => (
+                                {shop.items.map(item => {
+                                    const isOutOfStock = item.quantity === 0;
+                                    return (
                                     <Card key={item.id} className="flex flex-col group">
                                         <CardHeader className="flex-grow">
                                             <div className="flex justify-between items-start">
@@ -192,17 +209,23 @@ export default function ShopPage() {
                                             {item.description && <CardDescription className="pt-2 text-sm">{item.description}</CardDescription>}
                                         </CardHeader>
                                         <CardFooter className="flex-col items-start gap-4 pt-0 mt-auto">
+                                             {item.quantity !== undefined && item.quantity >= 0 && (
+                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                    <Package className="h-4 w-4" />
+                                                    <span>Осталось: {item.quantity} шт.</span>
+                                                </div>
+                                            )}
                                             <div className="text-primary font-bold">
                                                 {formatCurrency(item.price)}
                                             </div>
                                             {!isOwnerOrAdmin && (
-                                                <Button className="w-full" onClick={() => handlePurchaseClick(item)}>
-                                                    <ShoppingCart className="mr-2 h-4 w-4" /> Купить
+                                                <Button className="w-full" onClick={() => handlePurchaseClick(item)} disabled={isOutOfStock}>
+                                                    <ShoppingCart className="mr-2 h-4 w-4" /> {isOutOfStock ? "Нет в наличии" : "Купить"}
                                                 </Button>
                                             )}
                                         </CardFooter>
                                     </Card>
-                                ))}
+                                )})}
                             </div>
                         ) : (
                              <p className="text-center text-muted-foreground py-8">В этом магазине пока нет товаров.</p>
@@ -226,33 +249,55 @@ export default function ShopPage() {
                     <DialogHeader>
                         <DialogTitle>Подтверждение покупки</DialogTitle>
                         <DialogDescription>
-                            Вы собираетесь купить "{selectedItemForPurchase?.name}" за {formatCurrency(selectedItemForPurchase?.price)}.
+                            Вы собираетесь купить "{selectedItemForPurchase?.name}".
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="py-4 space-y-2">
-                         <label htmlFor="buyer-character" className="text-sm font-medium">Выберите персонажа для оплаты:</label>
-                         {buyerCharacterOptions && buyerCharacterOptions.length > 0 ? (
-                            <SearchableSelect
-                                options={buyerCharacterOptions}
-                                value={buyerCharacterId}
-                                onValueChange={setBuyerCharacterId}
-                                placeholder="Выберите персонажа..."
+                    <div className="py-4 space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="quantity">Количество</Label>
+                            <Input 
+                                id="quantity"
+                                type="number"
+                                value={purchaseQuantity}
+                                onChange={e => {
+                                    const val = parseInt(e.target.value, 10);
+                                    if(val > 0) setPurchaseQuantity(val);
+                                }}
+                                min={1}
+                                max={selectedItemForPurchase?.quantity}
                             />
-                         ) : (
-                            <Alert variant="destructive">
-                                <Info className="h-4 w-4" />
-                                <AlertTitle>Недостаточно средств</AlertTitle>
-                                <AlertDescription>
-                                    Ни у одного из ваших персонажей нет достаточно средств для совершения этой покупки.
-                                </AlertDescription>
-                            </Alert>
-                         )}
+                        </div>
+
+                         <div className="text-right">
+                            <p className="text-sm text-muted-foreground">Итоговая стоимость:</p>
+                            <p className="font-bold text-primary">{formatCurrency(totalPrice as BankAccount)}</p>
+                        </div>
+                        
+                         <div className="space-y-2">
+                             <label htmlFor="buyer-character" className="text-sm font-medium">Выберите персонажа для оплаты:</label>
+                             {buyerCharacterOptions && buyerCharacterOptions.length > 0 ? (
+                                <SearchableSelect
+                                    options={buyerCharacterOptions}
+                                    value={buyerCharacterId}
+                                    onValueChange={setBuyerCharacterId}
+                                    placeholder="Выберите персонажа..."
+                                />
+                             ) : (
+                                <Alert variant="destructive">
+                                    <Info className="h-4 w-4" />
+                                    <AlertTitle>Недостаточно средств</AlertTitle>
+                                    <AlertDescription>
+                                        Ни у одного из ваших персонажей нет достаточно средств для совершения этой покупки.
+                                    </AlertDescription>
+                                </Alert>
+                             )}
+                         </div>
                     </div>
                     <DialogFooter>
                         <DialogClose asChild><Button variant="ghost">Отмена</Button></DialogClose>
                         <Button 
                             onClick={handleConfirmPurchase}
-                            disabled={isPurchasing || !buyerCharacterId}
+                            disabled={isPurchasing || !buyerCharacterId || purchaseQuantity <= 0 || (selectedItemForPurchase?.quantity !== undefined && purchaseQuantity > selectedItemForPurchase.quantity)}
                         >
                             {isPurchasing ? "Обработка..." : "Подтвердить"}
                         </Button>
