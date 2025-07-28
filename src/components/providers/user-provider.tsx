@@ -1687,6 +1687,7 @@ const processMonthlySalary = useCallback(async () => {
                     id: `inv-item-${Date.now()}`,
                     name: item.name,
                     description: item.description,
+                    image: item.image,
                     quantity: quantity,
                 };
                 inventory[item.inventoryTag].push(newInventoryItem);
