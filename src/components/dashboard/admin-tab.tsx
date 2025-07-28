@@ -588,7 +588,7 @@ export default function AdminTab() {
         toast({ variant: 'destructive', title: 'Ошибка', description: 'Выберите пользователя и персонажа.' });
         return;
     }
-    await adminUpdateCharacterStatus(ecoUserId, ecoCharId, charStatus);
+    await adminUpdateCharacterStatus(ecoUserId, ecoCharId, { taxpayerStatus: charStatus.taxpayerStatus });
     await refetchUsers();
     toast({ title: 'Статус персонажа обновлен!' });
   };
@@ -1580,7 +1580,7 @@ export default function AdminTab() {
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2"><UserCog/> Статус персонажа</CardTitle>
-                        <CardDescription>Измените статус гражданства и налогообложения для персонажа.</CardDescription>
+                        <CardDescription>Измените статус налогообложения для персонажа.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleCharacterStatusUpdate} className="space-y-4">
@@ -1601,15 +1601,6 @@ export default function AdminTab() {
                                         disabled={!ecoUserId}
                                     />
                                 </div>
-                            </div>
-                            <div>
-                                <Label>Статус гражданства</Label>
-                                <SearchableSelect
-                                    options={citizenshipStatusOptions}
-                                    value={charStatus.citizenshipStatus}
-                                    onValueChange={(v) => setCharStatus(p => ({...p, citizenshipStatus: v as CitizenshipStatus}))}
-                                    placeholder="Выберите статус..."
-                                />
                             </div>
                             <div>
                                 <Label>Статус налогоплательщика</Label>
