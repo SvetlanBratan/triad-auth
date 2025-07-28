@@ -538,7 +538,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         
         const sanitizeCharacterForWrite = (char: Character): Character => {
             // Deep clone to safely mutate
-            let sanitized = JSON.parse(JSON.stringify(char));
+            let sanitized: any = JSON.parse(JSON.stringify(char));
 
             // Merge with defaults to ensure all keys exist and are not undefined
             sanitized = { ...initialFormData, ...sanitized };
@@ -551,7 +551,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const arrayFields: (keyof Character)[] = ['accomplishments', 'training', 'relationships', 'marriedTo', 'moodlets', 'familiarCards'];
             arrayFields.forEach(field => {
                 if (!Array.isArray(sanitized[field])) {
-                    sanitized[field] = [];
+                    (sanitized as any)[field] = [];
                 }
             });
             
@@ -559,13 +559,20 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const stringFields: (keyof Character)[] = ['factions', 'abilities', 'weaknesses', 'lifeGoal', 'pets', 'criminalRecords', 'appearanceImage', 'diary', 'workLocation', 'blessingExpires'];
             stringFields.forEach(field => {
                 if (sanitized[field] === undefined || sanitized[field] === null) {
-                    sanitized[field] = '';
+                    (sanitized as any)[field] = '';
+                }
+            });
+            
+            // Remove any top-level undefined fields just in case
+            Object.keys(sanitized).forEach(key => {
+                if (sanitized[key] === undefined) {
+                    delete sanitized[key];
                 }
             });
 
-            return sanitized;
+            return sanitized as Character;
         };
-
+        
         const sanitizedCharacterToUpdate = sanitizeCharacterForWrite(characterToUpdate);
 
         const updatedCharacters = [...sourceUserData.characters];
@@ -577,18 +584,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             updatedCharacters.push(sanitizedCharacterToUpdate);
         }
         
-        const allUsersSnapshot = await getDocs(collection(db, "users"));
-        const allUsersMap = new Map(allUsersSnapshot.docs.map(d => [d.id, d.data() as User]));
-        const usersToUpdate = new Map<string, User>();
-        usersToUpdate.set(userId, { ...sourceUserData, characters: updatedCharacters });
-
-        // Logic for updating reciprocal relationships remains complex and is omitted for brevity
-        // but it would use the sanitizedCharacterToUpdate and sanitizeCharacterForWrite function.
-        // For this fix, we focus on the main user's data sanitation.
-
-        for (const [id, user] of usersToUpdate.entries()) {
-            transaction.set(doc(db, "users", id), user);
-        }
+        // This simplified approach only updates the current user's document.
+        // A full implementation would require finding and updating related users as well.
+        transaction.update(userRef, { characters: updatedCharacters });
     });
 
     const updatedUser = await fetchUserById(userId);
@@ -1872,3 +1870,4 @@ const processMonthlySalary = useCallback(async () => {
     </AuthContext.Provider>
   );
 }
+
