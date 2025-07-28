@@ -12,9 +12,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
-import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info, AlertTriangle, Bell, CheckCircle, Store } from 'lucide-react';
-import type { UserStatus, UserRole, User, FamiliarCard, BankAccount, WealthLevel, FamiliarRank, Shop } from '@/lib/types';
-import { FAME_LEVELS_POINTS, EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, FAMILIARS_BY_ID, WEALTH_LEVELS, ALL_FAMILIARS, STARTING_CAPITAL_LEVELS, ALL_SHOPS } from '@/lib/data';
+import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info, AlertTriangle, Bell, CheckCircle, Store, PackagePlus } from 'lucide-react';
+import type { UserStatus, UserRole, User, FamiliarCard, BankAccount, WealthLevel, FamiliarRank, Shop, InventoryCategory, AdminGiveItemForm } from '@/lib/types';
+import { FAME_LEVELS_POINTS, EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, FAMILIARS_BY_ID, WEALTH_LEVELS, ALL_FAMILIARS, STARTING_CAPITAL_LEVELS, ALL_SHOPS, INVENTORY_CATEGORIES } from '@/lib/data';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +31,7 @@ import { SearchableSelect } from '../ui/searchable-select';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { differenceInDays } from 'date-fns';
 import { cn, formatCurrency } from '@/lib/utils';
+import { Switch } from '../ui/switch';
 
 const rankNames: Record<FamiliarRank, string> = {
     'мифический': 'Мифический',
@@ -65,7 +66,9 @@ export default function AdminTab() {
     processMonthlySalary,
     updateCharacterWealthLevel,
     giveAnyFamiliarToCharacter,
-    updateShopOwner
+    updateShopOwner,
+    fetchAllShops,
+    adminGiveItemToCharacter,
   } = useUser();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -137,6 +140,14 @@ export default function AdminTab() {
   const [shopId, setShopId] = useState('');
   const [shopOwnerUserId, setShopOwnerUserId] = useState('');
   const [shopOwnerCharId, setShopOwnerCharId] = useState('');
+  
+  // Item giving state
+  const [itemGiveUserId, setItemGiveUserId] = useState('');
+  const [itemGiveCharId, setItemGiveCharId] = useState('');
+  const [isGivingNewItem, setIsGivingNewItem] = useState(false);
+  const [allShopItems, setAllShopItems] = useState<{label: string, value: string}[]>([]);
+  const [selectedShopItemId, setSelectedShopItemId] = useState('');
+  const [newItemData, setNewItemData] = useState<AdminGiveItemForm>({ name: '', description: '', inventoryTag: 'прочее' });
 
 
   const { toast } = useToast();
@@ -152,20 +163,32 @@ export default function AdminTab() {
   }, [fetchUsersForAdmin, toast]);
 
   useEffect(() => {
-    const loadUsers = async () => {
+    const loadInitialData = async () => {
         setIsLoading(true);
         try {
-            const fetchedUsers = await fetchUsersForAdmin();
+            const [fetchedUsers, fetchedShops] = await Promise.all([
+                fetchUsersForAdmin(),
+                fetchAllShops()
+            ]);
             setUsers(fetchedUsers);
+            
+            const items = fetchedShops.flatMap(shop => 
+                (shop.items || []).map(item => ({
+                    label: `${item.name} (${shop.title})`,
+                    value: JSON.stringify({ name: item.name, description: item.description, inventoryTag: item.inventoryTag })
+                }))
+            );
+            setAllShopItems(items);
+
         } catch (error) {
-            console.error("Failed to fetch users", error);
-            toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось загрузить пользователей.' });
+            console.error("Failed to fetch initial admin data", error);
+            toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось загрузить данные для админ-панели.' });
         } finally {
             setIsLoading(false);
         }
     };
-    loadUsers();
-  }, [fetchUsersForAdmin, toast]);
+    loadInitialData();
+  }, [fetchUsersForAdmin, fetchAllShops, toast]);
 
   useEffect(() => {
       setNewGameDateString(initialGameDate || '');
@@ -560,6 +583,40 @@ export default function AdminTab() {
     setShopOwnerCharId('');
   };
 
+  const handleGiveItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!itemGiveUserId || !itemGiveCharId) {
+        toast({ variant: 'destructive', title: 'Ошибка', description: 'Выберите пользователя и персонажа.' });
+        return;
+    }
+
+    let itemData: AdminGiveItemForm;
+    if (isGivingNewItem) {
+        if (!newItemData.name || !newItemData.inventoryTag) {
+            toast({ variant: 'destructive', title: 'Ошибка', description: 'Для нового предмета укажите название и категорию.' });
+            return;
+        }
+        itemData = newItemData;
+    } else {
+        if (!selectedShopItemId) {
+            toast({ variant: 'destructive', title: 'Ошибка', description: 'Выберите существующий предмет.' });
+            return;
+        }
+        itemData = JSON.parse(selectedShopItemId);
+    }
+    
+    await adminGiveItemToCharacter(itemGiveUserId, itemGiveCharId, itemData);
+    await refetchUsers();
+    toast({ title: 'Предмет выдан!', description: `"${itemData.name}" добавлен в инвентарь персонажа.` });
+    
+    // Reset form
+    setItemGiveUserId('');
+    setItemGiveCharId('');
+    setSelectedShopItemId('');
+    setNewItemData({ name: '', description: '', inventoryTag: 'прочее' });
+  };
+
+
   // --- Memos ---
    const userOptions = useMemo(() => {
     const options = users.map(user => ({ value: user.id, label: user.name }));
@@ -616,6 +673,12 @@ export default function AdminTab() {
         label: `${c.name} (${formatCurrency(c.bankAccount)})`
     }));
   }, [shopOwnerUserId, users]);
+
+  const charactersForItemGive = useMemo(() => {
+    if (!itemGiveUserId) return [];
+    const user = users.find(u => u.id === itemGiveUserId);
+    return (user?.characters || []).map(c => ({ value: c.id, label: c.name }));
+  }, [itemGiveUserId, users]);
 
   const familiarsForSelectedCharacterOptions = useMemo((): {value: string, label: string}[] => {
     if (!removeFamiliarUserId || !removeFamiliarCharId) return [];
@@ -720,10 +783,11 @@ export default function AdminTab() {
   
   return (
     <Tabs defaultValue="points" className="w-full">
-      <TabsList className="grid w-full grid-cols-5">
+      <TabsList className="grid w-full grid-cols-6">
         <TabsTrigger value="points">Баллы</TabsTrigger>
         <TabsTrigger value="general">Общее</TabsTrigger>
         <TabsTrigger value="familiars">Фамильяры</TabsTrigger>
+        <TabsTrigger value="items">Предметы</TabsTrigger>
         <TabsTrigger value="economy">Экономика</TabsTrigger>
         <TabsTrigger value="shops">Магазины</TabsTrigger>
       </TabsList>
@@ -1307,6 +1371,84 @@ export default function AdminTab() {
             </div>
         </div>
       </TabsContent>
+      
+       <TabsContent value="items" className="mt-4">
+        <div className="gap-6 column-1 md:column-2 lg:column-3">
+          <div className="break-inside-avoid mb-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><PackagePlus /> Выдать предмет в инвентарь</CardTitle>
+                    <CardDescription>Добавьте любой предмет в инвентарь персонажа.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleGiveItem} className="space-y-4">
+                        <div>
+                            <Label>Пользователь и персонаж</Label>
+                            <div className="flex gap-2">
+                                <SearchableSelect
+                                    options={userOnlyOptions}
+                                    value={itemGiveUserId}
+                                    onValueChange={uid => { setItemGiveUserId(uid); setItemGiveCharId(''); }}
+                                    placeholder="Пользователь"
+                                />
+                                <SearchableSelect
+                                    options={charactersForItemGive}
+                                    value={itemGiveCharId}
+                                    onValueChange={setItemGiveCharId}
+                                    placeholder="Персонаж"
+                                    disabled={!itemGiveUserId}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                            <Label htmlFor="item-mode-switch">Новый предмет</Label>
+                            <Switch
+                                id="item-mode-switch"
+                                checked={isGivingNewItem}
+                                onCheckedChange={setIsGivingNewItem}
+                            />
+                        </div>
+                        
+                        {isGivingNewItem ? (
+                            <div className="p-4 border rounded-md space-y-4">
+                                <div>
+                                    <Label htmlFor="new-item-name">Название предмета</Label>
+                                    <Input id="new-item-name" value={newItemData.name} onChange={e => setNewItemData(p => ({...p, name: e.target.value}))} />
+                                </div>
+                                <div>
+                                    <Label htmlFor="new-item-desc">Описание</Label>
+                                    <Textarea id="new-item-desc" value={newItemData.description} onChange={e => setNewItemData(p => ({...p, description: e.target.value}))} />
+                                </div>
+                                <div>
+                                    <Label htmlFor="new-item-tag">Категория в инвентаре</Label>
+                                    <Select value={newItemData.inventoryTag} onValueChange={(v: InventoryCategory) => setNewItemData(p => ({...p, inventoryTag: v}))}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            {INVENTORY_CATEGORIES.map(cat => <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                        ) : (
+                            <div>
+                                <Label>Существующий предмет</Label>
+                                <SearchableSelect
+                                    options={allShopItems}
+                                    value={selectedShopItemId}
+                                    onValueChange={setSelectedShopItemId}
+                                    placeholder="Выберите предмет из магазина..."
+                                />
+                            </div>
+                        )}
+                        
+                        <Button type="submit">Выдать предмет</Button>
+                    </form>
+                </CardContent>
+            </Card>
+           </div>
+        </div>
+      </TabsContent>
 
       <TabsContent value="economy" className="mt-4">
         <div className="gap-6 column-1 md:column-2 lg:column-3">
@@ -1508,9 +1650,3 @@ export default function AdminTab() {
     </Tabs>
   );
 }
-
-    
-
-    
-
-

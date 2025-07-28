@@ -1,4 +1,5 @@
 
+
 export type UserRole = 'admin' | 'user';
 export type UserStatus = 'активный' | 'неактивный' | 'отпуск';
 export type RewardRequestStatus = 'в ожидании' | 'одобрено' | 'отклонено';
@@ -257,4 +258,10 @@ export interface Shop {
   ownerCharacterId?: string;
   ownerCharacterName?: string;
   items?: ShopItem[];
+}
+
+export type AdminGiveItemForm = {
+    name: string;
+    description: string;
+    inventoryTag: InventoryCategory;
 }
