@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -13,6 +14,7 @@ import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { INVENTORY_CATEGORIES } from '@/lib/data';
 import { SearchableSelect } from '../ui/searchable-select';
+import ImageKitUploader from './imagekit-uploader';
 
 interface ShopItemFormProps {
     shopId: string;
@@ -23,6 +25,7 @@ interface ShopItemFormProps {
 const initialFormData: Omit<ShopItem, 'id'> = {
     name: '',
     description: '',
+    image: '',
     price: { platinum: 0, gold: 0, silver: 0, copper: 0 },
     inventoryTag: 'прочее',
     quantity: undefined, // undefined for infinite
@@ -39,6 +42,7 @@ export default function ShopItemForm({ shopId, item, closeDialog }: ShopItemForm
             setFormData({
                 name: item.name,
                 description: item.description || '',
+                image: item.image || '',
                 price: {
                     platinum: item.price.platinum || 0,
                     gold: item.price.gold || 0,
@@ -88,6 +92,10 @@ export default function ShopItemForm({ shopId, item, closeDialog }: ShopItemForm
         <form onSubmit={handleSubmit} className="space-y-4">
              <ScrollArea className="max-h-[60vh] p-1">
                 <div className="space-y-4 pr-4">
+                    <ImageKitUploader
+                        currentImageUrl={formData.image}
+                        onUpload={(url) => setFormData(p => ({...p, image: url}))}
+                    />
                     <div>
                         <Label htmlFor="name">Название товара</Label>
                         <Input

@@ -56,6 +56,7 @@ export interface InventoryItem {
     name: string;
     description?: string;
     quantity: number;
+    image?: string;
 }
 
 export interface Inventory {
@@ -249,6 +250,7 @@ export interface ShopItem {
     id: string;
     name: string;
     description?: string;
+    image?: string;
     price: Omit<BankAccount, 'history'>;
     inventoryTag?: InventoryCategory;
     quantity?: number; // undefined or -1 for infinite
@@ -342,6 +344,6 @@ export interface UserContextType {
   adminUpdateItemInCharacter: (userId: string, characterId: string, itemData: InventoryItem, category: InventoryCategory) => Promise<void>;
   adminDeleteItemFromCharacter: (userId: string, characterId: string, itemId: string, category: InventoryCategory) => Promise<void>;
   restockShopItem: (shopId: string, itemId: string, ownerUserId: string, ownerCharacterId: string) => Promise<void>;
-  adminUpdateCharacterStatus: (userId: string, characterId: string, updates: { taxpayerStatus?: TaxpayerStatus }) => Promise<void>;
+  adminUpdateCharacterStatus: (userId: string, characterId: string, updates: { taxpayerStatus?: TaxpayerStatus; citizenshipStatus?: CitizenshipStatus; }) => Promise<void>;
   adminUpdateShopLicense: (shopId: string, hasLicense: boolean) => Promise<void>;
 }

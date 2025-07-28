@@ -791,6 +791,11 @@ export default function CharacterPage() {
                                                                             </button>
                                                                         </PopoverTrigger>
                                                                         <PopoverContent className="w-auto max-w-xs text-sm">
+                                                                            {item.image && (
+                                                                                <div className="relative h-32 w-full mb-2">
+                                                                                    <Image src={item.image} alt={item.name} layout="fill" objectFit="contain" />
+                                                                                </div>
+                                                                            )}
                                                                             <p className="font-bold">{item.name}</p>
                                                                             {item.description && <p className="text-xs mt-1 text-muted-foreground">{item.description}</p>}
                                                                             {!item.description && <p className="text-xs mt-1 text-muted-foreground italic">Описание отсутствует.</p>}

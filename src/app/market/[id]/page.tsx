@@ -249,7 +249,12 @@ export default function ShopPage() {
                                 {shop.items.map(item => {
                                     const isOutOfStock = item.quantity === 0;
                                     return (
-                                    <Card key={item.id} className="flex flex-col group">
+                                    <Card key={item.id} className="flex flex-col group overflow-hidden">
+                                        {item.image && (
+                                            <div className="relative h-40 w-full">
+                                                <Image src={item.image} alt={item.name} fill style={{objectFit: 'cover'}} />
+                                            </div>
+                                        )}
                                         <CardHeader className="flex-grow">
                                             <div className="flex justify-between items-start">
                                                 <CardTitle className="text-lg">{item.name}</CardTitle>
