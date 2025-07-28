@@ -17,7 +17,7 @@ export function UserSwitcher() {
     <div className="flex items-center gap-2 md:gap-4 flex-wrap justify-end">
        <div className="text-sm text-left flex-shrink min-w-0">
          <div className="font-medium flex items-center flex-wrap">
-            <span className="text-muted-foreground mr-1.5 shrink-0">Вы вошли как</span>
+            <span className="text-muted-foreground mr-1.5 shrink-0 hidden sm:inline">Вы вошли как</span>
             <span className="text-primary font-bold truncate min-w-0">{currentUser.name}</span>
          </div>
          <div className="text-muted-foreground flex items-center gap-1.5">
