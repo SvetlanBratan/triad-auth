@@ -15,6 +15,7 @@ import CurrencyExchange from "./currency-exchange";
 import FamiliarsTab from "./familiars-tab";
 import { cn } from "@/lib/utils";
 import { useSearchParams } from "next/navigation";
+import MarketTab from "./market-tab";
 
 export function Dashboard() {
   const { currentUser } = useUser();
