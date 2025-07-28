@@ -41,7 +41,7 @@ export default function ShopPage() {
 
     const { data: shop, isLoading, refetch } = useQuery<Shop | null>({
         queryKey: ['shop', shopId],
-        queryFn: () => fetchShopById(shopId),
+        queryFn: () => fetchShopById(shopId!),
         enabled: !!shopId,
     });
 
@@ -149,8 +149,8 @@ export default function ShopPage() {
                          <Image
                             src={shop.image}
                             alt={shop.title}
-                            layout="fill"
-                            objectFit="cover"
+                            fill
+                            style={{objectFit: "cover"}}
                             className="w-full h-full"
                             data-ai-hint={shop.aiHint}
                         />
@@ -250,7 +250,7 @@ export default function ShopPage() {
                      <DialogHeader>
                         <DialogTitle>{editingItem ? "Редактировать товар" : "Добавить новый товар"}</DialogTitle>
                      </DialogHeader>
-                     <ShopItemForm shopId={shopId} item={editingItem} closeDialog={handleFormClose} />
+                     <ShopItemForm shopId={shopId!} item={editingItem} closeDialog={handleFormClose} />
                 </DialogContent>
             </Dialog>
             
