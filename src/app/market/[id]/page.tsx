@@ -31,7 +31,7 @@ import { useQuery } from '@tanstack/react-query';
 export default function ShopPage() {
     const { id } = useParams();
     const router = useRouter();
-    const { currentUser, fetchShopById, deleteShopItem, purchaseShopItem } from useUser();
+    const { currentUser, fetchShopById, deleteShopItem, purchaseShopItem } = useUser();
     const { toast } = useToast();
     
     const shopId = Array.isArray(id) ? id[0] : id;
