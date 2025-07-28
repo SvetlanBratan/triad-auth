@@ -265,3 +265,68 @@ export type AdminGiveItemForm = {
     description: string;
     inventoryTag: InventoryCategory;
 }
+
+export interface UserContextType {
+  currentUser: User | null;
+  setCurrentUser: (user: User | null) => void;
+  gameDate: Date | null;
+  gameDateString: string | null;
+  lastWeeklyBonusAwardedAt: string | undefined;
+  fetchUserById: (userId: string) => Promise<User | null>;
+  fetchUsersForAdmin: () => Promise<User[]>;
+  fetchLeaderboardUsers: () => Promise<User[]>;
+  fetchAllRewardRequests: () => Promise<RewardRequest[]>;
+  fetchRewardRequestsForUser: (userId: string) => Promise<RewardRequest[]>;
+  fetchAvailableMythicCardsCount: () => Promise<number>;
+  addPointsToUser: (userId: string, amount: number, reason: string, characterId?: string) => Promise<User | null>;
+  addPointsToAllUsers: (amount: number, reason: string) => Promise<void>;
+  addCharacterToUser: (userId: string, character: Character) => Promise<void>;
+  updateCharacterInUser: (userId: string, character: Character) => Promise<void>;
+  deleteCharacterFromUser: (userId: string, characterId: string) => Promise<void>;
+  updateUserStatus: (userId: string, status: UserStatus) => Promise<void>;
+  updateUserRole: (userId: string, role: UserRole) => Promise<void>;
+  grantAchievementToUser: (userId: string, achievementId: string) => Promise<void>;
+  createNewUser: (uid: string, nickname: string) => Promise<User>;
+  createRewardRequest: (rewardRequest: Omit<RewardRequest, 'id' | 'status' | 'createdAt'>) => Promise<void>;
+  updateRewardRequestStatus: (request: RewardRequest, newStatus: RewardRequestStatus) => Promise<RewardRequest | null>;
+  pullGachaForCharacter: (userId: string, characterId: string) => Promise<{updatedUser: User, newCard: FamiliarCard, isDuplicate: boolean}>;
+  giveAnyFamiliarToCharacter: (userId: string, characterId: string, familiarId: string) => Promise<void>;
+  clearPointHistoryForUser: (userId: string) => Promise<void>;
+  clearAllPointHistories: () => Promise<void>;
+  addMoodletToCharacter: (userId: string, characterId: string, moodletId: string, durationInDays: number, source?: string) => Promise<void>;
+  removeMoodletFromCharacter: (userId: string, characterId: string, moodletId: string) => Promise<void>;
+  clearRewardRequestsHistory: () => Promise<void>;
+  removeFamiliarFromCharacter: (userId: string, characterId: string, cardId: string) => Promise<void>;
+  updateUser: (userId: string, updates: Partial<User>) => Promise<void>;
+  updateUserAvatar: (userId: string, avatarUrl: string) => Promise<void>;
+  updateGameDate: (newDateString: string) => Promise<void>;
+  processWeeklyBonus: () => Promise<{awardedCount: number, isOverdue: boolean}>;
+  checkExtraCharacterSlots: (userId: string) => Promise<number>;
+  performRelationshipAction: (
+    sourceUserId: string,
+    sourceCharacterId: string,
+    targetCharacterId: string,
+    actionType: RelationshipActionType,
+    description: string
+  ) => Promise<void>;
+  recoverFamiliarsFromHistory: (userId: string, characterId: string, oldCharacterName?: string) => Promise<number>;
+  addBankPointsToCharacter: (userId: string, characterId: string, amount: Partial<BankAccount>, reason: string) => Promise<void>;
+  processMonthlySalary: () => Promise<void>;
+  updateCharacterWealthLevel: (userId: string, characterId: string, wealthLevel: WealthLevel) => Promise<void>;
+  createExchangeRequest: (creatorUserId: string, creatorCharacterId: string, fromCurrency: Currency, fromAmount: number, toCurrency: Currency, toAmount: number) => Promise<void>;
+  fetchOpenExchangeRequests: () => Promise<ExchangeRequest[]>;
+  acceptExchangeRequest: (acceptorUserId: string, acceptorCharacterId: string, request: ExchangeRequest) => Promise<void>;
+  cancelExchangeRequest: (request: ExchangeRequest) => Promise<void>;
+  createFamiliarTradeRequest: (initiatorCharacterId: string, initiatorFamiliarId: string, targetCharacterId: string, targetFamiliarId: string) => Promise<void>;
+  fetchFamiliarTradeRequestsForUser: () => Promise<FamiliarTradeRequest[]>;
+  acceptFamiliarTradeRequest: (request: FamiliarTradeRequest) => Promise<void>;
+  declineOrCancelFamiliarTradeRequest: (request: FamiliarTradeRequest, status: 'отклонено' | 'отменено') => Promise<void>;
+  fetchAllShops: () => Promise<Shop[]>;
+  fetchShopById: (shopId: string) => Promise<Shop | null>;
+  updateShopOwner: (shopId: string, ownerUserId: string, ownerCharacterId: string, ownerCharacterName: string) => Promise<void>;
+  addShopItem: (shopId: string, item: Omit<ShopItem, 'id'>) => Promise<void>;
+  updateShopItem: (shopId: string, item: ShopItem) => Promise<void>;
+  deleteShopItem: (shopId: string, itemId: string) => Promise<void>;
+  purchaseShopItem: (shopId: string, itemId: string, buyerUserId: string, buyerCharacterId: string) => Promise<void>;
+  adminGiveItemToCharacter: (userId: string, characterId: string, itemData: AdminGiveItemForm) => Promise<void>;
+}
