@@ -4,7 +4,7 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'i.postimg.cc',
+        hostname: 'placehold.co',
       },
       {
         protocol: 'https',
@@ -12,7 +12,11 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'placehold.co',
+        hostname: 'i.postimg.cc',
+      },
+      {
+        protocol: 'https',
+        hostname: 'ik.imagekit.io',
       },
     ],
   },
