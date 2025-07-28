@@ -12,8 +12,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
-import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info, AlertTriangle, Bell, CheckCircle, Store, PackagePlus, Edit } from 'lucide-react';
-import type { UserStatus, UserRole, User, FamiliarCard, BankAccount, WealthLevel, FamiliarRank, Shop, InventoryCategory, AdminGiveItemForm, InventoryItem } from '@/lib/types';
+import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info, AlertTriangle, Bell, CheckCircle, Store, PackagePlus, Edit, BadgeCheck } from 'lucide-react';
+import type { UserStatus, UserRole, User, FamiliarCard, BankAccount, WealthLevel, FamiliarRank, Shop, InventoryCategory, AdminGiveItemForm, InventoryItem, CitizenshipStatus, TaxpayerStatus } from '@/lib/types';
 import { FAME_LEVELS_POINTS, EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, FAMILIARS_BY_ID, WEALTH_LEVELS, ALL_FAMILIARS, STARTING_CAPITAL_LEVELS, ALL_SHOPS, INVENTORY_CATEGORIES } from '@/lib/data';
 import {
   AlertDialog,
@@ -44,6 +44,12 @@ const rankNames: Record<FamiliarRank, string> = {
 
 const rankOrder: FamiliarRank[] = ['мифический', 'ивентовый', 'легендарный', 'редкий', 'обычный'];
 
+const citizenshipStatusOptions: { value: CitizenshipStatus, label: string }[] = [
+    { value: 'citizen', label: 'Гражданин' },
+    { value: 'non-citizen', label: 'Не гражданин' },
+    { value: 'refugee', label: 'Беженец' },
+];
+
 
 export default function AdminTab() {
   const { 
@@ -72,6 +78,8 @@ export default function AdminTab() {
     adminGiveItemToCharacter,
     adminUpdateItemInCharacter,
     adminDeleteItemFromCharacter,
+    adminUpdateCharacterStatus,
+    adminUpdateShopLicense,
   } = useUser();
   const queryClient = useQueryClient();
 
@@ -139,6 +147,7 @@ export default function AdminTab() {
   const [ecoAmount, setEcoAmount] = useState<Partial<Omit<BankAccount, 'history'>>>({ platinum: 0, gold: 0, silver: 0, copper: 0});
   const [ecoReason, setEcoReason] = useState('');
   const [ecoWealthLevel, setEcoWealthLevel] = useState<WealthLevel | ''>('');
+  const [charStatus, setCharStatus] = useState<{ citizenshipStatus: CitizenshipStatus, taxpayerStatus: TaxpayerStatus }>({ citizenshipStatus: 'non-citizen', taxpayerStatus: 'taxable' });
   
   // Starting capital state
   const [capitalUserId, setCapitalUserId] = useState('');
@@ -152,6 +161,9 @@ export default function AdminTab() {
   const [shopId, setShopId] = useState('');
   const [shopOwnerUserId, setShopOwnerUserId] = useState('');
   const [shopOwnerCharId, setShopOwnerCharId] = useState('');
+  const [licenseShopId, setLicenseShopId] = useState('');
+  const [shopHasLicense, setShopHasLicense] = useState(false);
+
   
   // Item management state
   const [itemUserId, setItemUserId] = useState('');
@@ -188,7 +200,33 @@ export default function AdminTab() {
         setEditItemData(null);
     }
   }, [selectedInventoryItem, itemUserId, itemCharId, users]);
+
+  const selectedCharacterForStatus = useMemo(() => {
+    if (!ecoUserId || !ecoCharId) return null;
+    const user = users.find(u => u.id === ecoUserId);
+    return user?.characters.find(c => c.id === ecoCharId) || null;
+  }, [ecoUserId, ecoCharId, users]);
   
+  useEffect(() => {
+      if (selectedCharacterForStatus) {
+          setCharStatus({
+              citizenshipStatus: selectedCharacterForStatus.citizenshipStatus || 'non-citizen',
+              taxpayerStatus: selectedCharacterForStatus.taxpayerStatus || 'taxable',
+          });
+      }
+  }, [selectedCharacterForStatus]);
+
+  const selectedShopForLicense = useMemo(() => {
+      if (!licenseShopId) return null;
+      return allShops.find(s => s.id === licenseShopId);
+  }, [licenseShopId, allShops]);
+
+  useEffect(() => {
+      if (selectedShopForLicense) {
+          setShopHasLicense(selectedShopForLicense.hasLicense || false);
+      }
+  }, [selectedShopForLicense]);
+
     const allShopItems = useMemo(() => {
         return allShops.flatMap(shop =>
             (shop.items || []).map(item => ({
@@ -542,6 +580,28 @@ export default function AdminTab() {
     toast({ title: 'Уровень достатка обновлен!', description: `Новый уровень: ${ecoWealthLevel}.` });
 
     setEcoWealthLevel('');
+  };
+
+  const handleCharacterStatusUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+     if (!ecoUserId || !ecoCharId) {
+        toast({ variant: 'destructive', title: 'Ошибка', description: 'Выберите пользователя и персонажа.' });
+        return;
+    }
+    await adminUpdateCharacterStatus(ecoUserId, ecoCharId, charStatus);
+    await refetchUsers();
+    toast({ title: 'Статус персонажа обновлен!' });
+  };
+
+  const handleLicenseUpdate = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!licenseShopId) {
+          toast({ variant: 'destructive', title: 'Ошибка', description: 'Выберите магазин.' });
+          return;
+      }
+      await adminUpdateShopLicense(licenseShopId, shopHasLicense);
+      await queryClient.invalidateQueries({ queryKey: ['allShops'] });
+      toast({ title: 'Статус лицензии обновлен!' });
   };
 
   const handleStartingCapitalSubmit = async (e: React.FormEvent) => {
@@ -1516,6 +1576,58 @@ export default function AdminTab() {
                     </CardContent>
                 </Card>
             </div>
+             <div className="break-inside-avoid mb-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><UserCog/> Статус персонажа</CardTitle>
+                        <CardDescription>Измените статус гражданства и налогообложения для персонажа.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <form onSubmit={handleCharacterStatusUpdate} className="space-y-4">
+                            <div>
+                                <Label>Пользователь и персонаж</Label>
+                                <div className="flex gap-2">
+                                    <SearchableSelect
+                                        options={userOnlyOptions}
+                                        value={ecoUserId}
+                                        onValueChange={uid => { setEcoUserId(uid); setEcoCharId(''); }}
+                                        placeholder="Пользователь"
+                                    />
+                                    <SearchableSelect
+                                        options={charactersForEconomy}
+                                        value={ecoCharId}
+                                        onValueChange={setEcoCharId}
+                                        placeholder="Персонаж"
+                                        disabled={!ecoUserId}
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <Label>Статус гражданства</Label>
+                                <SearchableSelect
+                                    options={citizenshipStatusOptions}
+                                    value={charStatus.citizenshipStatus}
+                                    onValueChange={(v) => setCharStatus(p => ({...p, citizenshipStatus: v as CitizenshipStatus}))}
+                                    placeholder="Выберите статус..."
+                                />
+                            </div>
+                            <div>
+                                <Label>Статус налогоплательщика</Label>
+                                <div className="flex items-center gap-2 pt-2">
+                                     <Switch
+                                        checked={charStatus.taxpayerStatus === 'taxable'}
+                                        onCheckedChange={(checked) => setCharStatus(p => ({...p, taxpayerStatus: checked ? 'taxable' : 'exempt'}))}
+                                    />
+                                    <span className="text-sm text-muted-foreground">
+                                        {charStatus.taxpayerStatus === 'taxable' ? 'Облагается налогами' : 'Освобожден от налогов'}
+                                    </span>
+                                </div>
+                            </div>
+                            <Button type="submit">Сохранить статус</Button>
+                        </form>
+                    </CardContent>
+                </Card>
+            </div>
             <div className="break-inside-avoid mb-6">
                 <Card>
                      <CardHeader>
@@ -1617,6 +1729,38 @@ export default function AdminTab() {
                 </CardContent>
             </Card>
            </div>
+             <div className="break-inside-avoid mb-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><BadgeCheck /> Лицензирование</CardTitle>
+                        <CardDescription>Управление лицензиями для магазинов.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <form onSubmit={handleLicenseUpdate} className="space-y-4">
+                            <div>
+                                <Label>Магазин</Label>
+                                <SearchableSelect
+                                    options={shopOptions}
+                                    value={licenseShopId}
+                                    onValueChange={setLicenseShopId}
+                                    placeholder="Выберите магазин..."
+                                />
+                            </div>
+                            {selectedShopForLicense && (
+                                <div className="flex items-center space-x-2 pt-2">
+                                    <Switch
+                                        id="license-switch"
+                                        checked={shopHasLicense}
+                                        onCheckedChange={setShopHasLicense}
+                                    />
+                                    <Label htmlFor="license-switch">Имеет лицензию</Label>
+                                </div>
+                            )}
+                            <Button type="submit" disabled={!selectedShopForLicense}>Сохранить</Button>
+                        </form>
+                    </CardContent>
+                </Card>
+            </div>
             <div className="break-inside-avoid mb-6">
             <Card>
                 <CardHeader>
