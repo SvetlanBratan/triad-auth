@@ -251,8 +251,14 @@ export default function ShopPage() {
                                     return (
                                     <Card key={item.id} className="flex flex-col group overflow-hidden">
                                         {item.image && (
-                                            <div className="relative h-40 w-full bg-muted">
-                                                <Image src={item.image} alt={item.name} fill style={{objectFit: 'contain'}} />
+                                            <div className="relative w-full bg-muted">
+                                                 <Image
+                                                    src={item.image}
+                                                    alt={item.name}
+                                                    width={400}
+                                                    height={400}
+                                                    className="w-full h-auto object-contain"
+                                                />
                                             </div>
                                         )}
                                         <CardHeader className="flex-grow">
@@ -445,3 +451,5 @@ export default function ShopPage() {
         </div>
     );
 }
+
+    
