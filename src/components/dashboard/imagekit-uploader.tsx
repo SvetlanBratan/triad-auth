@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -7,13 +6,22 @@ import { useToast } from '@/hooks/use-toast';
 import { UploadCloud, X } from 'lucide-react';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
-import { env } from '@/lib/env';
 import { Label } from '@/components/ui/label';
+import { uploadImage } from '@/actions/upload-image';
 
 interface ImageKitUploaderProps {
   currentImageUrl?: string | null;
   onUpload: (url: string) => void;
 }
+
+const fileToDataURL = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+};
 
 export default function ImageKitUploader({ currentImageUrl, onUpload }: ImageKitUploaderProps) {
   const { toast } = useToast();
@@ -48,43 +56,13 @@ export default function ImageKitUploader({ currentImageUrl, onUpload }: ImageKit
 
   const handleUpload = async () => {
     if (!file) return;
-    if (!env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY) {
-        toast({
-            variant: 'destructive',
-            title: 'Ошибка конфигурации',
-            description: 'Публичный ключ ImageKit не настроен.',
-        });
-        return;
-    }
-
     setIsLoading(true);
 
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('fileName', file.name);
-    formData.append('publicKey', env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY);
-    
     try {
-        const response = await fetch('https://upload.imagekit.io/api/v1/files/upload', {
-            method: 'POST',
-            body: formData,
-        });
-        
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('ImageKit error:', errorText);
-        try {
-          const errorData = JSON.parse(errorText);
-          throw new Error(`Не удалось загрузить изображение. ${errorData.message}`);
-        } catch {
-          throw new Error(`Не удалось загрузить изображение. Ответ сервера: ${response.statusText}`);
-        }
-      }
-
-      const data = await response.json();
-      const secureUrl = data.url;
+      const dataUrl = await fileToDataURL(file);
+      const { url } = await uploadImage(dataUrl, file.name);
       
-      onUpload(secureUrl);
+      onUpload(url);
 
       toast({
         title: 'Изображение обновлено!',
