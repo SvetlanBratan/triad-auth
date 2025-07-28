@@ -91,6 +91,12 @@ const initialFormData: Omit<Character, 'id'> = {
         недвижимость: [],
         транспорт: [],
         familiarCards: [],
+        драгоценности: [],
+        книгиИСвитки: [],
+        прочее: [],
+        предприятия: [],
+        души: [],
+        мебель: [],
     },
     bankAccount: { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] },
     wealthLevel: 'Бедный',
@@ -98,6 +104,7 @@ const initialFormData: Omit<Character, 'id'> = {
 
 const fameLevelOptions = FAME_LEVELS.map(level => ({ value: level, label: level }));
 const skillLevelOptions = SKILL_LEVELS.map(level => ({ value: level, label: level }));
+const crimeLevelOptions = CRIME_LEVELS.map(cl => ({ value: String(cl.level), label: cl.title }));
 
 const SectionTitles: Record<EditableSection, string> = {
     mainInfo: 'Основная информация',
@@ -274,7 +281,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                  if (sectionKey === 'marriage') {
                     sectionIsEmpty = !formData.marriedTo || formData.marriedTo.length === 0;
                  } else {
-                    const sectionData = formData[sectionKey as keyof Omit<Character, 'marriage'>];
+                    const sectionData = formData[sectionKey as keyof Omit<Character, 'marriedTo'>];
                     sectionIsEmpty = !sectionData || (Array.isArray(sectionData) && sectionData.length === 0);
                  }
                  const titleAction = sectionIsEmpty ? "Добавить" : "Редактировать";
@@ -318,14 +325,12 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                             </div>
                              <div>
                                 <Label htmlFor="crimeLevel">Уровень преступности</Label>
-                                <Select value={String(formData.crimeLevel || 5)} onValueChange={(v) => handleFieldChange('crimeLevel', Number(v) as CrimeLevel)}>
-                                    <SelectTrigger id="crimeLevel"><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        {CRIME_LEVELS.map(cl => (
-                                            <SelectItem key={cl.level} value={String(cl.level)}>{cl.title}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                 <SearchableSelect
+                                    options={crimeLevelOptions}
+                                    value={String(formData.crimeLevel || 5)}
+                                    onValueChange={(v) => handleFieldChange('crimeLevel', Number(v) as CrimeLevel)}
+                                    placeholder="Выберите уровень..."
+                                />
                             </div>
                             <div>
                                 <Label htmlFor="workLocation">Место работы</Label>
@@ -365,14 +370,12 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                      return (
                          <div>
                              <Label htmlFor="crimeLevel">{FieldLabels[field]}</Label>
-                            <Select value={String(formData.crimeLevel || 5)} onValueChange={(v) => handleFieldChange('crimeLevel', Number(v) as CrimeLevel)}>
-                                <SelectTrigger id="crimeLevel"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    {CRIME_LEVELS.map(cl => (
-                                        <SelectItem key={cl.level} value={String(cl.level)}>{cl.title}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                              <SearchableSelect
+                                options={crimeLevelOptions}
+                                value={String(formData.crimeLevel || 5)}
+                                onValueChange={(v) => handleFieldChange('crimeLevel', Number(v) as CrimeLevel)}
+                                placeholder="Выберите уровень..."
+                            />
                          </div>
                      )
                 }
@@ -396,21 +399,21 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                             )}
                              <div>
                                 <Label>Известность</Label>
-                                <Select value={acc.fameLevel} onValueChange={(v) => handleItemChange('fameLevel', v)}>
-                                    <SelectTrigger><SelectValue placeholder="Уровень..." /></SelectTrigger>
-                                    <SelectContent>
-                                        {fameLevelOptions.map(opt => (<SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>))}
-                                    </SelectContent>
-                                </Select>
+                                 <SearchableSelect
+                                    options={fameLevelOptions}
+                                    value={acc.fameLevel}
+                                    onValueChange={(v) => handleItemChange('fameLevel', v)}
+                                    placeholder="Уровень..."
+                                />
                             </div>
                             <div>
                                 <Label>Навык</Label>
-                                <Select value={acc.skillLevel} onValueChange={(v) => handleItemChange('skillLevel', v)}>
-                                    <SelectTrigger><SelectValue placeholder="Уровень..." /></SelectTrigger>
-                                    <SelectContent>
-                                        {skillLevelOptions.map(opt => (<SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>))}
-                                    </SelectContent>
-                                </Select>
+                                <SearchableSelect
+                                    options={skillLevelOptions}
+                                    value={acc.skillLevel}
+                                    onValueChange={(v) => handleItemChange('skillLevel', v)}
+                                    placeholder="Уровень..."
+                                />
                             </div>
                             <div><Label>Пояснение</Label><Input value={acc.description} onChange={(e) => handleItemChange('description', e.target.value)} placeholder="Например, в области зельеварения"/></div>
                         </div>
@@ -439,10 +442,12 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                             </div>
                             <div>
                                 <Label>Тип отношений</Label>
-                                <Select value={rel.type} onValueChange={(value: RelationshipType) => handleItemChange('type', value)}>
-                                    <SelectTrigger><SelectValue placeholder="Выберите тип..." /></SelectTrigger>
-                                    <SelectContent>{relationshipTypeOptions.map(opt => (<SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>))}</SelectContent>
-                                </Select>
+                                 <SearchableSelect
+                                    options={relationshipTypeOptions}
+                                    value={rel.type}
+                                    onValueChange={(value: string) => handleItemChange('type', value as RelationshipType)}
+                                    placeholder="Выберите тип..."
+                                />
                             </div>
                         </div>
                     </div>

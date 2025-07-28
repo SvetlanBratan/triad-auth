@@ -12,6 +12,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { INVENTORY_CATEGORIES } from '@/lib/data';
+import { SearchableSelect } from '../ui/searchable-select';
 
 interface ShopItemFormProps {
     shopId: string;
@@ -113,21 +114,12 @@ export default function ShopItemForm({ shopId, item, closeDialog }: ShopItemForm
 
                     <div>
                         <Label htmlFor="inventoryTag">Категория в инвентаре</Label>
-                         <Select
+                         <SearchableSelect
+                            options={INVENTORY_CATEGORIES}
                             value={formData.inventoryTag}
-                            onValueChange={(value: InventoryCategory) => setFormData(prev => ({...prev, inventoryTag: value}))}
-                        >
-                            <SelectTrigger id="inventoryTag">
-                                <SelectValue placeholder="Выберите категорию..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {INVENTORY_CATEGORIES.map(cat => (
-                                    <SelectItem key={cat.value} value={cat.value}>
-                                        {cat.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                            onValueChange={(value) => setFormData(prev => ({...prev, inventoryTag: value as InventoryCategory}))}
+                            placeholder="Выберите категорию..."
+                        />
                         <p className="text-xs text-muted-foreground mt-1">
                            В эту категорию инвентаря товар попадет после покупки.
                         </p>
