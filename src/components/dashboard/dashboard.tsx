@@ -15,10 +15,14 @@ import CurrencyExchange from "./currency-exchange";
 import FamiliarsTab from "./familiars-tab";
 import { cn } from "@/lib/utils";
 import MarketTab from "./market-tab";
+import { useSearchParams } from "next/navigation";
 
 export function Dashboard() {
   const { currentUser } = useUser();
   const { loading } = useAuth();
+  const searchParams = useSearchParams();
+  const defaultTab = searchParams.get('tab') || 'profile';
+
 
   if (loading) {
     return (
@@ -50,7 +54,7 @@ export function Dashboard() {
   const gridColsClass = isAdmin ? 'grid-cols-8' : 'grid-cols-6';
 
   return (
-      <Tabs defaultValue="profile" className="w-full">
+      <Tabs defaultValue={defaultTab} className="w-full">
         <TabsList className={`grid w-full ${gridColsClass}`}>
           {tabs.map(({ value, label, icon: Icon, className }) => (
             <TabsTrigger key={value} value={value} className="flex-row items-center justify-center p-1 sm:p-2 sm:gap-1.5 text-xs sm:text-sm">
