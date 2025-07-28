@@ -51,11 +51,9 @@ export function Dashboard() {
     ...(isAdmin ? [{ value: 'admin', label: 'Админ', icon: Shield }] : []),
   ];
   
-  const gridColsClass = isAdmin ? 'sm:grid-cols-8 grid-cols-6' : 'grid-cols-6';
-
   return (
       <Tabs defaultValue={defaultTab} className="w-full">
-        <TabsList className={`grid w-full ${gridColsClass}`}>
+        <TabsList className="flex flex-wrap h-auto justify-center">
           {tabs.map(({ value, label, icon: Icon, className }) => (
             <TabsTrigger key={value} value={value} className="flex-row items-center justify-center p-1 sm:p-2 sm:gap-1.5 text-xs sm:text-sm">
               <Icon className={cn("w-4 h-4", className)} />
