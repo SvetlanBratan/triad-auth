@@ -783,11 +783,10 @@ export default function AdminTab() {
   
   return (
     <Tabs defaultValue="points" className="w-full">
-      <TabsList className="grid w-full grid-cols-6">
+      <TabsList className="grid w-full grid-cols-5">
         <TabsTrigger value="points">Баллы</TabsTrigger>
         <TabsTrigger value="general">Общее</TabsTrigger>
         <TabsTrigger value="familiars">Фамильяры</TabsTrigger>
-        <TabsTrigger value="items">Предметы</TabsTrigger>
         <TabsTrigger value="economy">Экономика</TabsTrigger>
         <TabsTrigger value="shops">Магазины</TabsTrigger>
       </TabsList>
@@ -1371,84 +1370,6 @@ export default function AdminTab() {
             </div>
         </div>
       </TabsContent>
-      
-       <TabsContent value="items" className="mt-4">
-        <div className="gap-6 column-1 md:column-2 lg:column-3">
-          <div className="break-inside-avoid mb-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><PackagePlus /> Выдать предмет в инвентарь</CardTitle>
-                    <CardDescription>Добавьте любой предмет в инвентарь персонажа.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form onSubmit={handleGiveItem} className="space-y-4">
-                        <div>
-                            <Label>Пользователь и персонаж</Label>
-                            <div className="flex gap-2">
-                                <SearchableSelect
-                                    options={userOnlyOptions}
-                                    value={itemGiveUserId}
-                                    onValueChange={uid => { setItemGiveUserId(uid); setItemGiveCharId(''); }}
-                                    placeholder="Пользователь"
-                                />
-                                <SearchableSelect
-                                    options={charactersForItemGive}
-                                    value={itemGiveCharId}
-                                    onValueChange={setItemGiveCharId}
-                                    placeholder="Персонаж"
-                                    disabled={!itemGiveUserId}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="flex items-center space-x-2">
-                            <Label htmlFor="item-mode-switch">Новый предмет</Label>
-                            <Switch
-                                id="item-mode-switch"
-                                checked={isGivingNewItem}
-                                onCheckedChange={setIsGivingNewItem}
-                            />
-                        </div>
-                        
-                        {isGivingNewItem ? (
-                            <div className="p-4 border rounded-md space-y-4">
-                                <div>
-                                    <Label htmlFor="new-item-name">Название предмета</Label>
-                                    <Input id="new-item-name" value={newItemData.name} onChange={e => setNewItemData(p => ({...p, name: e.target.value}))} />
-                                </div>
-                                <div>
-                                    <Label htmlFor="new-item-desc">Описание</Label>
-                                    <Textarea id="new-item-desc" value={newItemData.description} onChange={e => setNewItemData(p => ({...p, description: e.target.value}))} />
-                                </div>
-                                <div>
-                                    <Label htmlFor="new-item-tag">Категория в инвентаре</Label>
-                                    <Select value={newItemData.inventoryTag} onValueChange={(v: InventoryCategory) => setNewItemData(p => ({...p, inventoryTag: v}))}>
-                                        <SelectTrigger><SelectValue /></SelectTrigger>
-                                        <SelectContent>
-                                            {INVENTORY_CATEGORIES.map(cat => <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-                        ) : (
-                            <div>
-                                <Label>Существующий предмет</Label>
-                                <SearchableSelect
-                                    options={allShopItems}
-                                    value={selectedShopItemId}
-                                    onValueChange={setSelectedShopItemId}
-                                    placeholder="Выберите предмет из магазина..."
-                                />
-                            </div>
-                        )}
-                        
-                        <Button type="submit">Выдать предмет</Button>
-                    </form>
-                </CardContent>
-            </Card>
-           </div>
-        </div>
-      </TabsContent>
 
       <TabsContent value="economy" className="mt-4">
         <div className="gap-6 column-1 md:column-2 lg:column-3">
@@ -1641,6 +1562,79 @@ export default function AdminTab() {
                             />
                         </div>
                         <Button type="submit">Назначить владельца</Button>
+                    </form>
+                </CardContent>
+            </Card>
+           </div>
+            <div className="break-inside-avoid mb-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><PackagePlus /> Выдать предмет в инвентарь</CardTitle>
+                    <CardDescription>Добавьте любой предмет в инвентарь персонажа.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleGiveItem} className="space-y-4">
+                        <div>
+                            <Label>Пользователь и персонаж</Label>
+                            <div className="flex gap-2">
+                                <SearchableSelect
+                                    options={userOnlyOptions}
+                                    value={itemGiveUserId}
+                                    onValueChange={uid => { setItemGiveUserId(uid); setItemGiveCharId(''); }}
+                                    placeholder="Пользователь"
+                                />
+                                <SearchableSelect
+                                    options={charactersForItemGive}
+                                    value={itemGiveCharId}
+                                    onValueChange={setItemGiveCharId}
+                                    placeholder="Персонаж"
+                                    disabled={!itemGiveUserId}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                            <Label htmlFor="item-mode-switch">Новый предмет</Label>
+                            <Switch
+                                id="item-mode-switch"
+                                checked={isGivingNewItem}
+                                onCheckedChange={setIsGivingNewItem}
+                            />
+                        </div>
+                        
+                        {isGivingNewItem ? (
+                            <div className="p-4 border rounded-md space-y-4">
+                                <div>
+                                    <Label htmlFor="new-item-name">Название предмета</Label>
+                                    <Input id="new-item-name" value={newItemData.name} onChange={e => setNewItemData(p => ({...p, name: e.target.value}))} />
+                                </div>
+                                <div>
+                                    <Label htmlFor="new-item-desc">Описание</Label>
+                                    <Textarea id="new-item-desc" value={newItemData.description} onChange={e => setNewItemData(p => ({...p, description: e.target.value}))} />
+                                </div>
+                                <div>
+                                    <Label htmlFor="new-item-tag">Категория в инвентаре</Label>
+                                    <Select value={newItemData.inventoryTag} onValueChange={(v: InventoryCategory) => setNewItemData(p => ({...p, inventoryTag: v}))}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            {INVENTORY_CATEGORIES.map(cat => <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                        ) : (
+                            <div>
+                                <Label>Существующий предмет</Label>
+                                <SearchableSelect
+                                    options={allShopItems}
+                                    value={selectedShopItemId}
+                                    onValueChange={setSelectedShopItemId}
+                                    placeholder="Выберите предмет из магазина..."
+                                />
+                            </div>
+                        )}
+                        
+                        <Button type="submit">Выдать предмет</Button>
                     </form>
                 </CardContent>
             </Card>
