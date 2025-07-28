@@ -180,7 +180,6 @@ export interface Character {
   training: string[]; 
   relationships: Relationship[];
   marriedTo?: string[];
-  marriage?: never; // for type consistency with EditableSection
   inventory: Inventory;
   familiarCards: OwnedFamiliarCard[];
   moodlets?: Moodlet[];
