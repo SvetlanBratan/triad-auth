@@ -35,7 +35,7 @@ import { Separator } from '@/components/ui/separator';
 export default function ShopPage() {
     const { id } = useParams();
     const router = useRouter();
-    const { currentUser, fetchShopById, deleteShopItem, purchaseShopItem, updateCharacterInUser, restockShopItem } = useUser();
+    const { currentUser, fetchShopById, deleteShopItem, purchaseShopItem, updateCharacterInUser, restockShopItem } from useUser();
     const { toast } = useToast();
     
     const shopId = Array.isArray(id) ? id[0] : id;
