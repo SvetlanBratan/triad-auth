@@ -86,7 +86,7 @@ interface UserContextType {
   addShopItem: (shopId: string, item: Omit<ShopItem, 'id'>) => Promise<void>;
   updateShopItem: (shopId: string, item: ShopItem) => Promise<void>;
   deleteShopItem: (shopId: string, itemId: string) => Promise<void>;
-  purchaseShopItem: (shopId: string, itemId: string, buyerUserId: string, buyerCharacterId: string) => Promise<void>;
+  purchaseShopItem: (shopId: string, itemId: string, buyerUserId: string, buyerCharacterId: string, quantity: number) => Promise<void>;
   adminGiveItemToCharacter: (userId: string, characterId: string, itemData: AdminGiveItemForm) => Promise<void>;
 }
 
@@ -1590,7 +1590,7 @@ const processMonthlySalary = useCallback(async () => {
     await setDoc(shopRef, { items: updatedItems }, { merge: true });
   }, []);
   
-  const purchaseShopItem = useCallback(async (shopId: string, itemId: string, buyerUserId: string, buyerCharacterId: string) => {
+  const purchaseShopItem = useCallback(async (shopId: string, itemId: string, buyerUserId: string, buyerCharacterId: string, quantity: number) => {
     await runTransaction(db, async (transaction) => {
         // 1. Get all necessary documents
         const shopRef = doc(db, "shops", shopId);
@@ -1598,8 +1598,14 @@ const processMonthlySalary = useCallback(async () => {
         if (!shopDoc.exists()) throw new Error("Магазин не найден.");
         const shopData = shopDoc.data() as Shop;
         
-        const item = (shopData.items || []).find(i => i.id === itemId);
-        if (!item) throw new Error("Товар не найден.");
+        const itemIndex = (shopData.items || []).findIndex(i => i.id === itemId);
+        if (itemIndex === -1) throw new Error("Товар не найден.");
+        const item = shopData.items![itemIndex];
+
+        // Check stock
+        if (item.quantity !== undefined && item.quantity < quantity) {
+            throw new Error("Недостаточно товара в наличии.");
+        }
 
         const buyerUserRef = doc(db, "users", buyerUserId);
         const buyerUserDoc = await transaction.get(buyerUserRef);
@@ -1612,38 +1618,52 @@ const processMonthlySalary = useCallback(async () => {
         
         // 2. Check funds
         const price = item.price;
+        const totalPrice = {
+            platinum: (price.platinum || 0) * quantity,
+            gold: (price.gold || 0) * quantity,
+            silver: (price.silver || 0) * quantity,
+            copper: (price.copper || 0) * quantity,
+        }
         const balance = buyerChar.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 };
         if (
-            balance.platinum < (price.platinum || 0) ||
-            balance.gold < (price.gold || 0) ||
-            balance.silver < (price.silver || 0) ||
-            balance.copper < (price.copper || 0)
+            balance.platinum < totalPrice.platinum ||
+            balance.gold < totalPrice.gold ||
+            balance.silver < totalPrice.silver ||
+            balance.copper < totalPrice.copper
         ) {
             throw new Error("Недостаточно средств у персонажа.");
         }
 
         // 3. Perform transactions
         // Deduct from buyer
-        buyerChar.bankAccount.platinum -= (price.platinum || 0);
-        buyerChar.bankAccount.gold -= (price.gold || 0);
-        buyerChar.bankAccount.silver -= (price.silver || 0);
-        buyerChar.bankAccount.copper -= (price.copper || 0);
+        buyerChar.bankAccount.platinum -= totalPrice.platinum;
+        buyerChar.bankAccount.gold -= totalPrice.gold;
+        buyerChar.bankAccount.silver -= totalPrice.silver;
+        buyerChar.bankAccount.copper -= totalPrice.copper;
         
-        const buyerTx: BankTransaction = { id: `txn-buy-${Date.now()}`, date: new Date().toISOString(), reason: `Покупка: ${item.name}`, amount: { platinum: -(price.platinum || 0), gold: -(price.gold || 0), silver: -(price.silver || 0), copper: -(price.copper || 0) } };
+        const buyerTx: BankTransaction = { id: `txn-buy-${Date.now()}`, date: new Date().toISOString(), reason: `Покупка: ${item.name} x${quantity}`, amount: { platinum: -totalPrice.platinum, gold: -totalPrice.gold, silver: -totalPrice.silver, copper: -totalPrice.copper } };
         buyerChar.bankAccount.history = [buyerTx, ...(buyerChar.bankAccount.history || [])];
 
         // Add item to buyer's inventory
         if (item.inventoryTag) {
-            const newInventoryItem: InventoryItem = {
-                id: `inv-item-${Date.now()}`,
-                name: item.name,
-                description: item.description,
-            };
             const inventory = buyerChar.inventory || initialFormData.inventory;
             if (!Array.isArray(inventory[item.inventoryTag])) {
                 inventory[item.inventoryTag] = [];
             }
-            inventory[item.inventoryTag].push(newInventoryItem);
+            
+            const existingItemIndex = inventory[item.inventoryTag].findIndex(invItem => invItem.name === item.name);
+            if (existingItemIndex > -1) {
+                 inventory[item.inventoryTag][existingItemIndex].quantity += quantity;
+            } else {
+                const newInventoryItem: InventoryItem = {
+                    id: `inv-item-${Date.now()}`,
+                    name: item.name,
+                    description: item.description,
+                    quantity: quantity,
+                };
+                inventory[item.inventoryTag].push(newInventoryItem);
+            }
+            
             buyerChar.inventory = inventory;
         }
 
@@ -1656,12 +1676,12 @@ const processMonthlySalary = useCallback(async () => {
                 const ownerCharIndex = ownerUserData.characters.findIndex(c => c.id === shopData.ownerCharacterId);
                 if (ownerCharIndex !== -1) {
                     const ownerChar = ownerUserData.characters[ownerCharIndex];
-                    ownerChar.bankAccount.platinum += (price.platinum || 0);
-                    ownerChar.bankAccount.gold += (price.gold || 0);
-                    ownerChar.bankAccount.silver += (price.silver || 0);
-                    ownerChar.bankAccount.copper += (price.copper || 0);
+                    ownerChar.bankAccount.platinum += totalPrice.platinum;
+                    ownerChar.bankAccount.gold += totalPrice.gold;
+                    ownerChar.bankAccount.silver += totalPrice.silver;
+                    ownerChar.bankAccount.copper += totalPrice.copper;
                     
-                    const ownerTx: BankTransaction = { id: `txn-sell-${Date.now()}`, date: new Date().toISOString(), reason: `Продажа: ${item.name}`, amount: price };
+                    const ownerTx: BankTransaction = { id: `txn-sell-${Date.now()}`, date: new Date().toISOString(), reason: `Продажа: ${item.name} x${quantity}`, amount: totalPrice };
                     ownerChar.bankAccount.history = [ownerTx, ...(ownerChar.bankAccount.history || [])];
                     
                     transaction.update(ownerUserRef, { characters: ownerUserData.characters });
@@ -1669,8 +1689,15 @@ const processMonthlySalary = useCallback(async () => {
             }
         }
         
-        // 4. Update buyer's character data
+        // 4. Update buyer's character data & shop data
         transaction.update(buyerUserRef, { characters: buyerUserData.characters });
+
+        // Decrease stock in shop
+        if (item.quantity !== undefined) {
+            const updatedItems = [...shopData.items!];
+            updatedItems[itemIndex].quantity = item.quantity - quantity;
+            transaction.set(shopRef, { items: updatedItems }, { merge: true });
+        }
     });
     
      if (currentUser?.id === buyerUserId) {
@@ -1693,6 +1720,7 @@ const processMonthlySalary = useCallback(async () => {
         id: `inv-item-admin-${Date.now()}`,
         name: itemData.name,
         description: itemData.description,
+        quantity: 1,
     };
 
     if (!Array.isArray(inventory[itemData.inventoryTag])) {
