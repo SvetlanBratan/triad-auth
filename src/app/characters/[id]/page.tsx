@@ -1,16 +1,17 @@
 
+
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, notFound } from 'next/navigation';
 import { useUser } from '@/hooks/use-user';
-import { User, Character, FamiliarCard, FamiliarRank, Moodlet, Relationship, RelationshipType, WealthLevel, BankAccount, Accomplishment, BankTransaction, OwnedFamiliarCard, InventoryCategory, InventoryItem } from '@/lib/types';
+import { User, Character, FamiliarCard, FamiliarRank, Moodlet, Relationship, RelationshipType, WealthLevel, BankAccount, Accomplishment, BankTransaction, OwnedFamiliarCard, InventoryCategory, InventoryItem, CitizenshipStatus, TaxpayerStatus } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FAMILIARS_BY_ID, MOODLETS_DATA, TRAINING_OPTIONS, CRIME_LEVELS, INVENTORY_CATEGORIES } from '@/lib/data';
 import FamiliarCardDisplay from '@/components/dashboard/familiar-card';
-import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users, HeartHandshake, Wallet, Coins, Award, Zap, ShieldOff, History, Info, PlusCircle, BookUser, Gavel, Group, Building, Package, LandPlot } from 'lucide-react';
+import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users, HeartHandshake, Wallet, Coins, Award, Zap, ShieldOff, History, Info, PlusCircle, BookUser, Gavel, Group, Building, Package, LandPlot, ShieldCheck, FileQuestion, BadgeCheck, BadgeAlert, Landmark } from 'lucide-react';
 import Link from 'next/link';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -24,6 +25,7 @@ import { Progress } from '@/components/ui/progress';
 import RelationshipActions from '@/components/dashboard/relationship-actions';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import Image from 'next/image';
+import { useQuery } from '@tanstack/react-query';
 
 
 const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
@@ -71,6 +73,27 @@ const currencyNames: Record<string, string> = {
     silver: 'серебра',
     copper: 'меди'
 };
+
+const citizenshipIcons: Record<CitizenshipStatus, React.ElementType> = {
+    'citizen': ShieldCheck,
+    'non-citizen': ShieldAlert,
+    'refugee': FileQuestion,
+};
+
+const citizenshipLabels: Record<CitizenshipStatus, string> = {
+    'citizen': 'Гражданин',
+    'non-citizen': 'Не гражданин',
+    'refugee': 'Беженец',
+}
+
+const taxpayerIcons: Record<TaxpayerStatus, React.ElementType> = {
+    'taxable': BadgeCheck,
+    'exempt': BadgeAlert,
+};
+const taxpayerLabels: Record<TaxpayerStatus, string> = {
+    'taxable': 'Облагается налогами',
+    'exempt': 'Освобожден от налогов',
+}
 
 const inventoryLayout: {
     title: string;
@@ -150,7 +173,7 @@ const FamiliarsSection = ({ character }: { character: Character }) => {
 
 export default function CharacterPage() {
     const { id } = useParams();
-    const { currentUser, fetchUsersForAdmin, updateCharacterInUser, gameDate, setCurrentUser } = useUser();
+    const { currentUser, fetchUsersForAdmin, updateCharacterInUser, gameDate, setCurrentUser, fetchAllShops } = useUser();
     const [character, setCharacter] = useState<Character | null>(null);
     const [owner, setOwner] = useState<User | null>(null);
     const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -158,6 +181,11 @@ export default function CharacterPage() {
     const [editingState, setEditingState] = useState<EditingState | null>(null);
 
     const { toast } = useToast();
+
+    const { data: allShops = [] } = useQuery({
+        queryKey: ['allShops'],
+        queryFn: fetchAllShops
+    });
 
     useEffect(() => {
         if (!id) return;
@@ -221,6 +249,11 @@ export default function CharacterPage() {
         return spouseChars;
     }, [character, allUsers]);
 
+    const ownedShops = useMemo(() => {
+        if (!character) return [];
+        return allShops.filter(shop => shop.ownerCharacterId === character.id);
+    }, [character, allShops]);
+
     const formattedCurrency = useMemo(() => {
         if (!character || !character.bankAccount) return [];
         const result = formatCurrency(character.bankAccount, true);
@@ -236,6 +269,11 @@ export default function CharacterPage() {
         if (!character?.crimeLevel) return null;
         return CRIME_LEVELS.find(cl => cl.level === character.crimeLevel);
     }, [character]);
+
+    const citizenshipStatus = character?.citizenshipStatus || 'non-citizen';
+    const CitizenshipIcon = citizenshipIcons[citizenshipStatus];
+    const taxpayerStatus = character?.taxpayerStatus || 'taxable';
+    const TaxpayerIcon = taxpayerIcons[taxpayerStatus];
 
 
     if (isLoading) {
@@ -501,6 +539,24 @@ export default function CharacterPage() {
                                 section="mainInfo"
                             />
                              <InfoRow 
+                                label="Страна проживания"
+                                value={
+                                    <span className="flex items-center gap-1.5">
+                                        <span>{character.countryOfResidence}</span>
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild><CitizenshipIcon className="w-4 h-4 text-muted-foreground" /></TooltipTrigger>
+                                                <TooltipContent><p>{citizenshipLabels[citizenshipStatus]}</p></TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    </span>
+                                } 
+                                field="countryOfResidence" 
+                                section="mainInfo" 
+                                isVisible={!!character.countryOfResidence || isOwnerOrAdmin} 
+                                icon={<Landmark className="w-4 h-4" />}
+                            />
+                             <InfoRow 
                                 label="Уровень преступности" 
                                 value={crimeLevelInfo ? crimeLevelInfo.title : ''} 
                                 field="crimeLevel" 
@@ -554,6 +610,12 @@ export default function CharacterPage() {
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between">
                                 <CardTitle className="flex items-center gap-2"><Wallet /> Финансы</CardTitle>
+                                 <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild><TaxpayerIcon className="w-5 h-5 text-muted-foreground" /></TooltipTrigger>
+                                        <TooltipContent><p>{taxpayerLabels[taxpayerStatus]}</p></TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
                             </CardHeader>
                             <CardContent className="space-y-2 text-sm">
                                 <div className="flex justify-between items-center">
@@ -668,6 +730,7 @@ export default function CharacterPage() {
                     
                     {inventoryLayout.map(section => {
                         const hasContent = section.categories.some(cat => {
+                            if (cat.key === 'предприятия') return ownedShops.length > 0;
                             const items = inventory[cat.key as keyof typeof inventory] as InventoryItem[];
                             return items && items.length > 0;
                         }) || (section.title === 'Инвентарь' && inventory.familiarCards?.length > 0);
@@ -691,7 +754,22 @@ export default function CharacterPage() {
                                                 </AccordionContent>
                                             </AccordionItem>
                                         )}
+                                        {ownedShops.length > 0 && section.categories.some(c => c.key === 'предприятия') && (
+                                            <AccordionItem value="businesses">
+                                                <AccordionTrigger><Building className="mr-2 w-4 h-4" />Предприятия ({ownedShops.length})</AccordionTrigger>
+                                                <AccordionContent>
+                                                    <ul className="space-y-1 text-sm pt-2">
+                                                        {ownedShops.map(shop => (
+                                                            <li key={shop.id}>
+                                                                <Link href={`/market/${shop.id}`} className="hover:underline">{shop.title}</Link>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </AccordionContent>
+                                            </AccordionItem>
+                                        )}
                                         {section.categories.map(cat => {
+                                            if (cat.key === 'предприятия') return null;
                                             const items = (inventory[cat.key as keyof typeof inventory] || []) as InventoryItem[];
                                             if (items.length === 0) return null;
                                             return (
