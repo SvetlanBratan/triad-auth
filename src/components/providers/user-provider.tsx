@@ -8,6 +8,7 @@ import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter } from "firebase/firestore";
 import { ALL_FAMILIARS, FAMILIARS_BY_ID, MOODLETS_DATA, DEFAULT_GAME_SETTINGS, WEALTH_LEVELS, FAME_LEVELS_POINTS, ALL_SHOPS, SHOPS_BY_ID } from '@/lib/data';
+import { differenceInDays } from 'date-fns';
 
 interface AuthContextType {
     user: FirebaseUser | null;
@@ -92,8 +93,9 @@ interface UserContextType {
   adminUpdateItemInCharacter: (userId: string, characterId: string, itemData: InventoryItem, category: InventoryCategory) => Promise<void>;
   adminDeleteItemFromCharacter: (userId: string, characterId: string, itemId: string, category: InventoryCategory) => Promise<void>;
   restockShopItem: (shopId: string, itemId: string, ownerUserId: string, ownerCharacterId: string) => Promise<void>;
-  adminUpdateCharacterStatus: (userId: string, characterId: string, updates: { taxpayerStatus?: TaxpayerStatus }) => Promise<void>;
+  adminUpdateCharacterStatus: (userId: string, characterId: string, updates: { taxpayerStatus?: TaxpayerStatus; citizenshipStatus?: CitizenshipStatus }) => Promise<void>;
   adminUpdateShopLicense: (shopId: string, hasLicense: boolean) => Promise<void>;
+  processAnnualTaxes: () => Promise<{ taxedCharactersCount: number; totalTaxesCollected: BankAccount }>;
 }
 
 export const UserContext = createContext<UserContextType | null>(null);
@@ -258,6 +260,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     bankAccount: { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] },
     wealthLevel: 'Бедный',
     crimeLevel: 5,
+    countryOfResidence: '',
+    citizenshipStatus: 'non-citizen',
+    taxpayerStatus: 'taxable',
   }), []);
 
   const fetchUserById = useCallback(async (userId: string): Promise<User | null> => {
@@ -1863,7 +1868,7 @@ const restockShopItem = useCallback(async (shopId: string, itemId: string, owner
     }
 }, [currentUser, fetchUserById]);
 
-const adminUpdateCharacterStatus = useCallback(async (userId: string, characterId: string, updates: { taxpayerStatus?: TaxpayerStatus }) => {
+const adminUpdateCharacterStatus = useCallback(async (userId: string, characterId: string, updates: { taxpayerStatus?: TaxpayerStatus; citizenshipStatus?: CitizenshipStatus; }) => {
     const user = await fetchUserById(userId);
     if (!user) throw new Error("User not found");
 
@@ -1882,6 +1887,202 @@ const adminUpdateShopLicense = useCallback(async (shopId: string, hasLicense: bo
     await setDoc(shopRef, { hasLicense }, { merge: true });
 }, []);
 
+const processAnnualTaxes = useCallback(async (): Promise<{ taxedCharactersCount: number; totalTaxesCollected: BankAccount }> => {
+    const allUsers = await fetchUsersForAdmin();
+    const allShops = await fetchAllShops();
+    const shopsById = new Map(allShops.map(shop => [shop.id, shop]));
+    const batch = writeBatch(db);
+    let taxedCharactersCount = 0;
+    let totalTaxesCollected: BankAccount = { platinum: 0, gold: 0, silver: 0, copper: 0 };
+
+    for (const user of allUsers) {
+        let hasChanges = false;
+        const updatedCharacters = [...user.characters];
+
+        for (let i = 0; i < updatedCharacters.length; i++) {
+            const character = updatedCharacters[i];
+
+            if (character.taxpayerStatus !== 'taxable') {
+                continue;
+            }
+
+            let incomeTaxRate = 0;
+            let tradeTaxRate = 0;
+            let tradeTaxRateLicensed = 0;
+
+            switch (character.countryOfResidence) {
+                case 'Артерианск':
+                    incomeTaxRate = 0.10;
+                    tradeTaxRate = 0.10;
+                    tradeTaxRateLicensed = 0.05;
+                    break;
+                case 'Белоснежье':
+                    incomeTaxRate = 0.10;
+                    tradeTaxRate = character.citizenshipStatus === 'refugee' ? 0.15 : 0.10;
+                    tradeTaxRateLicensed = character.citizenshipStatus === 'refugee' ? 0.10 : 0.05;
+                    break;
+                case 'Огнеславия':
+                    incomeTaxRate = 0.15;
+                    tradeTaxRate = 0.15;
+                    tradeTaxRateLicensed = 0.10;
+                    break;
+                case 'Сан-Ликорис':
+                    incomeTaxRate = 0.05;
+                    tradeTaxRate = 0.07;
+                    tradeTaxRateLicensed = 0.05;
+                    break;
+                case 'Заприливье':
+                    incomeTaxRate = 0.07;
+                    tradeTaxRate = 0.10; // No license discount
+                    tradeTaxRateLicensed = 0.10;
+                    break;
+                default:
+                    continue; // No taxes for other countries
+            }
+
+            let totalTaxToPay: Partial<BankAccount> = { platinum: 0, gold: 0, silver: 0, copper: 0 };
+
+            // 1. Income Tax
+            const wealthInfo = WEALTH_LEVELS.find(w => w.name === character.wealthLevel);
+            if (wealthInfo && wealthInfo.salary) {
+                const annualSalary: Partial<BankAccount> = {
+                    platinum: (wealthInfo.salary.platinum || 0) * 12,
+                    gold: (wealthInfo.salary.gold || 0) * 12,
+                    silver: (wealthInfo.salary.silver || 0) * 12,
+                    copper: (wealthInfo.salary.copper || 0) * 12,
+                };
+                
+                Object.keys(annualSalary).forEach(currency => {
+                    const key = currency as keyof BankAccount;
+                    const tax = Math.ceil((annualSalary[key] || 0) * incomeTaxRate);
+                    totalTaxToPay[key] = (totalTaxToPay[key] || 0) + tax;
+                });
+            }
+            
+            // 2. Trade Tax
+            const ownedShops = allShops.filter(shop => shop.ownerCharacterId === character.id);
+            if (ownedShops.length > 0) {
+                 for (const shop of ownedShops) {
+                    const currentTaxRate = shop.hasLicense ? tradeTaxRateLicensed : tradeTaxRate;
+                    let shopValue: Partial<BankAccount> = { platinum: 0, gold: 0, silver: 0, copper: 0 };
+                    
+                    (shop.items || []).forEach(item => {
+                        Object.keys(item.price).forEach(currency => {
+                            const key = currency as keyof BankAccount;
+                            const quantity = item.quantity === undefined ? 1 : item.quantity;
+                            shopValue[key] = (shopValue[key] || 0) + (item.price[key] || 0) * quantity;
+                        });
+                    });
+
+                    Object.keys(shopValue).forEach(currency => {
+                        const key = currency as keyof BankAccount;
+                        const tax = Math.ceil((shopValue[key] || 0) * currentTaxRate);
+                        totalTaxToPay[key] = (totalTaxToPay[key] || 0) + tax;
+                    });
+                }
+            }
+
+            // 3. Deduct taxes
+            const finalTaxAmount = totalTaxToPay;
+            if (Object.values(finalTaxAmount).some(v => v > 0)) {
+                let newBalance = { ...(character.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] }) };
+                
+                let negativeAmount: Partial<BankAccount> = {};
+                 Object.keys(finalTaxAmount).forEach(currency => {
+                    const key = currency as keyof BankAccount;
+                    newBalance[key] = (newBalance[key] || 0) - (finalTaxAmount[key] || 0);
+                    negativeAmount[key] = -(finalTaxAmount[key] || 0);
+                });
+                
+                const newTransaction: BankTransaction = {
+                    id: `txn-tax-${Date.now()}`,
+                    date: new Date().toISOString(),
+                    reason: 'Ежегодный налог',
+                    amount: negativeAmount,
+                };
+                newBalance.history = [newTransaction, ...(newBalance.history || [])];
+                
+                updatedCharacters[i] = { ...character, bankAccount: newBalance };
+                hasChanges = true;
+                taxedCharactersCount++;
+
+                 Object.keys(finalTaxAmount).forEach(currency => {
+                    const key = currency as keyof BankAccount;
+                    totalTaxesCollected[key] = (totalTaxesCollected[key] || 0) + (finalTaxAmount[key] || 0);
+                });
+            }
+        }
+        
+        if (hasChanges) {
+            const userRef = doc(db, "users", user.id);
+            batch.update(userRef, { characters: updatedCharacters });
+        }
+    }
+    
+    await batch.commit();
+    return { taxedCharactersCount, totalTaxesCollected };
+
+}, [fetchUsersForAdmin, fetchAllShops]);
+
+const processWeeklyBonus = useCallback(async () => {
+    const settingsRef = doc(db, 'game_settings', 'main');
+    const settingsDoc = await getDoc(settingsRef);
+    const settings = settingsDoc.data() as GameSettings;
+
+    const now = new Date();
+    const lastAwarded = settings.lastWeeklyBonusAwardedAt ? new Date(settings.lastWeeklyBonusAwardedAt) : new Date(0);
+    const daysSinceLast = differenceInDays(now, lastAwarded);
+    
+    if (daysSinceLast < 7) {
+        throw new Error(`Еженедельные бонусы можно начислять только раз в 7 дней. Осталось: ${7 - daysSinceLast} д.`);
+    }
+
+    const isOverdue = daysSinceLast > 7;
+    const allUsers = await fetchUsersForAdmin();
+    const activeUsers = allUsers.filter(u => u.status === 'активный');
+    let awardedCount = 0;
+
+    const batch = writeBatch(db);
+
+    for (const user of activeUsers) {
+        let totalBonus = 800;
+        let reason = "Еженедельный бонус за активность";
+        
+        const famePoints = user.characters.reduce((acc, char) => {
+            const charFame = (char.accomplishments || []).reduce((charAcc, acco) => charAcc + (FAME_LEVELS_POINTS[acco.fameLevel as keyof typeof FAME_LEVELS_POINTS] || 0), 0);
+            return acc + charFame;
+        }, 0);
+
+        if (famePoints > 0) {
+            totalBonus += famePoints;
+            reason += ` и известность (${famePoints})`;
+        }
+
+        if (isOverdue) {
+            totalBonus += 1000;
+            reason += ` + компенсация за просрочку`;
+        }
+
+        const userRef = doc(db, "users", user.id);
+        const newPointLog: PointLog = {
+            id: `h-weekly-${Date.now()}-${user.id.slice(0, 4)}`,
+            date: now.toISOString(),
+            amount: totalBonus,
+            reason,
+        };
+        const newPoints = user.points + totalBonus;
+        const newHistory = [newPointLog, ...user.pointHistory];
+        batch.update(userRef, { points: newPoints, pointHistory: newHistory });
+        awardedCount++;
+    }
+
+    batch.update(settingsRef, { lastWeeklyBonusAwardedAt: now.toISOString() });
+    await batch.commit();
+    await fetchGameSettings();
+
+    return { awardedCount, isOverdue };
+}, [fetchUsersForAdmin, fetchGameSettings]);
+
   const signOutUser = useCallback(() => {
     signOut(auth);
   }, []);
@@ -1892,89 +2093,6 @@ const adminUpdateShopLicense = useCallback(async (shopId: string, hasLicense: bo
     signOutUser,
   }), [firebaseUser, loading, signOutUser]);
   
-  const processWeeklyBonus = useCallback(async (): Promise<{awardedCount: number, isOverdue: boolean}> => {
-    const now = new Date();
-    const lastAwarded = gameSettings.lastWeeklyBonusAwardedAt ? new Date(gameSettings.lastWeeklyBonusAwardedAt) : new Date(0);
-    
-    const isFirstTime = lastAwarded.getFullYear() < 2000;
-    const daysSinceLast = isFirstTime ? 7 : (now.getTime() - lastAwarded.getTime()) / (1000 * 3600 * 24);
-
-    if (daysSinceLast < 7) {
-        throw new Error(`Еженедельные бонусы уже были начислены. Следующее начисление через ${Math.ceil(7 - daysSinceLast)} д.`);
-    }
-    
-    const isOverdue = !isFirstTime && daysSinceLast > 7;
-    const allUsers = await fetchUsersForAdmin();
-    const activeUsers = allUsers.filter(u => u.status === 'активный');
-    const batch = writeBatch(db);
-
-    const userPointsToAdd = new Map<string, { points: number; reasons: string[] }>();
-
-    activeUsers.forEach(user => {
-        userPointsToAdd.set(user.id, { points: 0, reasons: [] });
-    });
-
-    activeUsers.forEach(user => {
-        const currentData = userPointsToAdd.get(user.id)!;
-        const activityBonus = 800;
-        const compensation = isOverdue ? 1000 : 0;
-        
-        currentData.points += activityBonus + compensation;
-        let reason = `Еженедельный бонус за активность`;
-        if (isOverdue) reason += ' (+ компенсация)';
-        currentData.reasons.push(reason);
-    });
-
-    activeUsers.forEach(user => {
-        if (!user.characters || user.characters.length === 0) return;
-
-        let pointsForFame = 0;
-        user.characters.forEach(character => {
-            (character.accomplishments || []).forEach(acc => {
-                const fameLevelKey = acc.fameLevel as keyof typeof FAME_LEVELS_POINTS;
-                if (FAME_LEVELS_POINTS[fameLevelKey]) {
-                    pointsForFame += FAME_LEVELS_POINTS[fameLevelKey];
-                }
-            });
-        });
-
-        if (pointsForFame > 0) {
-            const currentData = userPointsToAdd.get(user.id)!;
-            currentData.points += pointsForFame;
-            currentData.reasons.push(`Награда за известность персонажей`);
-        }
-    });
-    
-    for (const user of activeUsers) {
-        const data = userPointsToAdd.get(user.id);
-        if (!data || data.points === 0) continue;
-
-        const combinedReason = data.reasons.join(', ');
-
-        const newPointLog: PointLog = {
-            id: `h-${Date.now()}-weekly`,
-            date: now.toISOString(),
-            amount: data.points,
-            reason: combinedReason,
-        };
-        
-        const userRef = doc(db, "users", user.id);
-        batch.update(userRef, {
-            points: user.points + data.points,
-            pointHistory: [newPointLog, ...user.pointHistory]
-        });
-    }
-    
-    const settingsRef = doc(db, 'game_settings', 'main');
-    batch.update(settingsRef, { lastWeeklyBonusAwardedAt: now.toISOString() });
-
-    await batch.commit();
-    await fetchGameSettings(); 
-
-    return { awardedCount: activeUsers.length, isOverdue };
-}, [gameSettings.lastWeeklyBonusAwardedAt, fetchUsersForAdmin, fetchGameSettings]);
-
-
   const userContextValue = useMemo(
     () => ({
       currentUser,
@@ -2039,8 +2157,9 @@ const adminUpdateShopLicense = useCallback(async (shopId: string, hasLicense: bo
       restockShopItem,
       adminUpdateCharacterStatus,
       adminUpdateShopLicense,
+      processAnnualTaxes,
     }),
-    [currentUser, gameSettings, fetchUserById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense]
+    [currentUser, gameSettings, fetchUserById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes]
   );
 
   return (
@@ -2052,3 +2171,5 @@ const adminUpdateShopLicense = useCallback(async (shopId: string, hasLicense: bo
   );
 }
 
+
+  
