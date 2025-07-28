@@ -36,23 +36,36 @@ export function calculateAge(birthDateString: string, gameDate: Date): number | 
   if (!birthDateString) return null;
   
   try {
-    // Assuming format DD.MM.YYYY
-    const birthDate = parse(birthDateString, 'dd.MM.yyyy', new Date());
+    const parts = birthDateString.split('.');
+    if (parts.length !== 3) {
+        console.warn("Invalid birthDate format (expected DD.MM.YYYY):", birthDateString);
+        return null;
+    }
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed in JS
+    const year = parseInt(parts[2], 10);
+
+    if (isNaN(day) || isNaN(month) || isNaN(year)) {
+        console.warn("Invalid date parts in birthDateString:", birthDateString);
+        return null;
+    }
     
-    // Check if parsing was successful
-    if (isNaN(birthDate.getTime())) {
-      console.warn("Invalid birthDate format:", birthDateString);
-      return null;
+    const birthDate = new Date(year, month, day);
+     // Re-check after creation for invalid dates like 31.02.2000
+    if (birthDate.getFullYear() !== year || birthDate.getMonth() !== month || birthDate.getDate() !== day) {
+        console.warn("Invalid date created from parts:", birthDateString);
+        return null;
     }
 
-    let age = differenceInYears(gameDate, birthDate);
-    
-    // Adjust age if birthday hasn't occurred yet this year in game time
-    const birthDateThisYear = new Date(birthDate);
-    birthDateThisYear.setFullYear(gameDate.getFullYear());
+    const gameYear = gameDate.getFullYear();
+    const gameMonth = gameDate.getMonth();
+    const gameDay = gameDate.getDate();
 
-    if (gameDate < birthDateThisYear) {
-      age--;
+    let age = gameYear - birthDate.getFullYear();
+    
+    // Check if the birthday has occurred this year
+    if (gameMonth < birthDate.getMonth() || (gameMonth === birthDate.getMonth() && gameDay < birthDate.getDate())) {
+        age--;
     }
 
     return age;
