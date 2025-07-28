@@ -848,12 +848,12 @@ export default function AdminTab() {
   
   return (
     <Tabs defaultValue="points" className="w-full">
-      <TabsList className="grid w-full grid-cols-5">
-        <TabsTrigger value="points">Баллы</TabsTrigger>
-        <TabsTrigger value="general">Общее</TabsTrigger>
-        <TabsTrigger value="familiars">Фамильяры</TabsTrigger>
-        <TabsTrigger value="economy">Экономика</TabsTrigger>
-        <TabsTrigger value="shops">Магазины</TabsTrigger>
+      <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
+        <TabsTrigger value="points" className="text-xs sm:text-sm">Баллы</TabsTrigger>
+        <TabsTrigger value="general" className="text-xs sm:text-sm">Общее</TabsTrigger>
+        <TabsTrigger value="familiars" className="text-xs sm:text-sm">Фамильяры</TabsTrigger>
+        <TabsTrigger value="economy" className="text-xs sm:text-sm">Экономика</TabsTrigger>
+        <TabsTrigger value="shops" className="text-xs sm:text-sm">Магазины</TabsTrigger>
       </TabsList>
 
       <TabsContent value="points" className="mt-4">
