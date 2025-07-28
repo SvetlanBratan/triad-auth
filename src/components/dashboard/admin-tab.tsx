@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
-import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info, AlertTriangle, Bell, CheckCircle, Store, PackagePlus, Edit, BadgeCheck } from 'lucide-react';
+import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info, AlertTriangle, Bell, CheckCircle, Store, PackagePlus, Edit, BadgeCheck, FileText } from 'lucide-react';
 import type { UserStatus, UserRole, User, FamiliarCard, BankAccount, WealthLevel, FamiliarRank, Shop, InventoryCategory, AdminGiveItemForm, InventoryItem, CitizenshipStatus, TaxpayerStatus } from '@/lib/types';
 import { FAME_LEVELS_POINTS, EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, FAMILIARS_BY_ID, WEALTH_LEVELS, ALL_FAMILIARS, STARTING_CAPITAL_LEVELS, ALL_SHOPS, INVENTORY_CATEGORIES } from '@/lib/data';
 import {
@@ -80,6 +80,7 @@ export default function AdminTab() {
     adminDeleteItemFromCharacter,
     adminUpdateCharacterStatus,
     adminUpdateShopLicense,
+    processAnnualTaxes,
   } = useUser();
   const queryClient = useQueryClient();
 
@@ -147,7 +148,7 @@ export default function AdminTab() {
   const [ecoAmount, setEcoAmount] = useState<Partial<Omit<BankAccount, 'history'>>>({ platinum: 0, gold: 0, silver: 0, copper: 0});
   const [ecoReason, setEcoReason] = useState('');
   const [ecoWealthLevel, setEcoWealthLevel] = useState<WealthLevel | ''>('');
-  const [charStatus, setCharStatus] = useState<{ citizenshipStatus: CitizenshipStatus, taxpayerStatus: TaxpayerStatus }>({ citizenshipStatus: 'non-citizen', taxpayerStatus: 'taxable' });
+  const [charStatus, setCharStatus] = useState<{ taxpayerStatus: TaxpayerStatus }>({ taxpayerStatus: 'taxable' });
   
   // Starting capital state
   const [capitalUserId, setCapitalUserId] = useState('');
@@ -156,6 +157,7 @@ export default function AdminTab() {
 
   // Weekly bonus state
   const [isProcessingWeekly, setIsProcessingWeekly] = useState(false);
+  const [isProcessingTaxes, setIsProcessingTaxes] = useState(false);
 
   // Shop management state
   const [shopId, setShopId] = useState('');
@@ -210,7 +212,6 @@ export default function AdminTab() {
   useEffect(() => {
       if (selectedCharacterForStatus) {
           setCharStatus({
-              citizenshipStatus: selectedCharacterForStatus.citizenshipStatus || 'non-citizen',
               taxpayerStatus: selectedCharacterForStatus.taxpayerStatus || 'taxable',
           });
       }
@@ -592,6 +593,23 @@ export default function AdminTab() {
     await refetchUsers();
     toast({ title: 'Статус персонажа обновлен!' });
   };
+  
+  const handleTaxCollection = async () => {
+    setIsProcessingTaxes(true);
+    try {
+        const result = await processAnnualTaxes();
+        await refetchUsers();
+        toast({
+            title: 'Налоги собраны!',
+            description: `Собрано налогов с ${result.taxedCharactersCount} персонажей на общую сумму ${formatCurrency(result.totalTaxesCollected)}.`,
+        });
+    } catch (error) {
+         const errorMessage = error instanceof Error ? error.message : "Неизвестная ошибка";
+        toast({ variant: 'destructive', title: 'Ошибка при сборе налогов', description: errorMessage });
+    } finally {
+        setIsProcessingTaxes(false);
+    }
+};
 
   const handleLicenseUpdate = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -1626,10 +1644,31 @@ export default function AdminTab() {
                         <CardDescription>Массовые операции с экономикой.</CardDescription>
                     </CardHeader>
                      <CardContent className="space-y-4">
-                        <div>
+                        <div className="pb-4 border-b">
                             <h3 className="font-semibold mb-2 flex items-center gap-2"><Users /> Ежемесячная зарплата</h3>
                             <p className="text-sm text-muted-foreground mb-3">Начисляет зарплату всем персонажам в зависимости от их уровня достатка.</p>
                             <Button onClick={handleSalaryPayout} variant="outline">Начислить зарплату</Button>
+                        </div>
+                        <div className="pt-4">
+                            <h3 className="font-semibold mb-2 flex items-center gap-2"><FileText /> Ежегодные налоги</h3>
+                            <p className="text-sm text-muted-foreground mb-3">Собирает налоги со всех персонажей в соответствии с правилами их страны проживания.</p>
+                             <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                     <Button onClick={() => {}} variant="destructive" disabled={isProcessingTaxes}>{isProcessingTaxes ? "Сбор налогов..." : "Собрать налоги"}</Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Вы уверены, что хотите собрать налоги?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Это действие спишет рассчитанную сумму налогов со всех персонажей, облагаемых налогом. Действие необратимо.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Отмена</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleTaxCollection} className="bg-destructive hover:bg-destructive/90">Да, собрать налоги</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
                         </div>
                     </CardContent>
                 </Card>
