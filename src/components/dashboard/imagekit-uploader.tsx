@@ -65,7 +65,7 @@ export default function ImageKitUploader({ currentImageUrl, onUpload }: ImageKit
     formData.append('publicKey', env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY);
     
     try {
-        const response = await fetch('https://upload.imagekit.io/api/v2/files', {
+        const response = await fetch('https://upload.imagekit.io/api/v1/files/upload', {
             method: 'POST',
             body: formData,
         });
