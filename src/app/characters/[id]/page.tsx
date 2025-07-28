@@ -329,14 +329,16 @@ export default function CharacterPage() {
                             <div className={cn("grid grid-cols-1 gap-6", character.appearanceImage && "md:grid-cols-3")}>
                                 {character.appearanceImage && (
                                     <div className="md:col-span-1">
-                                        <Image
-                                            src={character.appearanceImage}
-                                            alt={`Внешность ${character.name}`}
-                                            width={400}
-                                            height={600}
-                                            className="rounded-lg object-contain w-full h-auto max-h-96"
-                                            data-ai-hint="character portrait"
-                                        />
+                                        <div className="relative aspect-[2/3] w-full">
+                                            <Image
+                                                src={character.appearanceImage}
+                                                alt={`Внешность ${character.name}`}
+                                                layout="fill"
+                                                objectFit="contain"
+                                                className="rounded-lg"
+                                                data-ai-hint="character portrait"
+                                            />
+                                        </div>
                                     </div>
                                 )}
                                 <div className={cn(character.appearanceImage ? "md:col-span-2" : "md:col-span-3")}>
@@ -765,4 +767,3 @@ export default function CharacterPage() {
     
 
     
-
