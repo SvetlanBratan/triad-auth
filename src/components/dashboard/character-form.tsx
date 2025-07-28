@@ -299,7 +299,12 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                  const titleAction = sectionIsEmpty ? "Добавить" : "Редактировать";
                  return `${titleAction}: ${SectionTitles[sectionKey]}`;
             }
-            case 'field': return `Редактировать: ${FieldLabels[editingState.field] || 'поле'}`;
+            case 'field': {
+                if (editingState.field === 'countryOfResidence' || editingState.field === 'citizenshipStatus') {
+                    return 'Редактировать: Место жительства';
+                }
+                return `Редактировать: ${FieldLabels[editingState.field] || 'поле'}`;
+            }
         }
     }
 
@@ -396,31 +401,29 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
 
             case 'field':
                 const field = editingState.field;
-                 if(field === 'countryOfResidence') {
+                 if(field === 'countryOfResidence' || field === 'citizenshipStatus') {
                      return (
-                         <div>
-                             <Label htmlFor="countryOfResidence">{FieldLabels[field]}</Label>
-                              <SearchableSelect
-                                options={countryOptions}
-                                value={String(formData.countryOfResidence ?? '')}
-                                onValueChange={(v) => handleFieldChange('countryOfResidence', v)}
-                                placeholder="Выберите страну..."
-                            />
+                         <div className="space-y-4">
+                            <div>
+                                <Label htmlFor="countryOfResidence">Страна проживания</Label>
+                                <SearchableSelect
+                                    options={countryOptions}
+                                    value={String(formData.countryOfResidence ?? '')}
+                                    onValueChange={(v) => handleFieldChange('countryOfResidence', v)}
+                                    placeholder="Выберите страну..."
+                                />
+                            </div>
+                             <div>
+                                <Label htmlFor="citizenshipStatus">Статус гражданства</Label>
+                                <SearchableSelect
+                                    options={citizenshipStatusOptions}
+                                    value={formData.citizenshipStatus ?? 'non-citizen'}
+                                    onValueChange={(v) => handleFieldChange('citizenshipStatus', v as CitizenshipStatus)}
+                                    placeholder="Выберите статус..."
+                                />
+                            </div>
                          </div>
                      )
-                }
-                if(field === 'citizenshipStatus') {
-                    return (
-                        <div>
-                            <Label htmlFor="citizenshipStatus">{FieldLabels[field]}</Label>
-                            <SearchableSelect
-                                options={citizenshipStatusOptions}
-                                value={formData.citizenshipStatus ?? 'non-citizen'}
-                                onValueChange={(v) => handleFieldChange('citizenshipStatus', v as CitizenshipStatus)}
-                                placeholder="Выберите статус..."
-                            />
-                        </div>
-                    )
                 }
                 if(field === 'crimeLevel') {
                      return (
