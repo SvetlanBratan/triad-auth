@@ -3,7 +3,7 @@
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
-import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem } from '@/lib/types';
+import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter } from "firebase/firestore";
@@ -1628,6 +1628,21 @@ const processMonthlySalary = useCallback(async () => {
         const buyerTx: BankTransaction = { id: `txn-buy-${Date.now()}`, date: new Date().toISOString(), reason: `Покупка: ${item.name}`, amount: { platinum: -(price.platinum || 0), gold: -(price.gold || 0), silver: -(price.silver || 0), copper: -(price.copper || 0) } };
         buyerChar.bankAccount.history = [buyerTx, ...(buyerChar.bankAccount.history || [])];
 
+        // Add item to buyer's inventory
+        if (item.inventoryTag) {
+            const newInventoryItem: InventoryItem = {
+                id: `inv-item-${Date.now()}`,
+                name: item.name,
+                description: item.description,
+            };
+            const inventory = buyerChar.inventory || initialFormData.inventory;
+            if (!Array.isArray(inventory[item.inventoryTag])) {
+                inventory[item.inventoryTag] = [];
+            }
+            inventory[item.inventoryTag].push(newInventoryItem);
+            buyerChar.inventory = inventory;
+        }
+
         // Add to owner
         if (shopData.ownerUserId && shopData.ownerCharacterId) {
             const ownerUserRef = doc(db, "users", shopData.ownerUserId);
@@ -1658,7 +1673,7 @@ const processMonthlySalary = useCallback(async () => {
         const updatedUser = await fetchUserById(buyerUserId);
         if (updatedUser) setCurrentUser(updatedUser);
     }
-  }, [currentUser, fetchUserById]);
+  }, [currentUser, fetchUserById, initialFormData]);
 
   const signOutUser = useCallback(() => {
     signOut(auth);

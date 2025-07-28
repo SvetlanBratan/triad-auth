@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import type { ShopItem, Currency } from '@/lib/types';
+import type { ShopItem, Currency, InventoryCategory } from '@/lib/types';
 import { useUser } from '@/hooks/use-user';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
 import { Textarea } from '../ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 interface ShopItemFormProps {
     shopId: string;
@@ -17,10 +18,22 @@ interface ShopItemFormProps {
     closeDialog: () => void;
 }
 
+const inventoryCategories: { value: InventoryCategory, label: string }[] = [
+    { value: 'оружие', label: 'Оружие' },
+    { value: 'гардероб', label: 'Гардероб' },
+    { value: 'артефакты', label: 'Артефакты' },
+    { value: 'зелья', label: 'Зелья' },
+    { value: 'еда', label: 'Еда' },
+    { value: 'подарки', label: 'Подарки' },
+    { value: 'недвижимость', label: 'Недвижимость' },
+    { value: 'транспорт', label: 'Транспорт' },
+];
+
 const initialFormData: Omit<ShopItem, 'id'> = {
     name: '',
     description: '',
     price: { platinum: 0, gold: 0, silver: 0, copper: 0 },
+    inventoryTag: 'подарки',
 };
 
 export default function ShopItemForm({ shopId, item, closeDialog }: ShopItemFormProps) {
@@ -40,6 +53,7 @@ export default function ShopItemForm({ shopId, item, closeDialog }: ShopItemForm
                     silver: item.price.silver || 0,
                     copper: item.price.copper || 0,
                 },
+                inventoryTag: item.inventoryTag || 'подарки',
             });
         } else {
             setFormData(initialFormData);
@@ -98,6 +112,28 @@ export default function ShopItemForm({ shopId, item, closeDialog }: ShopItemForm
                             onChange={(e) => setFormData(prev => ({...prev, description: e.target.value}))}
                             placeholder="Расскажите о товаре..."
                         />
+                    </div>
+
+                    <div>
+                        <Label htmlFor="inventoryTag">Категория в инвентаре</Label>
+                         <Select
+                            value={formData.inventoryTag}
+                            onValueChange={(value: InventoryCategory) => setFormData(prev => ({...prev, inventoryTag: value}))}
+                        >
+                            <SelectTrigger id="inventoryTag">
+                                <SelectValue placeholder="Выберите категорию..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {inventoryCategories.map(cat => (
+                                    <SelectItem key={cat.value} value={cat.value}>
+                                        {cat.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground mt-1">
+                           В эту категорию инвентаря товар попадет после покупки.
+                        </p>
                     </div>
 
                     <div>
