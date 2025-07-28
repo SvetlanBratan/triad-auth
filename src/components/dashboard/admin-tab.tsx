@@ -203,7 +203,7 @@ export default function AdminTab() {
         const user = users.find(u => u.id === itemUserId);
         const character = user?.characters.find(c => c.id === itemCharId);
         if (character && character.inventory) {
-            const item = character.inventory[selectedInventoryItem.category].find(i => i.id === selectedInventoryItem.id);
+            const item = (character.inventory[selectedInventoryItem.category] || []).find(i => i.id === selectedInventoryItem.id);
             if (item) {
                 setEditItemData(item);
             }
@@ -632,7 +632,7 @@ export default function AdminTab() {
     setItemUserId('');
     setItemCharId('');
     setSelectedShopItemId('');
-    setNewItemData({ name: '', description: '', inventoryTag: 'прочее' });
+    setNewItemData({ name: '', description: '', inventoryTag: 'прочее', quantity: 1 });
   };
   
   const handleUpdateItem = async (e: React.FormEvent) => {
@@ -731,7 +731,7 @@ export default function AdminTab() {
     if (!character || !character.inventory) return [];
 
     const groupedOptions = INVENTORY_CATEGORIES.map(category => {
-        const items = character.inventory[category.value as keyof typeof character.inventory] as InventoryItem[] || [];
+        const items = (character.inventory[category.value as keyof typeof character.inventory] || []) as InventoryItem[];
         if (items.length === 0) return null;
         return {
             label: category.label,
@@ -1746,15 +1746,15 @@ export default function AdminTab() {
                                      <div className="p-4 border rounded-md space-y-4">
                                          <div>
                                             <Label htmlFor="edit-item-name">Название предмета</Label>
-                                            <Input id="edit-item-name" value={editItemData.name} onChange={e => setEditItemData(p => p ? {...p, name: e.target.value} : null)} />
+                                            <Input id="edit-item-name" value={editItemData.name ?? ''} onChange={e => setEditItemData(p => p ? {...p, name: e.target.value} : null)} />
                                         </div>
                                         <div>
                                             <Label htmlFor="edit-item-desc">Описание</Label>
-                                            <Textarea id="edit-item-desc" value={editItemData.description} onChange={e => setEditItemData(p => p ? {...p, description: e.target.value} : null)} />
+                                            <Textarea id="edit-item-desc" value={editItemData.description ?? ''} onChange={e => setEditItemData(p => p ? {...p, description: e.target.value} : null)} />
                                         </div>
                                         <div>
                                             <Label htmlFor="edit-item-quantity">Количество</Label>
-                                            <Input id="edit-item-quantity" type="number" value={editItemData.quantity} onChange={e => setEditItemData(p => p ? {...p, quantity: parseInt(e.target.value, 10) || 0} : null)} />
+                                            <Input id="edit-item-quantity" type="number" value={editItemData.quantity ?? ''} onChange={e => setEditItemData(p => p ? {...p, quantity: parseInt(e.target.value, 10) || 0} : null)} />
                                         </div>
                                          <div>
                                             <Label htmlFor="edit-item-tag">Категория</Label>
