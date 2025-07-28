@@ -1397,7 +1397,7 @@ const processMonthlySalary = useCallback(async () => {
     const ranksAreDifferent = initiatorFamiliar.rank !== targetFamiliar.rank;
     const isMythicEventTrade = 
         (initiatorFamiliar.rank === 'мифический' && targetFamiliar.rank === 'ивентовый') ||
-        (initiatorFamiliar.rank === 'ивентовый' && initiatorFamiliar.rank === 'мифический');
+        (initiatorFamiliar.rank === 'ивентовый' && targetFamiliar.rank === 'мифический');
 
     if (ranksAreDifferent && !isMythicEventTrade) {
         throw new Error("Обмен возможен только между фамильярами одного ранга, или между мифическим и ивентовым.");
@@ -1562,7 +1562,10 @@ const processMonthlySalary = useCallback(async () => {
     const updatedItems = [...items, newItem];
     const sanitizedItems = updatedItems.map(i => {
         const { quantity, ...rest } = i;
-        return quantity === undefined ? rest : i;
+        if (quantity === undefined) {
+            return rest;
+        }
+        return i;
     });
     await setDoc(shopRef, { items: sanitizedItems }, { merge: true });
   }, []);
@@ -1575,7 +1578,10 @@ const processMonthlySalary = useCallback(async () => {
     const updatedItems = items.map((item: ShopItem) => item.id === itemToUpdate.id ? itemToUpdate : item);
      const sanitizedItems = updatedItems.map(i => {
         const { quantity, ...rest } = i;
-        return quantity === undefined ? rest : i;
+        if (quantity === undefined) {
+            return rest;
+        }
+        return i;
     });
     await setDoc(shopRef, { items: sanitizedItems }, { merge: true });
   }, []);
@@ -1896,3 +1902,4 @@ const processMonthlySalary = useCallback(async () => {
     </AuthContext.Provider>
   );
 }
+
