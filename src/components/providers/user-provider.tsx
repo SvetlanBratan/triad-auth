@@ -90,6 +90,7 @@ interface UserContextType {
   adminGiveItemToCharacter: (userId: string, characterId: string, itemData: AdminGiveItemForm) => Promise<void>;
   adminUpdateItemInCharacter: (userId: string, characterId: string, itemData: InventoryItem, category: InventoryCategory) => Promise<void>;
   adminDeleteItemFromCharacter: (userId: string, characterId: string, itemId: string, category: InventoryCategory) => Promise<void>;
+  restockShopItem: (shopId: string, itemId: string, ownerUserId: string, ownerCharacterId: string) => Promise<void>;
 }
 
 export const UserContext = createContext<UserContextType | null>(null);
@@ -1795,6 +1796,65 @@ const adminDeleteItemFromCharacter = useCallback(async (userId: string, characte
     await updateUser(userId, { characters: updatedCharacters });
 }, [fetchUserById, updateUser, initialFormData]);
 
+const restockShopItem = useCallback(async (shopId: string, itemId: string, ownerUserId: string, ownerCharacterId: string) => {
+    await runTransaction(db, async (transaction) => {
+        const shopRef = doc(db, "shops", shopId);
+        const shopDoc = await transaction.get(shopRef);
+        if (!shopDoc.exists()) throw new Error("Магазин не найден.");
+        const shopData = shopDoc.data() as Shop;
+        
+        const itemIndex = (shopData.items || []).findIndex(i => i.id === itemId);
+        if (itemIndex === -1) throw new Error("Товар не найден.");
+        const item = shopData.items![itemIndex];
+
+        if (item.quantity !== 0) throw new Error("Этот товар еще есть в наличии.");
+        
+        const ownerUserRef = doc(db, "users", ownerUserId);
+        const ownerUserDoc = await transaction.get(ownerUserRef);
+        if (!ownerUserDoc.exists()) throw new Error("Владелец не найден.");
+        const ownerUserData = ownerUserDoc.data() as User;
+
+        const ownerCharIndex = ownerUserData.characters.findIndex(c => c.id === ownerCharacterId);
+        if (ownerCharIndex === -1) throw new Error("Персонаж владельца не найден.");
+        const ownerChar = ownerUserData.characters[ownerCharIndex];
+        
+        const restockCost = {
+            platinum: Math.ceil((item.price.platinum || 0) * 0.3),
+            gold: Math.ceil((item.price.gold || 0) * 0.3),
+            silver: Math.ceil((item.price.silver || 0) * 0.3),
+            copper: Math.ceil((item.price.copper || 0) * 0.3),
+        };
+
+        const balance = ownerChar.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 };
+        if (
+            balance.platinum < restockCost.platinum ||
+            balance.gold < restockCost.gold ||
+            balance.silver < restockCost.silver ||
+            balance.copper < restockCost.copper
+        ) {
+            throw new Error("У владельца недостаточно средств для пополнения запасов.");
+        }
+        
+        ownerChar.bankAccount.platinum -= restockCost.platinum;
+        ownerChar.bankAccount.gold -= restockCost.gold;
+        ownerChar.bankAccount.silver -= restockCost.silver;
+        ownerChar.bankAccount.copper -= restockCost.copper;
+
+        const restockTx: BankTransaction = { id: `txn-restock-${Date.now()}`, date: new Date().toISOString(), reason: `Пополнение товара: ${item.name}`, amount: { platinum: -restockCost.platinum, gold: -restockCost.gold, silver: -restockCost.silver, copper: -restockCost.copper } };
+        ownerChar.bankAccount.history = [restockTx, ...(ownerChar.bankAccount.history || [])];
+
+        const updatedItems = [...shopData.items!];
+        updatedItems[itemIndex].quantity = 10;
+
+        transaction.update(ownerUserRef, { characters: ownerUserData.characters });
+        transaction.set(shopRef, { items: updatedItems }, { merge: true });
+    });
+     if (currentUser?.id === ownerUserId) {
+        const updatedUser = await fetchUserById(ownerUserId);
+        if (updatedUser) setCurrentUser(updatedUser);
+    }
+}, [currentUser, fetchUserById]);
+
   const signOutUser = useCallback(() => {
     signOut(auth);
   }, []);
@@ -1948,8 +2008,9 @@ const adminDeleteItemFromCharacter = useCallback(async (userId: string, characte
       adminGiveItemToCharacter,
       adminUpdateItemInCharacter,
       adminDeleteItemFromCharacter,
+      restockShopItem,
     }),
-    [currentUser, gameSettings, fetchUserById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter]
+    [currentUser, gameSettings, fetchUserById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, restockShopItem]
   );
 
   return (
