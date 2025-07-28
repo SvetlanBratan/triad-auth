@@ -1887,143 +1887,6 @@ const adminUpdateShopLicense = useCallback(async (shopId: string, hasLicense: bo
     await setDoc(shopRef, { hasLicense }, { merge: true });
 }, []);
 
-const processAnnualTaxes = useCallback(async (): Promise<{ taxedCharactersCount: number; totalTaxesCollected: BankAccount }> => {
-    const allUsers = await fetchUsersForAdmin();
-    const allShops = await fetchAllShops();
-    const shopsById = new Map(allShops.map(shop => [shop.id, shop]));
-    const batch = writeBatch(db);
-    let taxedCharactersCount = 0;
-    let totalTaxesCollected: BankAccount = { platinum: 0, gold: 0, silver: 0, copper: 0 };
-
-    for (const user of allUsers) {
-        let hasChanges = false;
-        const updatedCharacters = [...user.characters];
-
-        for (let i = 0; i < updatedCharacters.length; i++) {
-            const character = updatedCharacters[i];
-
-            if (character.taxpayerStatus !== 'taxable') {
-                continue;
-            }
-
-            let incomeTaxRate = 0;
-            let tradeTaxRate = 0;
-            let tradeTaxRateLicensed = 0;
-
-            switch (character.countryOfResidence) {
-                case 'Артерианск':
-                    incomeTaxRate = 0.10;
-                    tradeTaxRate = 0.10;
-                    tradeTaxRateLicensed = 0.05;
-                    break;
-                case 'Белоснежье':
-                    incomeTaxRate = 0.10;
-                    tradeTaxRate = character.citizenshipStatus === 'refugee' ? 0.15 : 0.10;
-                    tradeTaxRateLicensed = character.citizenshipStatus === 'refugee' ? 0.10 : 0.05;
-                    break;
-                case 'Огнеславия':
-                    incomeTaxRate = 0.15;
-                    tradeTaxRate = 0.15;
-                    tradeTaxRateLicensed = 0.10;
-                    break;
-                case 'Сан-Ликорис':
-                    incomeTaxRate = 0.05;
-                    tradeTaxRate = 0.07;
-                    tradeTaxRateLicensed = 0.05;
-                    break;
-                case 'Заприливье':
-                    incomeTaxRate = 0.07;
-                    tradeTaxRate = 0.10; // No license discount
-                    tradeTaxRateLicensed = 0.10;
-                    break;
-                default:
-                    continue; // No taxes for other countries
-            }
-
-            let totalTaxToPay: Partial<BankAccount> = { platinum: 0, gold: 0, silver: 0, copper: 0 };
-
-            // 1. Income Tax
-            const wealthInfo = WEALTH_LEVELS.find(w => w.name === character.wealthLevel);
-            if (wealthInfo && wealthInfo.salary) {
-                const annualSalary: Partial<BankAccount> = {
-                    platinum: (wealthInfo.salary.platinum || 0) * 12,
-                    gold: (wealthInfo.salary.gold || 0) * 12,
-                    silver: (wealthInfo.salary.silver || 0) * 12,
-                    copper: (wealthInfo.salary.copper || 0) * 12,
-                };
-                
-                Object.keys(annualSalary).forEach(currency => {
-                    const key = currency as keyof BankAccount;
-                    const tax = Math.ceil((annualSalary[key] || 0) * incomeTaxRate);
-                    totalTaxToPay[key] = (totalTaxToPay[key] || 0) + tax;
-                });
-            }
-            
-            // 2. Trade Tax
-            const ownedShops = allShops.filter(shop => shop.ownerCharacterId === character.id);
-            if (ownedShops.length > 0) {
-                 for (const shop of ownedShops) {
-                    const currentTaxRate = shop.hasLicense ? tradeTaxRateLicensed : tradeTaxRate;
-                    let shopValue: Partial<BankAccount> = { platinum: 0, gold: 0, silver: 0, copper: 0 };
-                    
-                    (shop.items || []).forEach(item => {
-                        Object.keys(item.price).forEach(currency => {
-                            const key = currency as keyof BankAccount;
-                            const quantity = item.quantity === undefined ? 1 : item.quantity;
-                            shopValue[key] = (shopValue[key] || 0) + (item.price[key] || 0) * quantity;
-                        });
-                    });
-
-                    Object.keys(shopValue).forEach(currency => {
-                        const key = currency as keyof BankAccount;
-                        const tax = Math.ceil((shopValue[key] || 0) * currentTaxRate);
-                        totalTaxToPay[key] = (totalTaxToPay[key] || 0) + tax;
-                    });
-                }
-            }
-
-            // 3. Deduct taxes
-            const finalTaxAmount = totalTaxToPay;
-            if (Object.values(finalTaxAmount).some(v => v > 0)) {
-                let newBalance = { ...(character.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] }) };
-                
-                let negativeAmount: Partial<BankAccount> = {};
-                 Object.keys(finalTaxAmount).forEach(currency => {
-                    const key = currency as keyof BankAccount;
-                    newBalance[key] = (newBalance[key] || 0) - (finalTaxAmount[key] || 0);
-                    negativeAmount[key] = -(finalTaxAmount[key] || 0);
-                });
-                
-                const newTransaction: BankTransaction = {
-                    id: `txn-tax-${Date.now()}`,
-                    date: new Date().toISOString(),
-                    reason: 'Ежегодный налог',
-                    amount: negativeAmount,
-                };
-                newBalance.history = [newTransaction, ...(newBalance.history || [])];
-                
-                updatedCharacters[i] = { ...character, bankAccount: newBalance };
-                hasChanges = true;
-                taxedCharactersCount++;
-
-                 Object.keys(finalTaxAmount).forEach(currency => {
-                    const key = currency as keyof BankAccount;
-                    totalTaxesCollected[key] = (totalTaxesCollected[key] || 0) + (finalTaxAmount[key] || 0);
-                });
-            }
-        }
-        
-        if (hasChanges) {
-            const userRef = doc(db, "users", user.id);
-            batch.update(userRef, { characters: updatedCharacters });
-        }
-    }
-    
-    await batch.commit();
-    return { taxedCharactersCount, totalTaxesCollected };
-
-}, [fetchUsersForAdmin, fetchAllShops]);
-
 const processWeeklyBonus = useCallback(async () => {
     const settingsRef = doc(db, 'game_settings', 'main');
     const settingsDoc = await getDoc(settingsRef);
@@ -2082,6 +1945,140 @@ const processWeeklyBonus = useCallback(async () => {
 
     return { awardedCount, isOverdue };
 }, [fetchUsersForAdmin, fetchGameSettings]);
+
+const processAnnualTaxes = useCallback(async (): Promise<{ taxedCharactersCount: number; totalTaxesCollected: BankAccount }> => {
+    const allUsers = await fetchUsersForAdmin();
+    const allShops = await fetchAllShops();
+    const shopsById = new Map(allShops.map(shop => [shop.id, shop]));
+    const batch = writeBatch(db);
+    let taxedCharactersCount = 0;
+    let totalTaxesCollected: BankAccount = { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
+
+    const currencyKeys: (keyof Omit<BankAccount, 'history'>)[] = ['platinum', 'gold', 'silver', 'copper'];
+
+    for (const user of allUsers) {
+        let hasChanges = false;
+        const updatedCharacters = [...user.characters];
+
+        for (let i = 0; i < updatedCharacters.length; i++) {
+            const character = updatedCharacters[i];
+
+            if (character.taxpayerStatus !== 'taxable') {
+                continue;
+            }
+
+            let incomeTaxRate = 0;
+            let tradeTaxRate = 0;
+            let tradeTaxRateLicensed = 0;
+
+            switch (character.countryOfResidence) {
+                case 'Артерианск':
+                    incomeTaxRate = 0.10;
+                    tradeTaxRate = 0.10;
+                    tradeTaxRateLicensed = 0.05;
+                    break;
+                case 'Белоснежье':
+                    incomeTaxRate = 0.10;
+                    tradeTaxRate = character.citizenshipStatus === 'refugee' ? 0.15 : 0.10;
+                    tradeTaxRateLicensed = character.citizenshipStatus === 'refugee' ? 0.10 : 0.05;
+                    break;
+                case 'Огнеславия':
+                    incomeTaxRate = 0.15;
+                    tradeTaxRate = 0.15;
+                    tradeTaxRateLicensed = 0.10;
+                    break;
+                case 'Сан-Ликорис':
+                    incomeTaxRate = 0.05;
+                    tradeTaxRate = 0.07;
+                    tradeTaxRateLicensed = 0.05;
+                    break;
+                case 'Заприливье':
+                    incomeTaxRate = 0.07;
+                    tradeTaxRate = 0.10; // No license discount
+                    tradeTaxRateLicensed = 0.10;
+                    break;
+                default:
+                    continue; // No taxes for other countries
+            }
+
+            let totalTaxToPay: Partial<Omit<BankAccount, 'history'>> = { platinum: 0, gold: 0, silver: 0, copper: 0 };
+
+            // 1. Income Tax
+            const wealthInfo = WEALTH_LEVELS.find(w => w.name === character.wealthLevel);
+            if (wealthInfo && wealthInfo.salary) {
+                const annualSalary: Partial<Omit<BankAccount, 'history'>> = {
+                    platinum: (wealthInfo.salary.platinum || 0) * 12,
+                    gold: (wealthInfo.salary.gold || 0) * 12,
+                    silver: (wealthInfo.salary.silver || 0) * 12,
+                    copper: (wealthInfo.salary.copper || 0) * 12,
+                };
+                
+                currencyKeys.forEach(key => {
+                    const tax = Math.ceil((annualSalary[key] || 0) * incomeTaxRate);
+                    totalTaxToPay[key] = (totalTaxToPay[key] || 0) + tax;
+                });
+            }
+            
+            // 2. Trade Tax
+            const ownedShops = allShops.filter(shop => shop.ownerCharacterId === character.id);
+            if (ownedShops.length > 0) {
+                 for (const shop of ownedShops) {
+                    const currentTaxRate = shop.hasLicense ? tradeTaxRateLicensed : tradeTaxRate;
+                    let shopValue: Partial<Omit<BankAccount, 'history'>> = { platinum: 0, gold: 0, silver: 0, copper: 0 };
+                    
+                    (shop.items || []).forEach(item => {
+                        currencyKeys.forEach(key => {
+                            const quantity = item.quantity === undefined ? 1 : item.quantity;
+                            shopValue[key] = (shopValue[key] || 0) + (item.price[key] || 0) * quantity;
+                        });
+                    });
+
+                    currencyKeys.forEach(key => {
+                        const tax = Math.ceil((shopValue[key] || 0) * currentTaxRate);
+                        totalTaxToPay[key] = (totalTaxToPay[key] || 0) + tax;
+                    });
+                }
+            }
+
+            // 3. Deduct taxes
+            const finalTaxAmount = totalTaxToPay;
+            if (Object.values(finalTaxAmount).some(v => v > 0)) {
+                let newBalance = { ...(character.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] }) };
+                
+                let negativeAmount: Partial<Omit<BankAccount, 'history'>> = {};
+                 currencyKeys.forEach(key => {
+                    newBalance[key] = (newBalance[key] || 0) - (finalTaxAmount[key] || 0);
+                    negativeAmount[key] = -(finalTaxAmount[key] || 0);
+                });
+                
+                const newTransaction: BankTransaction = {
+                    id: `txn-tax-${Date.now()}`,
+                    date: new Date().toISOString(),
+                    reason: 'Ежегодный налог',
+                    amount: negativeAmount,
+                };
+                newBalance.history = [newTransaction, ...(newBalance.history || [])];
+                
+                updatedCharacters[i] = { ...character, bankAccount: newBalance };
+                hasChanges = true;
+                taxedCharactersCount++;
+
+                currencyKeys.forEach(key => {
+                    totalTaxesCollected[key] = (totalTaxesCollected[key] || 0) + (finalTaxAmount[key] || 0);
+                });
+            }
+        }
+        
+        if (hasChanges) {
+            const userRef = doc(db, "users", user.id);
+            batch.update(userRef, { characters: updatedCharacters });
+        }
+    }
+    
+    await batch.commit();
+    return { taxedCharactersCount, totalTaxesCollected };
+
+}, [fetchUsersForAdmin, fetchAllShops]);
 
   const signOutUser = useCallback(() => {
     signOut(auth);
