@@ -11,7 +11,6 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
 import { Textarea } from '../ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { INVENTORY_CATEGORIES } from '@/lib/data';
 import { SearchableSelect } from '../ui/searchable-select';
 import ImageKitUploader from './imagekit-uploader';
@@ -89,72 +88,70 @@ export default function ShopItemForm({ shopId, item, closeDialog }: ShopItemForm
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-             <ScrollArea className="max-h-[60vh] p-1">
-                <div className="space-y-4 pr-4">
-                    <ImageKitUploader
-                        currentImageUrl={formData.image}
-                        onUpload={(url) => setFormData(p => ({...p, image: url}))}
+        <form onSubmit={handleSubmit} className="flex flex-col h-full max-h-[75vh]">
+            <div className="flex-1 overflow-y-auto pr-6 space-y-4">
+                <ImageKitUploader
+                    currentImageUrl={formData.image}
+                    onUpload={(url) => setFormData(p => ({...p, image: url}))}
+                />
+                <div>
+                    <Label htmlFor="name">Название товара</Label>
+                    <Input
+                        id="name"
+                        value={formData.name}
+                        onChange={(e) => setFormData(prev => ({...prev, name: e.target.value}))}
+                        required
                     />
-                    <div>
-                        <Label htmlFor="name">Название товара</Label>
-                        <Input
-                            id="name"
-                            value={formData.name}
-                            onChange={(e) => setFormData(prev => ({...prev, name: e.target.value}))}
-                            required
-                        />
-                    </div>
-                    
-                    <div>
-                        <Label htmlFor="description">Описание товара</Label>
-                        <Textarea
-                            id="description"
-                            value={formData.description}
-                            onChange={(e) => setFormData(prev => ({...prev, description: e.target.value}))}
-                            placeholder="Расскажите о товаре..."
-                        />
-                    </div>
+                </div>
+                
+                <div>
+                    <Label htmlFor="description">Описание товара</Label>
+                    <Textarea
+                        id="description"
+                        value={formData.description}
+                        onChange={(e) => setFormData(prev => ({...prev, description: e.target.value}))}
+                        placeholder="Расскажите о товаре..."
+                    />
+                </div>
 
-                    <div>
-                        <Label htmlFor="inventoryTag">Категория в инвентаре</Label>
-                         <SearchableSelect
-                            options={INVENTORY_CATEGORIES}
-                            value={formData.inventoryTag ?? 'прочее'}
-                            onValueChange={(value) => setFormData(prev => ({...prev, inventoryTag: value as InventoryCategory}))}
-                            placeholder="Выберите категорию..."
-                        />
-                        <p className="text-xs text-muted-foreground mt-1">
-                           В эту категорию инвентаря товар попадет после покупки.
-                        </p>
-                    </div>
+                <div>
+                    <Label htmlFor="inventoryTag">Категория в инвентаре</Label>
+                     <SearchableSelect
+                        options={INVENTORY_CATEGORIES}
+                        value={formData.inventoryTag ?? 'прочее'}
+                        onValueChange={(value) => setFormData(prev => ({...prev, inventoryTag: value as InventoryCategory}))}
+                        placeholder="Выберите категорию..."
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                       В эту категорию инвентаря товар попадет после покупки.
+                    </p>
+                </div>
 
-                    <div>
-                        <Label>Цена за 1 шт.</Label>
-                        <div className="grid grid-cols-2 gap-2">
-                            <Input type="number" placeholder="Платина" value={formData.price.platinum || ''} onChange={e => handlePriceChange('platinum', e.target.value)} />
-                            <Input type="number" placeholder="Золото" value={formData.price.gold || ''} onChange={e => handlePriceChange('gold', e.target.value)} />
-                            <Input type="number" placeholder="Серебро" value={formData.price.silver || ''} onChange={e => handlePriceChange('silver', e.target.value)} />
-                            <Input type="number" placeholder="Медь" value={formData.price.copper || ''} onChange={e => handlePriceChange('copper', e.target.value)} />
-                        </div>
-                    </div>
-
-                     <div>
-                        <Label htmlFor="quantity">Количество в наличии</Label>
-                        <Input
-                            id="quantity"
-                            type="number"
-                            value={formData.quantity ?? ''}
-                            onChange={(e) => setFormData(prev => ({ ...prev, quantity: e.target.value === '' ? undefined : parseInt(e.target.value, 10) }))}
-                            placeholder="Оставьте пустым для бесконечного"
-                        />
-                        <p className="text-xs text-muted-foreground mt-1">
-                           Если оставить поле пустым, товар будет считаться бесконечным.
-                        </p>
+                <div>
+                    <Label>Цена за 1 шт.</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                        <Input type="number" placeholder="Платина" value={formData.price.platinum || ''} onChange={e => handlePriceChange('platinum', e.target.value)} />
+                        <Input type="number" placeholder="Золото" value={formData.price.gold || ''} onChange={e => handlePriceChange('gold', e.target.value)} />
+                        <Input type="number" placeholder="Серебро" value={formData.price.silver || ''} onChange={e => handlePriceChange('silver', e.target.value)} />
+                        <Input type="number" placeholder="Медь" value={formData.price.copper || ''} onChange={e => handlePriceChange('copper', e.target.value)} />
                     </div>
                 </div>
-             </ScrollArea>
-             <div className="flex justify-end gap-2 pt-4 border-t">
+
+                 <div>
+                    <Label htmlFor="quantity">Количество в наличии</Label>
+                    <Input
+                        id="quantity"
+                        type="number"
+                        value={formData.quantity ?? ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, quantity: e.target.value === '' ? undefined : parseInt(e.target.value, 10) }))}
+                        placeholder="Оставьте пустым для бесконечного"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                       Если оставить поле пустым, товар будет считаться бесконечным.
+                    </p>
+                </div>
+            </div>
+             <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t">
                 <Button type="button" variant="ghost" onClick={closeDialog}>Отмена</Button>
                 <Button type="submit" disabled={isLoading}>{isLoading ? 'Сохранение...' : 'Сохранить'}</Button>
              </div>

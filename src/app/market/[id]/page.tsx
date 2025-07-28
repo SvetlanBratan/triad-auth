@@ -316,7 +316,7 @@ export default function ShopPage() {
             </Card>
 
             <Dialog open={isFormOpen} onOpenChange={(open) => !open && handleFormClose()}>
-                <DialogContent>
+                <DialogContent className="max-w-2xl">
                      <DialogHeader>
                         <DialogTitle>{editingItem ? "Редактировать товар" : "Добавить новый товар"}</DialogTitle>
                      </DialogHeader>
