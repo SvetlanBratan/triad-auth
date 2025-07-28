@@ -251,7 +251,7 @@ export default function ShopPage() {
                                     return (
                                     <Card key={item.id} className="flex flex-col group overflow-hidden">
                                         {item.image && (
-                                            <div className="relative h-40 w-full bg-white dark:bg-black">
+                                            <div className="relative h-40 w-full bg-muted">
                                                 <Image src={item.image} alt={item.name} fill style={{objectFit: 'contain'}} />
                                             </div>
                                         )}
