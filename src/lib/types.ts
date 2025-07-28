@@ -265,6 +265,7 @@ export type AdminGiveItemForm = {
     name: string;
     description: string;
     inventoryTag: InventoryCategory;
+    quantity?: number;
 }
 
 export interface UserContextType {
@@ -330,4 +331,6 @@ export interface UserContextType {
   deleteShopItem: (shopId: string, itemId: string) => Promise<void>;
   purchaseShopItem: (shopId: string, itemId: string, buyerUserId: string, buyerCharacterId: string, quantity: number) => Promise<void>;
   adminGiveItemToCharacter: (userId: string, characterId: string, itemData: AdminGiveItemForm) => Promise<void>;
+  adminUpdateItemInCharacter: (userId: string, characterId: string, itemData: InventoryItem, category: InventoryCategory) => Promise<void>;
+  adminDeleteItemFromCharacter: (userId: string, characterId: string, itemId: string, category: InventoryCategory) => Promise<void>;
 }

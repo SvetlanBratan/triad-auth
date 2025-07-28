@@ -12,8 +12,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
-import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info, AlertTriangle, Bell, CheckCircle, Store, PackagePlus } from 'lucide-react';
-import type { UserStatus, UserRole, User, FamiliarCard, BankAccount, WealthLevel, FamiliarRank, Shop, InventoryCategory, AdminGiveItemForm } from '@/lib/types';
+import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info, AlertTriangle, Bell, CheckCircle, Store, PackagePlus, Edit } from 'lucide-react';
+import type { UserStatus, UserRole, User, FamiliarCard, BankAccount, WealthLevel, FamiliarRank, Shop, InventoryCategory, AdminGiveItemForm, InventoryItem } from '@/lib/types';
 import { FAME_LEVELS_POINTS, EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, FAMILIARS_BY_ID, WEALTH_LEVELS, ALL_FAMILIARS, STARTING_CAPITAL_LEVELS, ALL_SHOPS, INVENTORY_CATEGORIES } from '@/lib/data';
 import {
   AlertDialog,
@@ -69,6 +69,8 @@ export default function AdminTab() {
     updateShopOwner,
     fetchAllShops,
     adminGiveItemToCharacter,
+    adminUpdateItemInCharacter,
+    adminDeleteItemFromCharacter,
   } = useUser();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -141,13 +143,15 @@ export default function AdminTab() {
   const [shopOwnerUserId, setShopOwnerUserId] = useState('');
   const [shopOwnerCharId, setShopOwnerCharId] = useState('');
   
-  // Item giving state
-  const [itemGiveUserId, setItemGiveUserId] = useState('');
-  const [itemGiveCharId, setItemGiveCharId] = useState('');
+  // Item management state
+  const [itemUserId, setItemUserId] = useState('');
+  const [itemCharId, setItemCharId] = useState('');
   const [isGivingNewItem, setIsGivingNewItem] = useState(false);
   const [allShopItems, setAllShopItems] = useState<{label: string, value: string}[]>([]);
   const [selectedShopItemId, setSelectedShopItemId] = useState('');
-  const [newItemData, setNewItemData] = useState<AdminGiveItemForm>({ name: '', description: '', inventoryTag: 'прочее' });
+  const [newItemData, setNewItemData] = useState<AdminGiveItemForm>({ name: '', description: '', inventoryTag: 'прочее', quantity: 1 });
+  const [selectedInventoryItem, setSelectedInventoryItem] = useState<{ id: string, category: InventoryCategory } | null>(null);
+  const [editItemData, setEditItemData] = useState<InventoryItem | null>(null);
 
 
   const { toast } = useToast();
@@ -175,7 +179,7 @@ export default function AdminTab() {
             const items = fetchedShops.flatMap(shop => 
                 (shop.items || []).map(item => ({
                     label: `${item.name} (${shop.title})`,
-                    value: JSON.stringify({ name: item.name, description: item.description, inventoryTag: item.inventoryTag })
+                    value: JSON.stringify({ name: item.name, description: item.description, inventoryTag: item.inventoryTag, quantity: 1 })
                 }))
             );
             setAllShopItems(items);
@@ -193,6 +197,21 @@ export default function AdminTab() {
   useEffect(() => {
       setNewGameDateString(initialGameDate || '');
   }, [initialGameDate]);
+
+  useEffect(() => {
+    if (selectedInventoryItem) {
+        const user = users.find(u => u.id === itemUserId);
+        const character = user?.characters.find(c => c.id === itemCharId);
+        if (character && character.inventory) {
+            const item = character.inventory[selectedInventoryItem.category].find(i => i.id === selectedInventoryItem.id);
+            if (item) {
+                setEditItemData(item);
+            }
+        }
+    } else {
+        setEditItemData(null);
+    }
+  }, [selectedInventoryItem, itemUserId, itemCharId, users]);
 
   const handleRecovery = async () => {
     if (!recoveryUserId || !recoveryCharId) {
@@ -585,7 +604,7 @@ export default function AdminTab() {
 
   const handleGiveItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!itemGiveUserId || !itemGiveCharId) {
+    if (!itemUserId || !itemCharId) {
         toast({ variant: 'destructive', title: 'Ошибка', description: 'Выберите пользователя и персонажа.' });
         return;
     }
@@ -605,15 +624,40 @@ export default function AdminTab() {
         itemData = JSON.parse(selectedShopItemId);
     }
     
-    await adminGiveItemToCharacter(itemGiveUserId, itemGiveCharId, itemData);
+    await adminGiveItemToCharacter(itemUserId, itemCharId, itemData);
     await refetchUsers();
     toast({ title: 'Предмет выдан!', description: `"${itemData.name}" добавлен в инвентарь персонажа.` });
     
     // Reset form
-    setItemGiveUserId('');
-    setItemGiveCharId('');
+    setItemUserId('');
+    setItemCharId('');
     setSelectedShopItemId('');
     setNewItemData({ name: '', description: '', inventoryTag: 'прочее' });
+  };
+  
+  const handleUpdateItem = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!itemUserId || !itemCharId || !editItemData || !selectedInventoryItem) {
+          toast({ variant: 'destructive', title: 'Ошибка', description: 'Не все данные для обновления предмета выбраны.' });
+          return;
+      }
+      await adminUpdateItemInCharacter(itemUserId, itemCharId, editItemData, selectedInventoryItem.category);
+      await refetchUsers();
+      toast({ title: 'Предмет обновлен!', description: `Данные для "${editItemData.name}" сохранены.` });
+      // Reset
+      setSelectedInventoryItem(null);
+  };
+  
+  const handleDeleteItem = async () => {
+       if (!itemUserId || !itemCharId || !editItemData || !selectedInventoryItem) {
+          toast({ variant: 'destructive', title: 'Ошибка', description: 'Не все данные для удаления предмета выбраны.' });
+          return;
+      }
+      await adminDeleteItemFromCharacter(itemUserId, itemCharId, editItemData.id, selectedInventoryItem.category);
+      await refetchUsers();
+      toast({ title: 'Предмет удален!', description: `"${editItemData.name}" удален из инвентаря.` });
+      // Reset
+      setSelectedInventoryItem(null);
   };
 
 
@@ -674,11 +718,32 @@ export default function AdminTab() {
     }));
   }, [shopOwnerUserId, users]);
 
-  const charactersForItemGive = useMemo(() => {
-    if (!itemGiveUserId) return [];
-    const user = users.find(u => u.id === itemGiveUserId);
+  const charactersForItem = useMemo(() => {
+    if (!itemUserId) return [];
+    const user = users.find(u => u.id === itemUserId);
     return (user?.characters || []).map(c => ({ value: c.id, label: c.name }));
-  }, [itemGiveUserId, users]);
+  }, [itemUserId, users]);
+  
+  const inventoryItemsForSelectedChar = useMemo(() => {
+    if (!itemUserId || !itemCharId) return [];
+    const user = users.find(u => u.id === itemUserId);
+    const character = user?.characters.find(c => c.id === itemCharId);
+    if (!character || !character.inventory) return [];
+
+    const groupedOptions = INVENTORY_CATEGORIES.map(category => {
+        const items = character.inventory[category.value as keyof typeof character.inventory] as InventoryItem[] || [];
+        if (items.length === 0) return null;
+        return {
+            label: category.label,
+            options: items.map(item => ({
+                label: `${item.name} (x${item.quantity})`,
+                value: JSON.stringify({ id: item.id, category: category.value })
+            }))
+        };
+    }).filter((group): group is { label: string; options: { label: string; value: string; }[] } => group !== null);
+    
+    return groupedOptions;
+  }, [itemUserId, itemCharId, users]);
 
   const familiarsForSelectedCharacterOptions = useMemo((): {value: string, label: string}[] => {
     if (!removeFamiliarUserId || !removeFamiliarCharId) return [];
@@ -1569,73 +1634,155 @@ export default function AdminTab() {
             <div className="break-inside-avoid mb-6">
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><PackagePlus /> Выдать предмет в инвентарь</CardTitle>
-                    <CardDescription>Добавьте любой предмет в инвентарь персонажа.</CardDescription>
+                    <CardTitle className="flex items-center gap-2"><PackagePlus /> Управление инвентарем</CardTitle>
+                    <CardDescription>Добавление, редактирование и удаление предметов в инвентаре персонажа.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <form onSubmit={handleGiveItem} className="space-y-4">
-                        <div>
-                            <Label>Пользователь и персонаж</Label>
-                            <div className="flex gap-2">
-                                <SearchableSelect
-                                    options={userOnlyOptions}
-                                    value={itemGiveUserId}
-                                    onValueChange={uid => { setItemGiveUserId(uid); setItemGiveCharId(''); }}
-                                    placeholder="Пользователь"
-                                />
-                                <SearchableSelect
-                                    options={charactersForItemGive}
-                                    value={itemGiveCharId}
-                                    onValueChange={setItemGiveCharId}
-                                    placeholder="Персонаж"
-                                    disabled={!itemGiveUserId}
-                                />
-                            </div>
-                        </div>
+                     <Tabs defaultValue="add">
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="add">Добавить предмет</TabsTrigger>
+                            <TabsTrigger value="edit">Редактировать предмет</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="add" className="pt-4">
+                           <form onSubmit={handleGiveItem} className="space-y-4">
+                                <div>
+                                    <Label>Пользователь и персонаж</Label>
+                                    <div className="flex gap-2">
+                                        <SearchableSelect
+                                            options={userOnlyOptions}
+                                            value={itemUserId}
+                                            onValueChange={uid => { setItemUserId(uid); setItemCharId(''); }}
+                                            placeholder="Пользователь"
+                                        />
+                                        <SearchableSelect
+                                            options={charactersForItem}
+                                            value={itemCharId}
+                                            onValueChange={setItemCharId}
+                                            placeholder="Персонаж"
+                                            disabled={!itemUserId}
+                                        />
+                                    </div>
+                                </div>
 
-                        <div className="flex items-center space-x-2">
-                            <Label htmlFor="item-mode-switch">Новый предмет</Label>
-                            <Switch
-                                id="item-mode-switch"
-                                checked={isGivingNewItem}
-                                onCheckedChange={setIsGivingNewItem}
-                            />
-                        </div>
-                        
-                        {isGivingNewItem ? (
-                            <div className="p-4 border rounded-md space-y-4">
-                                <div>
-                                    <Label htmlFor="new-item-name">Название предмета</Label>
-                                    <Input id="new-item-name" value={newItemData.name} onChange={e => setNewItemData(p => ({...p, name: e.target.value}))} />
+                                <div className="flex items-center space-x-2">
+                                    <Label htmlFor="item-mode-switch">Новый предмет</Label>
+                                    <Switch
+                                        id="item-mode-switch"
+                                        checked={isGivingNewItem}
+                                        onCheckedChange={setIsGivingNewItem}
+                                    />
                                 </div>
+                                
+                                {isGivingNewItem ? (
+                                    <div className="p-4 border rounded-md space-y-4">
+                                        <div>
+                                            <Label htmlFor="new-item-name">Название предмета</Label>
+                                            <Input id="new-item-name" value={newItemData.name} onChange={e => setNewItemData(p => ({...p, name: e.target.value}))} />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="new-item-desc">Описание</Label>
+                                            <Textarea id="new-item-desc" value={newItemData.description} onChange={e => setNewItemData(p => ({...p, description: e.target.value}))} />
+                                        </div>
+                                         <div>
+                                            <Label htmlFor="new-item-quantity">Количество</Label>
+                                            <Input id="new-item-quantity" type="number" value={newItemData.quantity} onChange={e => setNewItemData(p => ({...p, quantity: parseInt(e.target.value, 10) || 1}))} />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="new-item-tag">Категория в инвентаре</Label>
+                                            <Select value={newItemData.inventoryTag} onValueChange={(v: InventoryCategory) => setNewItemData(p => ({...p, inventoryTag: v}))}>
+                                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    {INVENTORY_CATEGORIES.map(cat => <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div>
+                                        <Label>Существующий предмет</Label>
+                                        <SearchableSelect
+                                            options={allShopItems}
+                                            value={selectedShopItemId}
+                                            onValueChange={setSelectedShopItemId}
+                                            placeholder="Выберите предмет из магазина..."
+                                        />
+                                    </div>
+                                )}
+                                <Button type="submit">Выдать предмет</Button>
+                            </form>
+                        </TabsContent>
+                         <TabsContent value="edit" className="pt-4">
+                            <form onSubmit={handleUpdateItem} className="space-y-4">
                                 <div>
-                                    <Label htmlFor="new-item-desc">Описание</Label>
-                                    <Textarea id="new-item-desc" value={newItemData.description} onChange={e => setNewItemData(p => ({...p, description: e.target.value}))} />
+                                    <Label>Пользователь и персонаж</Label>
+                                    <div className="flex gap-2">
+                                        <SearchableSelect
+                                            options={userOnlyOptions}
+                                            value={itemUserId}
+                                            onValueChange={uid => { setItemUserId(uid); setItemCharId(''); setSelectedInventoryItem(null); }}
+                                            placeholder="Пользователь"
+                                        />
+                                        <SearchableSelect
+                                            options={charactersForItem}
+                                            value={itemCharId}
+                                            onValueChange={cid => { setItemCharId(cid); setSelectedInventoryItem(null); }}
+                                            placeholder="Персонаж"
+                                            disabled={!itemUserId}
+                                        />
+                                    </div>
                                 </div>
-                                <div>
-                                    <Label htmlFor="new-item-tag">Категория в инвентаре</Label>
-                                    <Select value={newItemData.inventoryTag} onValueChange={(v: InventoryCategory) => setNewItemData(p => ({...p, inventoryTag: v}))}>
-                                        <SelectTrigger><SelectValue /></SelectTrigger>
-                                        <SelectContent>
-                                            {INVENTORY_CATEGORIES.map(cat => <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
+                                 <div>
+                                    <Label>Предмет для редактирования</Label>
+                                    <SearchableSelect
+                                        options={inventoryItemsForSelectedChar}
+                                        value={selectedInventoryItem ? JSON.stringify(selectedInventoryItem) : ''}
+                                        onValueChange={v => setSelectedInventoryItem(v ? JSON.parse(v) : null)}
+                                        placeholder="Выберите предмет..."
+                                        disabled={!itemCharId}
+                                    />
                                 </div>
-                            </div>
-                        ) : (
-                            <div>
-                                <Label>Существующий предмет</Label>
-                                <SearchableSelect
-                                    options={allShopItems}
-                                    value={selectedShopItemId}
-                                    onValueChange={setSelectedShopItemId}
-                                    placeholder="Выберите предмет из магазина..."
-                                />
-                            </div>
-                        )}
-                        
-                        <Button type="submit">Выдать предмет</Button>
-                    </form>
+
+                                {editItemData && selectedInventoryItem && (
+                                     <div className="p-4 border rounded-md space-y-4">
+                                         <div>
+                                            <Label htmlFor="edit-item-name">Название предмета</Label>
+                                            <Input id="edit-item-name" value={editItemData.name} onChange={e => setEditItemData(p => p ? {...p, name: e.target.value} : null)} />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="edit-item-desc">Описание</Label>
+                                            <Textarea id="edit-item-desc" value={editItemData.description} onChange={e => setEditItemData(p => p ? {...p, description: e.target.value} : null)} />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="edit-item-quantity">Количество</Label>
+                                            <Input id="edit-item-quantity" type="number" value={editItemData.quantity} onChange={e => setEditItemData(p => p ? {...p, quantity: parseInt(e.target.value, 10) || 0} : null)} />
+                                        </div>
+                                         <div>
+                                            <Label htmlFor="edit-item-tag">Категория</Label>
+                                            <p className="text-sm text-muted-foreground">Категорию предмета изменить нельзя.</p>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Button type="submit" className="flex-1"><Edit className="mr-2"/>Сохранить</Button>
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild><Button type="button" variant="destructive" className="flex-1"><Trash2 className="mr-2"/>Удалить</Button></AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Вы уверены?</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            Это действие удалит предмет "{editItemData.name}" из инвентаря персонажа без возможности восстановления.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Отмена</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={handleDeleteItem} className="bg-destructive hover:bg-destructive/90">Удалить</AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </div>
+                                     </div>
+                                )}
+                            </form>
+                         </TabsContent>
+                     </Tabs>
                 </CardContent>
             </Card>
            </div>
