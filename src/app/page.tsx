@@ -1,4 +1,5 @@
 
+import { Suspense } from 'react';
 import { UserSwitcher } from "@/components/auth/user-switcher";
 import { Dashboard } from "@/components/dashboard/dashboard";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -19,7 +20,9 @@ export default function Home() {
         </div>
       </header>
       <div className="w-full max-w-7xl">
-         <Dashboard />
+        <Suspense fallback={<div>Загрузка...</div>}>
+          <Dashboard />
+        </Suspense>
       </div>
     </main>
   );
