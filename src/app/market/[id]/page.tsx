@@ -29,11 +29,12 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useQuery } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import Image from 'next/image';
 
 export default function ShopPage() {
     const { id } = useParams();
     const router = useRouter();
-    const { currentUser, fetchShopById, deleteShopItem, purchaseShopItem } = useUser();
+    const { currentUser, fetchShopById, deleteShopItem, purchaseShopItem, updateCharacterInUser } = useUser();
     const { toast } = useToast();
     
     const shopId = Array.isArray(id) ? id[0] : id;
@@ -144,7 +145,16 @@ export default function ShopPage() {
 
             <Card className="overflow-hidden">
                  <div className="relative h-64 w-full bg-muted">
-                    {/* Image can be re-added here if needed */}
+                    {shop.image && (
+                         <Image
+                            src={shop.image}
+                            alt={shop.title}
+                            layout="fill"
+                            objectFit="cover"
+                            className="w-full h-full"
+                            data-ai-hint={shop.aiHint}
+                        />
+                    )}
                 </div>
                 <CardHeader>
                     <CardTitle className="text-3xl font-headline">{shop.title}</CardTitle>
@@ -307,3 +317,5 @@ export default function ShopPage() {
         </div>
     );
 }
+
+    
