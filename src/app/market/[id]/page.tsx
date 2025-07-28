@@ -8,7 +8,7 @@ import { useUser } from '@/hooks/use-user';
 import type { Shop, ShopItem, BankAccount } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, UserCircle, PlusCircle, Edit, Trash2, ShoppingCart, Info, Package, Settings, RefreshCw, BadgeCheck } from 'lucide-react';
+import { ArrowLeft, UserCircle, PlusCircle, Edit, Trash2, ShoppingCart, Info, Package, Settings, RefreshCw, BadgeCheck, Save } from 'lucide-react';
 import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import ShopItemForm from '@/components/dashboard/shop-item-form';
@@ -32,11 +32,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function ShopPage() {
     const { id } = useParams();
     const router = useRouter();
-    const { currentUser, deleteShopItem, purchaseShopItem, restockShopItem, fetchShopById } = useUser();
+    const { currentUser, deleteShopItem, purchaseShopItem, restockShopItem, fetchShopById, updateShopDetails } = useUser();
     const { toast } = useToast();
     
     const shopId = Array.isArray(id) ? id[0] : id;
@@ -56,6 +57,18 @@ export default function ShopPage() {
     const [purchaseQuantity, setPurchaseQuantity] = React.useState(1);
     const [isManageDialogOpen, setIsManageDialogOpen] = React.useState(false);
     const [isRestockingId, setIsRestockingId] = React.useState<string | null>(null);
+    
+    // State for editing shop details
+    const [editedTitle, setEditedTitle] = React.useState('');
+    const [editedDescription, setEditedDescription] = React.useState('');
+    const [isSavingDetails, setIsSavingDetails] = React.useState(false);
+
+    React.useEffect(() => {
+        if (shop) {
+            setEditedTitle(shop.title);
+            setEditedDescription(shop.description);
+        }
+    }, [shop]);
 
 
     const isOwnerOrAdmin = React.useMemo(() => {
@@ -118,6 +131,22 @@ export default function ShopPage() {
             setIsPurchasing(false);
         }
     }
+
+    const handleSaveChanges = async () => {
+        if (!shop) return;
+        setIsSavingDetails(true);
+        try {
+            await updateShopDetails(shop.id, { title: editedTitle, description: editedDescription });
+            toast({ title: "Информация о заведении обновлена" });
+            refetch();
+            setIsManageDialogOpen(false);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Произошла неизвестная ошибка.";
+            toast({ variant: 'destructive', title: "Ошибка сохранения", description: message });
+        } finally {
+            setIsSavingDetails(false);
+        }
+    };
     
      const totalPrice = React.useMemo(() => {
         if (!selectedItemForPurchase) return null;
@@ -290,42 +319,60 @@ export default function ShopPage() {
                     <DialogHeader>
                         <DialogTitle>Управление магазином</DialogTitle>
                         <DialogDescription>
-                            Пополняйте запасы товаров, которые закончились. Стоимость пополнения составляет 30% от базовой цены товара.
+                            Здесь вы можете изменить информацию о вашем заведении и пополнить запасы товаров.
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="py-4">
-                        <h4 className="font-semibold mb-2">Товары не в наличии</h4>
-                        {outOfStockItems.length > 0 ? (
-                            <div className="space-y-4">
-                                {outOfStockItems.map(item => {
-                                    const restockCost = {
-                                        platinum: Math.ceil((item.price.platinum || 0) * 0.3),
-                                        gold: Math.ceil((item.price.gold || 0) * 0.3),
-                                        silver: Math.ceil((item.price.silver || 0) * 0.3),
-                                        copper: Math.ceil((item.price.copper || 0) * 0.3),
-                                    }
-                                    return (
-                                        <div key={item.id} className="flex justify-between items-center p-3 border rounded-md">
-                                            <div>
-                                                <p className="font-semibold">{item.name}</p>
-                                                <p className="text-xs text-muted-foreground">Базовая цена: {formatCurrency(item.price)}</p>
+                    <div className="py-4 space-y-6">
+                        <div className="space-y-4 p-4 border rounded-md">
+                             <h4 className="font-semibold mb-2">Информация о заведении</h4>
+                             <div className="space-y-2">
+                                <Label htmlFor="shopTitle">Название</Label>
+                                <Input id="shopTitle" value={editedTitle} onChange={(e) => setEditedTitle(e.target.value)} />
+                             </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="shopDescription">Описание</Label>
+                                <Textarea id="shopDescription" value={editedDescription} onChange={(e) => setEditedDescription(e.target.value)} />
+                             </div>
+                              <Button onClick={handleSaveChanges} disabled={isSavingDetails}>
+                                <Save className="mr-2 h-4 w-4" /> {isSavingDetails ? "Сохранение..." : "Сохранить информацию"}
+                            </Button>
+                        </div>
+
+                        <div className="space-y-4 p-4 border rounded-md">
+                            <h4 className="font-semibold mb-2">Товары не в наличии</h4>
+                             <p className="text-sm text-muted-foreground">Стоимость пополнения составляет 30% от базовой цены товара.</p>
+                            {outOfStockItems.length > 0 ? (
+                                <div className="space-y-4">
+                                    {outOfStockItems.map(item => {
+                                        const restockCost = {
+                                            platinum: Math.ceil((item.price.platinum || 0) * 0.3),
+                                            gold: Math.ceil((item.price.gold || 0) * 0.3),
+                                            silver: Math.ceil((item.price.silver || 0) * 0.3),
+                                            copper: Math.ceil((item.price.copper || 0) * 0.3),
+                                        }
+                                        return (
+                                            <div key={item.id} className="flex justify-between items-center p-3 bg-muted/50 rounded-md">
+                                                <div>
+                                                    <p className="font-semibold">{item.name}</p>
+                                                    <p className="text-xs text-muted-foreground">Базовая цена: {formatCurrency(item.price)}</p>
+                                                </div>
+                                                <Button 
+                                                    onClick={() => handleRestock(item)}
+                                                    disabled={isRestockingId === item.id}
+                                                >
+                                                    <RefreshCw className="mr-2 h-4 w-4" />
+                                                    {isRestockingId === item.id ? "Пополняем..." : `Пополнить за ${formatCurrency(restockCost)}`}
+                                                </Button>
                                             </div>
-                                            <Button 
-                                                onClick={() => handleRestock(item)}
-                                                disabled={isRestockingId === item.id}
-                                            >
-                                                 <RefreshCw className="mr-2 h-4 w-4" />
-                                                 {isRestockingId === item.id ? "Пополняем..." : `Пополнить за ${formatCurrency(restockCost)}`}
-                                            </Button>
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                        ) : (
-                            <p className="text-sm text-muted-foreground text-center py-4">
-                                Все товары в наличии.
-                            </p>
-                        )}
+                                        )
+                                    })}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-muted-foreground text-center py-4">
+                                    Все товары в наличии.
+                                </p>
+                            )}
+                        </div>
                     </div>
                 </DialogContent>
             </Dialog>

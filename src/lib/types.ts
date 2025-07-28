@@ -332,6 +332,7 @@ export interface UserContextType {
   fetchAllShops: () => Promise<Shop[]>;
   fetchShopById: (shopId: string) => Promise<Shop | null>;
   updateShopOwner: (shopId: string, ownerUserId: string, ownerCharacterId: string, ownerCharacterName: string) => Promise<void>;
+  updateShopDetails: (shopId: string, details: { title?: string; description?: string }) => Promise<void>;
   addShopItem: (shopId: string, item: Omit<ShopItem, 'id'>) => Promise<void>;
   updateShopItem: (shopId: string, item: ShopItem) => Promise<void>;
   deleteShopItem: (shopId: string, itemId: string) => Promise<void>;
@@ -340,6 +341,6 @@ export interface UserContextType {
   adminUpdateItemInCharacter: (userId: string, characterId: string, itemData: InventoryItem, category: InventoryCategory) => Promise<void>;
   adminDeleteItemFromCharacter: (userId: string, characterId: string, itemId: string, category: InventoryCategory) => Promise<void>;
   restockShopItem: (shopId: string, itemId: string, ownerUserId: string, ownerCharacterId: string) => Promise<void>;
-  adminUpdateCharacterStatus: (userId: string, characterId: string, updates: { citizenshipStatus?: CitizenshipStatus, taxpayerStatus?: TaxpayerStatus }) => Promise<void>;
+  adminUpdateCharacterStatus: (userId: string, characterId: string, updates: { taxpayerStatus?: TaxpayerStatus }) => Promise<void>;
   adminUpdateShopLicense: (shopId: string, hasLicense: boolean) => Promise<void>;
 }
