@@ -15,14 +15,11 @@ interface ImageKitUploaderProps {
   onUpload: (url: string) => void;
 }
 
-const IMAGEKIT_PROJECT_ID = 'hnr4otz6s';
-
 export default function ImageKitUploader({ currentImageUrl, onUpload }: ImageKitUploaderProps) {
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(currentImageUrl || null);
   const [isLoading, setIsLoading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
     setPreview(currentImageUrl || null);
@@ -61,34 +58,21 @@ export default function ImageKitUploader({ currentImageUrl, onUpload }: ImageKit
     }
 
     setIsLoading(true);
-    setUploadProgress(0);
 
     const formData = new FormData();
     formData.append('file', file);
     formData.append('fileName', file.name);
     formData.append('publicKey', env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY);
-    // Note: For signed uploads, you'd generate these on a server
-    // formData.append('signature', '...');
-    // formData.append('expire', '...');
-    // formData.append('token', '...');
     
-    // Using a simple interval to simulate progress
-    const progressInterval = setInterval(() => {
-        setUploadProgress(prev => (prev >= 95 ? 95 : prev + 5));
-    }, 200);
-
     try {
         const response = await fetch('https://upload.imagekit.io/api/v2/files', {
             method: 'POST',
             body: formData,
         });
         
-      clearInterval(progressInterval);
-
       if (!response.ok) {
         const errorText = await response.text();
         console.error('ImageKit error:', errorText);
-        // Try to parse as JSON, but fall back to text if it fails
         try {
           const errorData = JSON.parse(errorText);
           throw new Error(`Не удалось загрузить изображение. ${errorData.message}`);
@@ -100,15 +84,13 @@ export default function ImageKitUploader({ currentImageUrl, onUpload }: ImageKit
       const data = await response.json();
       const secureUrl = data.url;
       
-      setUploadProgress(100);
       onUpload(secureUrl);
 
       toast({
         title: 'Изображение обновлено!',
       });
-      setFile(null); // Clear file after successful upload
+      setFile(null);
     } catch (error) {
-      clearInterval(progressInterval);
       const message = error instanceof Error ? error.message : 'Произошла ошибка при загрузке вашего изображения.';
       console.error('Upload error:', error);
       toast({
@@ -168,7 +150,7 @@ export default function ImageKitUploader({ currentImageUrl, onUpload }: ImageKit
         )}
       </div>
 
-      {isLoading && <Progress value={uploadProgress} className="w-full" />}
+      {isLoading && <Progress value={100} className="w-full animate-pulse" />}
       
       {file && (
          <Button onClick={handleUpload} disabled={isLoading} className="w-full">
