@@ -249,15 +249,14 @@ export default function ShopPage() {
                                 {shop.items.map(item => {
                                     const isOutOfStock = item.quantity === 0;
                                     return (
-                                    <Card key={item.id} className="flex flex-col group overflow-hidden">
+                                    <Card key={item.id} className="flex flex-col group overflow-hidden max-w-sm mx-auto">
                                         {item.image && (
-                                            <div className="relative w-full bg-muted">
+                                            <div className="relative w-full h-40 bg-muted">
                                                  <Image
                                                     src={item.image}
                                                     alt={item.name}
-                                                    width={400}
-                                                    height={400}
-                                                    className="w-full h-auto object-contain"
+                                                    fill
+                                                    style={{objectFit:"contain"}}
                                                 />
                                             </div>
                                         )}
@@ -451,5 +450,7 @@ export default function ShopPage() {
         </div>
     );
 }
+
+    
 
     
