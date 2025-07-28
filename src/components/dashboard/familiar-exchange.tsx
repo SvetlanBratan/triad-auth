@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -12,6 +13,7 @@ import type { Character, FamiliarCard, FamiliarTradeRequest, User, FamiliarRank 
 import { FAMILIARS_BY_ID } from '@/lib/data';
 import Image from 'next/image';
 import { SearchableSelect } from '@/components/ui/searchable-select';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const rankNames: Record<FamiliarRank, string> = {
     'мифический': 'Мифический',
@@ -39,45 +41,27 @@ const MiniFamiliarCard = ({ cardId }: { cardId: string }) => {
 export default function FamiliarExchange() {
   const { currentUser, fetchUsersForAdmin, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest } = useUser();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const [allUsers, setAllUsers] = useState<User[]>([]);
-  const [tradeRequests, setTradeRequests] = useState<FamiliarTradeRequest[]>([]);
-  
+  const { data: allUsers = [], isLoading: isUsersLoading } = useQuery<User[]>({
+    queryKey: ['adminUsers'],
+    queryFn: fetchUsersForAdmin,
+  });
+
+  const { data: tradeRequests = [], isLoading: isRequestsLoading, refetch: refetchRequests } = useQuery<FamiliarTradeRequest[]>({
+    queryKey: ['familiarTrades', currentUser?.id],
+    queryFn: fetchFamiliarTradeRequestsForUser,
+    enabled: !!currentUser,
+  });
+
   // Form state
   const [initiatorCharId, setInitiatorCharId] = useState('');
   const [initiatorFamiliarId, setInitiatorFamiliarId] = useState('');
   const [targetCharId, setTargetCharId] = useState('');
   const [targetFamiliarId, setTargetFamiliarId] = useState('');
   
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isProcessingId, setIsProcessingId] = useState<string | null>(null);
-
-  const fetchAllData = useCallback(async () => {
-    setIsLoading(true);
-    try {
-        const users = await fetchUsersForAdmin();
-        const requests = await fetchFamiliarTradeRequestsForUser();
-        
-        // Ensure uniqueness of requests
-        const uniqueRequests = requests.reduce((acc, current) => {
-            if (!acc.find(item => item.id === current.id)) {
-                acc.push(current);
-            }
-            return acc;
-        }, [] as FamiliarTradeRequest[]);
-
-        setAllUsers(users);
-        setTradeRequests(uniqueRequests);
-    } catch (e) {
-        toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось загрузить данные для обмена.' });
-    } finally {
-        setIsLoading(false);
-    }
-  }, [fetchUsersForAdmin, fetchFamiliarTradeRequestsForUser, toast]);
-
-  useEffect(() => {
-    fetchAllData();
-  }, [fetchAllData]);
 
   // --- Memos for form options ---
   const myCharacters = useMemo(() => currentUser?.characters || [], [currentUser]);
@@ -142,7 +126,7 @@ export default function FamiliarExchange() {
         toast({ variant: 'destructive', title: 'Ошибка', description: 'Пожалуйста, заполните все поля для обмена.' });
         return;
     }
-    setIsLoading(true);
+    setIsSubmitting(true);
     try {
         await createFamiliarTradeRequest(initiatorCharId, initiatorFamiliarId, targetCharId, targetFamiliarId);
         toast({ title: 'Успех!', description: 'Запрос на обмен отправлен.' });
@@ -150,12 +134,12 @@ export default function FamiliarExchange() {
         setInitiatorFamiliarId('');
         setTargetCharId('');
         setTargetFamiliarId('');
-        await fetchAllData();
+        await refetchRequests();
     } catch(e) {
         const msg = e instanceof Error ? e.message : 'Произошла неизвестная ошибка.';
         toast({ variant: 'destructive', title: 'Ошибка', description: msg });
     } finally {
-        setIsLoading(false);
+        setIsSubmitting(false);
     }
   };
 
@@ -164,7 +148,8 @@ export default function FamiliarExchange() {
       try {
         await acceptFamiliarTradeRequest(req);
         toast({ title: 'Обмен состоялся!', description: 'Фамильяры успешно обменены.' });
-        await fetchAllData();
+        await refetchRequests();
+        await queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
       } catch(e) {
           const msg = e instanceof Error ? e.message : 'Произошла неизвестная ошибка.';
           toast({ variant: 'destructive', title: 'Ошибка', description: msg });
@@ -178,7 +163,7 @@ export default function FamiliarExchange() {
       try {
         await declineOrCancelFamiliarTradeRequest(req, 'отклонено');
         toast({ title: 'Запрос отклонен', variant: 'destructive' });
-        await fetchAllData();
+        await refetchRequests();
       } catch(e) {
           const msg = e instanceof Error ? e.message : 'Произошла неизвестная ошибка.';
           toast({ variant: 'destructive', title: 'Ошибка', description: msg });
@@ -192,7 +177,7 @@ export default function FamiliarExchange() {
       try {
         await declineOrCancelFamiliarTradeRequest(req, 'отменено');
         toast({ title: 'Запрос отменен' });
-        await fetchAllData();
+        await refetchRequests();
       } catch(e) {
           const msg = e instanceof Error ? e.message : 'Произошла неизвестная ошибка.';
           toast({ variant: 'destructive', title: 'Ошибка', description: msg });
@@ -205,6 +190,9 @@ export default function FamiliarExchange() {
   const incomingRequests = tradeRequests.filter(r => r.targetUserId === currentUser?.id && r.status === 'в ожидании');
   const outgoingRequests = tradeRequests.filter(r => r.initiatorUserId === currentUser?.id && r.status === 'в ожидании');
 
+  if (isUsersLoading || isRequestsLoading) {
+    return <p>Загрузка данных обмена...</p>
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
@@ -252,7 +240,7 @@ export default function FamiliarExchange() {
 
             </CardContent>
             <CardFooter>
-                <Button className="w-full" onClick={handleSubmit} disabled={isLoading || !targetFamiliarId}><Send className="mr-2"/>Отправить запрос</Button>
+                <Button className="w-full" onClick={handleSubmit} disabled={isSubmitting || !targetFamiliarId}><Send className="mr-2"/>Отправить запрос</Button>
             </CardFooter>
         </Card>
         

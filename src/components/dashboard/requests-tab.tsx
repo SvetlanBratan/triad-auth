@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useEffect, useState, useCallback } from 'react';
@@ -22,6 +23,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { ScrollArea } from '../ui/scroll-area';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 
 const RewardRequestsList = ({ requests, onUpdate }: { requests: RewardRequest[], onUpdate: (req: RewardRequest, status: RewardRequestStatus) => void }) => {
@@ -110,32 +112,20 @@ const RewardRequestsList = ({ requests, onUpdate }: { requests: RewardRequest[],
 
 export default function RequestsTab() {
     const { fetchAllRewardRequests, updateRewardRequestStatus, clearRewardRequestsHistory } = useUser();
-    const [rewardRequests, setRewardRequests] = useState<RewardRequest[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const queryClient = useQueryClient();
     const { toast } = useToast();
 
-    const loadRequests = useCallback(async () => {
-        setIsLoading(true);
-        try {
-            const rewards = await fetchAllRewardRequests();
-            setRewardRequests(rewards);
-        } catch (error) {
-            console.error("Failed to load requests", error);
-            toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось загрузить запросы' });
-        } finally {
-            setIsLoading(false);
-        }
-    }, [fetchAllRewardRequests, toast]);
-
-    useEffect(() => {
-        loadRequests();
-    }, [loadRequests]);
-
+    const { data: rewardRequests = [], isLoading, refetch: refetchRequests } = useQuery<RewardRequest[]>({
+      queryKey: ['allRewardRequests'],
+      queryFn: fetchAllRewardRequests,
+    });
+    
     const handleUpdateReward = async (request: RewardRequest, newStatus: RewardRequestStatus) => {
         try {
             const updatedRequest = await updateRewardRequestStatus(request, newStatus);
             if(updatedRequest) {
-                setRewardRequests(prev => prev.map(r => r.id === request.id ? updatedRequest : r));
+                refetchRequests(); // Refetch the data to update the UI
+                queryClient.invalidateQueries({ queryKey: ['adminUsers'] }); // Invalidate users query as points might change
                 toast({
                     title: 'Запрос на награду обновлен!',
                     description: `Статус изменен на "${newStatus}".`
@@ -149,7 +139,7 @@ export default function RequestsTab() {
     const handleClearHistory = async () => {
         try {
             await clearRewardRequestsHistory();
-            await loadRequests();
+            await refetchRequests();
             toast({ title: "История очищена", description: "Все обработанные запросы были удалены." });
         } catch (error) {
              toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось очистить историю запросов.' });

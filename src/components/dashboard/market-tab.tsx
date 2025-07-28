@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -10,27 +11,16 @@ import { ALL_SHOPS } from '@/lib/data';
 import Link from 'next/link';
 import { useUser } from '@/hooks/use-user';
 import type { Shop } from '@/lib/types';
+import { useQuery } from '@tanstack/react-query';
 
 
 export default function MarketTab() {
   const { fetchAllShops } = useUser();
-  const [shops, setShops] = useState<Shop[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const loadShops = async () => {
-      setIsLoading(true);
-      try {
-        const fetchedShops = await fetchAllShops();
-        setShops(fetchedShops);
-      } catch (error) {
-        console.error("Failed to load shops", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadShops();
-  }, [fetchAllShops]);
+  
+  const { data: shops = [], isLoading } = useQuery<Shop[]>({
+    queryKey: ['allShops'],
+    queryFn: fetchAllShops
+  });
   
   if (isLoading) {
       return <p>Загрузка магазинов...</p>

@@ -32,6 +32,7 @@ import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { differenceInDays } from 'date-fns';
 import { cn, formatCurrency } from '@/lib/utils';
 import { Switch } from '../ui/switch';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const rankNames: Record<FamiliarRank, string> = {
     'мифический': 'Мифический',
@@ -72,9 +73,18 @@ export default function AdminTab() {
     adminUpdateItemInCharacter,
     adminDeleteItemFromCharacter,
   } = useUser();
-  const [users, setUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
 
+  const { data: users = [], isLoading: isUsersLoading } = useQuery<User[]>({
+    queryKey: ['adminUsers'],
+    queryFn: fetchUsersForAdmin,
+  });
+
+  const { data: allShops = [], isLoading: isShopsLoading } = useQuery<Shop[]>({
+    queryKey: ['allShops'],
+    queryFn: fetchAllShops,
+  });
+  
   // Recovery state
   const [recoveryUserId, setRecoveryUserId] = useState('');
   const [recoveryCharId, setRecoveryCharId] = useState('');
@@ -147,7 +157,6 @@ export default function AdminTab() {
   const [itemUserId, setItemUserId] = useState('');
   const [itemCharId, setItemCharId] = useState('');
   const [isGivingNewItem, setIsGivingNewItem] = useState(false);
-  const [allShopItems, setAllShopItems] = useState<{label: string, value: string}[]>([]);
   const [selectedShopItemId, setSelectedShopItemId] = useState('');
   const [newItemData, setNewItemData] = useState<AdminGiveItemForm>({ name: '', description: '', inventoryTag: 'прочее', quantity: 1 });
   const [selectedInventoryItem, setSelectedInventoryItem] = useState<{ id: string, category: InventoryCategory } | null>(null);
@@ -157,42 +166,9 @@ export default function AdminTab() {
   const { toast } = useToast();
 
   const refetchUsers = useCallback(async () => {
-    try {
-        const fetchedUsers = await fetchUsersForAdmin();
-        setUsers(fetchedUsers);
-    } catch (error) {
-        console.error("Failed to refetch users", error);
-        toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось обновить список пользователей.' });
-    }
-  }, [fetchUsersForAdmin, toast]);
-
-  useEffect(() => {
-    const loadInitialData = async () => {
-        setIsLoading(true);
-        try {
-            const [fetchedUsers, fetchedShops] = await Promise.all([
-                fetchUsersForAdmin(),
-                fetchAllShops()
-            ]);
-            setUsers(fetchedUsers);
-            
-            const items = fetchedShops.flatMap(shop => 
-                (shop.items || []).map(item => ({
-                    label: `${item.name} (${shop.title})`,
-                    value: JSON.stringify({ name: item.name, description: item.description, inventoryTag: item.inventoryTag, quantity: 1 })
-                }))
-            );
-            setAllShopItems(items);
-
-        } catch (error) {
-            console.error("Failed to fetch initial admin data", error);
-            toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось загрузить данные для админ-панели.' });
-        } finally {
-            setIsLoading(false);
-        }
-    };
-    loadInitialData();
-  }, [fetchUsersForAdmin, fetchAllShops, toast]);
+    await queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+  }, [queryClient]);
+  
 
   useEffect(() => {
       setNewGameDateString(initialGameDate || '');
@@ -212,6 +188,15 @@ export default function AdminTab() {
         setEditItemData(null);
     }
   }, [selectedInventoryItem, itemUserId, itemCharId, users]);
+  
+    const allShopItems = useMemo(() => {
+        return allShops.flatMap(shop =>
+            (shop.items || []).map(item => ({
+                label: `${item.name} (${shop.title})`,
+                value: JSON.stringify({ name: item.name, description: item.description, inventoryTag: item.inventoryTag, quantity: 1 })
+            }))
+        );
+    }, [allShops]);
 
   const handleRecovery = async () => {
     if (!recoveryUserId || !recoveryCharId) {
@@ -595,6 +580,7 @@ export default function AdminTab() {
     }
     
     await updateShopOwner(shopId, shopOwnerUserId, shopOwnerCharId, character.name);
+    await queryClient.invalidateQueries({ queryKey: ['allShops'] });
     toast({ title: 'Владелец назначен!', description: `Владелец магазина успешно изменен.` });
     
     setShopId('');
@@ -842,7 +828,7 @@ export default function AdminTab() {
   })), []);
 
 
-  if (isLoading) {
+  if (isUsersLoading || isShopsLoading) {
     return <div className="flex justify-center items-center h-64"><p>Загрузка данных...</p></div>
   }
   
