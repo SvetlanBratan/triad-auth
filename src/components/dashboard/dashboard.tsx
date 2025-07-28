@@ -53,7 +53,7 @@ export function Dashboard() {
   
   return (
       <Tabs defaultValue={defaultTab} className="w-full">
-        <TabsList className="flex flex-wrap h-auto justify-center">
+        <TabsList className="flex flex-wrap h-auto min-h-20 justify-start sm:justify-center gap-1.5 sm:gap-1">
           {tabs.map(({ value, label, icon: Icon, className }) => (
             <TabsTrigger key={value} value={value} className="flex-row items-center justify-center p-1 sm:p-2 sm:gap-1.5 text-xs sm:text-sm">
               <Icon className={cn("w-4 h-4", className)} />
