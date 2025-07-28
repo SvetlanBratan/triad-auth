@@ -86,9 +86,15 @@ export default function ImageKitUploader({ currentImageUrl, onUpload }: ImageKit
       clearInterval(progressInterval);
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('ImageKit error:', errorData);
-        throw new Error(`Не удалось загрузить изображение. ${errorData.message}`);
+        const errorText = await response.text();
+        console.error('ImageKit error:', errorText);
+        // Try to parse as JSON, but fall back to text if it fails
+        try {
+          const errorData = JSON.parse(errorText);
+          throw new Error(`Не удалось загрузить изображение. ${errorData.message}`);
+        } catch {
+          throw new Error(`Не удалось загрузить изображение. Ответ сервера: ${response.statusText}`);
+        }
       }
 
       const data = await response.json();
