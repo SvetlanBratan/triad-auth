@@ -542,13 +542,20 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             sanitized.inventory = { ...initialFormData.inventory, ...(sanitized.inventory || {}) };
             sanitized.bankAccount = { ...initialFormData.bankAccount, ...(sanitized.bankAccount || {}) };
             
-            const arrayFields: (keyof Character)[] = ['accomplishments', 'training', 'relationships', 'marriedTo', 'moodlets', 'familiarCards'];
+            const arrayFields: (keyof Character)[] = ['accomplishments', 'training', 'relationships', 'marriedTo', 'moodlets'];
             arrayFields.forEach(field => {
                 if (!Array.isArray(sanitized[field])) {
                     (sanitized as any)[field] = [];
                 }
             });
             
+             // Ensure familiarCards is part of inventory
+            if (sanitized.inventory && !Array.isArray(sanitized.inventory.familiarCards)) {
+                sanitized.inventory.familiarCards = [];
+            }
+            // remove root familiarCards
+            delete sanitized.familiarCards;
+
             const stringFields: (keyof Character)[] = ['factions', 'abilities', 'weaknesses', 'lifeGoal', 'pets', 'criminalRecords', 'appearanceImage', 'diary', 'workLocation', 'blessingExpires'];
             stringFields.forEach(field => {
                 if (sanitized[field] === undefined || sanitized[field] === null) {
@@ -797,7 +804,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         allUsersSnapshot.forEach(doc => {
             const u = doc.data() as User;
             (u.characters || []).forEach(c => {
-                (c.inventory?.familiarCards || c.familiarCards || []).forEach(cardRef => {
+                (c.inventory?.familiarCards || []).forEach(cardRef => {
                     const cardDetails = FAMILIARS_BY_ID[cardRef.id];
                     if(cardDetails && cardDetails.rank === 'мифический') {
                         claimedMythicIds.add(cardRef.id);
@@ -809,7 +816,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const hasBlessing = character.blessingExpires ? new Date(character.blessingExpires) > new Date() : false;
         newCard = drawFamiliarCard(hasBlessing, claimedMythicIds);
         
-        const ownedCardIds = new Set((character.inventory?.familiarCards || character.familiarCards || []).map(c => c.id));
+        const ownedCardIds = new Set((character.inventory?.familiarCards || []).map(c => c.id));
         isDuplicate = ownedCardIds.has(newCard.id);
         
         const updatedUser = { ...user };
@@ -1395,9 +1402,9 @@ const processMonthlySalary = useCallback(async () => {
     if (!targetFamiliar) throw new Error("Целевой фамильяр не найден.");
 
     const ranksAreDifferent = initiatorFamiliar.rank !== targetFamiliar.rank;
-    const isMythicEventTrade = 
-        (initiatorFamiliar.rank === 'мифический' && targetFamiliar.rank === 'ивентовый') ||
-        (initiatorFamiliar.rank === 'ивентовый' && targetFamiliar.rank === 'мифический');
+    const isMythicEventTrade =
+      (initiatorFamiliar.rank === 'мифический' && targetFamiliar.rank === 'ивентовый') ||
+      (initiatorFamiliar.rank === 'ивентовый' && targetFamiliar.rank === 'мифический');
 
     if (ranksAreDifferent && !isMythicEventTrade) {
         throw new Error("Обмен возможен только между фамильярами одного ранга, или между мифическим и ивентовым.");
@@ -1560,7 +1567,7 @@ const processMonthlySalary = useCallback(async () => {
         id: `item-${Date.now()}`
     };
     const updatedItems = [...items, newItem];
-    const sanitizedItems = updatedItems.map(i => {
+    const sanitizedItems = updatedItems.map((i: ShopItem) => {
         const { quantity, ...rest } = i;
         if (quantity === undefined) {
             return rest;
@@ -1576,7 +1583,7 @@ const processMonthlySalary = useCallback(async () => {
     const shopData = shopDoc.data() || {};
     const items = shopData.items || [];
     const updatedItems = items.map((item: ShopItem) => item.id === itemToUpdate.id ? itemToUpdate : item);
-     const sanitizedItems = updatedItems.map(i => {
+     const sanitizedItems = updatedItems.map((i: ShopItem) => {
         const { quantity, ...rest } = i;
         if (quantity === undefined) {
             return rest;
