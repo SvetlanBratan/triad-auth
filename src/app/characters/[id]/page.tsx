@@ -700,8 +700,23 @@ export default function CharacterPage() {
                                                         <cat.icon className="mr-2 w-4 h-4" />{cat.label} ({items.length})
                                                     </AccordionTrigger>
                                                     <AccordionContent>
-                                                        <ul className="list-disc pl-5 space-y-1 text-sm pt-2">
-                                                            {items.map(item => <li key={item.id}>{item.name} {item.quantity > 1 ? `(x${item.quantity})` : ''}</li>)}
+                                                        <ul className="space-y-1 text-sm pt-2">
+                                                            {items.map(item => (
+                                                                <li key={item.id}>
+                                                                    <Popover>
+                                                                        <PopoverTrigger asChild>
+                                                                            <button className="text-left hover:underline cursor-pointer">
+                                                                                {item.name} {item.quantity > 1 ? `(x${item.quantity})` : ''}
+                                                                            </button>
+                                                                        </PopoverTrigger>
+                                                                        <PopoverContent className="w-auto max-w-xs text-sm">
+                                                                            <p className="font-bold">{item.name}</p>
+                                                                            {item.description && <p className="text-xs mt-1 text-muted-foreground">{item.description}</p>}
+                                                                            {!item.description && <p className="text-xs mt-1 text-muted-foreground italic">Описание отсутствует.</p>}
+                                                                        </PopoverContent>
+                                                                    </Popover>
+                                                                </li>
+                                                            ))}
                                                         </ul>
                                                     </AccordionContent>
                                                 </AccordionItem>
