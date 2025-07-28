@@ -300,6 +300,9 @@ export default function CharacterPage() {
     const canViewHistory = isOwnerOrAdmin;
     const accomplishments = character.accomplishments || [];
     
+    const backLink = currentUser?.id === owner.id ? '/' : `/users/${owner.id}`;
+    const backLinkText = currentUser?.id === owner.id ? 'Вернуться в профиль' : 'Вернуться в профиль игрока';
+
     const SectionHeader = ({ title, icon, section }: { title: string; icon: React.ReactNode; section: EditableSection }) => (
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <CardTitle className="flex items-center gap-2">{icon} {title}</CardTitle>
@@ -356,9 +359,9 @@ export default function CharacterPage() {
 
     return (
         <div className="container mx-auto p-4 md:p-8 space-y-6">
-            <Link href="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4">
+            <Link href={backLink} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4">
                 <ArrowLeft className="w-4 h-4" />
-                Вернуться в профиль
+                {backLinkText}
             </Link>
 
             <header className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-6 gap-4">
