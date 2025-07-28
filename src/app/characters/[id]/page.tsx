@@ -521,8 +521,8 @@ export default function CharacterPage() {
                         </CardContent>
                     </Card>
                 </div>
-                <div className="space-y-6">
-                    <Card>
+                <div className="flex flex-col space-y-6">
+                    <Card className="order-first lg:order-none">
                          <CardHeader>
                             <CardTitle className="flex items-center gap-2"><Info /> Основная информация</CardTitle>
                          </CardHeader>
