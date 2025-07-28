@@ -4,13 +4,13 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, notFound } from 'next/navigation';
 import { useUser } from '@/hooks/use-user';
-import { User, Character, FamiliarCard, FamiliarRank, Moodlet, Relationship, RelationshipType, WealthLevel, BankAccount, Accomplishment, BankTransaction, OwnedFamiliarCard } from '@/lib/types';
+import { User, Character, FamiliarCard, FamiliarRank, Moodlet, Relationship, RelationshipType, WealthLevel, BankAccount, Accomplishment, BankTransaction, OwnedFamiliarCard, InventoryCategory, InventoryItem } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FAMILIARS_BY_ID, MOODLETS_DATA, TRAINING_OPTIONS, CRIME_LEVELS } from '@/lib/data';
+import { FAMILIARS_BY_ID, MOODLETS_DATA, TRAINING_OPTIONS, CRIME_LEVELS, INVENTORY_CATEGORIES } from '@/lib/data';
 import FamiliarCardDisplay from '@/components/dashboard/familiar-card';
-import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users, HeartHandshake, Wallet, Coins, Award, Zap, ShieldOff, History, Info, PlusCircle, BookUser, Gavel, Group } from 'lucide-react';
+import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users, HeartHandshake, Wallet, Coins, Award, Zap, ShieldOff, History, Info, PlusCircle, BookUser, Gavel, Group, Building, Package, LandPlot } from 'lucide-react';
 import Link from 'next/link';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -71,6 +71,38 @@ const currencyNames: Record<string, string> = {
     silver: 'серебра',
     copper: 'меди'
 };
+
+const inventoryLayout: {
+    title: string;
+    icon: React.ElementType;
+    categories: { key: keyof Character['inventory']; label: string; icon: React.ElementType }[];
+}[] = [
+    {
+        title: 'Инвентарь',
+        icon: Package,
+        categories: [
+            { key: 'оружие', label: 'Оружие', icon: Swords },
+            { key: 'артефакты', label: 'Артефакты', icon: Gem },
+            { key: 'зелья', label: 'Зелья/лекарства', icon: BrainCircuit },
+            { key: 'гардероб', label: 'Гардероб', icon: RussianRuble },
+            { key: 'драгоценности', label: 'Драгоценности', icon: Sparkles },
+            { key: 'книгиИСвитки', label: 'Книги и свитки', icon: BookOpen },
+            { key: 'еда', label: 'Еда', icon: Star },
+            { key: 'прочее', label: 'Прочее', icon: Dices },
+        ]
+    },
+    {
+        title: 'Имущество',
+        icon: LandPlot,
+        categories: [
+            { key: 'предприятия', label: 'Предприятия', icon: Building },
+            { key: 'недвижимость', label: 'Недвижимость', icon: Home },
+            { key: 'души', label: 'Души (рабочая сила)', icon: Users },
+            { key: 'мебель', label: 'Мебель', icon: CarFront },
+            { key: 'транспорт', label: 'Транспорт', icon: CarFront },
+        ]
+    }
+];
 
 const FamiliarsSection = ({ character }: { character: Character }) => {
     const familiarCards = character.inventory?.familiarCards || [];
@@ -215,7 +247,7 @@ export default function CharacterPage() {
     }
 
     const isOwnerOrAdmin = currentUser?.id === owner.id || currentUser?.role === 'admin';
-    const inventory = character.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: [] };
+    const inventory = character.inventory;
     
     const trainingValues = Array.isArray(character.training) ? character.training : [];
     const uniqueTrainingValues = [...new Set(trainingValues)];
@@ -333,8 +365,8 @@ export default function CharacterPage() {
                                             <Image
                                                 src={character.appearanceImage}
                                                 alt={`Внешность ${character.name}`}
-                                                layout="fill"
-                                                objectFit="contain"
+                                                fill
+                                                style={{objectFit: "contain"}}
                                                 className="rounded-lg"
                                                 data-ai-hint="character portrait"
                                             />
@@ -633,71 +665,54 @@ export default function CharacterPage() {
                             </CardContent>
                         </Card>
                      )}
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><Warehouse /> Инвентарь</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                             <Accordion type="multiple" className="w-full">
-                                <AccordionItem value="familiars">
-                                    <AccordionTrigger><ShieldAlert className="mr-2 w-4 h-4"/>Фамильяры ({inventory.familiarCards.length})</AccordionTrigger>
-                                    <AccordionContent>
-                                        <FamiliarsSection character={character} />
-                                    </AccordionContent>
-                                </AccordionItem>
-                                <AccordionItem value="weapons">
-                                    <AccordionTrigger><Swords className="mr-2 w-4 h-4"/>Оружие ({inventory.оружие.length})</AccordionTrigger>
-                                    <AccordionContent>
-                                        <p className="text-muted-foreground text-sm">Здесь будет список оружия.</p>
-                                    </AccordionContent>
-                                </AccordionItem>
-                                 <AccordionItem value="wardrobe">
-                                    <AccordionTrigger><RussianRuble className="mr-2 w-4 h-4"/>Гардероб ({inventory.гардероб.length})</AccordionTrigger>
-                                    <AccordionContent>
-                                         <p className="text-muted-foreground text-sm">Здесь будет список одежды.</p>
-                                    </AccordionContent>
-                                </AccordionItem>
-                                <AccordionItem value="artifacts">
-                                    <AccordionTrigger><Gem className="mr-2 w-4 h-4"/>Артефакты ({inventory.артефакты.length})</AccordionTrigger>
-                                    <AccordionContent>
-                                        <p className="text-muted-foreground text-sm">Здесь будет список артефактов.</p>
-                                    </AccordionContent>
-                                </AccordionItem>
-                                <AccordionItem value="potions">
-                                    <AccordionTrigger><BrainCircuit className="mr-2 w-4 h-4"/>Зелья ({inventory.зелья.length})</AccordionTrigger>
-                                    <AccordionContent>
-                                        <p className="text-muted-foreground text-sm">Здесь будет список зелий.</p>
-                                    </AccordionContent>
-                                </AccordionItem>
-                                <AccordionItem value="food">
-                                    <AccordionTrigger><Star className="mr-2 w-4 h-4"/>Еда ({inventory.еда.length})</AccordionTrigger>
-                                    <AccordionContent>
-                                        <p className="text-muted-foreground text-sm">Здесь будет список еды.</p>
-                                    </AccordionContent>
-                                </AccordionItem>
-                                <AccordionItem value="gifts">
-                                    <AccordionTrigger><Dices className="mr-2 w-4 h-4"/>Подарки ({inventory.подарки.length})</AccordionTrigger>
-                                    <AccordionContent>
-                                        <p className="text-muted-foreground text-sm">Здесь будет список подарков.</p>
-                                    </AccordionContent>
-                                </AccordionItem>
-                                <AccordionItem value="real-estate">
-                                    <AccordionTrigger><Home className="mr-2 w-4 h-4"/>Недвижимость ({(inventory.недвижимость || []).length})</AccordionTrigger>
-                                    <AccordionContent>
-                                        <p className="text-muted-foreground text-sm">Здесь будет список недвижимости.</p>
-                                    </AccordionContent>
-                                </AccordionItem>
-                                <AccordionItem value="transport">
-                                    <AccordionTrigger><CarFront className="mr-2 w-4 h-4"/>Транспорт ({(inventory.транспорт || []).length})</AccordionTrigger>
-                                    <AccordionContent>
-                                        <p className="text-muted-foreground text-sm">Здесь будет список транспорта.</p>
-                                    </AccordionContent>
-                                </AccordionItem>
-                             </Accordion>
-                        </CardContent>
-                    </Card>
                     
+                    {inventoryLayout.map(section => {
+                        const hasContent = section.categories.some(cat => {
+                            const items = inventory[cat.key as keyof typeof inventory] as InventoryItem[];
+                            return items && items.length > 0;
+                        }) || (section.title === 'Инвентарь' && inventory.familiarCards?.length > 0);
+
+                        if (!hasContent) return null;
+
+                        return (
+                            <Card key={section.title}>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <section.icon className="w-5 h-5" /> {section.title}
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <Accordion type="multiple" className="w-full">
+                                        {section.title === 'Инвентарь' && inventory.familiarCards?.length > 0 && (
+                                            <AccordionItem value="familiars">
+                                                <AccordionTrigger><ShieldAlert className="mr-2 w-4 h-4" />Фамильяры ({inventory.familiarCards.length})</AccordionTrigger>
+                                                <AccordionContent>
+                                                    <FamiliarsSection character={character} />
+                                                </AccordionContent>
+                                            </AccordionItem>
+                                        )}
+                                        {section.categories.map(cat => {
+                                            const items = (inventory[cat.key as keyof typeof inventory] || []) as InventoryItem[];
+                                            if (items.length === 0) return null;
+                                            return (
+                                                <AccordionItem key={cat.key} value={cat.key}>
+                                                    <AccordionTrigger>
+                                                        <cat.icon className="mr-2 w-4 h-4" />{cat.label} ({items.length})
+                                                    </AccordionTrigger>
+                                                    <AccordionContent>
+                                                        <ul className="list-disc pl-5 space-y-1 text-sm pt-2">
+                                                            {items.map(item => <li key={item.id}>{item.name}</li>)}
+                                                        </ul>
+                                                    </AccordionContent>
+                                                </AccordionItem>
+                                            );
+                                        })}
+                                    </Accordion>
+                                </CardContent>
+                            </Card>
+                        );
+                    })}
+
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2"><BookUser /> Дополнительно</CardTitle>
@@ -763,7 +778,3 @@ export default function CharacterPage() {
         </div>
     );
 }
-
-    
-
-    

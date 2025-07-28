@@ -1,5 +1,5 @@
 
-import type { Reward, FamiliarCard, Achievement, GameSettings, WealthLevel, BankAccount, CapitalLevel, CrimeLevel, Shop } from './types';
+import type { Reward, FamiliarCard, Achievement, GameSettings, WealthLevel, BankAccount, CapitalLevel, CrimeLevel, Shop, InventoryCategory } from './types';
 import type { OptionType } from '@/components/ui/multi-select';
 
 // Game Date is now fetched from Firestore. See UserProvider.
@@ -9,6 +9,23 @@ export const DEFAULT_GAME_SETTINGS: GameSettings = {
     gameDate: new Date(2709, 2, 21), // Month is 0-indexed (2 = March)
     lastWeeklyBonusAwardedAt: new Date(0).toISOString(), // Initialize with a very old date
 }
+
+export const INVENTORY_CATEGORIES: { value: InventoryCategory, label: string }[] = [
+    { value: 'оружие', label: 'Оружие' },
+    { value: 'гардероб', label: 'Гардероб' },
+    { value: 'артефакты', label: 'Артефакты' },
+    { value: 'зелья', label: 'Зелья/лекарства' },
+    { value: 'еда', label: 'Еда' },
+    { value: 'драгоценности', label: 'Драгоценности' },
+    { value: 'книгиИСвитки', label: 'Книги и свитки' },
+    { value: 'недвижимость', label: 'Недвижимость' },
+    { value: 'транспорт', label: 'Транспорт' },
+    { value: 'предприятия', label: 'Предприятия' },
+    { value: 'души', label: 'Души (рабочая сила)' },
+    { value: 'мебель', label: 'Мебель' },
+    { value: 'прочее', label: 'Прочее' },
+    { value: 'подарки', label: 'Подарки' },
+];
 
 export const CRIME_LEVELS: { level: CrimeLevel, title: string, description: string }[] = [
     { level: 5, title: 'Пятый (Мирный)', description: 'Принадлежит всем мирным жителям. Не предполагает задержания или казнь, так как житель не совершал никаких преступлений.' },

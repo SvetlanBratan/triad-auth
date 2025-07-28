@@ -3,7 +3,7 @@ export type UserRole = 'admin' | 'user';
 export type UserStatus = 'активный' | 'неактивный' | 'отпуск';
 export type RewardRequestStatus = 'в ожидании' | 'одобрено' | 'отклонено';
 export type FamiliarRank = 'обычный' | 'редкий' | 'легендарный' | 'мифический' | 'ивентовый';
-export type InventoryCategory = 'оружие' | 'гардероб' | 'еда' | 'подарки' | 'артефакты' | 'зелья' | 'недвижимость' | 'транспорт';
+export type InventoryCategory = 'оружие' | 'гардероб' | 'еда' | 'подарки' | 'артефакты' | 'зелья' | 'недвижимость' | 'транспорт' | 'драгоценности' | 'книгиИСвитки' | 'прочее' | 'предприятия' | 'души' | 'мебель';
 export type RelationshipType = 'романтика' | 'дружба' | 'вражда' | 'конкуренция' | 'нейтралитет' | 'любовь' | 'семья';
 export type RelationshipActionType = 'подарок' | 'письмо';
 export type RelationshipActionStatus = 'pending' | 'confirmed';
@@ -64,6 +64,12 @@ export interface Inventory {
     недвижимость: InventoryItem[];
     транспорт: InventoryItem[];
     familiarCards: OwnedFamiliarCard[];
+    драгоценности: InventoryItem[];
+    книгиИСвитки: InventoryItem[];
+    прочее: InventoryItem[];
+    предприятия: InventoryItem[];
+    души: InventoryItem[];
+    мебель: InventoryItem[];
 }
 
 export interface RelationshipAction {

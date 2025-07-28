@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { INVENTORY_CATEGORIES } from '@/lib/data';
 
 interface ShopItemFormProps {
     shopId: string;
@@ -18,22 +19,11 @@ interface ShopItemFormProps {
     closeDialog: () => void;
 }
 
-const inventoryCategories: { value: InventoryCategory, label: string }[] = [
-    { value: 'оружие', label: 'Оружие' },
-    { value: 'гардероб', label: 'Гардероб' },
-    { value: 'артефакты', label: 'Артефакты' },
-    { value: 'зелья', label: 'Зелья' },
-    { value: 'еда', label: 'Еда' },
-    { value: 'подарки', label: 'Подарки' },
-    { value: 'недвижимость', label: 'Недвижимость' },
-    { value: 'транспорт', label: 'Транспорт' },
-];
-
 const initialFormData: Omit<ShopItem, 'id'> = {
     name: '',
     description: '',
     price: { platinum: 0, gold: 0, silver: 0, copper: 0 },
-    inventoryTag: 'подарки',
+    inventoryTag: 'прочее',
 };
 
 export default function ShopItemForm({ shopId, item, closeDialog }: ShopItemFormProps) {
@@ -53,7 +43,7 @@ export default function ShopItemForm({ shopId, item, closeDialog }: ShopItemForm
                     silver: item.price.silver || 0,
                     copper: item.price.copper || 0,
                 },
-                inventoryTag: item.inventoryTag || 'подарки',
+                inventoryTag: item.inventoryTag || 'прочее',
             });
         } else {
             setFormData(initialFormData);
@@ -124,7 +114,7 @@ export default function ShopItemForm({ shopId, item, closeDialog }: ShopItemForm
                                 <SelectValue placeholder="Выберите категорию..." />
                             </SelectTrigger>
                             <SelectContent>
-                                {inventoryCategories.map(cat => (
+                                {INVENTORY_CATEGORIES.map(cat => (
                                     <SelectItem key={cat.value} value={cat.value}>
                                         {cat.label}
                                     </SelectItem>
