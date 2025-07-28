@@ -1,9 +1,10 @@
 
+
 'use client';
 
 import React from 'react';
 import type { Character, User, Accomplishment, Relationship, RelationshipType, CrimeLevel } from '@/lib/types';
-import { SKILL_LEVELS, FAME_LEVELS, TRAINING_OPTIONS, CRIME_LEVELS } from '@/lib/data';
+import { SKILL_LEVELS, FAME_LEVELS, TRAINING_OPTIONS, CRIME_LEVELS, COUNTRIES } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { DialogClose, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -63,6 +64,9 @@ const initialFormData: Omit<Character, 'id'> = {
     race: '',
     birthDate: '',
     crimeLevel: 5,
+    countryOfResidence: '',
+    citizenshipStatus: 'non-citizen',
+    taxpayerStatus: 'taxable',
     accomplishments: [],
     workLocation: '',
     factions: '',
@@ -105,6 +109,7 @@ const initialFormData: Omit<Character, 'id'> = {
 const fameLevelOptions = FAME_LEVELS.map(level => ({ value: level, label: level }));
 const skillLevelOptions = SKILL_LEVELS.map(level => ({ value: level, label: level }));
 const crimeLevelOptions = CRIME_LEVELS.map(cl => ({ value: String(cl.level), label: cl.title }));
+const countryOptions = COUNTRIES.map(c => ({ value: c, label: c }));
 
 const SectionTitles: Record<EditableSection, string> = {
     mainInfo: 'Основная информация',
@@ -129,6 +134,7 @@ const FieldLabels: Partial<Record<keyof Character, string>> = {
     workLocation: 'Место работы',
     crimeLevel: 'Уровень преступности',
     factions: 'Фракции/гильдии',
+    countryOfResidence: 'Страна проживания',
 };
 
 const relationshipTypeOptions: { value: RelationshipType, label: string }[] = [
@@ -315,6 +321,15 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                                 <Label htmlFor="activity">Деятельность/профессия</Label>
                                 <Input id="activity" value={formData.activity ?? ''} onChange={(e) => handleFieldChange('activity', e.target.value)} />
                             </div>
+                             <div>
+                                <Label htmlFor="countryOfResidence">Страна проживания</Label>
+                                 <SearchableSelect
+                                    options={countryOptions}
+                                    value={String(formData.countryOfResidence ?? '')}
+                                    onValueChange={(v) => handleFieldChange('countryOfResidence', v)}
+                                    placeholder="Выберите страну..."
+                                />
+                            </div>
                             <div>
                                 <Label htmlFor="race">Раса</Label>
                                 <Input id="race" value={formData.race ?? ''} onChange={(e) => handleFieldChange('race', e.target.value)} />
@@ -366,6 +381,19 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
 
             case 'field':
                 const field = editingState.field;
+                 if(field === 'countryOfResidence') {
+                     return (
+                         <div>
+                             <Label htmlFor="countryOfResidence">{FieldLabels[field]}</Label>
+                              <SearchableSelect
+                                options={countryOptions}
+                                value={String(formData.countryOfResidence ?? '')}
+                                onValueChange={(v) => handleFieldChange('countryOfResidence', v)}
+                                placeholder="Выберите страну..."
+                            />
+                         </div>
+                     )
+                }
                 if(field === 'crimeLevel') {
                      return (
                          <div>

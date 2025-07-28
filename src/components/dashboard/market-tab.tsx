@@ -2,12 +2,11 @@
 
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Store } from 'lucide-react';
+import { ArrowRight, Store, BadgeCheck } from 'lucide-react';
 import Image from 'next/image';
-import { ALL_SHOPS } from '@/lib/data';
 import Link from 'next/link';
 import { useUser } from '@/hooks/use-user';
 import type { Shop } from '@/lib/types';
@@ -48,7 +47,10 @@ export default function MarketTab() {
               </div>
             </CardHeader>
             <CardContent className="flex-grow p-6 space-y-2">
-              <CardTitle className="font-headline text-xl">{shop.title}</CardTitle>
+              <div className="flex items-center gap-2">
+                 <CardTitle className="font-headline text-xl">{shop.title}</CardTitle>
+                 {shop.hasLicense && <BadgeCheck className="w-5 h-5 text-green-600" />}
+              </div>
               <CardDescription>{shop.description}</CardDescription>
               {shop.ownerCharacterName && <p className="text-sm text-muted-foreground pt-2">Владелец: <span className="font-semibold text-primary">{shop.ownerCharacterName}</span></p>}
             </CardContent>

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React from 'react';
@@ -7,7 +8,7 @@ import { useUser } from '@/hooks/use-user';
 import type { Shop, ShopItem, BankAccount } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, UserCircle, PlusCircle, Edit, Trash2, ShoppingCart, Info, Package, Settings, RefreshCw } from 'lucide-react';
+import { ArrowLeft, UserCircle, PlusCircle, Edit, Trash2, ShoppingCart, Info, Package, Settings, RefreshCw, BadgeCheck } from 'lucide-react';
 import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import ShopItemForm from '@/components/dashboard/shop-item-form';
@@ -179,7 +180,10 @@ export default function ShopPage() {
                     )}
                 </div>
                 <CardHeader>
-                    <CardTitle className="text-3xl font-headline">{shop.title}</CardTitle>
+                    <div className="flex items-center gap-4">
+                        <CardTitle className="text-3xl font-headline">{shop.title}</CardTitle>
+                        {shop.hasLicense && <BadgeCheck className="w-6 h-6 text-green-600" />}
+                    </div>
                     <CardDescription>{shop.description}</CardDescription>
                 </CardHeader>
                 <CardContent>

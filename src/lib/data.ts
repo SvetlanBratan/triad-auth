@@ -10,6 +10,12 @@ export const DEFAULT_GAME_SETTINGS: GameSettings = {
     lastWeeklyBonusAwardedAt: new Date(0).toISOString(), // Initialize with a very old date
 }
 
+export const COUNTRIES: string[] = [
+    'Артерианск', 'Белоснежье', 'Огнеславия', 'Сан-Ликорис', 'Заприливье',
+    'Острова неприкаянных', 'Дармир', 'Инрога', 'Истина', 'Маринад',
+    'Остров Отчуждения', 'Кураж'
+];
+
 export const INVENTORY_CATEGORIES: { value: InventoryCategory, label: string }[] = [
     { value: 'оружие', label: 'Оружие' },
     { value: 'гардероб', label: 'Гардероб' },

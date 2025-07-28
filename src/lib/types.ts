@@ -13,6 +13,8 @@ export type Currency = keyof Omit<BankAccount, 'history'>;
 export type ExchangeRequestStatus = 'open' | 'closed';
 export type FamiliarTradeRequestStatus = 'в ожидании' | 'принято' | 'отклонено' | 'отменено';
 export type CrimeLevel = 1 | 2 | 3 | 4 | 5;
+export type CitizenshipStatus = 'citizen' | 'non-citizen' | 'refugee';
+export type TaxpayerStatus = 'taxable' | 'exempt';
 
 
 export interface GameSettings {
@@ -166,6 +168,9 @@ export interface Character {
   activity: string;
   race: string;
   birthDate: string;
+  countryOfResidence?: string;
+  citizenshipStatus?: CitizenshipStatus;
+  taxpayerStatus?: TaxpayerStatus;
   accomplishments: Accomplishment[];
   workLocation: string;
   factions?: string;
@@ -259,6 +264,7 @@ export interface Shop {
   ownerCharacterId?: string;
   ownerCharacterName?: string;
   items?: ShopItem[];
+  hasLicense?: boolean;
 }
 
 export type AdminGiveItemForm = {
@@ -334,4 +340,6 @@ export interface UserContextType {
   adminUpdateItemInCharacter: (userId: string, characterId: string, itemData: InventoryItem, category: InventoryCategory) => Promise<void>;
   adminDeleteItemFromCharacter: (userId: string, characterId: string, itemId: string, category: InventoryCategory) => Promise<void>;
   restockShopItem: (shopId: string, itemId: string, ownerUserId: string, ownerCharacterId: string) => Promise<void>;
+  adminUpdateCharacterStatus: (userId: string, characterId: string, updates: { citizenshipStatus?: CitizenshipStatus, taxpayerStatus?: TaxpayerStatus }) => Promise<void>;
+  adminUpdateShopLicense: (shopId: string, hasLicense: boolean) => Promise<void>;
 }
