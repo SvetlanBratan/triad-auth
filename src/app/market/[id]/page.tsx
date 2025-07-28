@@ -37,7 +37,7 @@ import { Textarea } from '@/components/ui/textarea';
 export default function ShopPage() {
     const { id } = useParams();
     const router = useRouter();
-    const { currentUser, deleteShopItem, purchaseShopItem, restockShopItem, fetchShopById, updateShopDetails } = useUser();
+    const { currentUser, deleteShopItem, purchaseShopItem, restockShopItem, fetchShopById, updateShopDetails } from 'useUser';
     const { toast } = useToast();
     
     const shopId = Array.isArray(id) ? id[0] : id;
@@ -251,8 +251,8 @@ export default function ShopPage() {
                                     return (
                                     <Card key={item.id} className="flex flex-col group overflow-hidden">
                                         {item.image && (
-                                            <div className="relative h-40 w-full">
-                                                <Image src={item.image} alt={item.name} fill style={{objectFit: 'cover'}} />
+                                            <div className="relative h-40 w-full bg-white dark:bg-black">
+                                                <Image src={item.image} alt={item.name} fill style={{objectFit: 'contain'}} />
                                             </div>
                                         )}
                                         <CardHeader className="flex-grow">
