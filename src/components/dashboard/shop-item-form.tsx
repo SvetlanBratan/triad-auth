@@ -66,11 +66,7 @@ export default function ShopItemForm({ shopId, item, closeDialog }: ShopItemForm
         setIsLoading(true);
 
         try {
-             const finalData = {
-                ...formData,
-                quantity: formData.quantity === null || isNaN(Number(formData.quantity)) ? undefined : Number(formData.quantity),
-            };
-
+            const finalData = { ...formData };
             if (item) {
                 const itemDataToUpdate = { ...item, ...finalData };
                 await updateShopItem(shopId, itemDataToUpdate);
@@ -116,7 +112,7 @@ export default function ShopItemForm({ shopId, item, closeDialog }: ShopItemForm
                         <Label htmlFor="inventoryTag">Категория в инвентаре</Label>
                          <SearchableSelect
                             options={INVENTORY_CATEGORIES}
-                            value={formData.inventoryTag}
+                            value={formData.inventoryTag ?? 'прочее'}
                             onValueChange={(value) => setFormData(prev => ({...prev, inventoryTag: value as InventoryCategory}))}
                             placeholder="Выберите категорию..."
                         />

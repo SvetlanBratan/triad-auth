@@ -536,17 +536,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const sourceUserData = userDoc.data() as User;
         
         const sanitizeCharacterForWrite = (char: Character): Character => {
-            // Deep clone to safely mutate
             let sanitized: any = JSON.parse(JSON.stringify(char));
 
-            // Merge with defaults to ensure all keys exist and are not undefined
             sanitized = { ...initialFormData, ...sanitized };
-
-            // Explicitly handle nested objects and arrays to prevent issues
             sanitized.inventory = { ...initialFormData.inventory, ...(sanitized.inventory || {}) };
             sanitized.bankAccount = { ...initialFormData.bankAccount, ...(sanitized.bankAccount || {}) };
             
-            // Ensure all array fields are arrays, not undefined
             const arrayFields: (keyof Character)[] = ['accomplishments', 'training', 'relationships', 'marriedTo', 'moodlets', 'familiarCards'];
             arrayFields.forEach(field => {
                 if (!Array.isArray(sanitized[field])) {
@@ -554,7 +549,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 }
             });
             
-            // Ensure optional string fields are empty strings if null/undefined
             const stringFields: (keyof Character)[] = ['factions', 'abilities', 'weaknesses', 'lifeGoal', 'pets', 'criminalRecords', 'appearanceImage', 'diary', 'workLocation', 'blessingExpires'];
             stringFields.forEach(field => {
                 if (sanitized[field] === undefined || sanitized[field] === null) {
@@ -562,7 +556,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 }
             });
             
-            // Remove any top-level undefined fields just in case
             Object.keys(sanitized).forEach(key => {
                 if (sanitized[key] === undefined) {
                     delete sanitized[key];
@@ -583,8 +576,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             updatedCharacters.push(sanitizedCharacterToUpdate);
         }
         
-        // This simplified approach only updates the current user's document.
-        // A full implementation would require finding and updating related users as well.
         transaction.update(userRef, { characters: updatedCharacters });
     });
 
@@ -1569,7 +1560,11 @@ const processMonthlySalary = useCallback(async () => {
         id: `item-${Date.now()}`
     };
     const updatedItems = [...items, newItem];
-    await setDoc(shopRef, { items: updatedItems }, { merge: true });
+    const sanitizedItems = updatedItems.map(i => {
+        const { quantity, ...rest } = i;
+        return quantity === undefined ? rest : i;
+    });
+    await setDoc(shopRef, { items: sanitizedItems }, { merge: true });
   }, []);
 
   const updateShopItem = useCallback(async (shopId: string, itemToUpdate: ShopItem) => {
@@ -1578,7 +1573,11 @@ const processMonthlySalary = useCallback(async () => {
     const shopData = shopDoc.data() || {};
     const items = shopData.items || [];
     const updatedItems = items.map((item: ShopItem) => item.id === itemToUpdate.id ? itemToUpdate : item);
-    await setDoc(shopRef, { items: updatedItems }, { merge: true });
+     const sanitizedItems = updatedItems.map(i => {
+        const { quantity, ...rest } = i;
+        return quantity === undefined ? rest : i;
+    });
+    await setDoc(shopRef, { items: sanitizedItems }, { merge: true });
   }, []);
 
   const deleteShopItem = useCallback(async (shopId: string, itemId: string) => {
@@ -1897,4 +1896,3 @@ const processMonthlySalary = useCallback(async () => {
     </AuthContext.Provider>
   );
 }
-
