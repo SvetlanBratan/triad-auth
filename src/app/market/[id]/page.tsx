@@ -251,7 +251,7 @@ export default function ShopPage() {
                                     return (
                                     <Card key={item.id} className="flex flex-col group overflow-hidden max-w-sm mx-auto">
                                         {item.image && (
-                                            <div className="relative w-full h-40 bg-muted">
+                                            <div className="relative w-full aspect-square bg-muted">
                                                  <Image
                                                     src={item.image}
                                                     alt={item.name}
