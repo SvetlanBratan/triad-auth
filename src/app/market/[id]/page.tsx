@@ -167,6 +167,9 @@ export default function ShopPage() {
         if (!currentUser || !totalPrice) return [];
         return currentUser.characters
             .filter(char => {
+                // Exclude the shop owner character from buying from their own shop
+                if(shop && char.id === shop.ownerCharacterId) return false;
+
                 const balance = char.bankAccount;
                 return (balance.platinum >= totalPrice.platinum) &&
                        (balance.gold >= totalPrice.gold) &&
@@ -177,7 +180,7 @@ export default function ShopPage() {
                 value: char.id,
                 label: `${char.name} (${formatCurrency(char.bankAccount)})`
             }));
-    }, [currentUser, totalPrice]);
+    }, [currentUser, totalPrice, shop]);
 
     const outOfStockItems = React.useMemo(() => {
         return (shop?.items || []).filter(item => item.quantity === 0);
@@ -304,11 +307,9 @@ export default function ShopPage() {
                                             <div className="text-primary font-bold">
                                                 {formatCurrency(item.price)}
                                             </div>
-                                            {!isOwner && (
-                                                <Button className="w-full" onClick={() => handlePurchaseClick(item)} disabled={isOutOfStock}>
-                                                    <ShoppingCart className="mr-2 h-4 w-4" /> {isOutOfStock ? "Нет в наличии" : "Купить"}
-                                                </Button>
-                                            )}
+                                            <Button className="w-full" onClick={() => handlePurchaseClick(item)} disabled={isOutOfStock}>
+                                                <ShoppingCart className="mr-2 h-4 w-4" /> {isOutOfStock ? "Нет в наличии" : "Купить"}
+                                            </Button>
                                         </CardFooter>
                                     </Card>
                                 )})}
@@ -434,9 +435,9 @@ export default function ShopPage() {
                              ) : (
                                 <Alert variant="destructive">
                                     <Info className="h-4 w-4" />
-                                    <AlertTitle>Недостаточно средств</AlertTitle>
+                                    <AlertTitle>Неподходящие персонажи</AlertTitle>
                                     <AlertDescription>
-                                        Ни у одного из ваших персонажей нет достаточно средств для совершения этой покупки.
+                                        Ни у одного из ваших персонажей нет достаточно средств для совершения этой покупки, или они являются владельцами этого заведения.
                                     </AlertDescription>
                                 </Alert>
                              )}
@@ -460,3 +461,4 @@ export default function ShopPage() {
     
 
     
+
