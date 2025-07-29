@@ -34,6 +34,7 @@ import { cn, formatCurrency } from '@/lib/utils';
 import { Switch } from '../ui/switch';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import ImageKitUploader from './imagekit-uploader';
+import { SearchableMultiSelect } from '../ui/searchable-multi-select';
 
 const rankNames: Record<FamiliarRank, string> = {
     'мифический': 'Мифический',
@@ -183,6 +184,8 @@ export default function AdminTab() {
   const [mailContent, setMailContent] = useState('');
   const [mailSender, setMailSender] = useState('Администрация');
   const [isSendingMail, setIsSendingMail] = useState(false);
+  const [sendToAll, setSendToAll] = useState(true);
+  const [mailRecipients, setMailRecipients] = useState<string[]>([]);
 
 
   const { toast } = useToast();
@@ -738,12 +741,19 @@ export default function AdminTab() {
         toast({ variant: 'destructive', title: 'Ошибка', description: 'Заполните все поля для рассылки.' });
         return;
     }
+    if (!sendToAll && mailRecipients.length === 0) {
+        toast({ variant: 'destructive', title: 'Ошибка', description: 'Выберите хотя бы одного получателя.' });
+        return;
+    }
+
     setIsSendingMail(true);
     try {
-        await sendMassMail(mailSubject, mailContent, mailSender);
-        toast({ title: 'Рассылка отправлена!', description: 'Письмо было отправлено всем персонажам.' });
+        const recipients = sendToAll ? undefined : mailRecipients;
+        await sendMassMail(mailSubject, mailContent, mailSender, recipients);
+        toast({ title: 'Рассылка отправлена!', description: 'Письмо было успешно отправлено.' });
         setMailSubject('');
         setMailContent('');
+        setMailRecipients([]);
     } catch (err) {
         const msg = err instanceof Error ? err.message : 'Произошла неизвестная ошибка.';
         toast({ variant: 'destructive', title: 'Ошибка при отправке', description: msg });
@@ -836,6 +846,15 @@ export default function AdminTab() {
     
     return groupedOptions;
   }, [itemUserId, itemCharId, users]);
+
+  const allCharactersForMail = useMemo(() => {
+    return users.flatMap(user => 
+        user.characters.map(char => ({
+            value: char.id,
+            label: `${char.name} (${user.name})`
+        }))
+    );
+  }, [users]);
 
   const familiarsForSelectedCharacterOptions = useMemo((): {value: string, label: string}[] => {
     if (!removeFamiliarUserId || !removeFamiliarCharId) return [];
@@ -1989,7 +2008,7 @@ export default function AdminTab() {
             <Card className="max-w-2xl mx-auto">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">Массовая рассылка</CardTitle>
-                    <CardDescription>Отправить объявление всем персонажам от лица определенной группы или персонажа.</CardDescription>
+                    <CardDescription>Отправить объявление от лица определенной группы или персонажа.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleSendMassMail} className="space-y-4">
@@ -1997,6 +2016,23 @@ export default function AdminTab() {
                             <Label htmlFor="mail-sender">Отправитель</Label>
                             <Input id="mail-sender" value={mailSender} onChange={e => setMailSender(e.target.value)} placeholder="Напр., 'Королевская канцелярия'" />
                         </div>
+                        <div className="flex items-center space-x-2">
+                            <Switch id="send-to-all-switch" checked={sendToAll} onCheckedChange={setSendToAll} />
+                            <Label htmlFor="send-to-all-switch">Отправить всем персонажам</Label>
+                        </div>
+
+                        {!sendToAll && (
+                            <div>
+                                <Label htmlFor="mail-recipients">Получатели</Label>
+                                <SearchableMultiSelect
+                                    options={allCharactersForMail}
+                                    selected={mailRecipients}
+                                    onChange={setMailRecipients}
+                                    placeholder="Выберите одного или нескольких персонажей..."
+                                />
+                            </div>
+                        )}
+
                         <div>
                             <Label htmlFor="mail-subject">Тема письма</Label>
                             <Input id="mail-subject" value={mailSubject} onChange={e => setMailSubject(e.target.value)} required />
@@ -2007,7 +2043,7 @@ export default function AdminTab() {
                         </div>
                         <Button type="submit" disabled={isSendingMail} className="w-full">
                             <Send className="mr-2 h-4 w-4" />
-                            {isSendingMail ? 'Отправка...' : 'Отправить всем'}
+                            {isSendingMail ? 'Отправка...' : 'Отправить'}
                         </Button>
                     </form>
                 </CardContent>

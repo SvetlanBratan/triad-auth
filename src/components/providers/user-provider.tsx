@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
@@ -42,7 +43,7 @@ interface UserContextType {
   addPointsToAllUsers: (amount: number, reason: string) => Promise<void>;
   addCharacterToUser: (userId: string, character: Character) => Promise<void>;
   updateCharacterInUser: (userId: string, character: Character) => Promise<void>;
-  deleteCharacterFromUser: (userId: string) => Promise<void>;
+  deleteCharacterFromUser: (userId: string, characterId: string) => Promise<void>;
   updateUserStatus: (userId: string, status: UserStatus) => Promise<void>;
   updateUserRole: (userId: string, role: UserRole) => Promise<void>;
   grantAchievementToUser: (userId: string, achievementId: string) => Promise<void>;
@@ -91,7 +92,7 @@ interface UserContextType {
   adminUpdateCharacterStatus: (userId: string, characterId: string, updates: { taxpayerStatus?: TaxpayerStatus; citizenshipStatus?: CitizenshipStatus }) => Promise<void>;
   adminUpdateShopLicense: (shopId: string, hasLicense: boolean) => Promise<void>;
   processAnnualTaxes: () => Promise<{ taxedCharactersCount: number; totalTaxesCollected: BankAccount }>;
-  sendMassMail: (subject: string, content: string, senderName: string) => Promise<void>;
+  sendMassMail: (subject: string, content: string, senderName: string, recipientCharacterIds?: string[]) => Promise<void>;
   markMailAsRead: (mailId: string) => Promise<void>;
   deleteMailMessage: (mailId: string) => Promise<void>;
 }
@@ -299,6 +300,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, [initialFormData]);
   
   const fetchCharacterById = useCallback(async (characterId: string): Promise<{ character: Character; owner: User } | null> => {
+    const q = query(collectionGroup(db, 'users'), where('characters', 'array-contains', { id: characterId }));
     const usersCollection = collection(db, "users");
     const snapshot = await getDocs(usersCollection);
     
@@ -1120,6 +1122,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 senderCharacterId: sourceChar.id,
                 recipientUserId: targetUserId,
                 recipientCharacterId: targetCharacterId,
+                recipientCharacterName: targetChar.name,
                 subject: `Письмо от ${sourceChar.name}`,
                 content: content,
                 sentAt: new Date().toISOString(),
@@ -2177,11 +2180,11 @@ const processAnnualTaxes = useCallback(async (): Promise<{ taxedCharactersCount:
 
 }, [fetchUsersForAdmin, fetchAllShops]);
 
-const sendMassMail = useCallback(async (subject: string, content: string, senderName: string) => {
+const sendMassMail = useCallback(async (subject: string, content: string, senderName: string, recipientCharacterIds?: string[]) => {
     const allUsers = await fetchUsersForAdmin();
     const batch = writeBatch(db);
-    
-    const newMail = {
+
+    const newMailBase = {
         id: `mail-mass-${Date.now()}`,
         senderCharacterName: senderName,
         subject,
@@ -2191,14 +2194,37 @@ const sendMassMail = useCallback(async (subject: string, content: string, sender
         type: 'announcement' as const,
     };
 
-    for (const user of allUsers) {
-        for (const character of user.characters) {
-            const userRef = doc(db, "users", user.id);
-            const userMail = user.mail || [];
-            const finalMail = { ...newMail, recipientUserId: user.id, recipientCharacterId: character.id };
-            batch.update(userRef, { mail: [...userMail, finalMail] });
+    const usersToUpdate = new Map<string, User>();
+
+    if (recipientCharacterIds && recipientCharacterIds.length > 0) {
+        const recipientsSet = new Set(recipientCharacterIds);
+        for (const user of allUsers) {
+            const userCharacters = user.characters.filter(c => recipientsSet.has(c.id));
+            if (userCharacters.length > 0) {
+                const updatedUser = usersToUpdate.get(user.id) || { ...user, mail: [...(user.mail || [])] };
+                for (const character of userCharacters) {
+                    const finalMail = { ...newMailBase, recipientUserId: user.id, recipientCharacterId: character.id, recipientCharacterName: character.name };
+                    updatedUser.mail!.push(finalMail);
+                }
+                usersToUpdate.set(user.id, updatedUser);
+            }
+        }
+    } else {
+         for (const user of allUsers) {
+            const updatedUser = usersToUpdate.get(user.id) || { ...user, mail: [...(user.mail || [])] };
+            for (const character of user.characters) {
+                const finalMail = { ...newMailBase, recipientUserId: user.id, recipientCharacterId: character.id, recipientCharacterName: character.name };
+                updatedUser.mail!.push(finalMail);
+            }
+            usersToUpdate.set(user.id, updatedUser);
         }
     }
+    
+    usersToUpdate.forEach((user, userId) => {
+        const userRef = doc(db, "users", userId);
+        batch.update(userRef, { mail: user.mail });
+    });
+    
     await batch.commit();
 }, [fetchUsersForAdmin]);
 
