@@ -911,29 +911,36 @@ export default function CharacterPage() {
             
             <Dialog open={!!selectedItem} onOpenChange={(isOpen) => !isOpen && setSelectedItem(null)}>
                 {selectedItem && (
-                    <DialogContent className="max-w-md">
-                        <DialogHeader>
-                            <DialogTitle>{selectedItem.name}</DialogTitle>
-                            <DialogDescription>
-                                {selectedItem.description || 'Описание отсутствует.'}
-                            </DialogDescription>
-                        </DialogHeader>
-                        {selectedItem.image && (
-                            <div className="relative w-full h-80 my-4 bg-muted rounded-md overflow-hidden">
-                                <Image src={selectedItem.image} alt={selectedItem.name} fill style={{objectFit: "contain"}} />
+                    <DialogContent className="max-w-xl">
+                        <div className="grid md:grid-cols-2 gap-6 items-start">
+                            {selectedItem.image && (
+                                <div className="relative w-full h-80 bg-muted rounded-md overflow-hidden">
+                                    <Image src={selectedItem.image} alt={selectedItem.name} fill style={{objectFit: "contain"}} />
+                                </div>
+                            )}
+                            <div className={cn("flex flex-col h-full", !selectedItem.image && "md:col-span-2")}>
+                                <DialogHeader className="flex-grow">
+                                    <DialogTitle>{selectedItem.name}</DialogTitle>
+                                    <DialogDescription>
+                                        <ScrollArea className="h-64 pr-4">
+                                            {selectedItem.description || 'Описание отсутствует.'}
+                                        </ScrollArea>
+                                    </DialogDescription>
+                                </DialogHeader>
+                                {isOwnerOrAdmin && (
+                                    <DialogFooter className="mt-4">
+                                        <Button 
+                                            onClick={handleConsumeItem} 
+                                            disabled={isConsuming}
+                                            variant={selectedItem.category === 'еда' ? 'default' : 'secondary'}
+                                            className="w-full"
+                                        >
+                                            {isConsuming ? 'Использование...' : (selectedItem.category === 'еда' ? 'Съесть' : 'Использовать')}
+                                        </Button>
+                                    </DialogFooter>
+                                )}
                             </div>
-                        )}
-                        {isOwnerOrAdmin && (
-                            <DialogFooter>
-                                <Button 
-                                    onClick={handleConsumeItem} 
-                                    disabled={isConsuming}
-                                    variant={selectedItem.category === 'еда' ? 'default' : 'secondary'}
-                                >
-                                    {isConsuming ? 'Использование...' : (selectedItem.category === 'еда' ? 'Съесть' : 'Использовать')}
-                                </Button>
-                            </DialogFooter>
-                        )}
+                        </div>
                     </DialogContent>
                 )}
             </Dialog>
