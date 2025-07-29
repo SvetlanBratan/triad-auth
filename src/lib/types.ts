@@ -312,7 +312,7 @@ export interface UserContextType {
   gameDateString: string | null;
   lastWeeklyBonusAwardedAt: string | undefined;
   fetchUserById: (userId: string) => Promise<User | null>;
-  fetchCharacterById: (characterId: string) => Promise<{ character: Character; owner: User } | null>;
+  fetchCharacterAndOwner: (characterId: string) => Promise<{ character: Character; owner: User } | null>;
   fetchUsersForAdmin: () => Promise<User[]>;
   fetchLeaderboardUsers: () => Promise<User[]>;
   fetchAllRewardRequests: () => Promise<RewardRequest[]>;

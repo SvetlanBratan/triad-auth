@@ -172,7 +172,7 @@ const FamiliarsSection = ({ character }: { character: Character }) => {
 
 export default function CharacterPage() {
     const { id } = useParams();
-    const { currentUser, updateCharacterInUser, gameDate, consumeInventoryItem, setCurrentUser, fetchCharacterById, fetchUsersForAdmin } = useUser();
+    const { currentUser, updateCharacterInUser, gameDate, consumeInventoryItem, setCurrentUser, fetchCharacterAndOwner, fetchUsersForAdmin } = useUser();
     const [character, setCharacter] = useState<Character | null>(null);
     const [owner, setOwner] = useState<User | null>(null);
     const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -186,7 +186,7 @@ export default function CharacterPage() {
 
     const { data: characterData, isLoading } = useQuery({
         queryKey: ['character', charId],
-        queryFn: () => charId ? fetchCharacterById(charId) : Promise.resolve(null),
+        queryFn: () => charId ? fetchCharacterAndOwner(charId) : Promise.resolve(null),
         enabled: !!charId,
     });
     
