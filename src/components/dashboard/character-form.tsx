@@ -528,11 +528,9 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                     }
                 </DialogDescription>
              </DialogHeader>
-            <div className="flex-1 py-4 overflow-hidden">
-                <ScrollArea className="h-full pr-6">
-                    {renderContent()}
-                </ScrollArea>
-            </div>
+            <ScrollArea className="flex-1 py-4 pr-6">
+                {renderContent()}
+            </ScrollArea>
             <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t">
               <DialogClose asChild>
                 <Button type="button" variant="ghost">Отмена</Button>

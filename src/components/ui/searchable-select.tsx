@@ -13,12 +13,14 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from '@/components/ui/command';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import { ScrollArea } from './scroll-area';
 
 type SelectOption = { value: string; label: string };
 type SelectOptionGroup = { label: string; options: SelectOption[] };
@@ -59,7 +61,7 @@ export const SearchableSelect = ({
   const selectedLabel = allOptions.find((opt) => opt.value === value)?.label;
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal={false}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -72,58 +74,58 @@ export const SearchableSelect = ({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" onWheel={(e) => e.stopPropagation()}>
         <Command>
           <CommandInput placeholder="Поиск..." />
-          <div className="max-h-72 overflow-y-auto">
+          <ScrollArea className="max-h-72">
             <CommandEmpty>Ничего не найдено.</CommandEmpty>
             {options.map((option, index) => {
-            if (isOptionGroup(option)) {
-                return (
-                <CommandGroup key={`${option.label}-${index}`} heading={option.label}>
-                    {option.options.map((item) => (
-                    <CommandItem
-                        key={item.value}
-                        value={item.label}
-                        onSelect={() => {
-                        onValueChange(item.value === value ? "" : item.value);
-                        setOpen(false);
-                        }}
-                    >
-                        <Check
-                        className={cn(
-                            'mr-2 h-4 w-4',
-                            value === item.value ? 'opacity-100' : 'opacity-0'
-                        )}
-                        />
-                        {item.label}
-                    </CommandItem>
-                    ))}
-                </CommandGroup>
-                );
-            }
-            return (
-                <CommandGroup key={`${option.value}-${index}`}>
-                    <CommandItem
-                        key={option.value}
-                        value={option.label}
-                        onSelect={() => {
-                            onValueChange(option.value === value ? "" : option.value);
-                            setOpen(false);
-                        }}
-                        >
-                        <Check
-                            className={cn(
-                            'mr-2 h-4 w-4',
-                            value === option.value ? 'opacity-100' : 'opacity-0'
-                            )}
-                        />
-                        {option.label}
-                    </CommandItem>
-                </CommandGroup>
-            );
+              if (isOptionGroup(option)) {
+                  return (
+                  <CommandGroup key={`${option.label}-${index}`} heading={option.label}>
+                      {option.options.map((item) => (
+                      <CommandItem
+                          key={item.value}
+                          value={item.label}
+                          onSelect={() => {
+                          onValueChange(item.value === value ? "" : item.value);
+                          setOpen(false);
+                          }}
+                      >
+                          <Check
+                          className={cn(
+                              'mr-2 h-4 w-4',
+                              value === item.value ? 'opacity-100' : 'opacity-0'
+                          )}
+                          />
+                          {item.label}
+                      </CommandItem>
+                      ))}
+                  </CommandGroup>
+                  );
+              }
+              return (
+                  <CommandGroup key={`${option.value}-${index}`}>
+                      <CommandItem
+                          key={option.value}
+                          value={option.label}
+                          onSelect={() => {
+                              onValueChange(option.value === value ? "" : option.value);
+                              setOpen(false);
+                          }}
+                          >
+                          <Check
+                              className={cn(
+                              'mr-2 h-4 w-4',
+                              value === option.value ? 'opacity-100' : 'opacity-0'
+                              )}
+                          />
+                          {option.label}
+                      </CommandItem>
+                  </CommandGroup>
+              );
             })}
-          </div>
+          </ScrollArea>
         </Command>
       </PopoverContent>
     </Popover>

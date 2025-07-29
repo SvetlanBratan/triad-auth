@@ -13,6 +13,7 @@ import {
     CommandGroup,
     CommandInput,
     CommandItem,
+    CommandList,
 } from "@/components/ui/command"
 import {
   Popover,
@@ -20,6 +21,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Badge } from "./badge"
+import { ScrollArea } from "./scroll-area"
 
 export type OptionType = {
   label: string;
@@ -46,7 +48,7 @@ function SearchableMultiSelect({ options, selected, onChange, className, placeho
     .filter(Boolean);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal={false}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -91,10 +93,10 @@ function SearchableMultiSelect({ options, selected, onChange, className, placeho
              <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 pointer-events-auto">
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" onWheel={(e) => e.stopPropagation()}>
         <Command>
             <CommandInput placeholder="Поиск..." />
-            <div className="max-h-72 overflow-y-auto">
+            <ScrollArea className="max-h-72">
                 <CommandEmpty>Ничего не найдено.</CommandEmpty>
                 <CommandGroup>
                 {options.map((option) => (
@@ -119,7 +121,7 @@ function SearchableMultiSelect({ options, selected, onChange, className, placeho
                     </CommandItem>
                 ))}
                 </CommandGroup>
-            </div>
+            </ScrollArea>
         </Command>
       </PopoverContent>
     </Popover>
