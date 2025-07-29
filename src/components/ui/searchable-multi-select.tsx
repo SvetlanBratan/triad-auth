@@ -13,7 +13,6 @@ import {
     CommandGroup,
     CommandInput,
     CommandItem,
-    CommandList,
 } from "@/components/ui/command"
 import {
   Popover,
@@ -92,10 +91,10 @@ function SearchableMultiSelect({ options, selected, onChange, className, placeho
              <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 pointer-events-auto">
         <Command>
             <CommandInput placeholder="Поиск..." />
-            <CommandList className="max-h-72 overflow-y-auto">
+            <div className="max-h-72 overflow-y-auto">
                 <CommandEmpty>Ничего не найдено.</CommandEmpty>
                 <CommandGroup>
                 {options.map((option) => (
@@ -120,7 +119,7 @@ function SearchableMultiSelect({ options, selected, onChange, className, placeho
                     </CommandItem>
                 ))}
                 </CommandGroup>
-            </CommandList>
+            </div>
         </Command>
       </PopoverContent>
     </Popover>
