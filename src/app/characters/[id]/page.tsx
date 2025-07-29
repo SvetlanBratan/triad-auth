@@ -403,7 +403,7 @@ export default function CharacterPage() {
 
 
     return (
-        <div className="container mx-auto p-4 md:p-8 space-y-6">
+        <div className="container mx-auto p-4 md:p-8 space-y-6 max-w-7xl">
             <Link href={backLink} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4">
                 <ArrowLeft className="w-4 h-4" />
                 {backLinkText}
@@ -441,7 +441,7 @@ export default function CharacterPage() {
 
             <div className="flex flex-col lg:flex-row gap-6">
                 {/* Main Content Column (Left on Large Screens) */}
-                <div className="w-full lg:w-2/3 space-y-6 order-2 lg:order-1">
+                <div className="w-full lg:w-2/3 space-y-6">
                      <Card>
                         <SectionHeader title="Внешность" icon={<PersonStanding />} section="appearance" />
                         <CardContent>
@@ -615,7 +615,7 @@ export default function CharacterPage() {
                     </Card>
                 </div>
                  {/* Sidebar Column (Right on Large Screens) */}
-                 <div className="w-full lg:w-1/3 flex flex-col space-y-6 order-1 lg:order-2">
+                 <div className="w-full lg:w-1/3 flex flex-col space-y-6">
                      <Card>
                          <CardHeader>
                             <CardTitle className="flex items-center gap-2"><Info /> Основная информация</CardTitle>
