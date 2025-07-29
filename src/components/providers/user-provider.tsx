@@ -300,36 +300,24 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, [initialFormData]);
   
   const fetchCharacterById = useCallback(async (characterId: string): Promise<{ character: Character; owner: User } | null> => {
-    const q = query(collectionGroup(db, 'users'), where('characters', 'array-contains', characterId));
-    const querySnapshot = await getDocs(query);
-    
-    if (querySnapshot.empty) {
-        // Fallback for older data structure where characters might not be in an array for querying
-        const allUsers = await getDocs(collection(db, 'users'));
-        for (const userDoc of allUsers.docs) {
-            const user = userDoc.data() as User;
-            const character = user.characters.find(c => c.id === characterId);
-            if (character) {
-                const fullUser = await fetchUserById(user.id);
-                if (!fullUser) return null;
-                const fullCharacter = fullUser.characters.find(c => c.id === characterId);
-                if(!fullCharacter) return null;
-                return { character: fullCharacter, owner: fullUser };
+    try {
+        const usersCollection = collection(db, "users");
+        const usersSnapshot = await getDocs(usersCollection);
+
+        for (const userDoc of usersSnapshot.docs) {
+            const user = await fetchUserById(userDoc.id); // Use fetchUserById to get fully processed user data
+            if (user && user.characters) {
+                const character = user.characters.find(c => c.id === characterId);
+                if (character) {
+                    return { character, owner: user };
+                }
             }
         }
-        return null; // Not found in fallback either
+        return null; // Not found
+    } catch (error) {
+        console.error("Error fetching character by ID:", error);
+        return null;
     }
-
-    const ownerDoc = querySnapshot.docs[0];
-    const owner = ownerDoc.data() as User;
-
-    const fullOwner = await fetchUserById(owner.id);
-    if (!fullOwner) return null;
-
-    const character = fullOwner.characters.find(c => c.id === characterId);
-    if (!character) return null;
-
-    return { character, owner: fullOwner };
   }, [fetchUserById]);
 
   const createNewUser = useCallback(async (uid: string, nickname: string): Promise<User> => {

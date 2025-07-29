@@ -11,7 +11,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyD0N_lwtTGfRwxCL2EMVMIPG62FMCn_tco",
   authDomain: "triad-scoring-system.firebaseapp.com",
   projectId: "triad-scoring-system",
-  storageBucket: "triad-scoring-system.appspot.com",
+  storageBucket: "triad-scoring-system.firebasestorage.app",
   messagingSenderId: "1043121641751",
   appId: "1:1043121641751:web:268ee8a85356a315eeff52",
   measurementId: "G-FGKBLBFZ45"
