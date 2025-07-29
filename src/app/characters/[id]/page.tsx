@@ -441,7 +441,7 @@ export default function CharacterPage() {
             <div className="max-w-5xl mx-auto">
                 <div className="flex flex-col lg:flex-row gap-6">
                     {/* Main Content Column (Left on Large Screens) */}
-                    <div className="w-full lg:w-2/3 space-y-6">
+                    <div className="w-full lg:w-2/3 space-y-6 order-2 lg:order-1">
                         <Card>
                             <SectionHeader title="Внешность" icon={<PersonStanding />} section="appearance" />
                             <CardContent>
@@ -615,7 +615,7 @@ export default function CharacterPage() {
                         </Card>
                     </div>
                     {/* Sidebar Column (Right on Large Screens) */}
-                    <div className="w-full lg:w-1/3 flex flex-col space-y-6">
+                    <div className="w-full lg:w-1/3 flex flex-col space-y-6 order-1 lg:order-2">
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2"><Info /> Основная информация</CardTitle>
@@ -921,11 +921,11 @@ export default function CharacterPage() {
                             <div className={cn("flex flex-col h-full", !selectedItem.image && "md:col-span-2")}>
                                 <DialogHeader className="flex-grow">
                                     <DialogTitle>{selectedItem.name}</DialogTitle>
-                                    <DialogDescription>
-                                        <ScrollArea className="h-64 pr-4">
+                                    <ScrollArea className="h-64 pr-4 mt-2">
+                                        <div className="text-sm text-muted-foreground whitespace-pre-wrap">
                                             {selectedItem.description || 'Описание отсутствует.'}
-                                        </ScrollArea>
-                                    </DialogDescription>
+                                        </div>
+                                    </ScrollArea>
                                 </DialogHeader>
                                 {isOwnerOrAdmin && (
                                     <DialogFooter className="mt-4">
