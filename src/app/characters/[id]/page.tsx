@@ -440,180 +440,6 @@ export default function CharacterPage() {
             </header>
 
             <div className="flex flex-col lg:flex-row gap-6">
-                {/* Main Content Column */}
-                <div className="w-full lg:w-2/3 space-y-6 order-2 lg:order-1">
-                     <Card>
-                        <SectionHeader title="Внешность" icon={<PersonStanding />} section="appearance" />
-                        <CardContent>
-                            <div className={cn("grid grid-cols-1 gap-6", character.appearanceImage && "md:grid-cols-3")}>
-                                {character.appearanceImage && (
-                                    <div className="md:col-span-1">
-                                        <div className="relative aspect-[2/3] w-full">
-                                            <Image
-                                                src={character.appearanceImage}
-                                                alt={`Внешность ${character.name}`}
-                                                fill
-                                                style={{objectFit: "contain"}}
-                                                className="rounded-lg"
-                                                data-ai-hint="character portrait"
-                                            />
-                                        </div>
-                                    </div>
-                                )}
-                                <div className={cn(character.appearanceImage ? "md:col-span-2" : "md:col-span-3")}>
-                                    <ScrollArea className="h-96 w-full">
-                                        <p className="whitespace-pre-wrap pr-4">{character.appearance || 'Описание отсутствует.'}</p>
-                                    </ScrollArea>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                     <Card>
-                        <SectionHeader title="Характер" icon={<Heart />} section="personality" />
-                        <CardContent>
-                            <ScrollArea className="h-40 w-full">
-                                <p className="whitespace-pre-wrap pr-4">{character.personality || 'Описание отсутствует.'}</p>
-                             </ScrollArea>
-                        </CardContent>
-                    </Card>
-                     <Card>
-                        <SectionHeader title="Биография" icon={<BookOpen />} section="biography" />
-                        <CardContent>
-                            <ScrollArea className="h-64 w-full">
-                                <p className="whitespace-pre-wrap pr-4">{character.biography || 'Описание отсутствует.'}</p>
-                            </ScrollArea>
-                        </CardContent>
-                    </Card>
-                    
-                    {(character.abilities || isOwnerOrAdmin) && (
-                        <Card>
-                             <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                <CardTitle className="flex items-center gap-2"><Zap /> Способности</CardTitle>
-                                {isOwnerOrAdmin && (
-                                    <Button variant={character.abilities ? "ghost" : "outline-dashed"} size={character.abilities ? "icon" : "sm"} onClick={() => setEditingState({type: 'section', section: "abilities"})} className="shrink-0 self-start sm:self-auto">
-                                        {character.abilities ? <Edit className="w-4 h-4" /> : <><PlusCircle className="mr-2 h-4 w-4" /> Добавить</>}
-                                    </Button>
-                                )}
-                            </CardHeader>
-                            {character.abilities && (
-                                <CardContent>
-                                    <ScrollArea className="h-40 w-full">
-                                        <p className="whitespace-pre-wrap pr-4">{character.abilities}</p>
-                                    </ScrollArea>
-                                </CardContent>
-                            )}
-                        </Card>
-                    )}
-                    
-                    {(character.weaknesses || isOwnerOrAdmin) && (
-                         <Card>
-                            <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                <CardTitle className="flex items-center gap-2"><ShieldOff /> Слабости</CardTitle>
-                                {isOwnerOrAdmin && (
-                                     <Button variant={character.weaknesses ? "ghost" : "outline-dashed"} size={character.weaknesses ? "icon" : "sm"} onClick={() => setEditingState({ type: 'section', section: "weaknesses"})} className="shrink-0 self-start sm:self-auto">
-                                        {character.weaknesses ? <Edit className="w-4 h-4" /> : <><PlusCircle className="mr-2 h-4 w-4" /> Добавить</>}
-                                    </Button>
-                                )}
-                            </CardHeader>
-                            {character.weaknesses && (
-                                <CardContent>
-                                    <ScrollArea className="h-40 w-full">
-                                        <p className="whitespace-pre-wrap pr-4">{character.weaknesses}</p>
-                                    </ScrollArea>
-                                </CardContent>
-                            )}
-                        </Card>
-                    )}
-                    
-                    <Card>
-                        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                            <CardTitle className="flex items-center gap-2"><HeartHandshake /> Отношения</CardTitle>
-                             {isOwnerOrAdmin && (
-                                <Button variant="outline-dashed" size="sm" onClick={() => setEditingState({ type: 'relationship', mode: 'add' })} className="shrink-0 self-start sm:self-auto">
-                                    <PlusCircle className="mr-2 h-4 w-4" /> Добавить отношение
-                                </Button>
-                             )}
-                        </CardHeader>
-                        <CardContent>
-                            {(character.relationships && character.relationships.length > 0) ? (
-                                <div className="space-y-4">
-                                    {character.relationships.map((rel, index) => {
-                                        const { level, progressToNextLevel, maxPointsForCurrentLevel } = calculateRelationshipLevel(rel.points);
-                                        const pointsInCurrentLevel = rel.points - (level * 100);
-                                        return (
-                                        <div key={rel.id || `${rel.targetCharacterId}-${rel.type}-${index}`} className="relative group">
-                                            {isOwnerOrAdmin && (
-                                                <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'relationship', mode: 'edit', relationship: rel })} className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <Edit className="w-4 h-4" />
-                                                </Button>
-                                            )}
-                                            <div className="flex justify-between items-center mb-1">
-                                                <Link href={`/characters/${rel.targetCharacterId}`} className="font-semibold hover:underline">{rel.targetCharacterName}</Link>
-                                                <Badge variant="secondary" className={cn('capitalize', relationshipColors[rel.type], 'text-white')}>{relationshipLabels[rel.type]}</Badge>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                                <span>{pointsInCurrentLevel}/{maxPointsForCurrentLevel}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <Progress value={progressToNextLevel} className={cn("w-full h-2")} indicatorClassName={relationshipColors[rel.type]}/>
-                                                <span className="text-xs font-bold w-8 text-right">{level}/10</span>
-                                            </div>
-                                        </div>
-                                    )})}
-                                </div>
-                            ) : (
-                                <p className="text-muted-foreground text-sm">Отношений пока нет.</p>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><BookUser /> Дополнительно</CardTitle>
-                        </CardHeader>
-                        <CardContent className="divide-y">
-                             <SubSection 
-                                title="Обучение"
-                                section="training"
-                                isVisible={true}
-                                isEmpty={!character.training || character.training.length === 0}
-                                content={
-                                     <ul className="list-disc pl-5 space-y-1 text-sm pt-2">
-                                        {trainingLabels.map((label, index) => <li key={`${label}-${index}`}>{label}</li>)}
-                                    </ul>
-                                }
-                            />
-                            <SubSection 
-                                title="Жизненная цель"
-                                section="lifeGoal"
-                                isVisible={!!character.lifeGoal || isOwnerOrAdmin}
-                                isEmpty={!character.lifeGoal}
-                                content={<p className="whitespace-pre-wrap text-sm pt-2">{character.lifeGoal}</p>}
-                            />
-                             <SubSection 
-                                title="Судимости"
-                                section="criminalRecords"
-                                isVisible={!!character.criminalRecords || isOwnerOrAdmin}
-                                isEmpty={!character.criminalRecords}
-                                content={<p className="whitespace-pre-wrap text-sm pt-2">{character.criminalRecords}</p>}
-                            />
-                            <SubSection 
-                                title="Питомцы"
-                                section="pets"
-                                isVisible={!!character.pets || isOwnerOrAdmin}
-                                isEmpty={!character.pets}
-                                content={<p className="whitespace-pre-wrap text-sm pt-2">{character.pets}</p>}
-                            />
-                             <SubSection 
-                                title="Личный дневник"
-                                section="diary"
-                                isVisible={!!character.diary}
-                                isEmpty={!character.diary}
-                                content={<p className="whitespace-pre-wrap text-sm pt-2">{character.diary}</p>}
-                            />
-                        </CardContent>
-                    </Card>
-                </div>
                  {/* Sidebar Column */}
                  <div className="w-full lg:w-1/3 flex flex-col space-y-6 order-1 lg:order-2">
                      <Card>
@@ -895,6 +721,180 @@ export default function CharacterPage() {
                     })}
 
                 </div>
+                {/* Main Content Column */}
+                <div className="w-full lg:w-2/3 space-y-6 order-2 lg:order-1">
+                     <Card>
+                        <SectionHeader title="Внешность" icon={<PersonStanding />} section="appearance" />
+                        <CardContent>
+                            <div className={cn("grid grid-cols-1 gap-6", character.appearanceImage && "md:grid-cols-3")}>
+                                {character.appearanceImage && (
+                                    <div className="md:col-span-1">
+                                        <div className="relative aspect-[2/3] w-full">
+                                            <Image
+                                                src={character.appearanceImage}
+                                                alt={`Внешность ${character.name}`}
+                                                fill
+                                                style={{objectFit: "contain"}}
+                                                className="rounded-lg"
+                                                data-ai-hint="character portrait"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                                <div className={cn(character.appearanceImage ? "md:col-span-2" : "md:col-span-3")}>
+                                    <ScrollArea className="h-96 w-full">
+                                        <p className="whitespace-pre-wrap pr-4">{character.appearance || 'Описание отсутствует.'}</p>
+                                    </ScrollArea>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                     <Card>
+                        <SectionHeader title="Характер" icon={<Heart />} section="personality" />
+                        <CardContent>
+                            <ScrollArea className="h-40 w-full">
+                                <p className="whitespace-pre-wrap pr-4">{character.personality || 'Описание отсутствует.'}</p>
+                             </ScrollArea>
+                        </CardContent>
+                    </Card>
+                     <Card>
+                        <SectionHeader title="Биография" icon={<BookOpen />} section="biography" />
+                        <CardContent>
+                            <ScrollArea className="h-64 w-full">
+                                <p className="whitespace-pre-wrap pr-4">{character.biography || 'Описание отсутствует.'}</p>
+                            </ScrollArea>
+                        </CardContent>
+                    </Card>
+                    
+                    {(character.abilities || isOwnerOrAdmin) && (
+                        <Card>
+                             <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <CardTitle className="flex items-center gap-2"><Zap /> Способности</CardTitle>
+                                {isOwnerOrAdmin && (
+                                    <Button variant={character.abilities ? "ghost" : "outline-dashed"} size={character.abilities ? "icon" : "sm"} onClick={() => setEditingState({type: 'section', section: "abilities"})} className="shrink-0 self-start sm:self-auto">
+                                        {character.abilities ? <Edit className="w-4 h-4" /> : <><PlusCircle className="mr-2 h-4 w-4" /> Добавить</>}
+                                    </Button>
+                                )}
+                            </CardHeader>
+                            {character.abilities && (
+                                <CardContent>
+                                    <ScrollArea className="h-40 w-full">
+                                        <p className="whitespace-pre-wrap pr-4">{character.abilities}</p>
+                                    </ScrollArea>
+                                </CardContent>
+                            )}
+                        </Card>
+                    )}
+                    
+                    {(character.weaknesses || isOwnerOrAdmin) && (
+                         <Card>
+                            <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <CardTitle className="flex items-center gap-2"><ShieldOff /> Слабости</CardTitle>
+                                {isOwnerOrAdmin && (
+                                     <Button variant={character.weaknesses ? "ghost" : "outline-dashed"} size={character.weaknesses ? "icon" : "sm"} onClick={() => setEditingState({ type: 'section', section: "weaknesses"})} className="shrink-0 self-start sm:self-auto">
+                                        {character.weaknesses ? <Edit className="w-4 h-4" /> : <><PlusCircle className="mr-2 h-4 w-4" /> Добавить</>}
+                                    </Button>
+                                )}
+                            </CardHeader>
+                            {character.weaknesses && (
+                                <CardContent>
+                                    <ScrollArea className="h-40 w-full">
+                                        <p className="whitespace-pre-wrap pr-4">{character.weaknesses}</p>
+                                    </ScrollArea>
+                                </CardContent>
+                            )}
+                        </Card>
+                    )}
+                    
+                    <Card>
+                        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <CardTitle className="flex items-center gap-2"><HeartHandshake /> Отношения</CardTitle>
+                             {isOwnerOrAdmin && (
+                                <Button variant="outline-dashed" size="sm" onClick={() => setEditingState({ type: 'relationship', mode: 'add' })} className="shrink-0 self-start sm:self-auto">
+                                    <PlusCircle className="mr-2 h-4 w-4" /> Добавить отношение
+                                </Button>
+                             )}
+                        </CardHeader>
+                        <CardContent>
+                            {(character.relationships && character.relationships.length > 0) ? (
+                                <div className="space-y-4">
+                                    {character.relationships.map((rel, index) => {
+                                        const { level, progressToNextLevel, maxPointsForCurrentLevel } = calculateRelationshipLevel(rel.points);
+                                        const pointsInCurrentLevel = rel.points - (level * 100);
+                                        return (
+                                        <div key={rel.id || `${rel.targetCharacterId}-${rel.type}-${index}`} className="relative group">
+                                            {isOwnerOrAdmin && (
+                                                <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'relationship', mode: 'edit', relationship: rel })} className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <Edit className="w-4 h-4" />
+                                                </Button>
+                                            )}
+                                            <div className="flex justify-between items-center mb-1">
+                                                <Link href={`/characters/${rel.targetCharacterId}`} className="font-semibold hover:underline">{rel.targetCharacterName}</Link>
+                                                <Badge variant="secondary" className={cn('capitalize', relationshipColors[rel.type], 'text-white')}>{relationshipLabels[rel.type]}</Badge>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                <span>{pointsInCurrentLevel}/{maxPointsForCurrentLevel}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <Progress value={progressToNextLevel} className={cn("w-full h-2")} indicatorClassName={relationshipColors[rel.type]}/>
+                                                <span className="text-xs font-bold w-8 text-right">{level}/10</span>
+                                            </div>
+                                        </div>
+                                    )})}
+                                </div>
+                            ) : (
+                                <p className="text-muted-foreground text-sm">Отношений пока нет.</p>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><BookUser /> Дополнительно</CardTitle>
+                        </CardHeader>
+                        <CardContent className="divide-y">
+                             <SubSection 
+                                title="Обучение"
+                                section="training"
+                                isVisible={true}
+                                isEmpty={!character.training || character.training.length === 0}
+                                content={
+                                     <ul className="list-disc pl-5 space-y-1 text-sm pt-2">
+                                        {trainingLabels.map((label, index) => <li key={`${label}-${index}`}>{label}</li>)}
+                                    </ul>
+                                }
+                            />
+                            <SubSection 
+                                title="Жизненная цель"
+                                section="lifeGoal"
+                                isVisible={!!character.lifeGoal || isOwnerOrAdmin}
+                                isEmpty={!character.lifeGoal}
+                                content={<p className="whitespace-pre-wrap text-sm pt-2">{character.lifeGoal}</p>}
+                            />
+                             <SubSection 
+                                title="Судимости"
+                                section="criminalRecords"
+                                isVisible={!!character.criminalRecords || isOwnerOrAdmin}
+                                isEmpty={!character.criminalRecords}
+                                content={<p className="whitespace-pre-wrap text-sm pt-2">{character.criminalRecords}</p>}
+                            />
+                            <SubSection 
+                                title="Питомцы"
+                                section="pets"
+                                isVisible={!!character.pets || isOwnerOrAdmin}
+                                isEmpty={!character.pets}
+                                content={<p className="whitespace-pre-wrap text-sm pt-2">{character.pets}</p>}
+                            />
+                             <SubSection 
+                                title="Личный дневник"
+                                section="diary"
+                                isVisible={!!character.diary}
+                                isEmpty={!character.diary}
+                                content={<p className="whitespace-pre-wrap text-sm pt-2">{character.diary}</p>}
+                            />
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
 
             <Dialog open={!!editingState} onOpenChange={(isOpen) => !isOpen && closeDialog()}>
@@ -919,7 +919,7 @@ export default function CharacterPage() {
                             </DialogDescription>
                         </DialogHeader>
                         {selectedItem.image && (
-                            <div className="relative aspect-square w-full my-4 bg-muted rounded-md overflow-hidden">
+                            <div className="relative w-full my-4 bg-muted rounded-md overflow-hidden max-h-80">
                                 <Image src={selectedItem.image} alt={selectedItem.name} fill style={{objectFit: "contain"}} />
                             </div>
                         )}
