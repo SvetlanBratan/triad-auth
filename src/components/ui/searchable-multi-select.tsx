@@ -12,6 +12,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from '@/components/ui/command';
 import {
   Popover,
@@ -19,7 +20,6 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Badge } from './badge';
-import { ScrollArea } from './scroll-area';
 
 export type OptionType = {
   label: string;
@@ -100,7 +100,7 @@ function SearchableMultiSelect({
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
         <Command>
           <CommandInput placeholder="Поиск..." />
-          <ScrollArea className="max-h-72">
+          <CommandList className="max-h-72 overflow-y-auto">
             <CommandEmpty>Ничего не найдено.</CommandEmpty>
             <CommandGroup>
               {options.map((option) => (
@@ -127,7 +127,7 @@ function SearchableMultiSelect({
                 </CommandItem>
               ))}
             </CommandGroup>
-          </ScrollArea>
+          </CommandList>
         </Command>
       </PopoverContent>
     </Popover>
