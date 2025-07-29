@@ -274,6 +274,7 @@ export type AdminGiveItemForm = {
     description: string;
     inventoryTag: InventoryCategory;
     quantity?: number;
+    image?: string;
 }
 
 export interface UserContextType {

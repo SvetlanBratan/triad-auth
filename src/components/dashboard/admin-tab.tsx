@@ -33,6 +33,7 @@ import { differenceInDays } from 'date-fns';
 import { cn, formatCurrency } from '@/lib/utils';
 import { Switch } from '../ui/switch';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import ImageKitUploader from './imagekit-uploader';
 
 const rankNames: Record<FamiliarRank, string> = {
     'мифический': 'Мифический',
@@ -172,7 +173,7 @@ export default function AdminTab() {
   const [itemCharId, setItemCharId] = useState('');
   const [isGivingNewItem, setIsGivingNewItem] = useState(false);
   const [selectedShopItemId, setSelectedShopItemId] = useState('');
-  const [newItemData, setNewItemData] = useState<AdminGiveItemForm>({ name: '', description: '', inventoryTag: 'прочее', quantity: 1 });
+  const [newItemData, setNewItemData] = useState<AdminGiveItemForm>({ name: '', description: '', inventoryTag: 'прочее', quantity: 1, image: '' });
   const [selectedInventoryItem, setSelectedInventoryItem] = useState<{ id: string, category: InventoryCategory } | null>(null);
   const [editItemData, setEditItemData] = useState<InventoryItem | null>(null);
 
@@ -232,7 +233,7 @@ export default function AdminTab() {
         return allShops.flatMap(shop =>
             (shop.items || []).map(item => ({
                 label: `${item.name} (${shop.title})`,
-                value: JSON.stringify({ name: item.name, description: item.description, inventoryTag: item.inventoryTag, quantity: 1 })
+                value: JSON.stringify({ name: item.name, description: item.description, inventoryTag: item.inventoryTag, quantity: 1, image: item.image })
             }))
         );
     }, [allShops]);
@@ -696,7 +697,7 @@ export default function AdminTab() {
     setItemUserId('');
     setItemCharId('');
     setSelectedShopItemId('');
-    setNewItemData({ name: '', description: '', inventoryTag: 'прочее', quantity: 1 });
+    setNewItemData({ name: '', description: '', inventoryTag: 'прочее', quantity: 1, image: '' });
   };
   
   const handleUpdateItem = async (e: React.FormEvent) => {
@@ -1835,6 +1836,10 @@ export default function AdminTab() {
                                 
                                 {isGivingNewItem ? (
                                     <div className="p-4 border rounded-md space-y-4">
+                                        <ImageKitUploader
+                                            currentImageUrl={newItemData.image}
+                                            onUpload={(url) => setNewItemData(p => ({...p, image: url}))}
+                                        />
                                         <div>
                                             <Label htmlFor="new-item-name">Название предмета</Label>
                                             <Input id="new-item-name" value={newItemData.name} onChange={e => setNewItemData(p => ({...p, name: e.target.value}))} />
@@ -1849,12 +1854,12 @@ export default function AdminTab() {
                                         </div>
                                         <div>
                                             <Label htmlFor="new-item-tag">Категория в инвентаре</Label>
-                                            <Select value={newItemData.inventoryTag} onValueChange={(v: InventoryCategory) => setNewItemData(p => ({...p, inventoryTag: v}))}>
-                                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                                <SelectContent>
-                                                    {INVENTORY_CATEGORIES.map(cat => <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>)}
-                                                </SelectContent>
-                                            </Select>
+                                             <SearchableSelect
+                                                options={INVENTORY_CATEGORIES}
+                                                value={newItemData.inventoryTag}
+                                                onValueChange={(v) => setNewItemData(p => ({...p, inventoryTag: v as InventoryCategory}))}
+                                                placeholder="Выберите категорию..."
+                                            />
                                         </div>
                                     </div>
                                 ) : (
@@ -1904,6 +1909,10 @@ export default function AdminTab() {
 
                                 {editItemData && selectedInventoryItem && (
                                      <div className="p-4 border rounded-md space-y-4">
+                                         <ImageKitUploader
+                                            currentImageUrl={editItemData.image}
+                                            onUpload={(url) => setEditItemData(p => p ? {...p, image: url} : null)}
+                                        />
                                          <div>
                                             <Label htmlFor="edit-item-name">Название предмета</Label>
                                             <Input id="edit-item-name" value={editItemData.name ?? ''} onChange={e => setEditItemData(p => p ? {...p, name: e.target.value} : null)} />
