@@ -899,7 +899,7 @@ export default function CharacterPage() {
                             <div className={cn("flex flex-col h-full", !selectedItem.image && "md:col-span-2")}>
                                 <DialogHeader className="flex-grow">
                                     <DialogTitle>{selectedItem.name}</DialogTitle>
-                                    <ScrollArea className="h-64 pr-4 mt-2">
+                                    <ScrollArea className="max-h-64 pr-4 mt-2">
                                         <div className="text-sm text-muted-foreground whitespace-pre-wrap">
                                             {selectedItem.description || 'Описание отсутствует.'}
                                         </div>
