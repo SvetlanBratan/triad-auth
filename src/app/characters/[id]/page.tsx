@@ -25,6 +25,7 @@ import RelationshipActions from '@/components/dashboard/relationship-actions';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import Image from 'next/image';
 import { useQuery } from '@tanstack/react-query';
+import FormattedTextRenderer from '@/components/dashboard/formatted-text-renderer';
 
 
 const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
@@ -440,7 +441,7 @@ export default function CharacterPage() {
                                     )}
                                     <div className={cn(character.appearanceImage ? "md:col-span-2" : "md:col-span-3")}>
                                         <ScrollArea className="h-96 w-full">
-                                            <p className="whitespace-pre-wrap pr-4">{character.appearance || 'Описание отсутствует.'}</p>
+                                            <div className="pr-4"><FormattedTextRenderer text={character.appearance || 'Описание отсутствует.'} /></div>
                                         </ScrollArea>
                                     </div>
                                 </div>
@@ -450,7 +451,7 @@ export default function CharacterPage() {
                             <SectionHeader title="Характер" icon={<Heart />} section="personality" />
                             <CardContent>
                                 <ScrollArea className="h-40 w-full">
-                                    <p className="whitespace-pre-wrap pr-4">{character.personality || 'Описание отсутствует.'}</p>
+                                    <div className="pr-4"><FormattedTextRenderer text={character.personality || 'Описание отсутствует.'} /></div>
                                 </ScrollArea>
                             </CardContent>
                         </Card>
@@ -458,7 +459,7 @@ export default function CharacterPage() {
                             <SectionHeader title="Биография" icon={<BookOpen />} section="biography" />
                             <CardContent>
                                 <ScrollArea className="h-64 w-full">
-                                    <p className="whitespace-pre-wrap pr-4">{character.biography || 'Описание отсутствует.'}</p>
+                                    <div className="pr-4"><FormattedTextRenderer text={character.biography || 'Описание отсутствует.'} /></div>
                                 </ScrollArea>
                             </CardContent>
                         </Card>
@@ -476,7 +477,7 @@ export default function CharacterPage() {
                                 {character.abilities && (
                                     <CardContent>
                                         <ScrollArea className="h-40 w-full">
-                                            <p className="whitespace-pre-wrap pr-4">{character.abilities}</p>
+                                            <div className="pr-4"><FormattedTextRenderer text={character.abilities} /></div>
                                         </ScrollArea>
                                     </CardContent>
                                 )}
@@ -496,7 +497,7 @@ export default function CharacterPage() {
                                 {character.weaknesses && (
                                     <CardContent>
                                         <ScrollArea className="h-40 w-full">
-                                            <p className="whitespace-pre-wrap pr-4">{character.weaknesses}</p>
+                                            <div className="pr-4"><FormattedTextRenderer text={character.weaknesses} /></div>
                                         </ScrollArea>
                                     </CardContent>
                                 )}
@@ -927,3 +928,4 @@ export default function CharacterPage() {
         </div>
     );
 }
+
