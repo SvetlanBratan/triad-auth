@@ -21,7 +21,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Badge } from "./badge"
-import { ScrollArea } from "./scroll-area"
 
 export type OptionType = {
   label: string;
@@ -96,33 +95,31 @@ function SearchableMultiSelect({ options, selected, onChange, className, placeho
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
         <Command>
             <CommandInput placeholder="Поиск..." />
-            <CommandList>
-                <ScrollArea className="max-h-72">
-                    <CommandEmpty>Ничего не найдено.</CommandEmpty>
-                    <CommandGroup>
-                    {options.map((option) => (
-                        <CommandItem
-                            key={option.value}
-                            value={option.label}
-                            onSelect={() => {
-                                onChange(
-                                selected.includes(option.value)
-                                    ? selected.filter((item) => item !== option.value)
-                                    : [...selected, option.value]
-                                )
-                            }}
-                        >
-                        <Check
-                            className={cn(
-                            "mr-2 h-4 w-4",
-                            selected.includes(option.value) ? "opacity-100" : "opacity-0"
-                            )}
-                        />
-                        {option.label}
-                        </CommandItem>
-                    ))}
-                    </CommandGroup>
-                </ScrollArea>
+            <CommandList className="max-h-72">
+                <CommandEmpty>Ничего не найдено.</CommandEmpty>
+                <CommandGroup>
+                {options.map((option) => (
+                    <CommandItem
+                        key={option.value}
+                        value={option.label}
+                        onSelect={() => {
+                            onChange(
+                            selected.includes(option.value)
+                                ? selected.filter((item) => item !== option.value)
+                                : [...selected, option.value]
+                            )
+                        }}
+                    >
+                    <Check
+                        className={cn(
+                        "mr-2 h-4 w-4",
+                        selected.includes(option.value) ? "opacity-100" : "opacity-0"
+                        )}
+                    />
+                    {option.label}
+                    </CommandItem>
+                ))}
+                </CommandGroup>
             </CommandList>
         </Command>
       </PopoverContent>
