@@ -92,6 +92,7 @@ interface UserContextType {
   adminGiveItemToCharacter: (userId: string, characterId: string, itemData: AdminGiveItemForm) => Promise<void>;
   adminUpdateItemInCharacter: (userId: string, characterId: string, itemData: InventoryItem, category: InventoryCategory) => Promise<void>;
   adminDeleteItemFromCharacter: (userId: string, characterId: string, itemId: string, category: InventoryCategory) => Promise<void>;
+  consumeInventoryItem: (userId: string, characterId: string, itemId: string, category: InventoryCategory) => Promise<void>;
   restockShopItem: (shopId: string, itemId: string, ownerUserId: string, ownerCharacterId: string) => Promise<void>;
   adminUpdateCharacterStatus: (userId: string, characterId: string, updates: { taxpayerStatus?: TaxpayerStatus; citizenshipStatus?: CitizenshipStatus }) => Promise<void>;
   adminUpdateShopLicense: (shopId: string, hasLicense: boolean) => Promise<void>;
@@ -1810,6 +1811,37 @@ const adminDeleteItemFromCharacter = useCallback(async (userId: string, characte
     await updateUser(userId, { characters: updatedCharacters });
 }, [fetchUserById, updateUser, initialFormData]);
 
+const consumeInventoryItem = useCallback(async (userId: string, characterId: string, itemId: string, category: InventoryCategory) => {
+    const user = await fetchUserById(userId);
+    if (!user) throw new Error("User not found");
+
+    const characterIndex = user.characters.findIndex(c => c.id === characterId);
+    if (characterIndex === -1) throw new Error("Character not found");
+
+    const character = { ...user.characters[characterIndex] };
+    const inventory = character.inventory || initialFormData.inventory;
+
+    if (!Array.isArray(inventory[category])) {
+       throw new Error("Item category not found");
+    }
+    
+    const itemIndex = inventory[category].findIndex(i => i.id === itemId);
+    if (itemIndex === -1) throw new Error("Item not found");
+
+    if (inventory[category][itemIndex].quantity > 1) {
+        inventory[category][itemIndex].quantity -= 1;
+    } else {
+        inventory[category] = inventory[category].filter(i => i.id !== itemId);
+    }
+    
+    character.inventory = inventory;
+
+    const updatedCharacters = [...user.characters];
+    updatedCharacters[characterIndex] = character;
+    await updateUser(userId, { characters: updatedCharacters });
+}, [fetchUserById, updateUser, initialFormData]);
+
+
 const restockShopItem = useCallback(async (shopId: string, itemId: string, ownerUserId: string, ownerCharacterId: string) => {
     await runTransaction(db, async (transaction) => {
         const shopRef = doc(db, "shops", shopId);
@@ -2152,12 +2184,13 @@ const processAnnualTaxes = useCallback(async (): Promise<{ taxedCharactersCount:
       adminGiveItemToCharacter,
       adminUpdateItemInCharacter,
       adminDeleteItemFromCharacter,
+      consumeInventoryItem,
       restockShopItem,
       adminUpdateCharacterStatus,
       adminUpdateShopLicense,
       processAnnualTaxes,
     }),
-    [currentUser, gameSettings, fetchUserById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes]
+    [currentUser, gameSettings, fetchUserById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes]
   );
 
   return (
