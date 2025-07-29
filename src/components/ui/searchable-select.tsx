@@ -76,7 +76,7 @@ export const SearchableSelect = ({
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
         <Command>
           <CommandInput placeholder="Поиск..." />
-          <CommandList className="max-h-72">
+          <CommandList className="max-h-72 overflow-y-auto">
             <CommandEmpty>Ничего не найдено.</CommandEmpty>
             {options.map((option, index) => {
             if (isOptionGroup(option)) {

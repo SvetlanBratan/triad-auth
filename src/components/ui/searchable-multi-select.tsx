@@ -95,7 +95,7 @@ function SearchableMultiSelect({ options, selected, onChange, className, placeho
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
         <Command>
             <CommandInput placeholder="Поиск..." />
-            <CommandList className="max-h-72">
+            <CommandList className="max-h-72 overflow-y-auto">
                 <CommandEmpty>Ничего не найдено.</CommandEmpty>
                 <CommandGroup>
                 {options.map((option) => (
