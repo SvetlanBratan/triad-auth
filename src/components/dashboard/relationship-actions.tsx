@@ -3,7 +3,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import type { Character, RelationshipActionType, InventoryCategory, InventoryItem } from '@/lib/types';
+import type { Character, RelationshipActionType, InventoryCategory, InventoryItem, PerformRelationshipActionParams } from '@/lib/types';
 import { useUser } from '@/hooks/use-user';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -37,9 +37,10 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
     const [sourceCharacterId, setSourceCharacterId] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isGiftDialogOpen, setIsGiftDialogOpen] = useState(false);
+    const [isLetterDialogOpen, setIsLetterDialogOpen] = useState(false);
     const [selectedGift, setSelectedGift] = useState<{ itemId: string; category: InventoryCategory; name: string } | null>(null);
+    const [letterContent, setLetterContent] = useState('');
     
-    // Check if there's any relationship between any of the current user's characters and the target character
     const hasAnyRelationship = useMemo(() => {
         if (!currentUser) return false;
         return currentUser.characters.some(sourceChar => 
@@ -78,8 +79,8 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
     }, [relationship, canSendLetter]);
 
 
-    const handleSimpleAction = async (actionType: 'письмо') => {
-        if (!currentUser || !sourceCharacterId) return;
+    const handleAction = async (params: Omit<PerformRelationshipActionParams, 'sourceUserId'>) => {
+         if (!currentUser || !sourceCharacterId) return;
 
         if (!relationship) {
             toast({
@@ -94,48 +95,51 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
         try {
             await performRelationshipAction({
                 sourceUserId: currentUser.id, 
-                sourceCharacterId, 
-                targetCharacterId: targetCharacter.id, 
-                actionType: 'письмо', 
-                description: 'Отправлено письмо'
+                ...params
             });
             toast({ title: 'Успех!', description: 'Действие выполнено, отношения обновлены.' });
+
+            if (params.actionType === 'письмо') {
+                setIsLetterDialogOpen(false);
+                setLetterContent('');
+            }
+             if (params.actionType === 'подарок') {
+                setIsGiftDialogOpen(false);
+                setSelectedGift(null);
+            }
+
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Произошла неизвестная ошибка.';
             toast({ variant: 'destructive', title: 'Ошибка', description: errorMessage });
         } finally {
             setIsLoading(false);
         }
-    };
+    }
     
-    const handleGiftAction = async () => {
-        if (!currentUser || !sourceCharacterId || !selectedGift) return;
+    const handleGiftAction = () => {
+        if (!selectedGift) return;
+        handleAction({
+            sourceCharacterId,
+            targetCharacterId: targetCharacter.id,
+            actionType: 'подарок',
+            description: `Подарен предмет: ${selectedGift.name}`,
+            itemId: selectedGift.itemId,
+            itemCategory: selectedGift.category
+        })
+    };
 
-        if (!relationship) {
-            toast({ variant: "destructive", title: "Отношения не установлены" });
+    const handleLetterAction = () => {
+        if (!letterContent.trim()) {
+            toast({ variant: 'destructive', title: 'Ошибка', description: 'Письмо не может быть пустым.' });
             return;
         }
-        
-        setIsLoading(true);
-        try {
-            await performRelationshipAction({
-                sourceUserId: currentUser.id,
-                sourceCharacterId,
-                targetCharacterId: targetCharacter.id,
-                actionType: 'подарок',
-                description: `Подарен предмет: ${selectedGift.name}`,
-                itemId: selectedGift.itemId,
-                itemCategory: selectedGift.category
-            });
-            toast({ title: 'Подарок отправлен!', description: `${selectedGift.name} теперь в инвентаре у ${targetCharacter.name}.` });
-            setIsGiftDialogOpen(false);
-            setSelectedGift(null);
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Произошла неизвестная ошибка.';
-            toast({ variant: 'destructive', title: 'Ошибка', description: errorMessage });
-        } finally {
-            setIsLoading(false);
-        }
+        handleAction({
+            sourceCharacterId,
+            targetCharacterId: targetCharacter.id,
+            actionType: 'письмо',
+            description: `Отправлено письмо`,
+            content: letterContent,
+        })
     };
 
     const sourceCharacter = useMemo(() => {
@@ -235,24 +239,47 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
                                         </DialogFooter>
                                     </DialogContent>
                                 </Dialog>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <span>
-                                            <Button
-                                                variant="outline"
-                                                className="w-full"
-                                                onClick={() => handleSimpleAction('письмо')}
-                                                disabled={!canSendLetter || isLoading}
-                                            >
-                                                <Mail className="w-4 h-4" />
+                                <Dialog open={isLetterDialogOpen} onOpenChange={setIsLetterDialogOpen}>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <DialogTrigger asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    className="w-full"
+                                                    disabled={!canSendLetter || isLoading}
+                                                >
+                                                    <Mail className="w-4 h-4" />
+                                                </Button>
+                                            </DialogTrigger>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Отправить письмо (+10)</p>
+                                            {!canSendLetter && <p className="text-xs text-muted-foreground">{letterTimeLeft}</p>}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                    <DialogContent>
+                                        <DialogHeader>
+                                            <DialogTitle>Написать письмо</DialogTitle>
+                                            <DialogDescription>
+                                                Напишите письмо для {targetCharacter.name} от имени {sourceCharacter?.name}.
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                        <div className="py-4">
+                                            <Textarea
+                                                value={letterContent}
+                                                onChange={(e) => setLetterContent(e.target.value)}
+                                                placeholder="Ваше письмо..."
+                                                rows={10}
+                                            />
+                                        </div>
+                                        <DialogFooter>
+                                            <DialogClose asChild><Button variant="ghost">Отмена</Button></DialogClose>
+                                            <Button onClick={handleLetterAction} disabled={isLoading || !letterContent.trim()}>
+                                                {isLoading ? 'Отправка...' : 'Отправить письмо'}
                                             </Button>
-                                        </span>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>Отправить письмо (+10)</p>
-                                        {!canSendLetter && <p className="text-xs text-muted-foreground">{letterTimeLeft}</p>}
-                                    </TooltipContent>
-                                </Tooltip>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
                             </div>
                         </TooltipProvider>
                     </>

@@ -15,7 +15,21 @@ export type FamiliarTradeRequestStatus = 'в ожидании' | 'принято
 export type CrimeLevel = 1 | 2 | 3 | 4 | 5;
 export type CitizenshipStatus = 'citizen' | 'non-citizen' | 'refugee';
 export type TaxpayerStatus = 'taxable' | 'exempt';
+export type MailMessageType = 'announcement' | 'personal';
 
+
+export interface MailMessage {
+  id: string;
+  senderCharacterName: string;
+  senderCharacterId?: string;
+  recipientUserId: string;
+  recipientCharacterId: string;
+  subject: string;
+  content: string;
+  sentAt: string; // ISO string
+  isRead: boolean;
+  type: MailMessageType;
+}
 
 export interface GameSettings {
   gameDateString: string;
@@ -222,6 +236,7 @@ export interface User {
   pointHistory: PointLog[];
   achievementIds?: string[];
   extraCharacterSlots?: number;
+  mail?: MailMessage[];
 }
 
 export interface Reward {
@@ -285,6 +300,7 @@ export interface PerformRelationshipActionParams {
     description: string;
     itemId?: string;
     itemCategory?: InventoryCategory;
+    content?: string; // For letters
 }
 
 
@@ -353,4 +369,7 @@ export interface UserContextType {
   restockShopItem: (shopId: string, itemId: string, ownerUserId: string, ownerCharacterId: string) => Promise<void>;
   adminUpdateCharacterStatus: (userId: string, characterId: string, updates: { taxpayerStatus?: TaxpayerStatus; citizenshipStatus?: CitizenshipStatus; }) => Promise<void>;
   adminUpdateShopLicense: (shopId: string, hasLicense: boolean) => Promise<void>;
+  sendMassMail: (subject: string, content: string) => Promise<void>;
+  markMailAsRead: (mailId: string) => Promise<void>;
+  deleteMailMessage: (mailId: string) => Promise<void>;
 }

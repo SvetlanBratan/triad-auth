@@ -8,7 +8,7 @@ import LeaderboardTab from "./leaderboard-tab";
 import RewardsTab from "./rewards-tab";
 import AdminTab from "./admin-tab";
 import RequestsTab from "./requests-tab";
-import { User, Trophy, Award, Shield, GitPullRequest, Landmark, Cat, Store } from "lucide-react";
+import { User, Trophy, Award, Shield, GitPullRequest, Landmark, Cat, Store, Mail } from "lucide-react";
 import AuthPage from "../auth/auth-page";
 import { useAuth } from "../providers/user-provider";
 import CurrencyExchange from "./currency-exchange";
@@ -16,6 +16,7 @@ import FamiliarsTab from "./familiars-tab";
 import { cn } from "@/lib/utils";
 import { useSearchParams } from "next/navigation";
 import MarketTab from "./market-tab";
+import MailTab from "./mail-tab";
 
 export function Dashboard() {
   const { currentUser } = useUser();
@@ -39,9 +40,11 @@ export function Dashboard() {
   }
 
   const isAdmin = currentUser.role === 'admin';
+  const unreadMailCount = (currentUser.mail || []).filter(m => !m.isRead).length;
   
   const tabs = [
     { value: 'profile', label: 'Профиль', icon: User },
+    { value: 'mail', label: 'Почта', icon: Mail, notificationCount: unreadMailCount },
     { value: 'leaderboard', label: 'Лидеры', icon: Trophy },
     { value: 'familiars', label: 'Фамильяры', icon: Cat, className: "shrink-0" },
     { value: 'rewards', label: 'Награды', icon: Award },
@@ -54,16 +57,24 @@ export function Dashboard() {
   return (
       <Tabs defaultValue={defaultTab} className="w-full">
         <TabsList className="flex flex-wrap h-auto min-h-12 justify-around sm:justify-center sm:gap-1">
-          {tabs.map(({ value, label, icon: Icon, className }) => (
-            <TabsTrigger key={value} value={value} className="flex-row items-center justify-center p-1 sm:p-2 sm:gap-1.5 text-xs sm:text-sm">
+          {tabs.map(({ value, label, icon: Icon, className, notificationCount }) => (
+            <TabsTrigger key={value} value={value} className="flex-row items-center justify-center p-1 sm:p-2 sm:gap-1.5 text-xs sm:text-sm relative">
               <Icon className={cn("w-4 h-4", className)} />
               <span className="hidden [@media(min-width:400px)]:sm:inline">{label}</span>
+              {notificationCount && notificationCount > 0 && (
+                <span className="absolute top-0 right-0 -mt-1 -mr-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs">
+                  {notificationCount}
+                </span>
+              )}
             </TabsTrigger>
           ))}
         </TabsList>
 
         <TabsContent value="profile" className="mt-4">
           <ProfileTab />
+        </TabsContent>
+         <TabsContent value="mail" className="mt-4">
+          <MailTab />
         </TabsContent>
         <TabsContent value="leaderboard" className="mt-4">
           <LeaderboardTab />
