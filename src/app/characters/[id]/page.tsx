@@ -401,6 +401,16 @@ export default function CharacterPage() {
         );
      };
 
+    const getItemActionProps = (category: InventoryCategory) => {
+        if (category === 'еда') {
+            return { text: 'Съесть', variant: 'default' as const };
+        }
+        if (category === 'зелья') {
+            return { text: 'Использовать', variant: 'secondary' as const };
+        }
+        return { text: 'Удалить', variant: 'destructive' as const };
+    };
+
 
     return (
         <div className="container mx-auto p-4 md:p-8 space-y-6">
@@ -932,10 +942,10 @@ export default function CharacterPage() {
                                         <Button 
                                             onClick={handleConsumeItem} 
                                             disabled={isConsuming}
-                                            variant={selectedItem.category === 'еда' ? 'default' : 'secondary'}
+                                            variant={getItemActionProps(selectedItem.category).variant}
                                             className="w-full"
                                         >
-                                            {isConsuming ? 'Использование...' : (selectedItem.category === 'еда' ? 'Съесть' : 'Использовать')}
+                                            {isConsuming ? 'Обработка...' : getItemActionProps(selectedItem.category).text}
                                         </Button>
                                     </DialogFooter>
                                 )}
@@ -949,3 +959,4 @@ export default function CharacterPage() {
         </div>
     );
 }
+
