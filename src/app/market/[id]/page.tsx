@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React from 'react';
@@ -74,6 +73,11 @@ export default function ShopPage() {
     const isOwnerOrAdmin = React.useMemo(() => {
         if (!currentUser || !shop) return false;
         return currentUser.role === 'admin' || currentUser.id === shop.ownerUserId;
+    }, [currentUser, shop]);
+    
+    const isOwner = React.useMemo(() => {
+        if (!currentUser || !shop) return false;
+        return currentUser.id === shop.ownerUserId;
     }, [currentUser, shop]);
     
     const handleFormClose = () => {
@@ -300,7 +304,7 @@ export default function ShopPage() {
                                             <div className="text-primary font-bold">
                                                 {formatCurrency(item.price)}
                                             </div>
-                                            {!isOwnerOrAdmin && (
+                                            {!isOwner && (
                                                 <Button className="w-full" onClick={() => handlePurchaseClick(item)} disabled={isOutOfStock}>
                                                     <ShoppingCart className="mr-2 h-4 w-4" /> {isOutOfStock ? "Нет в наличии" : "Купить"}
                                                 </Button>
@@ -456,4 +460,3 @@ export default function ShopPage() {
     
 
     
-
