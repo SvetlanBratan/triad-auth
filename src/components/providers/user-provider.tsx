@@ -33,7 +33,7 @@ interface UserContextType {
   gameDateString: string | null;
   lastWeeklyBonusAwardedAt: string | undefined;
   fetchUserById: (userId: string) => Promise<User | null>;
-  fetchCharacterAndOwner: (characterId: string) => Promise<{ character: Character; owner: User } | null>;
+  fetchCharacterById: (characterId: string) => Promise<{ character: Character; owner: User } | null>;
   fetchUsersForAdmin: () => Promise<User[]>;
   fetchLeaderboardUsers: () => Promise<User[]>;
   fetchAllRewardRequests: () => Promise<RewardRequest[]>;
@@ -299,25 +299,37 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       return null;
   }, [initialFormData]);
   
-  const fetchCharacterAndOwner = useCallback(async (characterId: string): Promise<{ character: Character; owner: User } | null> => {
-    // This query is very inefficient and might require an index.
-    const usersCollection = collection(db, "users");
-    const snapshot = await getDocs(usersCollection);
+  const fetchCharacterById = useCallback(async (characterId: string): Promise<{ character: Character; owner: User } | null> => {
+    const q = query(collectionGroup(db, 'users'), where('characters', 'array-contains', characterId));
+    const querySnapshot = await getDocs(query);
     
-    for (const userDoc of snapshot.docs) {
-        const user = userDoc.data() as User;
-        const character = (user.characters || []).find(c => c.id === characterId);
-        if (character) {
-             const fullUser = await fetchUserById(user.id);
-             if (!fullUser) return null;
-             const fullCharacter = fullUser.characters.find(c => c.id === characterId);
-             if (!fullCharacter) return null;
-
-             return { character: fullCharacter, owner: fullUser };
+    if (querySnapshot.empty) {
+        // Fallback for older data structure where characters might not be in an array for querying
+        const allUsers = await getDocs(collection(db, 'users'));
+        for (const userDoc of allUsers.docs) {
+            const user = userDoc.data() as User;
+            const character = user.characters.find(c => c.id === characterId);
+            if (character) {
+                const fullUser = await fetchUserById(user.id);
+                if (!fullUser) return null;
+                const fullCharacter = fullUser.characters.find(c => c.id === characterId);
+                if(!fullCharacter) return null;
+                return { character: fullCharacter, owner: fullUser };
+            }
         }
+        return null; // Not found in fallback either
     }
-    
-    return null;
+
+    const ownerDoc = querySnapshot.docs[0];
+    const owner = ownerDoc.data() as User;
+
+    const fullOwner = await fetchUserById(owner.id);
+    if (!fullOwner) return null;
+
+    const character = fullOwner.characters.find(c => c.id === characterId);
+    if (!character) return null;
+
+    return { character, owner: fullOwner };
   }, [fetchUserById]);
 
   const createNewUser = useCallback(async (uid: string, nickname: string): Promise<User> => {
@@ -2259,7 +2271,7 @@ const deleteMailMessage = useCallback(async (mailId: string) => {
       gameDateString: gameSettings.gameDateString,
       lastWeeklyBonusAwardedAt: gameSettings.lastWeeklyBonusAwardedAt,
       fetchUserById,
-      fetchCharacterAndOwner,
+      fetchCharacterById,
       fetchUsersForAdmin,
       fetchLeaderboardUsers,
       fetchAllRewardRequests,
@@ -2322,7 +2334,7 @@ const deleteMailMessage = useCallback(async (mailId: string) => {
       markMailAsRead,
       deleteMailMessage,
     }),
-    [currentUser, gameSettings, fetchUserById, fetchCharacterAndOwner, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage]
+    [currentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage]
   );
 
   return (
