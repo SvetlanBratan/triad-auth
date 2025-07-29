@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
-import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info, AlertTriangle, Bell, CheckCircle, Store, PackagePlus, Edit, BadgeCheck, FileText } from 'lucide-react';
+import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info, AlertTriangle, Bell, CheckCircle, Store, PackagePlus, Edit, BadgeCheck, FileText, Send } from 'lucide-react';
 import type { UserStatus, UserRole, User, FamiliarCard, BankAccount, WealthLevel, FamiliarRank, Shop, InventoryCategory, AdminGiveItemForm, InventoryItem, CitizenshipStatus, TaxpayerStatus } from '@/lib/types';
 import { FAME_LEVELS_POINTS, EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, FAMILIARS_BY_ID, WEALTH_LEVELS, ALL_FAMILIARS, STARTING_CAPITAL_LEVELS, ALL_SHOPS, INVENTORY_CATEGORIES } from '@/lib/data';
 import {
@@ -82,6 +82,7 @@ export default function AdminTab() {
     adminUpdateCharacterStatus,
     adminUpdateShopLicense,
     processAnnualTaxes,
+    sendMassMail,
   } = useUser();
   const queryClient = useQueryClient();
 
@@ -176,6 +177,12 @@ export default function AdminTab() {
   const [newItemData, setNewItemData] = useState<AdminGiveItemForm>({ name: '', description: '', inventoryTag: 'прочее', quantity: 1, image: '' });
   const [selectedInventoryItem, setSelectedInventoryItem] = useState<{ id: string, category: InventoryCategory } | null>(null);
   const [editItemData, setEditItemData] = useState<InventoryItem | null>(null);
+  
+  // Mass mail state
+  const [mailSubject, setMailSubject] = useState('');
+  const [mailContent, setMailContent] = useState('');
+  const [mailSender, setMailSender] = useState('Администрация');
+  const [isSendingMail, setIsSendingMail] = useState(false);
 
 
   const { toast } = useToast();
@@ -724,6 +731,26 @@ export default function AdminTab() {
       // Reset
       setSelectedInventoryItem(null);
   };
+  
+  const handleSendMassMail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mailSubject.trim() || !mailContent.trim() || !mailSender.trim()) {
+        toast({ variant: 'destructive', title: 'Ошибка', description: 'Заполните все поля для рассылки.' });
+        return;
+    }
+    setIsSendingMail(true);
+    try {
+        await sendMassMail(mailSubject, mailContent, mailSender);
+        toast({ title: 'Рассылка отправлена!', description: 'Письмо было отправлено всем персонажам.' });
+        setMailSubject('');
+        setMailContent('');
+    } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Произошла неизвестная ошибка.';
+        toast({ variant: 'destructive', title: 'Ошибка при отправке', description: msg });
+    } finally {
+        setIsSendingMail(false);
+    }
+  };
 
 
   // --- Memos ---
@@ -919,6 +946,7 @@ export default function AdminTab() {
         <TabsTrigger value="familiars" className="text-xs sm:text-sm">Фамильяры</TabsTrigger>
         <TabsTrigger value="economy" className="text-xs sm:text-sm">Экономика</TabsTrigger>
         <TabsTrigger value="shops" className="text-xs sm:text-sm">Магазины</TabsTrigger>
+        <TabsTrigger value="mail" className="text-xs sm:text-sm">Рассылка</TabsTrigger>
       </TabsList>
 
       <TabsContent value="points" className="mt-4">
@@ -1956,6 +1984,34 @@ export default function AdminTab() {
             </Card>
            </div>
         </div>
+      </TabsContent>
+       <TabsContent value="mail" className="mt-4">
+            <Card className="max-w-2xl mx-auto">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">Массовая рассылка</CardTitle>
+                    <CardDescription>Отправить объявление всем персонажам от лица определенной группы или персонажа.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleSendMassMail} className="space-y-4">
+                        <div>
+                            <Label htmlFor="mail-sender">Отправитель</Label>
+                            <Input id="mail-sender" value={mailSender} onChange={e => setMailSender(e.target.value)} placeholder="Напр., 'Королевская канцелярия'" />
+                        </div>
+                        <div>
+                            <Label htmlFor="mail-subject">Тема письма</Label>
+                            <Input id="mail-subject" value={mailSubject} onChange={e => setMailSubject(e.target.value)} required />
+                        </div>
+                         <div>
+                            <Label htmlFor="mail-content">Содержание</Label>
+                            <Textarea id="mail-content" value={mailContent} onChange={e => setMailContent(e.target.value)} required rows={8}/>
+                        </div>
+                        <Button type="submit" disabled={isSendingMail} className="w-full">
+                            <Send className="mr-2 h-4 w-4" />
+                            {isSendingMail ? 'Отправка...' : 'Отправить всем'}
+                        </Button>
+                    </form>
+                </CardContent>
+            </Card>
       </TabsContent>
     </Tabs>
   );

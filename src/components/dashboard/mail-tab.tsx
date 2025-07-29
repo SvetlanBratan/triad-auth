@@ -58,7 +58,7 @@ export default function MailTab() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Mail /> Почта</CardTitle>
-          <CardDescription>Здесь вы можете прочитать личные письма и объявления от администрации.</CardDescription>
+          <CardDescription>Здесь вы можете прочитать личные письма и массовые рассылки.</CardDescription>
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-96 pr-4">
