@@ -1,13 +1,14 @@
 
+
 'use client';
 
 import React from 'react';
 import type { Character, Relationship, RelationshipType } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Trash2, PlusCircle } from 'lucide-react';
 import type { OptionType } from '../ui/multi-select';
+import { SearchableSelect } from '../ui/searchable-select';
 
 interface RelationshipFormProps {
     formData: Character;
@@ -73,39 +74,21 @@ const RelationshipForm = ({ formData, setFormData, characterOptions }: Relations
                     
                     <div>
                         <Label>Персонаж</Label>
-                        <Select
+                        <SearchableSelect
+                            options={characterOptions}
                             value={rel.targetCharacterId}
                             onValueChange={(value) => handleRelationshipChange(index, 'targetCharacterId', value)}
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Выберите персонажа..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {characterOptions.map(opt => (
-                                    <SelectItem key={opt.value} value={opt.value}>
-                                        {opt.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                            placeholder="Выберите персонажа..."
+                        />
                     </div>
                     <div>
                         <Label>Тип отношений</Label>
-                        <Select
+                        <SearchableSelect
+                            options={relationshipTypeOptions}
                             value={rel.type}
-                            onValueChange={(value: RelationshipType) => handleRelationshipChange(index, 'type', value)}
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Выберите тип..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {relationshipTypeOptions.map(opt => (
-                                    <SelectItem key={opt.value} value={opt.value}>
-                                        {opt.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                            onValueChange={(value: string) => handleRelationshipChange(index, 'type', value as RelationshipType)}
+                            placeholder="Выберите тип..."
+                        />
                     </div>
                 </div>
             ))}

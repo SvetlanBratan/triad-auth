@@ -13,7 +13,6 @@ import { Textarea } from '../ui/textarea';
 import { ScrollArea } from '../ui/scroll-area';
 import { Trash2, PlusCircle } from 'lucide-react';
 import { SearchableSelect } from '../ui/searchable-select';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import ImageUploader from './image-uploader';
 import { SearchableMultiSelect } from '../ui/searchable-multi-select';
 

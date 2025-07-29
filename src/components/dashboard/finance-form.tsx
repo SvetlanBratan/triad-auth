@@ -1,11 +1,12 @@
 
+
 'use client';
 
 import React from 'react';
 import type { Character, WealthLevel } from '@/lib/types';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { WEALTH_LEVELS } from '@/lib/data';
+import { SearchableSelect } from '../ui/searchable-select';
 
 interface FinanceFormProps {
     formData: Character;
@@ -20,26 +21,22 @@ const FinanceForm = ({ formData, setFormData }: FinanceFormProps) => {
             wealthLevel: value,
         }));
     };
+
+    const wealthLevelOptions = WEALTH_LEVELS.map(level => ({
+        value: level.name,
+        label: level.name,
+    }));
     
     return (
         <div className="space-y-4">
             <div>
                 <Label htmlFor="wealthLevel">Уровень достатка</Label>
-                <Select
+                <SearchableSelect
+                    options={wealthLevelOptions}
                     value={formData.wealthLevel}
-                    onValueChange={handleWealthLevelChange}
-                >
-                    <SelectTrigger id="wealthLevel">
-                        <SelectValue placeholder="Выберите уровень достатка..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {WEALTH_LEVELS.map(level => (
-                            <SelectItem key={level.name} value={level.name}>
-                                {level.name}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                    onValueChange={(value) => handleWealthLevelChange(value as WealthLevel)}
+                    placeholder="Выберите уровень достатка..."
+                />
                  <p className="text-xs text-muted-foreground mt-2">
                     Изменение этого поля не влияет на баланс в банке. Банковский счет и зарплата управляются администратором.
                 </p>

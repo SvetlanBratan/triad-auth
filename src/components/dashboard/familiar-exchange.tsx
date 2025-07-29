@@ -6,7 +6,6 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useUser } from '@/hooks/use-user';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowRightLeft, Repeat, Check, X, Trash2, Send } from 'lucide-react';
 import type { Character, FamiliarCard, FamiliarTradeRequest, User, FamiliarRank } from '@/lib/types';
@@ -64,9 +63,9 @@ export default function FamiliarExchange() {
   const [isProcessingId, setIsProcessingId] = useState<string | null>(null);
 
   // --- Memos for form options ---
-  const myCharacters = useMemo(() => currentUser?.characters || [], [currentUser]);
+  const myCharactersOptions = useMemo(() => (currentUser?.characters || []).map(char => ({ value: char.id, label: char.name })), [currentUser]);
   
-  const mySelectedChar = useMemo(() => myCharacters.find(c => c.id === initiatorCharId), [myCharacters, initiatorCharId]);
+  const mySelectedChar = useMemo(() => (currentUser?.characters || []).find(c => c.id === initiatorCharId), [currentUser?.characters, initiatorCharId]);
   
   const myFamiliarsOptions = useMemo(() => {
     if (!mySelectedChar) return [];
@@ -205,12 +204,12 @@ export default function FamiliarExchange() {
                 {/* Step 1: My side */}
                 <div className="space-y-2 p-3 border rounded-md">
                     <h4 className="font-semibold text-sm">Ваше предложение</h4>
-                    <Select value={initiatorCharId} onValueChange={id => { setInitiatorCharId(id); setInitiatorFamiliarId(''); setTargetCharId(''); setTargetFamiliarId(''); }}>
-                        <SelectTrigger><SelectValue placeholder="Выберите вашего персонажа..." /></SelectTrigger>
-                        <SelectContent>
-                            {myCharacters.map(char => <SelectItem key={char.id} value={char.id}>{char.name}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
+                    <SearchableSelect
+                        options={myCharactersOptions}
+                        value={initiatorCharId}
+                        onValueChange={id => { setInitiatorCharId(id); setInitiatorFamiliarId(''); setTargetCharId(''); setTargetFamiliarId(''); }}
+                        placeholder="Выберите вашего персонажа..."
+                    />
                      <SearchableSelect
                         options={myFamiliarsOptions}
                         value={initiatorFamiliarId}
