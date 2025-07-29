@@ -66,7 +66,9 @@ function SearchableMultiSelect({ options, selected, onChange, className, placeho
                       className="rounded-sm"
                     >
                       {label}
-                      <button
+                      <div
+                        role="button"
+                        tabIndex={0}
                         aria-label={`Remove ${label}`}
                         className="ml-1 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
                         onKeyDown={(e) => {
@@ -81,7 +83,7 @@ function SearchableMultiSelect({ options, selected, onChange, className, placeho
                         }}
                       >
                         <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                      </button>
+                      </div>
                     </Badge>
                   )
               })}
