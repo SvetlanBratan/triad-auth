@@ -394,8 +394,9 @@ export default function CharacterPage() {
                 </div>
             </header>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 space-y-6">
+            <div className="flex flex-col lg:flex-row gap-6">
+                {/* Main Content Column */}
+                <div className="w-full lg:w-2/3 space-y-6 order-2 lg:order-1">
                      <Card>
                         <SectionHeader title="Внешность" icon={<PersonStanding />} section="appearance" />
                         <CardContent>
@@ -521,7 +522,9 @@ export default function CharacterPage() {
                         </CardContent>
                     </Card>
                 </div>
-                 <div className="flex flex-col space-y-6">
+                 
+                 {/* Sidebar Column */}
+                 <div className="w-full lg:w-1/3 flex flex-col space-y-6 order-1 lg:order-2">
                      <Card>
                          <CardHeader>
                             <CardTitle className="flex items-center gap-2"><Info /> Основная информация</CardTitle>
@@ -880,3 +883,5 @@ export default function CharacterPage() {
     );
 }
 
+
+    
