@@ -11,7 +11,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '../ui/textarea';
 import { ScrollArea } from '../ui/scroll-area';
-import { MultiSelect } from '../ui/multi-select';
 import { Trash2, PlusCircle } from 'lucide-react';
 import { SearchableSelect } from '../ui/searchable-select';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -396,7 +395,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                     case 'abilities': return <div><Label htmlFor="abilities">Способности</Label><Textarea id="abilities" value={formData.abilities ?? ''} onChange={(e) => handleFieldChange('abilities', e.target.value)} rows={8} placeholder="Опишите уникальные способности или навыки..."/> <FormattingHelp /></div>;
                     case 'weaknesses': return <div><Label htmlFor="weaknesses">Слабости</Label><Textarea id="weaknesses" value={formData.weaknesses ?? ''} onChange={(e) => handleFieldChange('weaknesses', e.target.value)} rows={8} placeholder="Укажите слабости, уязвимости или страхи..."/> <FormattingHelp /></div>;
                     case 'marriage': return <div><Label htmlFor="marriedTo">В браке с</Label><SearchableMultiSelect placeholder="Выберите персонажей..." options={characterOptions} selected={formData.marriedTo ?? []} onChange={(v) => handleMultiSelectChange('marriedTo', v)} /></div>;
-                    case 'training': return <div><Label htmlFor="training">Обучение</Label><MultiSelect placeholder="Выберите варианты..." options={TRAINING_OPTIONS} selected={formData.training ?? []} onChange={(v) => handleMultiSelectChange('training', v)} /></div>;
+                    case 'training': return <div><Label htmlFor="training">Обучение</Label><SearchableMultiSelect placeholder="Выберите варианты..." options={TRAINING_OPTIONS} selected={formData.training ?? []} onChange={(v) => handleMultiSelectChange('training', v)} /></div>;
                     case 'lifeGoal': return <div><Label htmlFor="lifeGoal">Жизненная цель</Label><Textarea id="lifeGoal" value={formData.lifeGoal ?? ''} onChange={(e) => handleFieldChange('lifeGoal', e.target.value)} rows={4} placeholder="Какова главная цель или мечта вашего персонажа?"/></div>;
                     case 'criminalRecords': return <div><Label htmlFor="criminalRecords">Судимости</Label><Textarea id="criminalRecords" value={formData.criminalRecords ?? ''} onChange={(e) => handleFieldChange('criminalRecords', e.target.value)} rows={4} placeholder="Опишите судимости персонажа."/></div>;
                     case 'pets': return <div><Label htmlFor="pets">Питомцы</Label><Textarea id="pets" value={formData.pets ?? ''} onChange={(e) => handleFieldChange('pets', e.target.value)} rows={4} placeholder="Есть ли у вашего персонажа питомцы? Расскажите о них."/></div>;
