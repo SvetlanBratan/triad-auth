@@ -277,6 +277,17 @@ export type AdminGiveItemForm = {
     image?: string;
 }
 
+export interface PerformRelationshipActionParams {
+    sourceUserId: string;
+    sourceCharacterId: string;
+    targetCharacterId: string;
+    actionType: RelationshipActionType;
+    description: string;
+    itemId?: string;
+    itemCategory?: InventoryCategory;
+}
+
+
 export interface UserContextType {
   currentUser: User | null;
   setCurrentUser: (user: User | null) => void;
@@ -313,13 +324,7 @@ export interface UserContextType {
   updateGameDate: (newDateString: string) => Promise<void>;
   processWeeklyBonus: () => Promise<{awardedCount: number, isOverdue: boolean}>;
   checkExtraCharacterSlots: (userId: string) => Promise<number>;
-  performRelationshipAction: (
-    sourceUserId: string,
-    sourceCharacterId: string,
-    targetCharacterId: string,
-    actionType: RelationshipActionType,
-    description: string
-  ) => Promise<void>;
+  performRelationshipAction: (params: PerformRelationshipActionParams) => Promise<void>;
   recoverFamiliarsFromHistory: (userId: string, characterId: string, oldCharacterName?: string) => Promise<number>;
   addBankPointsToCharacter: (userId: string, characterId: string, amount: Partial<BankAccount>, reason: string) => Promise<void>;
   processMonthlySalary: () => Promise<void>;

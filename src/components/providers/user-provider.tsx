@@ -3,7 +3,7 @@
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
-import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus } from '@/lib/types';
+import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter } from "firebase/firestore";
@@ -62,13 +62,7 @@ interface UserContextType {
   updateGameDate: (newDateString: string) => Promise<void>;
   processWeeklyBonus: () => Promise<{awardedCount: number, isOverdue: boolean}>;
   checkExtraCharacterSlots: (userId: string) => Promise<number>;
-  performRelationshipAction: (
-    sourceUserId: string,
-    sourceCharacterId: string,
-    targetCharacterId: string,
-    actionType: RelationshipActionType,
-    description: string
-  ) => Promise<void>;
+  performRelationshipAction: (params: PerformRelationshipActionParams) => Promise<void>;
   recoverFamiliarsFromHistory: (userId: string, characterId: string, oldCharacterName?: string) => Promise<number>;
   addBankPointsToCharacter: (userId: string, characterId: string, amount: Partial<BankAccount>, reason: string) => Promise<void>;
   processMonthlySalary: () => Promise<void>;
@@ -1023,23 +1017,17 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     return querySnapshot.size;
   }, []);
 
-  const performRelationshipAction = useCallback(async (
-    sourceUserId: string,
-    sourceCharacterId: string,
-    targetCharacterId: string,
-    actionType: RelationshipActionType,
-    description: string
-  ) => {
+  const performRelationshipAction = useCallback(async (params: PerformRelationshipActionParams) => {
+    const { sourceUserId, sourceCharacterId, targetCharacterId, actionType, description, itemId, itemCategory } = params;
+
     await runTransaction(db, async (transaction) => {
+        // --- 1. Get all necessary documents ---
         const sourceUserRef = doc(db, "users", sourceUserId);
         const sourceUserDoc = await transaction.get(sourceUserRef);
         if (!sourceUserDoc.exists()) throw new Error("Исходный пользователь не найден.");
         const sourceUserData = sourceUserDoc.data() as User;
-
-        let targetUserDoc: any = null;
-        let targetUserData: User | null = null;
-        let targetUserId: string | null = null;
         
+        let targetUserDoc: any = null, targetUserData: User | null = null, targetUserId: string | null = null;
         const allUsersSnapshot = await getDocs(collection(db, "users"));
         allUsersSnapshot.forEach(doc => {
             const user = doc.data() as User;
@@ -1049,45 +1037,78 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 targetUserId = doc.id;
             }
         });
-        
         if (!targetUserDoc || !targetUserData || !targetUserId) throw new Error("Владелец целевого персонажа не найден.");
         
         const targetUserFromTx = await transaction.get(targetUserDoc.ref);
         if (!targetUserFromTx.exists()) throw new Error("Целевой пользователь не найден в транзакции.");
         targetUserData = targetUserFromTx.data() as User;
 
-        const updateRelationship = (character: Character, otherCharId: string, points: number, action: RelationshipAction) => {
-            const relIndex = (character.relationships || []).findIndex(r => r.targetCharacterId === otherCharId);
-            if (relIndex === -1) return;
-
-            const relationship = character.relationships[relIndex];
-            relationship.points += points;
-
-            const now = new Date();
-            if (action.type === 'подарок') relationship.lastGiftSentAt = now.toISOString();
-            if (action.type === 'письмо') relationship.lastLetterSentAt = now.toISOString();
-
-            relationship.history = [...(relationship.history || []), action];
-        };
-
-        const nowISO = new Date().toISOString();
-        const newAction: RelationshipAction = {
-            id: `act-${Date.now()}`,
-            type: actionType,
-            date: nowISO,
-            description,
-            status: 'confirmed',
-        };
-        const pointsToAdd = RELATIONSHIP_POINTS_CONFIG[actionType];
-
+        // --- 2. Find characters and relationships ---
         const sourceCharIndex = sourceUserData.characters.findIndex(c => c.id === sourceCharacterId);
         if (sourceCharIndex === -1) throw new Error("Исходный персонаж не найден.");
-        updateRelationship(sourceUserData.characters[sourceCharIndex], targetCharacterId, pointsToAdd, newAction);
+        const sourceChar = sourceUserData.characters[sourceCharIndex];
 
         const targetCharIndex = targetUserData.characters.findIndex(c => c.id === targetCharacterId);
         if (targetCharIndex === -1) throw new Error("Целевой персонаж не найден.");
-        updateRelationship(targetUserData.characters[targetCharIndex], sourceCharacterId, pointsToAdd, newAction);
+        const targetChar = targetUserData.characters[targetCharIndex];
+        
+        // --- 3. Handle item transfer for 'подарок' ---
+        if (actionType === 'подарок') {
+            if (!itemId || !itemCategory) throw new Error("Для подарка требуется указать предмет.");
+            
+            const sourceInventory = sourceChar.inventory || initialFormData.inventory;
+            const categoryItems = (sourceInventory[itemCategory] as InventoryItem[] | undefined) || [];
+            const itemIndex = categoryItems.findIndex(i => i.id === itemId);
 
+            if (itemIndex === -1) throw new Error("Предмет для подарка не найден в инвентаре.");
+            const itemToGift = { ...categoryItems[itemIndex] };
+
+            // Remove from source
+            if (itemToGift.quantity > 1) {
+                categoryItems[itemIndex].quantity -= 1;
+            } else {
+                categoryItems.splice(itemIndex, 1);
+            }
+            sourceInventory[itemCategory] = categoryItems;
+
+            // Add to target
+            const targetInventory = targetChar.inventory || initialFormData.inventory;
+            const targetCategoryItems = (targetInventory[itemCategory] as InventoryItem[] | undefined) || [];
+            const existingTargetItemIndex = targetCategoryItems.findIndex(i => i.name === itemToGift.name);
+
+            if (existingTargetItemIndex > -1) {
+                targetCategoryItems[existingTargetItemIndex].quantity += 1;
+            } else {
+                targetCategoryItems.push({ ...itemToGift, id: `inv-${Date.now()}`, quantity: 1 });
+            }
+            targetInventory[itemCategory] = targetCategoryItems;
+            
+            sourceChar.inventory = sourceInventory;
+            targetChar.inventory = targetInventory;
+        }
+
+        // --- 4. Update relationship points and history ---
+        const updateRelationship = (character: Character, otherCharId: string, points: number, action: RelationshipAction) => {
+            const relIndex = (character.relationships || []).findIndex(r => r.targetCharacterId === otherCharId);
+            if (relIndex === -1) return; // Should not happen if UI is correct
+
+            const relationship = character.relationships[relIndex];
+            relationship.points += points;
+            const now = new Date();
+            if (action.type === 'подарок') relationship.lastGiftSentAt = now.toISOString();
+            if (action.type === 'письмо') relationship.lastLetterSentAt = now.toISOString();
+            relationship.history = [...(relationship.history || []), action];
+        };
+
+        const newAction: RelationshipAction = {
+            id: `act-${Date.now()}`, type: actionType, date: new Date().toISOString(), description, status: 'confirmed',
+        };
+        const pointsToAdd = RELATIONSHIP_POINTS_CONFIG[actionType];
+
+        updateRelationship(sourceChar, targetCharacterId, pointsToAdd, newAction);
+        updateRelationship(targetChar, sourceCharacterId, pointsToAdd, newAction);
+
+        // --- 5. Commit transaction ---
         transaction.update(sourceUserRef, { characters: sourceUserData.characters });
         transaction.update(targetUserDoc.ref, { characters: targetUserData.characters });
     });
@@ -1096,7 +1117,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const updatedUser = await fetchUserById(sourceUserId);
         if(updatedUser) setCurrentUser(updatedUser);
     }
-  }, [currentUser, fetchUserById]);
+}, [currentUser, fetchUserById, initialFormData]);
 
   const recoverFamiliarsFromHistory = useCallback(async (userId: string, characterId: string, oldCharacterName?: string): Promise<number> => {
     const user = await fetchUserById(userId);

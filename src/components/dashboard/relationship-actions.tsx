@@ -3,7 +3,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import type { Character, RelationshipActionType } from '@/lib/types';
+import type { Character, RelationshipActionType, InventoryCategory, InventoryItem } from '@/lib/types';
 import { useUser } from '@/hooks/use-user';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -15,6 +15,7 @@ import { Gift, Mail, MessageSquarePlus, Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { differenceInHours, differenceInDays } from 'date-fns';
 import { SearchableSelect } from '../ui/searchable-select';
+import { INVENTORY_CATEGORIES } from '@/lib/data';
 
 
 interface RelationshipActionsProps {
@@ -26,12 +27,17 @@ const Cooldowns = {
     письмо: 7 * 24, // hours
 }
 
+const giftableCategories: InventoryCategory[] = ['подарки', 'драгоценности', 'еда', 'книгиИСвитки', 'артефакты', 'зелья', 'прочее'];
+
+
 export default function RelationshipActions({ targetCharacter }: RelationshipActionsProps) {
     const { currentUser, performRelationshipAction } = useUser();
     const { toast } = useToast();
 
     const [sourceCharacterId, setSourceCharacterId] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isGiftDialogOpen, setIsGiftDialogOpen] = useState(false);
+    const [selectedGift, setSelectedGift] = useState<{ itemId: string; category: InventoryCategory; name: string } | null>(null);
     
     // Check if there's any relationship between any of the current user's characters and the target character
     const hasAnyRelationship = useMemo(() => {
@@ -72,10 +78,9 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
     }, [relationship, canSendLetter]);
 
 
-    const handleSimpleAction = async (actionType: 'подарок' | 'письмо') => {
+    const handleSimpleAction = async (actionType: 'письмо') => {
         if (!currentUser || !sourceCharacterId) return;
 
-        // Check if a relationship exists. If not, this action cannot be performed yet.
         if (!relationship) {
             toast({
                 variant: "destructive",
@@ -87,7 +92,13 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
 
         setIsLoading(true);
         try {
-            await performRelationshipAction(currentUser.id, sourceCharacterId, targetCharacter.id, actionType, `Отправлен ${actionType === 'подарок' ? 'подарок' : 'письмо'}`);
+            await performRelationshipAction({
+                sourceUserId: currentUser.id, 
+                sourceCharacterId, 
+                targetCharacterId: targetCharacter.id, 
+                actionType: 'письмо', 
+                description: 'Отправлено письмо'
+            });
             toast({ title: 'Успех!', description: 'Действие выполнено, отношения обновлены.' });
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Произошла неизвестная ошибка.';
@@ -96,6 +107,61 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
             setIsLoading(false);
         }
     };
+    
+    const handleGiftAction = async () => {
+        if (!currentUser || !sourceCharacterId || !selectedGift) return;
+
+        if (!relationship) {
+            toast({ variant: "destructive", title: "Отношения не установлены" });
+            return;
+        }
+        
+        setIsLoading(true);
+        try {
+            await performRelationshipAction({
+                sourceUserId: currentUser.id,
+                sourceCharacterId,
+                targetCharacterId: targetCharacter.id,
+                actionType: 'подарок',
+                description: `Подарен предмет: ${selectedGift.name}`,
+                itemId: selectedGift.itemId,
+                itemCategory: selectedGift.category
+            });
+            toast({ title: 'Подарок отправлен!', description: `${selectedGift.name} теперь в инвентаре у ${targetCharacter.name}.` });
+            setIsGiftDialogOpen(false);
+            setSelectedGift(null);
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Произошла неизвестная ошибка.';
+            toast({ variant: 'destructive', title: 'Ошибка', description: errorMessage });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const sourceCharacter = useMemo(() => {
+        return currentUser?.characters.find(c => c.id === sourceCharacterId);
+    }, [currentUser, sourceCharacterId]);
+
+    const giftableItemsOptions = useMemo(() => {
+        if (!sourceCharacter?.inventory) return [];
+        
+        return giftableCategories.flatMap(categoryKey => {
+            const categoryLabel = INVENTORY_CATEGORIES.find(c => c.value === categoryKey)?.label || categoryKey;
+            const items = (sourceCharacter.inventory[categoryKey] as InventoryItem[] | undefined) || [];
+            
+            if (items.length === 0) return [];
+
+            return {
+                label: categoryLabel,
+                options: items.map(item => ({
+                    label: `${item.name}${item.quantity > 1 ? ` (x${item.quantity})` : ''}`,
+                    value: JSON.stringify({ itemId: item.id, category: categoryKey, name: item.name })
+                }))
+            };
+        }).filter(group => group && group.options.length > 0);
+
+    }, [sourceCharacter]);
+
     
     // Do not render the component at all if there's no relationship established.
     if (!hasAnyRelationship) {
@@ -119,7 +185,7 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
                     <SearchableSelect
                         options={sourceCharacterOptions}
                         value={sourceCharacterId}
-                        onValueChange={setSourceCharacterId}
+                        onValueChange={(val) => { setSourceCharacterId(val); setSelectedGift(null); }}
                         placeholder="Выберите персонажа..."
                     />
                 </div>
@@ -127,24 +193,48 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
                     <>
                         <TooltipProvider delayDuration={100}>
                             <div className="grid grid-cols-2 gap-2">
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <span>
-                                            <Button
-                                                variant="outline"
-                                                className="w-full"
-                                                onClick={() => handleSimpleAction('подарок')}
-                                                disabled={!canSendGift || isLoading}
-                                            >
-                                                <Gift className="w-4 h-4" />
+                                <Dialog open={isGiftDialogOpen} onOpenChange={setIsGiftDialogOpen}>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                             <DialogTrigger asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    className="w-full"
+                                                    disabled={!canSendGift || isLoading}
+                                                >
+                                                    <Gift className="w-4 h-4" />
+                                                </Button>
+                                             </DialogTrigger>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Отправить подарок (+25)</p>
+                                            {!canSendGift && <p className="text-xs text-muted-foreground">{giftTimeLeft}</p>}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                    <DialogContent>
+                                        <DialogHeader>
+                                            <DialogTitle>Отправить подарок</DialogTitle>
+                                            <DialogDescription>
+                                                Выберите предмет из инвентаря персонажа {sourceCharacter?.name}, чтобы подарить его {targetCharacter.name}.
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                        <div className="py-4 space-y-2">
+                                            <Label htmlFor="gift-select">Предмет</Label>
+                                            <SearchableSelect
+                                                options={giftableItemsOptions}
+                                                value={selectedGift ? JSON.stringify(selectedGift) : ''}
+                                                onValueChange={(val) => setSelectedGift(JSON.parse(val))}
+                                                placeholder="Выберите предмет для подарка..."
+                                            />
+                                        </div>
+                                        <DialogFooter>
+                                            <DialogClose asChild><Button variant="ghost">Отмена</Button></DialogClose>
+                                            <Button onClick={handleGiftAction} disabled={isLoading || !selectedGift}>
+                                                {isLoading ? 'Отправка...' : 'Подарить'}
                                             </Button>
-                                        </span>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>Отправить подарок (+25)</p>
-                                        {!canSendGift && <p className="text-xs text-muted-foreground">{giftTimeLeft}</p>}
-                                    </TooltipContent>
-                                </Tooltip>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <span>
