@@ -173,56 +173,42 @@ const FamiliarsSection = ({ character }: { character: Character }) => {
 
 export default function CharacterPage() {
     const { id } = useParams();
-    const { currentUser, fetchUsersForAdmin, updateCharacterInUser, gameDate, consumeInventoryItem, setCurrentUser } = useUser();
+    const { currentUser, updateCharacterInUser, gameDate, consumeInventoryItem, setCurrentUser, fetchCharacterById, fetchUsersForAdmin } = useUser();
     const [character, setCharacter] = useState<Character | null>(null);
     const [owner, setOwner] = useState<User | null>(null);
     const [allUsers, setAllUsers] = useState<User[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
     const [editingState, setEditingState] = useState<EditingState | null>(null);
     const [selectedItem, setSelectedItem] = useState<(InventoryItem & { category: InventoryCategory }) | null>(null);
     const [isConsuming, setIsConsuming] = useState(false);
 
     const { toast } = useToast();
 
+    const charId = Array.isArray(id) ? id[0] : id;
+
+    const { data: characterData, isLoading } = useQuery({
+        queryKey: ['character', charId],
+        queryFn: () => charId ? fetchCharacterById(charId) : Promise.resolve(null),
+        enabled: !!charId,
+    });
+    
+    useEffect(() => {
+        if (characterData) {
+            setCharacter(characterData.character);
+            setOwner(characterData.owner);
+        }
+    }, [characterData]);
+    
+     useEffect(() => {
+        // Fetch all users only when needed for forms
+        if (editingState) {
+            fetchUsersForAdmin().then(setAllUsers);
+        }
+    }, [editingState, fetchUsersForAdmin]);
+
     const { data: allShops = [] } = useQuery({
         queryKey: ['allShops'],
         queryFn: useUser().fetchAllShops
     });
-
-    useEffect(() => {
-        if (!id) return;
-    
-        let cancelled = false;
-        setIsLoading(true);
-    
-        (async () => {
-            try {
-                const users = await fetchUsersForAdmin();
-                if (cancelled) return;
-    
-                setAllUsers(users);
-    
-                const ownerUser = users.find(u => u.characters.some(c => c.id === id)) || null;
-                const char = ownerUser?.characters.find(c => c.id === id) || null;
-    
-                setOwner(ownerUser);
-                setCharacter(char);
-    
-            } catch (e) {
-                console.error('Failed to fetch character data:', e);
-                if (!cancelled) {
-                    setOwner(null);
-                    setCharacter(null);
-                }
-            } finally {
-                if (!cancelled) {
-                    setIsLoading(false);
-                }
-            }
-        })();
-    
-        return () => { cancelled = true };
-    }, [id, fetchUsersForAdmin]);
 
     const handleFormSubmit = (characterData: Character) => {
         if (!owner) return;
@@ -959,4 +945,6 @@ export default function CharacterPage() {
         </div>
     );
 }
-
+```
+  </change>
+  <change

@@ -6,31 +6,28 @@ const nextConfig = {
                 protocol: 'https',
                 hostname: 'i.postimg.cc',
                 port: '',
-                pathname: '/**',
+                pathname: '**',
             },
             {
                 protocol: 'https',
                 hostname: 'res.cloudinary.com',
                 port: '',
-                pathname: '/**',
+                pathname: '**',
             },
             {
                 protocol: 'https',
                 hostname: 'placehold.co',
                 port: '',
-                pathname: '/**',
+                pathname: '**',
             },
             {
                 protocol: 'https',
                 hostname: 'ik.imagekit.io',
                 port: '',
-                pathname: '/**',
+                pathname: '**',
             }
-        ]
+        ],
     },
-    experimental: {
-    },
-    allowedDevOrigins: ["https://*.cloudworkstations.dev"],
 };
 
 export default nextConfig;

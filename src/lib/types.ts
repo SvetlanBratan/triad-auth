@@ -311,6 +311,7 @@ export interface UserContextType {
   gameDateString: string | null;
   lastWeeklyBonusAwardedAt: string | undefined;
   fetchUserById: (userId: string) => Promise<User | null>;
+  fetchCharacterById: (characterId: string) => Promise<{ character: Character; owner: User } | null>;
   fetchUsersForAdmin: () => Promise<User[]>;
   fetchLeaderboardUsers: () => Promise<User[]>;
   fetchAllRewardRequests: () => Promise<RewardRequest[]>;
@@ -369,7 +370,7 @@ export interface UserContextType {
   restockShopItem: (shopId: string, itemId: string, ownerUserId: string, ownerCharacterId: string) => Promise<void>;
   adminUpdateCharacterStatus: (userId: string, characterId: string, updates: { taxpayerStatus?: TaxpayerStatus; citizenshipStatus?: CitizenshipStatus; }) => Promise<void>;
   adminUpdateShopLicense: (shopId: string, hasLicense: boolean) => Promise<void>;
-  sendMassMail: (subject: string, content: string) => Promise<void>;
+  sendMassMail: (subject: string, content: string, senderName: string) => Promise<void>;
   markMailAsRead: (mailId: string) => Promise<void>;
   deleteMailMessage: (mailId: string) => Promise<void>;
 }
