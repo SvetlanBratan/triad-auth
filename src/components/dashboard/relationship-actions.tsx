@@ -268,7 +268,7 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
                                             <Textarea
                                                 value={letterContent}
                                                 onChange={(e) => setLetterContent(e.target.value)}
-                                                placeholder="Ваше письмо..."
+                                                placeholder="Переписка ведется от лица персонажей в литературном стиле. Передача личных данных и описание действий, запрещенных законодательством, строго запрещены."
                                                 rows={10}
                                             />
                                         </div>

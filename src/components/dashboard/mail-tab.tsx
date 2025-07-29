@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -20,6 +21,7 @@ import { MailMessage } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
+import { differenceInDays } from 'date-fns';
 
 export default function MailTab() {
   const { currentUser, markMailAsRead, deleteMailMessage } = useUser();
@@ -29,7 +31,12 @@ export default function MailTab() {
 
   const sortedMail = useMemo(() => {
     if (!currentUser?.mail) return [];
-    return [...currentUser.mail].sort((a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime());
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    return [...currentUser.mail]
+      .filter(mail => new Date(mail.sentAt) >= thirtyDaysAgo)
+      .sort((a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime());
   }, [currentUser?.mail]);
 
   const handleSelectMail = (mail: MailMessage) => {
@@ -79,9 +86,10 @@ export default function MailTab() {
                       </p>
                       <p className="text-xs text-muted-foreground">{new Date(mail.sentAt).toLocaleString()}</p>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      От: {mail.senderCharacterName}
-                    </p>
+                    <div className="text-sm text-muted-foreground flex justify-between">
+                        <span>От: {mail.senderCharacterName}</span>
+                        {mail.recipientCharacterName && <span>Для: {mail.recipientCharacterName}</span>}
+                    </div>
                   </button>
                 ))
               ) : (
@@ -99,7 +107,7 @@ export default function MailTab() {
               <DialogHeader>
                 <DialogTitle>{selectedMail.subject}</DialogTitle>
                 <DialogDescription>
-                  От: {selectedMail.senderCharacterName} | {new Date(selectedMail.sentAt).toLocaleString()}
+                  От: {selectedMail.senderCharacterName} | Для: {selectedMail.recipientCharacterName} | {new Date(selectedMail.sentAt).toLocaleString()}
                 </DialogDescription>
               </DialogHeader>
               <ScrollArea className="max-h-96 pr-4 my-4">

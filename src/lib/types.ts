@@ -24,6 +24,7 @@ export interface MailMessage {
   senderCharacterId?: string;
   recipientUserId: string;
   recipientCharacterId: string;
+  recipientCharacterName?: string;
   subject: string;
   content: string;
   sentAt: string; // ISO string
