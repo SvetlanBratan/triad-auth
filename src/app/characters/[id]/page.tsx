@@ -173,32 +173,25 @@ const FamiliarsSection = ({ character }: { character: Character }) => {
 export default function CharacterPage() {
     const { id } = useParams();
     const { currentUser, updateCharacterInUser, gameDate, consumeInventoryItem, setCurrentUser, fetchCharacterById, fetchUsersForAdmin } = useUser();
-    const [character, setCharacter] = useState<Character | null>(null);
-    const [owner, setOwner] = useState<User | null>(null);
-    const [allUsers, setAllUsers] = useState<User[]>([]);
+    
+    // Direct data fetching with useQuery
+    const charId = Array.isArray(id) ? id[0] : id;
+    const { data: characterData, isLoading, refetch } = useQuery({
+        queryKey: ['character', charId],
+        queryFn: () => charId ? fetchCharacterById(charId) : Promise.resolve(null),
+        enabled: !!charId,
+    });
+
+    // Local state for UI interactions
     const [editingState, setEditingState] = useState<EditingState | null>(null);
+    const [allUsers, setAllUsers] = useState<User[]>([]);
     const [selectedItem, setSelectedItem] = useState<(InventoryItem & { category: InventoryCategory }) | null>(null);
     const [isConsuming, setIsConsuming] = useState(false);
 
     const { toast } = useToast();
 
-    const charId = Array.isArray(id) ? id[0] : id;
-    
-    const { data: characterData, isLoading } = useQuery({
-        queryKey: ['character', charId],
-        queryFn: () => charId ? fetchCharacterById(charId) : Promise.resolve(null),
-        enabled: !!charId,
-    });
-    
+    // Fetch all users only when needed for forms
     useEffect(() => {
-        if (characterData) {
-            setCharacter(characterData.character);
-            setOwner(characterData.owner);
-        }
-    }, [characterData]);
-    
-     useEffect(() => {
-        // Fetch all users only when needed for forms
         if (editingState) {
             fetchUsersForAdmin().then(setAllUsers);
         }
@@ -209,12 +202,15 @@ export default function CharacterPage() {
         queryFn: useUser().fetchAllShops
     });
 
+    const character = characterData?.character;
+    const owner = characterData?.owner;
+
     const handleFormSubmit = (characterData: Character) => {
         if (!owner) return;
         updateCharacterInUser(owner.id, characterData);
-        setCharacter(characterData); // Optimistic update
         toast({ title: "Анкета обновлена", description: "Данные персонажа успешно сохранены." });
         setEditingState(null);
+        refetch(); // Refetch data after update to ensure UI is in sync
     };
     
     const closeDialog = () => {
@@ -228,32 +224,19 @@ export default function CharacterPage() {
             await consumeInventoryItem(owner.id, character.id, selectedItem.id, selectedItem.category);
             toast({ title: "Предмет использован", description: `"${selectedItem.name}" был удален из инвентаря.` });
             
-            // Optimistic UI update
-            const updatedCharacter = { ...character };
-            const inventory = { ...updatedCharacter.inventory };
-            const categoryItems = [...(inventory[selectedItem.category] || [])];
-            const itemIndex = categoryItems.findIndex(i => i.id === selectedItem.id);
-
-            if (itemIndex > -1) {
-                if (categoryItems[itemIndex].quantity > 1) {
-                    categoryItems[itemIndex] = { ...categoryItems[itemIndex], quantity: categoryItems[itemIndex].quantity - 1 };
-                } else {
-                    categoryItems.splice(itemIndex, 1);
-                }
-                inventory[selectedItem.category] = categoryItems;
-                updatedCharacter.inventory = inventory;
-                setCharacter(updatedCharacter);
-                
-                // Update owner user in state for consistency if needed
-                 if (currentUser?.id === owner.id) {
-                    const updatedCurrentUser = { ...currentUser };
-                    const charIndex = updatedCurrentUser.characters.findIndex(c => c.id === character.id);
-                    if (charIndex > -1) {
-                        updatedCurrentUser.characters[charIndex] = updatedCharacter;
-                        setCurrentUser(updatedCurrentUser);
-                    }
+            // Invalidate query to refetch character data
+            await refetch();
+            
+            // Also update the local currentUser state if it's the owner
+            if (currentUser?.id === owner.id) {
+                const updatedCurrentUser = { ...currentUser };
+                const charIndex = updatedCurrentUser.characters.findIndex(c => c.id === character.id);
+                if (charIndex > -1 && characterData) {
+                    updatedCurrentUser.characters[charIndex] = characterData.character;
+                    setCurrentUser(updatedCurrentUser);
                 }
             }
+            
             setSelectedItem(null);
         } catch (e) {
             const message = e instanceof Error ? e.message : "Произошла неизвестная ошибка.";
@@ -300,19 +283,19 @@ export default function CharacterPage() {
         return CRIME_LEVELS.find(cl => cl.level === character.crimeLevel);
     }, [character]);
 
-    const citizenshipStatus = character?.citizenshipStatus || 'non-citizen';
-    const CitizenshipIcon = citizenshipIcons[citizenshipStatus];
-    const taxpayerStatus = character?.taxpayerStatus || 'taxable';
-    const TaxpayerIcon = taxpayerIcons[taxpayerStatus];
-
 
     if (isLoading) {
         return <div className="container mx-auto p-4 md:p-8"><p>Загрузка данных персонажа...</p></div>;
     }
 
-    if (!character || !owner) {
+    if (!characterData || !character || !owner) {
         return notFound();
     }
+
+    const citizenshipStatus = character.citizenshipStatus || 'non-citizen';
+    const CitizenshipIcon = citizenshipIcons[citizenshipStatus];
+    const taxpayerStatus = character.taxpayerStatus || 'taxable';
+    const TaxpayerIcon = taxpayerIcons[taxpayerStatus];
 
     const isOwnerOrAdmin = currentUser?.id === owner.id || currentUser?.role === 'admin';
     const inventory = character.inventory;
