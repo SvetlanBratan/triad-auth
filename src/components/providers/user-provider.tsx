@@ -175,35 +175,6 @@ const drawFamiliarCard = (hasBlessing: boolean, unavailableMythicIds: Set<string
     return chosenPool[Math.floor(Math.random() * chosenPool.length)];
 };
 
-
-/**
- * Recursively removes `undefined` values from an object.
- * Firestore does not allow `undefined` values.
- * @param obj The object to sanitize.
- * @returns A new object with `undefined` values removed.
- */
-function sanitizeObjectForFirestore<T>(obj: T): T {
-    if (obj === null || typeof obj !== 'object') {
-        return obj;
-    }
-
-    if (Array.isArray(obj)) {
-        return obj.map(item => sanitizeObjectForFirestore(item)) as any;
-    }
-
-    const newObj: { [key: string]: any } = {};
-    for (const key in obj) {
-        if (Object.prototype.hasOwnProperty.call(obj, key)) {
-            const value = obj[key as keyof T];
-            if (value !== undefined) {
-                newObj[key] = sanitizeObjectForFirestore(value);
-            }
-        }
-    }
-    return newObj as T;
-}
-
-
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
@@ -1204,12 +1175,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         updateRelationship(sourceChar, targetCharacterId, sourceCharacterId, pointsToAdd, newAction);
         updateRelationship(targetChar, sourceCharacterId, sourceCharacterId, pointsToAdd, newAction);
 
-        // --- 5. Commit transaction ---
-        const sanitizedSourceUser = sanitizeObjectForFirestore(sourceUserData);
-        const sanitizedTargetUser = sanitizeObjectForFirestore(targetUserData);
+        const sanitizeCharactersForFirestore = (characters: Character[]): any[] => {
+            return JSON.parse(JSON.stringify(characters));
+        };
 
-        transaction.update(sourceUserRef, { characters: sanitizedSourceUser.characters });
-        transaction.update(targetUserDoc.ref, { characters: sanitizedTargetUser.characters, mail: sanitizedTargetUser.mail });
+        const sanitizedSourceCharacters = sanitizeCharactersForFirestore(sourceUserData.characters);
+        const sanitizedTargetCharacters = sanitizeCharactersForFirestore(targetUserData.characters);
+        const sanitizedMail = JSON.parse(JSON.stringify(targetUserData.mail));
+
+        transaction.update(sourceUserRef, { characters: sanitizedSourceCharacters });
+        transaction.update(targetUserDoc.ref, { characters: sanitizedTargetCharacters, mail: sanitizedMail });
     });
 
     if (currentUser && currentUser.id === sourceUserId) {
