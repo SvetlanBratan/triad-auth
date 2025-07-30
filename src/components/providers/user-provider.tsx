@@ -1114,6 +1114,23 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             
             sourceChar.inventory = sourceInventory;
             targetChar.inventory = targetInventory;
+
+            // Create gift notification
+            const giftMail = {
+                id: `mail-gift-${Date.now()}`,
+                senderCharacterName: sourceChar.name,
+                senderCharacterId: sourceChar.id,
+                recipientUserId: targetUserId,
+                recipientCharacterId: targetCharacterId,
+                recipientCharacterName: targetChar.name,
+                subject: `Вам пришел подарок!`,
+                content: `${sourceChar.name} отправил(а) вам подарок: "${itemToGift.name}".`,
+                sentAt: new Date().toISOString(),
+                isRead: false,
+                type: 'personal' as const,
+            };
+            targetUserData.mail = [...(targetUserData.mail || []), giftMail];
+
         } else if (actionType === 'письмо') {
              if (!content) throw new Error("Содержание письма не может быть пустым.");
 
@@ -2347,3 +2364,4 @@ const clearAllMailboxes = useCallback(async () => {
     </AuthContext.Provider>
   );
 }
+
