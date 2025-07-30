@@ -84,6 +84,7 @@ export default function AdminTab() {
     adminUpdateShopLicense,
     processAnnualTaxes,
     sendMassMail,
+    clearAllMailboxes,
   } = useUser();
   const queryClient = useQueryClient();
 
@@ -492,6 +493,17 @@ export default function AdminTab() {
     await clearAllPointHistories();
     await refetchUsers();
     toast({ title: 'Все истории очищены!', description: `Журналы баллов всех пользователей были успешно очищены.` });
+  };
+
+  const handleClearAllMailboxes = async () => {
+    try {
+        await clearAllMailboxes();
+        await refetchUsers();
+        toast({ title: "Все почтовые ящики очищены" });
+    } catch(e) {
+        const msg = e instanceof Error ? e.message : 'Произошла неизвестная ошибка.';
+        toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+    }
   };
 
 
@@ -2010,7 +2022,7 @@ export default function AdminTab() {
                     <CardTitle className="flex items-center gap-2">Массовая рассылка</CardTitle>
                     <CardDescription>Отправить объявление от лица определенной группы или персонажа.</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-6">
                     <form onSubmit={handleSendMassMail} className="space-y-4">
                         <div>
                             <Label htmlFor="mail-sender">Отправитель</Label>
@@ -2046,6 +2058,29 @@ export default function AdminTab() {
                             {isSendingMail ? 'Отправка...' : 'Отправить'}
                         </Button>
                     </form>
+                    <Separator />
+                    <div className="p-4 border border-destructive/50 rounded-lg">
+                        <h4 className="font-semibold text-destructive mb-2 flex items-center gap-2"><ShieldAlert /> Опасная зона</h4>
+                         <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" className="w-full">Очистить все почтовые ящики</Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                <AlertDialogTitle>Вы абсолютно уверены?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Это действие необратимо. Вся почта (личные письма и рассылки) будет удалена для <strong>ВСЕХ</strong> пользователей.
+                                </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                <AlertDialogCancel>Отмена</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleClearAllMailboxes} className="bg-destructive hover:bg-destructive/90">
+                                    Да, я понимаю, очистить всё
+                                </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </div>
                 </CardContent>
             </Card>
       </TabsContent>
