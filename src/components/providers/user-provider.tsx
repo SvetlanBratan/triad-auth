@@ -3,7 +3,7 @@
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
-import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams } from '@/lib/types';
+import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter } from "firebase/firestore";
@@ -95,6 +95,7 @@ interface UserContextType {
   sendMassMail: (subject: string, content: string, senderName: string, recipientCharacterIds?: string[]) => Promise<void>;
   markMailAsRead: (mailId: string) => Promise<void>;
   deleteMailMessage: (mailId: string) => Promise<void>;
+  clearAllMailboxes: () => Promise<void>;
 }
 
 export const UserContext = createContext<UserContextType | null>(null);
@@ -2183,46 +2184,42 @@ const processAnnualTaxes = useCallback(async (): Promise<{ taxedCharactersCount:
 const sendMassMail = useCallback(async (subject: string, content: string, senderName: string, recipientCharacterIds?: string[]) => {
     const allUsers = await fetchUsersForAdmin();
     const batch = writeBatch(db);
-
-    const newMailBase = {
-        id: `mail-mass-${Date.now()}`,
-        senderCharacterName: senderName,
-        subject,
-        content,
-        sentAt: new Date().toISOString(),
-        isRead: false,
-        type: 'announcement' as const,
-    };
-
-    const usersToUpdate = new Map<string, User>();
+    
+    const usersToUpdate = new Map<string, { user: User; recipientNames: string[] }>();
+    const timestamp = Date.now();
 
     if (recipientCharacterIds && recipientCharacterIds.length > 0) {
         const recipientsSet = new Set(recipientCharacterIds);
         for (const user of allUsers) {
             const userCharacters = user.characters.filter(c => recipientsSet.has(c.id));
             if (userCharacters.length > 0) {
-                const updatedUser = usersToUpdate.get(user.id) || { ...user, mail: [...(user.mail || [])] };
-                for (const character of userCharacters) {
-                    const finalMail = { ...newMailBase, recipientUserId: user.id, recipientCharacterId: character.id, recipientCharacterName: character.name };
-                    updatedUser.mail!.push(finalMail);
-                }
-                usersToUpdate.set(user.id, updatedUser);
+                usersToUpdate.set(user.id, { user, recipientNames: userCharacters.map(c => c.name) });
             }
         }
     } else {
          for (const user of allUsers) {
-            const updatedUser = usersToUpdate.get(user.id) || { ...user, mail: [...(user.mail || [])] };
-            for (const character of user.characters) {
-                const finalMail = { ...newMailBase, recipientUserId: user.id, recipientCharacterId: character.id, recipientCharacterName: character.name };
-                updatedUser.mail!.push(finalMail);
+            if (user.characters.length > 0) {
+                 usersToUpdate.set(user.id, { user, recipientNames: user.characters.map(c => c.name) });
             }
-            usersToUpdate.set(user.id, updatedUser);
         }
     }
     
-    usersToUpdate.forEach((user, userId) => {
+    usersToUpdate.forEach(({ user, recipientNames }, userId) => {
         const userRef = doc(db, "users", userId);
-        batch.update(userRef, { mail: user.mail });
+        const newMail: MailMessage = {
+            id: `mail-mass-${timestamp}-${userId}`, // Unique ID per user
+            senderCharacterName: senderName,
+            recipientUserId: userId,
+            recipientCharacterId: '', // Not applicable for multi-character mail
+            recipientCharacterName: recipientNames.join(', '),
+            subject,
+            content,
+            sentAt: new Date(timestamp).toISOString(),
+            isRead: false,
+            type: 'announcement',
+        };
+        const updatedMail = [...(user.mail || []), newMail];
+        batch.update(userRef, { mail: updatedMail });
     });
     
     await batch.commit();
@@ -2239,6 +2236,20 @@ const deleteMailMessage = useCallback(async (mailId: string) => {
     const userMail = (currentUser.mail || []).filter(m => m.id !== mailId);
     await updateUser(currentUser.id, { mail: userMail });
 }, [currentUser, updateUser]);
+
+const clearAllMailboxes = useCallback(async () => {
+    const allUsers = await fetchUsersForAdmin();
+    const batch = writeBatch(db);
+    for (const user of allUsers) {
+        const userRef = doc(db, "users", user.id);
+        batch.update(userRef, { mail: [] });
+    }
+    await batch.commit();
+    if (currentUser) {
+        const updatedUser = await fetchUserById(currentUser.id);
+        if (updatedUser) setCurrentUser(updatedUser);
+    }
+}, [fetchUsersForAdmin, currentUser, fetchUserById]);
 
 
   const signOutUser = useCallback(() => {
@@ -2321,8 +2332,9 @@ const deleteMailMessage = useCallback(async (mailId: string) => {
       sendMassMail,
       markMailAsRead,
       deleteMailMessage,
+      clearAllMailboxes,
     }),
-    [currentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage]
+    [currentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes]
   );
 
   return (
