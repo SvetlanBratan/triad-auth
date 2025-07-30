@@ -715,9 +715,7 @@ export default function AdminTab() {
     await refetchUsers();
     toast({ title: 'Предмет выдан!', description: `"${itemData.name}" добавлен в инвентарь персонажа.` });
     
-    // Reset form
-    setItemUserId('');
-    setItemCharId('');
+    // Reset form but keep user and character selected
     setSelectedShopItemId('');
     setNewItemData({ name: '', description: '', inventoryTag: 'прочее', quantity: 1, image: '' });
   };
