@@ -1117,6 +1117,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             // Create gift notification
             const giftMail: MailMessage = {
                 id: `mail-gift-${Date.now()}`,
+                senderUserId: sourceUserId,
                 senderCharacterName: sourceChar.name,
                 senderCharacterId: sourceChar.id,
                 recipientUserId: targetUserId,
@@ -1135,6 +1136,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
             const newMail: MailMessage = {
                 id: `mail-${Date.now()}`,
+                senderUserId: sourceUserId,
                 senderCharacterName: sourceChar.name,
                 senderCharacterId: sourceChar.id,
                 recipientUserId: targetUserId,
@@ -1174,17 +1176,30 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         updateRelationship(sourceChar, targetCharacterId, sourceCharacterId, pointsToAdd, newAction);
         updateRelationship(targetChar, sourceCharacterId, sourceCharacterId, pointsToAdd, newAction);
-
-        const sanitizeCharactersForFirestore = (characters: Character[]): any[] => {
-            return JSON.parse(JSON.stringify(characters));
+        
+        const sanitizeObjectForFirestore = (obj: any): any => {
+          if (obj === null || obj === undefined) return obj;
+          if (Array.isArray(obj)) {
+            return obj.map(sanitizeObjectForFirestore);
+          }
+          if (typeof obj === 'object' && obj.constructor === Object) {
+            const newObj: { [key: string]: any } = {};
+            for (const key in obj) {
+              if (obj[key] !== undefined) {
+                newObj[key] = sanitizeObjectForFirestore(obj[key]);
+              }
+            }
+            return newObj;
+          }
+          return obj;
         };
+        
+        const sanitizedSourceUser = sanitizeObjectForFirestore(sourceUserData);
+        const sanitizedTargetUser = sanitizeObjectForFirestore(targetUserData);
 
-        const sanitizedSourceCharacters = sanitizeCharactersForFirestore(sourceUserData.characters);
-        const sanitizedTargetCharacters = sanitizeCharactersForFirestore(targetUserData.characters);
-        const sanitizedMail = JSON.parse(JSON.stringify(targetUserData.mail));
-
-        transaction.update(sourceUserRef, { characters: sanitizedSourceCharacters });
-        transaction.update(targetUserDoc.ref, { characters: sanitizedTargetCharacters, mail: sanitizedMail });
+        // --- 5. Commit transaction ---
+        transaction.update(sourceUserRef, { characters: sanitizedSourceUser.characters });
+        transaction.update(targetUserDoc.ref, { characters: sanitizedTargetUser.characters, mail: sanitizedTargetUser.mail });
     });
 
     if (currentUser && currentUser.id === sourceUserId) {
@@ -2229,6 +2244,7 @@ const sendMassMail = useCallback(async (subject: string, content: string, sender
             const recipientCharacterNames = userCharacters.map(c => c.name).join(', ');
             const newMail: MailMessage = {
                 id: `mail-mass-${timestamp}-${user.id}`, // Unique ID per user
+                senderUserId: 'admin', // Or a dedicated admin ID
                 senderCharacterName: senderName,
                 recipientUserId: user.id,
                 recipientCharacterId: '', // Not applicable for multi-character mail

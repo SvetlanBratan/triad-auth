@@ -20,6 +20,7 @@ export type MailMessageType = 'announcement' | 'personal';
 
 export interface MailMessage {
   id: string;
+  senderUserId: string;
   senderCharacterName: string;
   senderCharacterId?: string;
   recipientUserId: string;
