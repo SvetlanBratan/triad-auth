@@ -23,8 +23,8 @@ export interface MailMessage {
   senderCharacterName: string;
   senderCharacterId?: string;
   recipientUserId: string;
-  recipientCharacterId: string;
-  recipientCharacterName?: string;
+  recipientCharacterId: string; // For personal mail, this is the one. For mass mail, this is the first one.
+  recipientCharacterName?: string; // For personal mail, single name. For mass mail, comma-separated list.
   subject: string;
   content: string;
   sentAt: string; // ISO string
@@ -374,4 +374,6 @@ export interface UserContextType {
   sendMassMail: (subject: string, content: string, senderName: string, recipientCharacterIds?: string[]) => Promise<void>;
   markMailAsRead: (mailId: string) => Promise<void>;
   deleteMailMessage: (mailId: string) => Promise<void>;
+  clearAllMailboxes: () => Promise<void>;
 }
+
