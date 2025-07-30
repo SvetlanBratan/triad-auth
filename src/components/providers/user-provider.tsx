@@ -3,7 +3,7 @@
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
-import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage } from '@/lib/types';
+import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage, Cooldowns } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter } from "firebase/firestore";
@@ -1072,7 +1072,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (!targetUserFromTx.exists()) throw new Error("Целевой пользователь не найден в транзакции.");
         targetUserData = targetUserFromTx.data() as User;
 
-        // --- 2. Find characters and relationships ---
+        // --- 2. Find characters ---
         const sourceCharIndex = sourceUserData.characters.findIndex(c => c.id === sourceCharacterId);
         if (sourceCharIndex === -1) throw new Error("Исходный персонаж не найден.");
         const sourceChar = sourceUserData.characters[sourceCharIndex];
@@ -1134,15 +1134,20 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
 
         // --- 4. Update relationship points and history ---
-        const updateRelationship = (character: Character, otherCharId: string, points: number, action: RelationshipAction) => {
+        const updateRelationship = (character: Character, otherCharId: string, myCharId: string, points: number, action: RelationshipAction) => {
             const relIndex = (character.relationships || []).findIndex(r => r.targetCharacterId === otherCharId);
-            if (relIndex === -1) return; // Should not happen if UI is correct
+            if (relIndex === -1) return; 
 
             const relationship = character.relationships[relIndex];
             relationship.points += points;
-            const now = new Date();
-            if (action.type === 'подарок') relationship.lastGiftSentAt = now.toISOString();
-            if (action.type === 'письмо') relationship.lastLetterSentAt = now.toISOString();
+            const now = new Date().toISOString();
+            
+            if (!relationship.cooldowns) relationship.cooldowns = {};
+            if (!relationship.cooldowns[myCharId]) relationship.cooldowns[myCharId] = {};
+            
+            if (action.type === 'подарок') relationship.cooldowns[myCharId].lastGiftSentAt = now;
+            if (action.type === 'письмо') relationship.cooldowns[myCharId].lastLetterSentAt = now;
+            
             relationship.history = [...(relationship.history || []), action];
         };
 
@@ -1151,8 +1156,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         };
         const pointsToAdd = RELATIONSHIP_POINTS_CONFIG[actionType];
 
-        updateRelationship(sourceChar, targetCharacterId, pointsToAdd, newAction);
-        updateRelationship(targetChar, sourceCharacterId, pointsToAdd, newAction);
+        updateRelationship(sourceChar, targetCharacterId, sourceCharacterId, pointsToAdd, newAction);
+        updateRelationship(targetChar, sourceCharacterId, sourceCharacterId, pointsToAdd, newAction);
 
         // --- 5. Commit transaction ---
         transaction.update(sourceUserRef, { characters: sourceUserData.characters });
@@ -2184,33 +2189,30 @@ const processAnnualTaxes = useCallback(async (): Promise<{ taxedCharactersCount:
 const sendMassMail = useCallback(async (subject: string, content: string, senderName: string, recipientCharacterIds?: string[]) => {
     const allUsers = await fetchUsersForAdmin();
     const batch = writeBatch(db);
-    
-    const usersToUpdate = new Map<string, { user: User; recipientNames: string[] }>();
     const timestamp = Date.now();
-
-    if (recipientCharacterIds && recipientCharacterIds.length > 0) {
-        const recipientsSet = new Set(recipientCharacterIds);
-        for (const user of allUsers) {
-            const userCharacters = user.characters.filter(c => recipientsSet.has(c.id));
-            if (userCharacters.length > 0) {
-                usersToUpdate.set(user.id, { user, recipientNames: userCharacters.map(c => c.name) });
-            }
-        }
-    } else {
-         for (const user of allUsers) {
-            if (user.characters.length > 0) {
-                 usersToUpdate.set(user.id, { user, recipientNames: user.characters.map(c => c.name) });
-            }
-        }
+    const usersToUpdate = new Map<string, { user: User; recipientNames: string[] }>();
+  
+    const recipientsSet = recipientCharacterIds && recipientCharacterIds.length > 0 
+      ? new Set(recipientCharacterIds) 
+      : null;
+  
+    for (const user of allUsers) {
+      const userCharacters = recipientsSet
+        ? user.characters.filter(c => recipientsSet.has(c.id))
+        : user.characters;
+  
+      if (userCharacters.length > 0) {
+        usersToUpdate.set(user.id, { user, recipientNames: userCharacters.map(c => c.name) });
+      }
     }
     
     usersToUpdate.forEach(({ user, recipientNames }, userId) => {
         const userRef = doc(db, "users", userId);
         const newMail: MailMessage = {
-            id: `mail-mass-${timestamp}-${userId}`, // Unique ID per user
+            id: `mail-mass-${timestamp}-${userId}`,
             senderCharacterName: senderName,
             recipientUserId: userId,
-            recipientCharacterId: '', // Not applicable for multi-character mail
+            recipientCharacterId: '', 
             recipientCharacterName: recipientNames.join(', '),
             subject,
             content,

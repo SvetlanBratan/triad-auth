@@ -54,29 +54,39 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
         const sourceChar = currentUser.characters.find(c => c.id === sourceCharacterId);
         return sourceChar?.relationships.find(r => r.targetCharacterId === targetCharacter.id) || null;
     }, [currentUser, sourceCharacterId, targetCharacter.id]);
+    
+    const lastActionTimes = useMemo(() => {
+        if (!relationship || !relationship.cooldowns || !relationship.cooldowns[sourceCharacterId]) {
+            return { gift: null, letter: null };
+        }
+        return {
+            gift: relationship.cooldowns[sourceCharacterId].lastGiftSentAt,
+            letter: relationship.cooldowns[sourceCharacterId].lastLetterSentAt,
+        };
+    }, [relationship, sourceCharacterId]);
 
     const canSendGift = useMemo(() => {
-        if (!relationship?.lastGiftSentAt) return true;
-        return differenceInHours(new Date(), new Date(relationship.lastGiftSentAt)) >= Cooldowns.подарок;
-    }, [relationship]);
+        if (!lastActionTimes.gift) return true;
+        return differenceInHours(new Date(), new Date(lastActionTimes.gift)) >= Cooldowns.подарок;
+    }, [lastActionTimes.gift]);
 
     const canSendLetter = useMemo(() => {
-        if (!relationship?.lastLetterSentAt) return true;
-        return differenceInHours(new Date(), new Date(relationship.lastLetterSentAt)) >= Cooldowns.письмо;
-    }, [relationship]);
+        if (!lastActionTimes.letter) return true;
+        return differenceInHours(new Date(), new Date(lastActionTimes.letter)) >= Cooldowns.письмо;
+    }, [lastActionTimes.letter]);
     
     const giftTimeLeft = useMemo(() => {
-        if (canSendGift || !relationship?.lastGiftSentAt) return '';
-        const hoursLeft = Cooldowns.подарок - differenceInHours(new Date(), new Date(relationship.lastGiftSentAt));
+        if (canSendGift || !lastActionTimes.gift) return '';
+        const hoursLeft = Cooldowns.подарок - differenceInHours(new Date(), new Date(lastActionTimes.gift));
         return `Осталось: ${hoursLeft} ч.`;
-    }, [relationship, canSendGift]);
+    }, [lastActionTimes.gift, canSendGift]);
 
      const letterTimeLeft = useMemo(() => {
-        if (canSendLetter || !relationship?.lastLetterSentAt) return '';
-        const hoursLeft = Cooldowns.письмо - differenceInHours(new Date(), new Date(relationship.lastLetterSentAt));
+        if (canSendLetter || !lastActionTimes.letter) return '';
+        const hoursLeft = Cooldowns.письмо - differenceInHours(new Date(), new Date(lastActionTimes.letter));
         const daysLeft = Math.ceil(hoursLeft / 24);
         return `Осталось: ${daysLeft} д.`;
-    }, [relationship, canSendLetter]);
+    }, [lastActionTimes.letter, canSendLetter]);
 
 
     const handleAction = async (params: Omit<PerformRelationshipActionParams, 'sourceUserId'>) => {

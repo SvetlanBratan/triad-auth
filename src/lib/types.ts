@@ -100,6 +100,13 @@ export interface RelationshipAction {
   status: RelationshipActionStatus;
 }
 
+export interface Cooldowns {
+  [characterId: string]: {
+    lastGiftSentAt?: string;
+    lastLetterSentAt?: string;
+  }
+}
+
 export interface Relationship {
   id?: string; // Temporary client-side ID for list rendering
   targetCharacterId: string;
@@ -107,8 +114,10 @@ export interface Relationship {
   type: RelationshipType;
   points: number; // 0-1000, where 100 points = 1 level
   history: RelationshipAction[];
-  lastGiftSentAt?: string; // ISO string date
-  lastLetterSentAt?: string; // ISO string date
+  cooldowns?: Cooldowns;
+  // Deprecated fields, kept for migration
+  lastGiftSentAt?: string; 
+  lastLetterSentAt?: string;
 }
 
 export interface BankTransaction {
