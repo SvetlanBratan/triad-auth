@@ -176,6 +176,34 @@ const drawFamiliarCard = (hasBlessing: boolean, unavailableMythicIds: Set<string
 };
 
 
+/**
+ * Recursively removes `undefined` values from an object.
+ * Firestore does not allow `undefined` values.
+ * @param obj The object to sanitize.
+ * @returns A new object with `undefined` values removed.
+ */
+function sanitizeObjectForFirestore<T>(obj: T): T {
+    if (obj === null || typeof obj !== 'object') {
+        return obj;
+    }
+
+    if (Array.isArray(obj)) {
+        return obj.map(item => sanitizeObjectForFirestore(item)) as any;
+    }
+
+    const newObj: { [key: string]: any } = {};
+    for (const key in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+            const value = obj[key as keyof T];
+            if (value !== undefined) {
+                newObj[key] = sanitizeObjectForFirestore(value);
+            }
+        }
+    }
+    return newObj as T;
+}
+
+
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
@@ -1116,7 +1144,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             targetChar.inventory = targetInventory;
 
             // Create gift notification
-            const giftMail = {
+            const giftMail: MailMessage = {
                 id: `mail-gift-${Date.now()}`,
                 senderCharacterName: sourceChar.name,
                 senderCharacterId: sourceChar.id,
@@ -1134,7 +1162,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         } else if (actionType === 'письмо') {
              if (!content) throw new Error("Содержание письма не может быть пустым.");
 
-            const newMail = {
+            const newMail: MailMessage = {
                 id: `mail-${Date.now()}`,
                 senderCharacterName: sourceChar.name,
                 senderCharacterId: sourceChar.id,
@@ -1177,8 +1205,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         updateRelationship(targetChar, sourceCharacterId, sourceCharacterId, pointsToAdd, newAction);
 
         // --- 5. Commit transaction ---
-        transaction.update(sourceUserRef, { characters: sourceUserData.characters });
-        transaction.update(targetUserDoc.ref, { characters: targetUserData.characters, mail: targetUserData.mail });
+        const sanitizedSourceUser = sanitizeObjectForFirestore(sourceUserData);
+        const sanitizedTargetUser = sanitizeObjectForFirestore(targetUserData);
+
+        transaction.update(sourceUserRef, { characters: sanitizedSourceUser.characters });
+        transaction.update(targetUserDoc.ref, { characters: sanitizedTargetUser.characters, mail: sanitizedTargetUser.mail });
     });
 
     if (currentUser && currentUser.id === sourceUserId) {
@@ -2207,38 +2238,40 @@ const sendMassMail = useCallback(async (subject: string, content: string, sender
     const allUsers = await fetchUsersForAdmin();
     const batch = writeBatch(db);
     const timestamp = Date.now();
-    const usersToUpdate = new Map<string, { user: User; recipientNames: string[] }>();
   
     const recipientsSet = recipientCharacterIds && recipientCharacterIds.length > 0 
       ? new Set(recipientCharacterIds) 
       : null;
-  
+      
+    const usersToUpdate = new Map<string, User>();
+    
     for (const user of allUsers) {
-      const userCharacters = recipientsSet
-        ? user.characters.filter(c => recipientsSet.has(c.id))
-        : user.characters;
-  
-      if (userCharacters.length > 0) {
-        usersToUpdate.set(user.id, { user, recipientNames: userCharacters.map(c => c.name) });
-      }
+        const userCharacters = recipientsSet
+            ? user.characters.filter(c => recipientsSet.has(c.id))
+            : user.characters;
+            
+        if (userCharacters.length > 0) {
+            const recipientCharacterNames = userCharacters.map(c => c.name).join(', ');
+            const newMail: MailMessage = {
+                id: `mail-mass-${timestamp}-${user.id}`, // Unique ID per user
+                senderCharacterName: senderName,
+                recipientUserId: user.id,
+                recipientCharacterId: '', // Not applicable for multi-character mail
+                recipientCharacterName: recipientCharacterNames,
+                subject,
+                content,
+                sentAt: new Date(timestamp).toISOString(),
+                isRead: false,
+                type: 'announcement',
+            };
+            const updatedUser = { ...user, mail: [...(user.mail || []), newMail] };
+            usersToUpdate.set(user.id, updatedUser);
+        }
     }
     
-    usersToUpdate.forEach(({ user, recipientNames }, userId) => {
+    usersToUpdate.forEach((user, userId) => {
         const userRef = doc(db, "users", userId);
-        const newMail: MailMessage = {
-            id: `mail-mass-${timestamp}-${userId}`,
-            senderCharacterName: senderName,
-            recipientUserId: userId,
-            recipientCharacterId: '', 
-            recipientCharacterName: recipientNames.join(', '),
-            subject,
-            content,
-            sentAt: new Date(timestamp).toISOString(),
-            isRead: false,
-            type: 'announcement',
-        };
-        const updatedMail = [...(user.mail || []), newMail];
-        batch.update(userRef, { mail: updatedMail });
+        batch.update(userRef, { mail: user.mail });
     });
     
     await batch.commit();
@@ -2265,8 +2298,10 @@ const clearAllMailboxes = useCallback(async () => {
     }
     await batch.commit();
     if (currentUser) {
-        const updatedUser = await fetchUserById(currentUser.id);
-        if (updatedUser) setCurrentUser(updatedUser);
+        const updatedCurrentUser = await fetchUserById(currentUser.id);
+        if (updatedCurrentUser) {
+            setCurrentUser(updatedCurrentUser);
+        }
     }
 }, [fetchUsersForAdmin, currentUser, fetchUserById]);
 
@@ -2365,3 +2400,6 @@ const clearAllMailboxes = useCallback(async () => {
   );
 }
 
+
+
+    
