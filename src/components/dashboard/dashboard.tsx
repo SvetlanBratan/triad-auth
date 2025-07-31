@@ -14,16 +14,25 @@ import { useAuth } from "../providers/user-provider";
 import CurrencyExchange from "./currency-exchange";
 import FamiliarsTab from "./familiars-tab";
 import { cn } from "@/lib/utils";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import MarketTab from "./market-tab";
 import MailTab from "./mail-tab";
+import React from "react";
 
 export function Dashboard() {
   const { currentUser } = useUser();
   const { loading } = useAuth();
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
   const defaultTab = searchParams.get('tab') || 'profile';
 
+  const handleTabChange = (value: string) => {
+    const newSearchParams = new URLSearchParams(searchParams.toString());
+    newSearchParams.set('tab', value);
+    router.replace(`${pathname}?${newSearchParams.toString()}`);
+  };
 
   if (loading) {
     return (
@@ -55,7 +64,7 @@ export function Dashboard() {
   ];
   
   return (
-      <Tabs defaultValue={defaultTab} className="w-full">
+      <Tabs defaultValue={defaultTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="flex flex-wrap h-auto min-h-12 justify-around sm:justify-center sm:gap-1">
           {tabs.map(({ value, label, icon: Icon, className, notificationCount }) => (
             <TabsTrigger key={value} value={value} className="flex-row items-center justify-center p-1 sm:p-2 sm:gap-1.5 text-xs sm:text-sm relative">
