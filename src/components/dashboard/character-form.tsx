@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React from 'react';
@@ -386,7 +385,6 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                     case 'appearance': return <div className="space-y-4"><ImageUploader
                                     currentImageUrl={formData.appearanceImage}
                                     onUpload={(url) => handleFieldChange('appearanceImage', url)}
-                                    uploadPreset="ankets"
                                 />
                                 <div><Label htmlFor="appearance">Описание внешности</Label><Textarea id="appearance" value={formData.appearance ?? ''} onChange={(e) => handleFieldChange('appearance', e.target.value)} rows={10} placeholder="Опишите внешность вашего персонажа..."/> <FormattingHelp /></div></div>;
                     case 'personality': return <div><Label htmlFor="personality">Характер</Label><Textarea id="personality" value={formData.personality ?? ''} onChange={(e) => handleFieldChange('personality', e.target.value)} rows={10} placeholder="Опишите характер персонажа..."/> <FormattingHelp /></div>;

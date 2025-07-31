@@ -8,27 +8,17 @@ import { useToast } from '@/hooks/use-toast';
 import { UploadCloud, X } from 'lucide-react';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
-import { uploadImage } from '@/actions/upload-image';
+import { clientEnv } from '@/lib/env';
 
 interface AvatarUploaderProps {
   closeDialog: () => void;
 }
 
-const fileToDataURL = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-    });
-};
-
-
 export default function AvatarUploader({ closeDialog }: AvatarUploaderProps) {
   const { currentUser, updateUserAvatar } = useUser();
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [preview, setPreview] = useState<string | null>(currentUser?.avatar || null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,12 +43,35 @@ export default function AvatarUploader({ closeDialog }: AvatarUploaderProps) {
 
   const handleUpload = async () => {
     if (!file || !currentUser) return;
+    if (!clientEnv.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || !clientEnv.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET_AVATARS) {
+        toast({
+            variant: 'destructive',
+            title: 'Ошибка конфигурации',
+            description: 'Cloudinary не настроен.',
+        });
+        return;
+    }
     
     setIsLoading(true);
 
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', clientEnv.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET_AVATARS);
+
+
     try {
-      const dataUrl = await fileToDataURL(file);
-      const { url } = await uploadImage(dataUrl, `avatar-${currentUser.id}-${Date.now()}`);
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${clientEnv.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, {
+          method: 'POST',
+          body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Не удалось загрузить изображение. ${errorData.error.message}`);
+      }
+      
+      const data = await response.json();
+      const url = data.secure_url;
 
       await updateUserAvatar(currentUser.id, url);
 

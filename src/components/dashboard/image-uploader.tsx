@@ -13,10 +13,9 @@ import { Label } from '@/components/ui/label';
 interface ImageUploaderProps {
   currentImageUrl?: string | null;
   onUpload: (url: string) => void;
-  uploadPreset: string;
 }
 
-export default function ImageUploader({ currentImageUrl, onUpload, uploadPreset }: ImageUploaderProps) {
+export default function ImageUploader({ currentImageUrl, onUpload }: ImageUploaderProps) {
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(currentImageUrl || null);
@@ -50,7 +49,7 @@ export default function ImageUploader({ currentImageUrl, onUpload, uploadPreset 
 
   const handleUpload = async () => {
     if (!file) return;
-    if (!clientEnv.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME) {
+    if (!clientEnv.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || !clientEnv.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET_ANKETS) {
         toast({
             variant: 'destructive',
             title: 'Ошибка конфигурации',
@@ -64,7 +63,7 @@ export default function ImageUploader({ currentImageUrl, onUpload, uploadPreset 
 
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', uploadPreset);
+    formData.append('upload_preset', clientEnv.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET_ANKETS);
 
     try {
         const response = await fetch(`https://api.cloudinary.com/v1_1/${clientEnv.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, {
