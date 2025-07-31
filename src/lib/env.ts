@@ -4,6 +4,8 @@ import { z } from 'zod';
 // Schema for client-side environment variables
 const clientSchema = z.object({
   NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY: z.string().min(1),
+  NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: z.string().min(1),
+  NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET: z.string().min(1),
 });
 
 // Schema for server-side environment variables
@@ -14,6 +16,8 @@ const serverSchema = z.object({
 
 const processEnv = {
   NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY: process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY,
+  NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+  NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET: process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET,
   // Server-side variables are only available on the server
   IMAGEKIT_PRIVATE_KEY: process.env.IMAGEKIT_PRIVATE_KEY,
   IMAGEKIT_URL_ENDPOINT: process.env.IMAGEKIT_URL_ENDPOINT,
