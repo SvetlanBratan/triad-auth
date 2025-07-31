@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
+import postgres from 'postgres/js.mjs';
 import { env } from './env';
 
 if (!env.DATABASE_URL) {
