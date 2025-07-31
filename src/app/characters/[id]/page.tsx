@@ -175,28 +175,24 @@ export default function CharacterPage() {
     const { id } = useParams();
     const { currentUser, updateCharacterInUser, gameDate, consumeInventoryItem, setCurrentUser, fetchCharacterById, fetchUsersForAdmin } = useUser();
     
-    // Direct data fetching with useQuery
     const charId = Array.isArray(id) ? id[0] : id;
-    const { data: characterData, isLoading, refetch } = useQuery({
+    const { data: characterData, isLoading: isCharacterLoading, refetch } = useQuery({
         queryKey: ['character', charId],
         queryFn: () => charId ? fetchCharacterById(charId) : Promise.resolve(null),
         enabled: !!charId,
     });
 
+    const { data: allUsers = [], isLoading: areUsersLoading } = useQuery<User[]>({
+        queryKey: ['adminUsers'],
+        queryFn: fetchUsersForAdmin,
+    });
+
     // Local state for UI interactions
     const [editingState, setEditingState] = useState<EditingState | null>(null);
-    const [allUsers, setAllUsers] = useState<User[]>([]);
     const [selectedItem, setSelectedItem] = useState<(InventoryItem & { category: InventoryCategory }) | null>(null);
     const [isConsuming, setIsConsuming] = useState(false);
 
     const { toast } = useToast();
-
-    // Fetch all users only when needed for forms
-    useEffect(() => {
-        if (editingState) {
-            fetchUsersForAdmin().then(setAllUsers);
-        }
-    }, [editingState, fetchUsersForAdmin]);
 
     const { data: allShops = [] } = useQuery({
         queryKey: ['allShops'],
@@ -285,7 +281,7 @@ export default function CharacterPage() {
     }, [character]);
 
 
-    if (isLoading) {
+    if (isCharacterLoading || areUsersLoading) {
         return <div className="container mx-auto p-4 md:p-8"><p>Загрузка данных персонажа...</p></div>;
     }
 
@@ -929,3 +925,5 @@ export default function CharacterPage() {
     );
 }
 
+
+    
