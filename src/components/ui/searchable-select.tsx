@@ -30,6 +30,7 @@ interface SearchableSelectProps {
   placeholder: string;
   disabled?: boolean;
   renderOption?: (option: SelectOption) => React.ReactNode;
+  renderSelected?: (option: SelectOption) => React.ReactNode;
 }
 
 const isOptionGroup = (option: SelectOption | SelectOptionGroup): option is SelectOptionGroup => {
@@ -43,6 +44,7 @@ export const SearchableSelect = ({
   placeholder,
   disabled,
   renderOption,
+  renderSelected,
 }: SearchableSelectProps) => {
   const [open, setOpen] = React.useState(false);
 
@@ -58,7 +60,7 @@ export const SearchableSelect = ({
     return flatOptions;
   }, [options]);
 
-  const selectedLabel = allOptions.find((opt) => opt.value === value)?.label;
+  const selectedOption = allOptions.find((opt) => opt.value === value);
 
   return (
     <Popover open={open} onOpenChange={setOpen} modal={false}>
@@ -67,10 +69,16 @@ export const SearchableSelect = ({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between"
+          className="w-full justify-between h-auto min-h-10"
           disabled={disabled}
         >
-          <span className="truncate">{selectedLabel?.split(' (Баланс:')[0] || placeholder}</span>
+          <div className="flex-1 text-left">
+            {selectedOption && renderSelected ? (
+              renderSelected(selectedOption)
+            ) : (
+              <span className="truncate">{selectedOption?.label || placeholder}</span>
+            )}
+          </div>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>

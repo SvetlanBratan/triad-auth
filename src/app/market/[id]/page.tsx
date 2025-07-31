@@ -431,6 +431,18 @@ export default function ShopPage() {
                                     value={buyerCharacterId}
                                     onValueChange={setBuyerCharacterId}
                                     placeholder="Выберите персонажа..."
+                                    renderSelected={(option) => {
+                                         const character = buyerCharacters.find(c => c.id === option.value);
+                                        if (!character) return option.label;
+                                        return (
+                                            <div className="flex flex-col items-start">
+                                                <span>{character.name}</span>
+                                                <span className="text-xs text-muted-foreground">
+                                                    {formatCurrency(character.bankAccount)}
+                                                </span>
+                                            </div>
+                                        );
+                                    }}
                                     renderOption={(option) => {
                                         const character = buyerCharacters.find(c => c.id === option.value);
                                         if (!character) return option.label;
