@@ -462,16 +462,36 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if(newSettings.exists()) setGameSettings(newSettings.data() as GameSettings);
     }, []);
 
+    // Correctly call useMemo at the top level
+    const gameDate = useMemo(() => {
+        if (!gameSettings.gameDateString) return new Date();
+        try {
+            // Attempt to parse the specific format "21 марта 2709 год"
+            const parts = gameSettings.gameDateString.replace(' год', '').split(' ');
+            if (parts.length === 3) {
+                const day = parseInt(parts[0], 10);
+                const monthStr = parts[1].toLowerCase();
+                const year = parseInt(parts[2], 10);
+                const months: { [key: string]: number } = { "января": 0, "февраля": 1, "марта": 2, "апреля": 3, "мая": 4, "июня": 5, "июля": 6, "августа": 7, "сентября": 8, "октября": 9, "ноября": 10, "декабря": 11 };
+                if (!isNaN(day) && monthStr in months && !isNaN(year)) {
+                    return new Date(year, months[monthStr], day);
+                }
+            }
+        } catch (e) {
+            console.error("Could not parse game date string:", gameSettings.gameDateString, e);
+        }
+        // Fallback for other valid date formats or if parsing fails
+        return new Date(gameSettings.gameDateString);
+    }, [gameSettings.gameDateString]);
+
+
   const value = useMemo(
     () => ({
       currentUser,
       setCurrentUser,
       loading,
       signOutUser,
-      gameDate: useMemo(() => gameSettings.gameDateString ? new Date(gameSettings.gameDateString.replace(/(\d+)\s(\S+)\s(\d+)/, (match, day, monthStr, year) => {
-        const months: { [key: string]: number } = { "января":0, "февраля":1, "марта":2, "апреля":3, "мая":4, "июня":5, "июля":6, "августа":7, "сентября":8, "октября":9, "ноября":10, "декабря":11 };
-        return new Date(parseInt(year), months[monthStr.toLowerCase()], parseInt(day)).toISOString();
-      })) : new Date(), [gameSettings.gameDateString]),
+      gameDate,
       gameDateString: gameSettings.gameDateString,
       lastWeeklyBonusAwardedAt: gameSettings.lastWeeklyBonusAwardedAt,
       fetchUserById,
@@ -540,9 +560,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       deleteMailMessage: async () => {},
       clearAllMailboxes: async () => {},
     }),
-    [currentUser, loading, signOutUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, updateUserAvatar, updateGameDate]
+    [currentUser, loading, signOutUser, gameSettings, gameDate, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, updateUserAvatar, updateGameDate]
   );
 
-  // @ts-ignore
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 }
