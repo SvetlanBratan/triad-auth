@@ -125,6 +125,7 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
   { id: 'ach-dark-lord', name: 'Тёмный Владыка', description: 'Персонаж получил доступ к запретной магии, недоступной для его расы.', iconName: 'Skull' },
   { id: 'ach-chimera-mancer', name: 'Химеромант', description: 'Персонаж изменил своё тело до неузнаваемости, добавив иные конечности.', iconName: 'GitBranchPlus' },
   { id: 'ach-gods-favorite', name: 'Любимчик Богов', description: 'Даётся за покупку благословения богов.', iconName: 'Heart' },
+  { id: 'ach-era-face', name: 'Лицо эпохи', description: 'Даётся за покупку награды "Арт от ИИ"', iconName: 'Image' },
 
   // Manual
   { id: 'ach-ruler', name: 'Правитель государства', description: 'Несёт тяжкое бремя правления и ответственности за судьбу всего государства в Триаде.', iconName: 'ShieldCheck' },

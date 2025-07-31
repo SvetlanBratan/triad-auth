@@ -116,6 +116,9 @@ const PUMPKIN_HUSBAND_ACHIEVEMENT_ID = 'ach-pumpkin-husband';
 const FORBES_LIST_ACHIEVEMENT_ID = 'ach-forbes-list';
 const GODS_FAVORITE_ACHIEVEMENT_ID = 'ach-gods-favorite';
 const EXTRA_CHARACTER_REWARD_ID = 'r-extra-char';
+const AI_ART_REWARD_ID = 'r-ai-art';
+const ERA_FACE_ACHIEVEMENT_ID = 'ach-era-face';
+
 
 const RELATIONSHIP_POINTS_CONFIG: Record<RelationshipActionType, number> = {
     подарок: 25,
@@ -733,6 +736,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
               'r-guild': 'ach-guildmaster', 'r-hybrid': 'ach-hybrid', 'r-swap-element': 'ach-exchange-master', 'r-forbidden-magic': 'ach-dark-lord',
               'r-body-parts': 'ach-chimera-mancer', 'r-pumpkin-wife': PUMPKIN_SPOUSE_ACHIEVEMENT_ID, 'r-pumpkin-husband': PUMPKIN_HUSBAND_ACHIEVEMENT_ID,
               'r-blessing': GODS_FAVORITE_ACHIEVEMENT_ID,
+              [AI_ART_REWARD_ID]: ERA_FACE_ACHIEVEMENT_ID,
             };
 
             const achievementIdToGrant = achievementMap[request.rewardId];
