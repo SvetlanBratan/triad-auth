@@ -1,17 +1,17 @@
 'use server';
 
 import ImageKit from 'imagekit';
-import { env } from '@/lib/env';
+import { clientEnv, serverEnv } from '@/lib/env';
 
 export async function uploadImage(dataUrl: string, fileName: string) {
-  if (!env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY || !env.IMAGEKIT_PRIVATE_KEY || !env.IMAGEKIT_URL_ENDPOINT) {
+  if (!clientEnv.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY || !serverEnv.IMAGEKIT_PRIVATE_KEY || !serverEnv.IMAGEKIT_URL_ENDPOINT) {
     throw new Error('ImageKit environment variables are not configured.');
   }
 
   const imagekit = new ImageKit({
-    publicKey: env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY,
-    privateKey: env.IMAGEKIT_PRIVATE_KEY,
-    urlEndpoint: env.IMAGEKIT_URL_ENDPOINT,
+    publicKey: clientEnv.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY,
+    privateKey: serverEnv.IMAGEKIT_PRIVATE_KEY,
+    urlEndpoint: serverEnv.IMAGEKIT_URL_ENDPOINT,
   });
 
   try {
