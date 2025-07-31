@@ -4,7 +4,7 @@
 import React from 'react';
 import { useParams, notFound, useRouter } from 'next/navigation';
 import { useUser } from '@/hooks/use-user';
-import type { Shop, ShopItem, BankAccount } from '@/lib/types';
+import type { Shop, ShopItem, BankAccount, Character } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, UserCircle, PlusCircle, Edit, Trash2, ShoppingCart, Info, Package, Settings, RefreshCw, BadgeCheck, Save } from 'lucide-react';
@@ -36,7 +36,7 @@ import { Textarea } from '@/components/ui/textarea';
 export default function ShopPage() {
     const { id } = useParams();
     const router = useRouter();
-    const { currentUser, deleteShopItem, purchaseShopItem, restockShopItem, fetchShopById, updateShopDetails } = useUser();
+    const { currentUser, deleteShopItem, purchaseShopItem, restockShopItem, fetchShopById, updateShopDetails } from useUser();
     const { toast } = useToast();
     
     const shopId = Array.isArray(id) ? id[0] : id;
@@ -163,24 +163,24 @@ export default function ShopPage() {
         };
     }, [selectedItemForPurchase, purchaseQuantity]);
 
-    const buyerCharacterOptions = React.useMemo(() => {
+    const buyerCharacters = React.useMemo(() => {
         if (!currentUser || !totalPrice) return [];
-        return currentUser.characters
-            .filter(char => {
-                // Exclude the shop owner character from buying from their own shop
-                if(shop && char.id === shop.ownerCharacterId) return false;
-
-                const balance = char.bankAccount;
-                return (balance.platinum >= totalPrice.platinum) &&
-                       (balance.gold >= totalPrice.gold) &&
-                       (balance.silver >= totalPrice.silver) &&
-                       (balance.copper >= totalPrice.copper);
-            })
-            .map(char => ({
-                value: char.id,
-                label: `${char.name} (${formatCurrency(char.bankAccount)})`
-            }));
+        return currentUser.characters.filter(char => {
+            if (shop && char.id === shop.ownerCharacterId) return false;
+            const balance = char.bankAccount;
+            return (balance.platinum >= totalPrice.platinum) &&
+                   (balance.gold >= totalPrice.gold) &&
+                   (balance.silver >= totalPrice.silver) &&
+                   (balance.copper >= totalPrice.copper);
+        });
     }, [currentUser, totalPrice, shop]);
+
+    const buyerCharacterOptions = React.useMemo(() => {
+        return buyerCharacters.map(char => ({
+            value: char.id,
+            label: `${char.name} (${formatCurrency(char.bankAccount)})`
+        }));
+    }, [buyerCharacters]);
 
     const outOfStockItems = React.useMemo(() => {
         return (shop?.items || []).filter(item => item.quantity === 0);
@@ -431,6 +431,18 @@ export default function ShopPage() {
                                     value={buyerCharacterId}
                                     onValueChange={setBuyerCharacterId}
                                     placeholder="Выберите персонажа..."
+                                    renderOption={(option) => {
+                                        const character = buyerCharacters.find(c => c.id === option.value);
+                                        if (!character) return option.label;
+                                        return (
+                                            <div>
+                                                <div>{character.name}</div>
+                                                <div className="text-xs text-muted-foreground">
+                                                    Баланс: {formatCurrency(character.bankAccount)}
+                                                </div>
+                                            </div>
+                                        );
+                                    }}
                                 />
                              ) : (
                                 <Alert variant="destructive">
@@ -461,4 +473,5 @@ export default function ShopPage() {
     
 
     
+
 
