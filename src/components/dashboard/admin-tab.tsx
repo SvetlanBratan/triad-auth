@@ -1568,7 +1568,7 @@ export default function AdminTab() {
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleEconomySubmit} className="space-y-4">
-                             <div>
+                             <div className="space-y-2">
                                 <Label>Пользователь и персонаж</Label>
                                 <div className="flex flex-col sm:flex-row gap-2">
                                      <SearchableSelect
@@ -1615,7 +1615,7 @@ export default function AdminTab() {
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleWealthLevelUpdate} className="space-y-4">
-                            <div>
+                            <div className="space-y-2">
                                 <Label>Пользователь и персонаж</Label>
                                 <div className="flex flex-col sm:flex-row gap-2">
                                     <SearchableSelect
@@ -1660,7 +1660,7 @@ export default function AdminTab() {
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleCharacterStatusUpdate} className="space-y-4">
-                            <div>
+                            <div className="space-y-2">
                                 <Label>Пользователь и персонаж</Label>
                                 <div className="flex flex-col sm:flex-row gap-2">
                                     <SearchableSelect
@@ -1739,7 +1739,7 @@ export default function AdminTab() {
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleStartingCapitalSubmit} className="space-y-4">
-                            <div>
+                            <div className="space-y-2">
                                 <Label>Пользователь и персонаж</Label>
                                 <div className="flex flex-col sm:flex-row gap-2">
                                      <SearchableSelect
@@ -1857,13 +1857,13 @@ export default function AdminTab() {
                 </CardHeader>
                 <CardContent>
                      <Tabs defaultValue="add">
-                        <TabsList className="grid w-full grid-cols-2">
+                        <TabsList className="w-full flex-wrap justify-start h-auto">
                             <TabsTrigger value="add">Добавить предмет</TabsTrigger>
                             <TabsTrigger value="edit">Редактировать предмет</TabsTrigger>
                         </TabsList>
                         <TabsContent value="add" className="pt-4">
                            <form onSubmit={handleGiveItem} className="space-y-4">
-                                <div>
+                                <div className="space-y-2">
                                     <Label>Пользователь и персонаж</Label>
                                     <div className="flex flex-col sm:flex-row gap-2">
                                         <SearchableSelect
@@ -1935,7 +1935,7 @@ export default function AdminTab() {
                         </TabsContent>
                          <TabsContent value="edit" className="pt-4">
                             <form onSubmit={handleUpdateItem} className="space-y-4">
-                                <div>
+                                <div className="space-y-2">
                                     <Label>Пользователь и персонаж</Label>
                                     <div className="flex flex-col sm:flex-row gap-2">
                                         <SearchableSelect
@@ -2085,3 +2085,5 @@ export default function AdminTab() {
     </Tabs>
   );
 }
+
+    
