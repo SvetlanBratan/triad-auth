@@ -1,10 +1,4 @@
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres/js.mjs';
-import { env } from './env';
-
-if (!env.DATABASE_URL) {
-  throw new Error('DATABASE_URL is not set');
-}
-
-const client = postgres(env.DATABASE_URL);
-export const db = drizzle(client);
+// This file is no longer needed as we are using Firestore directly.
+// It is kept to prevent breaking imports in files that are not yet updated.
+// We will remove this file in a future step.
+export {};

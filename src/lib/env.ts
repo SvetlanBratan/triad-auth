@@ -2,24 +2,18 @@ import { z } from 'zod';
 
 // Schema for client-side environment variables
 const clientSchema = z.object({
-  NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: z.string().min(1),
-  NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET: z.string().min(1),
   NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY: z.string().min(1),
 });
 
 // Schema for server-side environment variables
 const serverSchema = z.object({
-  DATABASE_URL: z.string().min(1),
   IMAGEKIT_PRIVATE_KEY: z.string().min(1),
   IMAGEKIT_URL_ENDPOINT: z.string().min(1),
 });
 
 const processEnv = {
-  NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-  NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET: process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET,
   NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY: process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY,
   // Server-side variables are only available on the server
-  DATABASE_URL: process.env.DATABASE_URL,
   IMAGEKIT_PRIVATE_KEY: process.env.IMAGEKIT_PRIVATE_KEY,
   IMAGEKIT_URL_ENDPOINT: process.env.IMAGEKIT_URL_ENDPOINT,
 };
@@ -32,7 +26,7 @@ if (typeof window !== 'undefined' && !parsedClient.success) {
     "❌ Invalid client-side environment variables:",
     parsedClient.error.flatten().fieldErrors,
   );
-  throw new Error("Invalid client-side environment variables.");
+  throw new Error("Invalid client-side environment variables. Check your .env file.");
 }
 
 // We validate all variables on the server
@@ -45,7 +39,7 @@ if (typeof window === 'undefined') {
             "❌ Invalid server-side environment variables:",
             parsedFull.error.flatten().fieldErrors,
         );
-        throw new Error("Invalid server-side environment variables.");
+        throw new Error("Invalid server-side environment variables. Check your .env file.");
     }
     env = parsedFull.data;
 } else {
