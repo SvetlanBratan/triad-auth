@@ -36,7 +36,7 @@ import { Textarea } from '@/components/ui/textarea';
 export default function ShopPage() {
     const { id } = useParams();
     const router = useRouter();
-    const { currentUser, deleteShopItem, purchaseShopItem, restockShopItem, fetchShopById, updateShopDetails } from useUser();
+    const { currentUser, deleteShopItem, purchaseShopItem, restockShopItem, fetchShopById, updateShopDetails } = useUser();
     const { toast } = useToast();
     
     const shopId = Array.isArray(id) ? id[0] : id;
@@ -469,9 +469,3 @@ export default function ShopPage() {
         </div>
     );
 }
-
-    
-
-    
-
-
