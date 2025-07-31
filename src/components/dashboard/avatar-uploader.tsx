@@ -1,18 +1,28 @@
 
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { useUser } from '@/hooks/use-user';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { UploadCloud, X } from 'lucide-react';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
-import { clientEnv } from '@/lib/env';
+import { uploadImage } from '@/actions/upload-image';
 
 interface AvatarUploaderProps {
   closeDialog: () => void;
 }
+
+const fileToDataURL = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+};
+
 
 export default function AvatarUploader({ closeDialog }: AvatarUploaderProps) {
   const { currentUser, updateUserAvatar } = useUser();
@@ -20,7 +30,6 @@ export default function AvatarUploader({ closeDialog }: AvatarUploaderProps) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -44,39 +53,14 @@ export default function AvatarUploader({ closeDialog }: AvatarUploaderProps) {
 
   const handleUpload = async () => {
     if (!file || !currentUser) return;
-    if (!clientEnv.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || !clientEnv.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET) {
-        toast({
-            variant: 'destructive',
-            title: 'Ошибка конфигурации',
-            description: 'Переменные окружения для Cloudinary не настроены.',
-        });
-        return;
-    }
-
+    
     setIsLoading(true);
-    setUploadProgress(0);
-
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', 'ankets');
 
     try {
-        const response = await fetch(`https://api.cloudinary.com/v1_1/${clientEnv.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, {
-            method: 'POST',
-            body: formData,
-        });
+      const dataUrl = await fileToDataURL(file);
+      const { url } = await uploadImage(dataUrl, `avatar-${currentUser.id}-${Date.now()}`);
 
-      if (!response.ok) {
-        throw new Error('Не удалось загрузить изображение.');
-      }
-
-      const data = await response.json();
-      const secureUrl = data.secure_url;
-      
-      // Simulate progress for UI feedback as direct XHR progress is complex with fetch
-      setUploadProgress(100);
-
-      await updateUserAvatar(currentUser.id, secureUrl);
+      await updateUserAvatar(currentUser.id, url);
 
       toast({
         title: 'Аватар обновлен!',
@@ -85,10 +69,11 @@ export default function AvatarUploader({ closeDialog }: AvatarUploaderProps) {
       closeDialog();
     } catch (error) {
       console.error('Upload error:', error);
+      const message = error instanceof Error ? error.message : 'Произошла ошибка при загрузке вашего аватара.';
       toast({
         variant: 'destructive',
         title: 'Ошибка загрузки',
-        description: 'Произошла ошибка при загрузке вашего аватара.',
+        description: message,
       });
     } finally {
       setIsLoading(false);
@@ -109,7 +94,7 @@ export default function AvatarUploader({ closeDialog }: AvatarUploaderProps) {
         <input
           id="file-input"
           type="file"
-          accept="image/png, image/jpeg, image/gif"
+          accept="image/png, image/jpeg, image/gif, image/webp"
           className="hidden"
           onChange={handleFileChange}
           disabled={isLoading}
@@ -135,12 +120,12 @@ export default function AvatarUploader({ closeDialog }: AvatarUploaderProps) {
           <div className="text-center text-muted-foreground">
             <UploadCloud className="w-12 h-12 mx-auto mb-4" />
             <p className="font-semibold">Нажмите, чтобы загрузить файл</p>
-            <p className="text-xs">PNG, JPG или GIF (до 2MB)</p>
+            <p className="text-xs">PNG, JPG, GIF, WEBP (до 2MB)</p>
           </div>
         )}
       </div>
 
-      {isLoading && <Progress value={uploadProgress} className="w-full" />}
+      {isLoading && <Progress value={100} className="w-full animate-pulse" />}
 
       <div className="flex justify-end gap-2">
         <Button variant="ghost" onClick={closeDialog} disabled={isLoading}>
