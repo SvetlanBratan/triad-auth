@@ -305,16 +305,30 @@ export default function CurrencyExchange() {
                                                 value={selectedAcceptorCharId}
                                                 onValueChange={setSelectedAcceptorCharId}
                                                 placeholder="Выберите персонажа..."
-                                                renderOption={(option) => (
-                                                    <div>
-                                                        <div>{option.label.split(' (Баланс:')[0]}</div>
-                                                        <div className="text-xs text-muted-foreground">
-                                                            Баланс: {formatCurrency(
-                                                                (acceptingCharacters?.find(c => c.id === option.value))?.bankAccount
-                                                            )}
+                                                 renderSelected={(option) => {
+                                                    const character = acceptingCharacters?.find(c => c.id === option.value);
+                                                    if (!character) return option.label;
+                                                    return (
+                                                        <div className="flex flex-col items-start">
+                                                            <span>{character.name}</span>
+                                                            <span className="text-xs text-muted-foreground">
+                                                                {formatCurrency(character.bankAccount)}
+                                                            </span>
                                                         </div>
-                                                    </div>
-                                                )}
+                                                    );
+                                                }}
+                                                renderOption={(option) => {
+                                                     const character = acceptingCharacters?.find(c => c.id === option.value);
+                                                    if (!character) return option.label;
+                                                    return (
+                                                        <div>
+                                                            <div>{character.name}</div>
+                                                            <div className="text-xs text-muted-foreground">
+                                                                Баланс: {formatCurrency(character.bankAccount)}
+                                                            </div>
+                                                        </div>
+                                                    )
+                                                }}
                                             />
                                         </div>
                                         <DialogFooter>
