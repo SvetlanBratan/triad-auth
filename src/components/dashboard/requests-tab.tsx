@@ -68,15 +68,15 @@ const RewardRequestsList = ({ requests, onUpdate }: { requests: RewardRequest[],
                                 </Badge>
                             </div>
                         </CardHeader>
-                        <CardFooter className="flex justify-between items-center p-4 pt-0">
+                        <CardFooter className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 pt-0">
                              <p className="text-xs text-muted-foreground">
                                 Запрошено: {new Date(request.createdAt).toLocaleString()}
                              </p>
                              {request.status === 'в ожидании' && (
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 w-full sm:w-auto">
                                      <AlertDialog>
                                         <AlertDialogTrigger asChild>
-                                             <Button variant="outline" size="sm" disabled={isProcessing}>
+                                             <Button variant="outline" size="sm" disabled={isProcessing} className="flex-1">
                                                 <XCircle className="mr-2 h-4 w-4" /> Отклонить
                                             </Button>
                                         </AlertDialogTrigger>
@@ -96,7 +96,7 @@ const RewardRequestsList = ({ requests, onUpdate }: { requests: RewardRequest[],
                                         </AlertDialogContent>
                                     </AlertDialog>
 
-                                    <Button size="sm" onClick={() => handleUpdate(request, 'одобрено')} disabled={isProcessing}>
+                                    <Button size="sm" onClick={() => handleUpdate(request, 'одобрено')} disabled={isProcessing} className="flex-1">
                                         {isProcessing ? 'Обработка...' : <><CheckCircle className="mr-2 h-4 w-4" />Одобрить</>}
                                     </Button>
                                 </div>
