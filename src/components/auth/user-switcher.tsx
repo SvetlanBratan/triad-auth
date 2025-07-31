@@ -3,13 +3,10 @@
 
 import { useUser } from '@/hooks/use-user';
 import { Button } from '../ui/button';
-import { useAuth } from '../providers/user-provider';
 import { CalendarDays } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 export function UserSwitcher() {
-  const { currentUser, gameDateString } = useUser();
-  const { signOutUser } = useAuth();
+  const { currentUser, gameDateString, signOutUser } = useUser();
 
   if (!currentUser) return null;
 

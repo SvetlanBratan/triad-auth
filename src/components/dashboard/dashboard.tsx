@@ -10,7 +10,6 @@ import AdminTab from "./admin-tab";
 import RequestsTab from "./requests-tab";
 import { User, Trophy, Award, Shield, GitPullRequest, Landmark, Cat, Store, Mail } from "lucide-react";
 import AuthPage from "../auth/auth-page";
-import { useAuth } from "../providers/user-provider";
 import CurrencyExchange from "./currency-exchange";
 import FamiliarsTab from "./familiars-tab";
 import { cn } from "@/lib/utils";
@@ -19,8 +18,7 @@ import MarketTab from "./market-tab";
 import MailTab from "./mail-tab";
 
 export function Dashboard() {
-  const { currentUser } = useUser();
-  const { loading } = useAuth();
+  const { currentUser, loading } = useUser();
   const searchParams = useSearchParams();
   const defaultTab = searchParams.get('tab') || 'profile';
 
@@ -34,8 +32,6 @@ export function Dashboard() {
   }
 
   if (!currentUser) {
-    // This case should theoretically be handled by the root page now,
-    // but as a fallback, we can show the AuthPage or a message.
     return <AuthPage />;
   }
 

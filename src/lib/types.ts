@@ -1,4 +1,5 @@
 
+import type { User as FirebaseUser } from "firebase/auth";
 
 export type UserRole = 'admin' | 'user';
 export type UserStatus = 'активный' | 'неактивный' | 'отпуск';
@@ -35,7 +36,7 @@ export interface MailMessage {
 
 export interface GameSettings {
   gameDateString: string;
-  gameDate: Date;
+  gameDate?: Date; // Optional, can be derived
   lastWeeklyBonusAwardedAt?: string; // ISO string date
 }
 
@@ -317,6 +318,8 @@ export interface PerformRelationshipActionParams {
 
 export interface UserContextType {
   currentUser: User | null;
+  loading: boolean;
+  signOutUser: () => void;
   setCurrentUser: (user: User | null) => void;
   gameDate: Date | null;
   gameDateString: string | null;
