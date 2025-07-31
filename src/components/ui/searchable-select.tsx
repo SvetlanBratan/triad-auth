@@ -63,7 +63,7 @@ export const SearchableSelect = ({
   const selectedOption = allOptions.find((opt) => opt.value === value);
 
   return (
-    <Popover open={open} onOpenChange={setOpen} modal={false}>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
