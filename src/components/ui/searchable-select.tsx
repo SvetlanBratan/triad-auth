@@ -29,6 +29,7 @@ interface SearchableSelectProps {
   onValueChange: (value: string) => void;
   placeholder: string;
   disabled?: boolean;
+  renderOption?: (option: SelectOption) => React.ReactNode;
 }
 
 const isOptionGroup = (option: SelectOption | SelectOptionGroup): option is SelectOptionGroup => {
@@ -41,6 +42,7 @@ export const SearchableSelect = ({
   onValueChange,
   placeholder,
   disabled,
+  renderOption,
 }: SearchableSelectProps) => {
   const [open, setOpen] = React.useState(false);
 
@@ -68,7 +70,7 @@ export const SearchableSelect = ({
           className="w-full justify-between"
           disabled={disabled}
         >
-          <span className="truncate">{selectedLabel || placeholder}</span>
+          <span className="truncate">{selectedLabel?.split(' (Баланс:')[0] || placeholder}</span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -96,7 +98,7 @@ export const SearchableSelect = ({
                               value === item.value ? 'opacity-100' : 'opacity-0'
                           )}
                           />
-                          {item.label}
+                          {renderOption ? renderOption(item) : item.label}
                       </CommandItem>
                       ))}
                   </CommandGroup>
@@ -118,7 +120,7 @@ export const SearchableSelect = ({
                               value === option.value ? 'opacity-100' : 'opacity-0'
                               )}
                           />
-                          {option.label}
+                           {renderOption ? renderOption(option) : option.label}
                       </CommandItem>
                   </CommandGroup>
               );

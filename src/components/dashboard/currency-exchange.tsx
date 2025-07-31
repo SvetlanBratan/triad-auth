@@ -305,6 +305,16 @@ export default function CurrencyExchange() {
                                                 value={selectedAcceptorCharId}
                                                 onValueChange={setSelectedAcceptorCharId}
                                                 placeholder="Выберите персонажа..."
+                                                renderOption={(option) => (
+                                                    <div>
+                                                        <div>{option.label.split(' (Баланс:')[0]}</div>
+                                                        <div className="text-xs text-muted-foreground">
+                                                            Баланс: {formatCurrency(
+                                                                (acceptingCharacters?.find(c => c.id === option.value))?.bankAccount
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
                                             />
                                         </div>
                                         <DialogFooter>

@@ -1570,7 +1570,7 @@ export default function AdminTab() {
                         <form onSubmit={handleEconomySubmit} className="space-y-4">
                              <div>
                                 <Label>Пользователь и персонаж</Label>
-                                <div className="flex gap-2">
+                                <div className="flex flex-col sm:flex-row gap-2">
                                      <SearchableSelect
                                         options={userOnlyOptions}
                                         value={ecoUserId}
@@ -1617,7 +1617,7 @@ export default function AdminTab() {
                         <form onSubmit={handleWealthLevelUpdate} className="space-y-4">
                             <div>
                                 <Label>Пользователь и персонаж</Label>
-                                <div className="flex gap-2">
+                                <div className="flex flex-col sm:flex-row gap-2">
                                     <SearchableSelect
                                         options={userOnlyOptions}
                                         value={ecoUserId}
@@ -1662,7 +1662,7 @@ export default function AdminTab() {
                         <form onSubmit={handleCharacterStatusUpdate} className="space-y-4">
                             <div>
                                 <Label>Пользователь и персонаж</Label>
-                                <div className="flex gap-2">
+                                <div className="flex flex-col sm:flex-row gap-2">
                                     <SearchableSelect
                                         options={userOnlyOptions}
                                         value={ecoUserId}
@@ -1741,7 +1741,7 @@ export default function AdminTab() {
                         <form onSubmit={handleStartingCapitalSubmit} className="space-y-4">
                             <div>
                                 <Label>Пользователь и персонаж</Label>
-                                <div className="flex gap-2">
+                                <div className="flex flex-col sm:flex-row gap-2">
                                      <SearchableSelect
                                         options={userOnlyOptions}
                                         value={capitalUserId}
@@ -1865,7 +1865,7 @@ export default function AdminTab() {
                            <form onSubmit={handleGiveItem} className="space-y-4">
                                 <div>
                                     <Label>Пользователь и персонаж</Label>
-                                    <div className="flex gap-2">
+                                    <div className="flex flex-col sm:flex-row gap-2">
                                         <SearchableSelect
                                             options={userOnlyOptions}
                                             value={itemUserId}
@@ -1937,7 +1937,7 @@ export default function AdminTab() {
                             <form onSubmit={handleUpdateItem} className="space-y-4">
                                 <div>
                                     <Label>Пользователь и персонаж</Label>
-                                    <div className="flex gap-2">
+                                    <div className="flex flex-col sm:flex-row gap-2">
                                         <SearchableSelect
                                             options={userOnlyOptions}
                                             value={itemUserId}
@@ -1986,7 +1986,7 @@ export default function AdminTab() {
                                             <Label htmlFor="edit-item-tag">Категория</Label>
                                             <p className="text-sm text-muted-foreground">Категорию предмета изменить нельзя.</p>
                                         </div>
-                                        <div className="flex gap-2">
+                                        <div className="flex flex-col sm:flex-row gap-2">
                                             <Button type="submit" className="flex-1"><Edit className="mr-2"/>Сохранить</Button>
                                             <AlertDialog>
                                                 <AlertDialogTrigger asChild><Button type="button" variant="destructive" className="flex-1"><Trash2 className="mr-2"/>Удалить</Button></AlertDialogTrigger>
