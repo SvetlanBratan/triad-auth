@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { UploadCloud, X } from 'lucide-react';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
-import { env } from '@/lib/env';
+import { clientEnv } from '@/lib/env';
 
 interface AvatarUploaderProps {
   closeDialog: () => void;
@@ -44,7 +44,7 @@ export default function AvatarUploader({ closeDialog }: AvatarUploaderProps) {
 
   const handleUpload = async () => {
     if (!file || !currentUser) return;
-    if (!env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || !env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET) {
+    if (!clientEnv.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || !clientEnv.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET) {
         toast({
             variant: 'destructive',
             title: 'Ошибка конфигурации',
@@ -61,7 +61,7 @@ export default function AvatarUploader({ closeDialog }: AvatarUploaderProps) {
     formData.append('upload_preset', 'ankets');
 
     try {
-        const response = await fetch(`https://api.cloudinary.com/v1_1/${env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, {
+        const response = await fetch(`https://api.cloudinary.com/v1_1/${clientEnv.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, {
             method: 'POST',
             body: formData,
         });
@@ -153,4 +153,3 @@ export default function AvatarUploader({ closeDialog }: AvatarUploaderProps) {
     </div>
   );
 }
-

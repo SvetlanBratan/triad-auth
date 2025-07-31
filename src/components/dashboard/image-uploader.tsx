@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { UploadCloud, X } from 'lucide-react';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
-import { env } from '@/lib/env';
+import { clientEnv } from '@/lib/env';
 import { Label } from '@/components/ui/label';
 
 interface ImageUploaderProps {
@@ -50,7 +50,7 @@ export default function ImageUploader({ currentImageUrl, onUpload, uploadPreset 
 
   const handleUpload = async () => {
     if (!file) return;
-    if (!env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME) {
+    if (!clientEnv.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME) {
         toast({
             variant: 'destructive',
             title: 'Ошибка конфигурации',
@@ -67,7 +67,7 @@ export default function ImageUploader({ currentImageUrl, onUpload, uploadPreset 
     formData.append('upload_preset', uploadPreset);
 
     try {
-        const response = await fetch(`https://api.cloudinary.com/v1_1/${env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, {
+        const response = await fetch(`https://api.cloudinary.com/v1_1/${clientEnv.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, {
             method: 'POST',
             body: formData,
         });
