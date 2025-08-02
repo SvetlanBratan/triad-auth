@@ -1,16 +1,17 @@
 
+
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, notFound } from 'next/navigation';
 import { useUser } from '@/hooks/use-user';
-import { User, Character, FamiliarCard, FamiliarRank, Moodlet, Relationship, RelationshipType, WealthLevel, BankAccount, Accomplishment, BankTransaction, OwnedFamiliarCard, InventoryCategory, InventoryItem, CitizenshipStatus, TaxpayerStatus } from '@/lib/types';
+import { User, Character, FamiliarCard, FamiliarRank, Moodlet, Relationship, RelationshipType, WealthLevel, BankAccount, Accomplishment, BankTransaction, OwnedFamiliarCard, InventoryCategory, InventoryItem, CitizenshipStatus, TaxpayerStatus, PopularityLog } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FAMILIARS_BY_ID, MOODLETS_DATA, TRAINING_OPTIONS, CRIME_LEVELS, INVENTORY_CATEGORIES } from '@/lib/data';
+import { FAMILIARS_BY_ID, MOODLETS_DATA, TRAINING_OPTIONS, CRIME_LEVELS, INVENTORY_CATEGORIES, POPULARITY_LEVELS } from '@/lib/data';
 import FamiliarCardDisplay from '@/components/dashboard/familiar-card';
-import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users, HeartHandshake, Wallet, Coins, Award, Zap, ShieldOff, History, Info, PlusCircle, BookUser, Gavel, Group, Building, Package, LandPlot, ShieldCheck, FileQuestion, BadgeCheck, BadgeAlert, Landmark } from 'lucide-react';
+import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users, HeartHandshake, Wallet, Coins, Award, Zap, ShieldOff, History, Info, PlusCircle, BookUser, Gavel, Group, Building, Package, LandPlot, ShieldCheck, FileQuestion, BadgeCheck, BadgeAlert, Landmark, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -278,6 +279,16 @@ export default function CharacterPage() {
     const crimeLevelInfo = useMemo(() => {
         if (!character?.crimeLevel) return null;
         return CRIME_LEVELS.find(cl => cl.level === character.crimeLevel);
+    }, [character]);
+
+    const popularityLevel = useMemo(() => {
+        if (character?.popularity === undefined) return POPULARITY_LEVELS[0];
+        return POPULARITY_LEVELS.find(level => character.popularity >= level.min && character.popularity <= level.max) || POPULARITY_LEVELS[0];
+    }, [character]);
+    
+    const sortedPopularityHistory = useMemo(() => {
+        if (!character || !character.popularityHistory) return [];
+        return [...character.popularityHistory].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }, [character]);
 
 
@@ -588,6 +599,29 @@ export default function CharacterPage() {
                                 />
                             </CardContent>
                         </Card>
+                         <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2"><History /> История популярности</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <ScrollArea className="h-48 pr-3">
+                                        <div className="space-y-3">
+                                        {sortedPopularityHistory.map((log: PopularityLog) => (
+                                            <div key={log.id} className="text-xs p-2 bg-muted/50 rounded-md">
+                                                <div className="flex justify-between items-start">
+                                                    <p className="font-semibold flex-1 pr-2">{log.reason}</p>
+                                                    <p className={cn("font-mono font-semibold", log.amount > 0 ? 'text-green-600' : 'text-destructive')}>
+                                                        {log.amount > 0 ? '+' : ''}{log.amount.toLocaleString()}
+                                                    </p>
+                                                </div>
+                                                <p className="text-muted-foreground">{new Date(log.date).toLocaleString()}</p>
+                                            </div>
+                                        ))}
+                                         {sortedPopularityHistory.length === 0 && <p className="text-sm text-muted-foreground text-center">Истории пока нет.</p>}
+                                        </div>
+                                    </ScrollArea>
+                                </CardContent>
+                            </Card>
                     </div>
                     {/* Sidebar Column (Right on Large Screens) */}
                     <div className="w-full lg:w-1/3 flex flex-col space-y-6 order-1 lg:order-2">
@@ -645,6 +679,13 @@ export default function CharacterPage() {
                                         ) : undefined
                                     }
                                 />
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-1 gap-x-4 items-start">
+                                    <span className="text-muted-foreground col-span-1 flex items-center gap-1.5"><Eye className="w-4 h-4" />Популярность:</span>
+                                    <div className="col-span-1 sm:col-span-2 text-left">
+                                        <span className="font-semibold">{popularityLevel.label}</span>
+                                        <span className="text-muted-foreground ml-1.5">({character.popularity})</span>
+                                    </div>
+                                </div>
                                 <InfoRow label="Место работы" value={character.workLocation} field="workLocation" section="mainInfo" isVisible={!!character.workLocation}/>
                                 <InfoRow label="Фракции/гильдии" value={character.factions} field="factions" section="mainInfo" isVisible={!!character.factions || isOwnerOrAdmin} icon={<Group className="w-4 h-4" />} />
                             </CardContent>

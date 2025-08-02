@@ -12,9 +12,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
-import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info, AlertTriangle, Bell, CheckCircle, Store, PackagePlus, Edit, BadgeCheck, FileText, Send, Gavel } from 'lucide-react';
+import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info, AlertTriangle, Bell, CheckCircle, Store, PackagePlus, Edit, BadgeCheck, FileText, Send, Gavel, Eye } from 'lucide-react';
 import type { UserStatus, UserRole, User, FamiliarCard, BankAccount, WealthLevel, FamiliarRank, Shop, InventoryCategory, AdminGiveItemForm, InventoryItem, CitizenshipStatus, TaxpayerStatus } from '@/lib/types';
-import { FAME_LEVELS_POINTS, EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, FAMILIARS_BY_ID, WEALTH_LEVELS, ALL_FAMILIARS, STARTING_CAPITAL_LEVELS, ALL_SHOPS, INVENTORY_CATEGORIES } from '@/lib/data';
+import { EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, FAMILIARS_BY_ID, WEALTH_LEVELS, ALL_FAMILIARS, STARTING_CAPITAL_LEVELS, ALL_SHOPS, INVENTORY_CATEGORIES, POPULARITY_EVENTS } from '@/lib/data';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -85,6 +85,7 @@ export default function AdminTab() {
     processAnnualTaxes,
     sendMassMail,
     clearAllMailboxes,
+    updatePopularity,
   } = useUser();
   const queryClient = useQueryClient();
 
@@ -187,6 +188,12 @@ export default function AdminTab() {
   const [isSendingMail, setIsSendingMail] = useState(false);
   const [sendToAll, setSendToAll] = useState(true);
   const [mailRecipients, setMailRecipients] = useState<string[]>([]);
+  
+  // Popularity state
+  const [popularityCharacters, setPopularityCharacters] = useState<string[]>([]);
+  const [popularityEvent, setPopularityEvent] = useState('');
+  const [popularityDescription, setPopularityDescription] = useState('');
+  const [isProcessingPopularity, setIsProcessingPopularity] = useState(false);
 
 
   const { toast } = useToast();
@@ -405,7 +412,7 @@ export default function AdminTab() {
     try {
         const { awardedCount, isOverdue } = await processWeeklyBonus();
         await refetchUsers();
-        let description = `Еженедельные бонусы (активность + известность) начислены ${awardedCount} активным пользователям.`;
+        let description = `Еженедельные бонусы (активность + популярность) начислены ${awardedCount} активным пользователям.`;
         if (isOverdue) {
             description += ' Была также начислена компенсация за просрочку.';
         }
@@ -771,6 +778,30 @@ export default function AdminTab() {
         setIsSendingMail(false);
     }
   };
+  
+   const handlePopularityUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const eventData = POPULARITY_EVENTS.find(event => event.label === popularityEvent);
+
+    if (popularityCharacters.length === 0 || !eventData) {
+        toast({ variant: 'destructive', title: 'Ошибка', description: 'Выберите хотя бы одного персонажа и событие.' });
+        return;
+    }
+    
+    setIsProcessingPopularity(true);
+    try {
+        await updatePopularity(popularityCharacters, eventData, popularityDescription);
+        toast({ title: 'Популярность обновлена', description: `Изменения применены к ${users.flatMap(u => u.characters).length} персонажам.` });
+        setPopularityCharacters([]);
+        setPopularityEvent('');
+        setPopularityDescription('');
+    } catch(err) {
+        const msg = err instanceof Error ? err.message : 'Произошла неизвестная ошибка.';
+        toast({ variant: 'destructive', title: 'Ошибка при обновлении популярности', description: msg });
+    } finally {
+        setIsProcessingPopularity(false);
+    }
+   };
 
 
   // --- Memos ---
@@ -961,6 +992,11 @@ export default function AdminTab() {
       value: shop.id,
       label: shop.title,
   })), []);
+  
+   const popularityEventOptions = useMemo(() => POPULARITY_EVENTS.map(event => ({
+        value: event.label,
+        label: `${event.label} (+${event.value})`,
+    })), []);
 
 
   if (isUsersLoading || isShopsLoading) {
@@ -972,6 +1008,7 @@ export default function AdminTab() {
       <TabsList className="flex flex-wrap h-auto justify-center">
         <TabsTrigger value="points" className="text-xs sm:text-sm">Баллы</TabsTrigger>
         <TabsTrigger value="general" className="text-xs sm:text-sm">Общее</TabsTrigger>
+        <TabsTrigger value="popularity" className="text-xs sm:text-sm">Популярность</TabsTrigger>
         <TabsTrigger value="familiars" className="text-xs sm:text-sm">Фамильяры</TabsTrigger>
         <TabsTrigger value="economy" className="text-xs sm:text-sm">Экономика</TabsTrigger>
         <TabsTrigger value="shops" className="text-xs sm:text-sm">Магазины</TabsTrigger>
@@ -1071,7 +1108,7 @@ export default function AdminTab() {
                 <CardContent className="space-y-4">
                     <div>
                         <h3 className="font-semibold mb-2 flex items-center gap-2"><Users /> Еженедельный бонус</h3>
-                        <p className="text-sm text-muted-foreground mb-3">Начисляет 800 баллов за активность и баллы за известность всем 'активным' игрокам.</p>
+                        <p className="text-sm text-muted-foreground mb-3">Начисляет 800 баллов за активность и баллы за популярность всем 'активным' игрокам.</p>
                         <div className="p-4 rounded-md border space-y-3">
                             {weeklyBonusStatus.canAward ? (
                                 weeklyBonusStatus.isOverdue ? (
@@ -1377,6 +1414,46 @@ export default function AdminTab() {
             </Card>
             </div>
          </div>
+      </TabsContent>
+      
+      <TabsContent value="popularity" className="mt-4">
+        <Card className="max-w-2xl mx-auto">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Eye /> Управление популярностью</CardTitle>
+            <CardDescription>
+              Выберите персонажей, которые были в центре внимания. Всем остальным популярность будет понижена на 5.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handlePopularityUpdate} className="space-y-4">
+              <div>
+                <Label>Персонажи в центре внимания</Label>
+                <SearchableMultiSelect
+                    options={allCharactersForMail}
+                    selected={popularityCharacters}
+                    onChange={setPopularityCharacters}
+                    placeholder="Выберите одного или нескольких персонажей..."
+                />
+              </div>
+              <div>
+                <Label>Событие</Label>
+                <SearchableSelect
+                    options={popularityEventOptions}
+                    value={popularityEvent}
+                    onValueChange={setPopularityEvent}
+                    placeholder="Выберите событие..."
+                />
+              </div>
+               <div>
+                <Label>Описание (необязательно)</Label>
+                <Input value={popularityDescription} onChange={e => setPopularityDescription(e.target.value)} placeholder="Напр., статья 'Скандалы недели'"/>
+              </div>
+              <Button type="submit" className="w-full" disabled={isProcessingPopularity}>
+                {isProcessingPopularity ? "Обновление..." : "Применить изменения"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
       </TabsContent>
 
       <TabsContent value="familiars" className="mt-4">

@@ -229,8 +229,8 @@ export interface Character {
   wealthLevel: WealthLevel;
   crimeLevel?: CrimeLevel;
   criminalRecords?: string;
-  popularity?: number;
-  popularityHistory?: PopularityLog[];
+  popularity: number;
+  popularityHistory: PopularityLog[];
   // Deprecated fields, kept for migration
   skillLevels?: CharacterLevel[];
   fameLevels?: CharacterLevel[];
