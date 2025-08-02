@@ -323,6 +323,12 @@ export interface PerformRelationshipActionParams {
     content?: string; // For letters
 }
 
+export interface CharacterPopularityUpdate {
+    characterId: string;
+    eventIds: string[];
+    description?: string;
+}
+
 
 export interface UserContextType {
   currentUser: User | null;
@@ -367,7 +373,7 @@ export interface UserContextType {
   processMonthlySalary: () => Promise<void>;
   processAnnualTaxes: () => Promise<{ taxedCharactersCount: number; totalTaxesCollected: BankAccount }>;
   updateCharacterWealthLevel: (userId: string, characterId: string, wealthLevel: WealthLevel) => Promise<void>;
-  updatePopularity: (characterIds: string[], event: { label: string; value: number }, description?: string) => Promise<void>;
+  updatePopularity: (updates: CharacterPopularityUpdate[]) => Promise<void>;
   createExchangeRequest: (creatorUserId: string, creatorCharacterId: string, fromCurrency: Currency, fromAmount: number, toCurrency: Currency, toAmount: number) => Promise<void>;
   fetchOpenExchangeRequests: () => Promise<ExchangeRequest[]>;
   acceptExchangeRequest: (acceptorUserId: string, acceptorCharacterId: string, request: ExchangeRequest) => Promise<void>;
@@ -396,3 +402,4 @@ export interface UserContextType {
   deleteMailMessage: (mailId: string) => Promise<void>;
   clearAllMailboxes: () => Promise<void>;
 }
+

@@ -3,11 +3,11 @@
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
-import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage, Cooldowns, PopularityLog } from '@/lib/types';
+import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage, Cooldowns, PopularityLog, CharacterPopularityUpdate } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter } from "firebase/firestore";
-import { ALL_FAMILIARS, FAMILIARS_BY_ID, MOODLETS_DATA, DEFAULT_GAME_SETTINGS, WEALTH_LEVELS, ALL_SHOPS, SHOPS_BY_ID } from '@/lib/data';
+import { ALL_FAMILIARS, FAMILIARS_BY_ID, MOODLETS_DATA, DEFAULT_GAME_SETTINGS, WEALTH_LEVELS, ALL_SHOPS, SHOPS_BY_ID, POPULARITY_EVENTS } from '@/lib/data';
 import { differenceInDays } from 'date-fns';
 
 interface AuthContextType {
@@ -96,7 +96,7 @@ interface UserContextType {
   markMailAsRead: (mailId: string) => Promise<void>;
   deleteMailMessage: (mailId: string) => Promise<void>;
   clearAllMailboxes: () => Promise<void>;
-  updatePopularity: (characterIds: string[], event: { label: string; value: number }, description?: string) => Promise<void>;
+  updatePopularity: (updates: CharacterPopularityUpdate[]) => Promise<void>;
 }
 
 export const UserContext = createContext<UserContextType | null>(null);
@@ -2302,38 +2302,50 @@ const clearAllMailboxes = useCallback(async () => {
     }
 }, [fetchUsersForAdmin, currentUser, fetchUserById]);
 
-const updatePopularity = useCallback(async (characterIds: string[], event: { label: string; value: number }, description?: string) => {
+const updatePopularity = useCallback(async (updates: CharacterPopularityUpdate[]) => {
     const allUsers = await fetchUsersForAdmin();
     const batch = writeBatch(db);
-    const selectedCharIds = new Set(characterIds);
+    const updatedCharIds = new Set(updates.map(u => u.characterId));
 
     for (const user of allUsers) {
         let hasChanges = false;
         const updatedCharacters = user.characters.map(char => {
-            const newHistoryEntry: PopularityLog = {
-                id: `pop-${Date.now()}-${char.id.slice(0, 4)}`,
-                date: new Date().toISOString(),
-                reason: '',
-                amount: 0,
-            };
-
+            const charUpdate = updates.find(u => u.characterId === char.id);
             let newPopularity = char.popularity ?? 0;
+            const newHistoryEntries: PopularityLog[] = [];
 
-            if (selectedCharIds.has(char.id)) {
-                newPopularity += event.value;
-                newHistoryEntry.amount = event.value;
-                newHistoryEntry.reason = description ? `${event.label}: ${description}` : event.label;
+            if (charUpdate) {
+                let totalPoints = 0;
+                charUpdate.eventIds.forEach(eventId => {
+                    const eventData = POPULARITY_EVENTS.find(e => e.label === eventId);
+                    if (eventData) {
+                        totalPoints += eventData.value;
+                        const reason = charUpdate.description ? `${eventData.label}: ${charUpdate.description}` : eventData.label;
+                        newHistoryEntries.push({
+                            id: `pop-${Date.now()}-${char.id.slice(0, 4)}-${Math.random()}`,
+                            date: new Date().toISOString(),
+                            reason: reason,
+                            amount: eventData.value,
+                        });
+                    }
+                });
+                newPopularity += totalPoints;
+
             } else {
                 newPopularity -= 5;
-                newHistoryEntry.amount = -5;
-                newHistoryEntry.reason = 'Еженедельный спад популярности';
+                newHistoryEntries.push({
+                    id: `pop-decay-${Date.now()}-${char.id.slice(0, 4)}`,
+                    date: new Date().toISOString(),
+                    reason: 'Еженедельный спад популярности',
+                    amount: -5,
+                });
             }
             
-            newPopularity = Math.max(0, newPopularity); // Ensure popularity doesn't go below 0
+            newPopularity = Math.max(0, newPopularity);
 
             if (newPopularity !== (char.popularity ?? 0)) {
                 hasChanges = true;
-                const updatedHistory = [newHistoryEntry, ...(char.popularityHistory || [])];
+                const updatedHistory = [...newHistoryEntries, ...(char.popularityHistory || [])];
                 return { ...char, popularity: newPopularity, popularityHistory: updatedHistory };
             }
             return char;
@@ -2452,4 +2464,5 @@ const updatePopularity = useCallback(async (characterIds: string[], event: { lab
 
 
     
+
 

@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
 import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info, AlertTriangle, Bell, CheckCircle, Store, PackagePlus, Edit, BadgeCheck, FileText, Send, Gavel, Eye } from 'lucide-react';
-import type { UserStatus, UserRole, User, FamiliarCard, BankAccount, WealthLevel, FamiliarRank, Shop, InventoryCategory, AdminGiveItemForm, InventoryItem, CitizenshipStatus, TaxpayerStatus } from '@/lib/types';
+import type { UserStatus, UserRole, User, FamiliarCard, BankAccount, WealthLevel, FamiliarRank, Shop, InventoryCategory, AdminGiveItemForm, InventoryItem, CitizenshipStatus, TaxpayerStatus, CharacterPopularityUpdate } from '@/lib/types';
 import { EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, FAMILIARS_BY_ID, WEALTH_LEVELS, ALL_FAMILIARS, STARTING_CAPITAL_LEVELS, ALL_SHOPS, INVENTORY_CATEGORIES, POPULARITY_EVENTS } from '@/lib/data';
 import {
   AlertDialog,
@@ -190,10 +190,18 @@ export default function AdminTab() {
   const [mailRecipients, setMailRecipients] = useState<string[]>([]);
   
   // Popularity state
-  const [popularityCharacters, setPopularityCharacters] = useState<string[]>([]);
-  const [popularityEvent, setPopularityEvent] = useState('');
+  const [popularityCharIds, setPopularityCharIds] = useState<string[]>([]);
+  const [popularityUpdates, setPopularityUpdates] = useState<Record<string, { events: string[] }>>({});
   const [popularityDescription, setPopularityDescription] = useState('');
   const [isProcessingPopularity, setIsProcessingPopularity] = useState(false);
+
+  useEffect(() => {
+    const newUpdates: Record<string, { events: string[] }> = {};
+    popularityCharIds.forEach(id => {
+        newUpdates[id] = popularityUpdates[id] || { events: [] };
+    });
+    setPopularityUpdates(newUpdates);
+  }, [popularityCharIds]);
 
 
   const { toast } = useToast();
@@ -781,19 +789,26 @@ export default function AdminTab() {
   
    const handlePopularityUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    const eventData = POPULARITY_EVENTS.find(event => event.label === popularityEvent);
 
-    if (popularityCharacters.length === 0 || !eventData) {
-        toast({ variant: 'destructive', title: 'Ошибка', description: 'Выберите хотя бы одного персонажа и событие.' });
+    const updates: CharacterPopularityUpdate[] = Object.entries(popularityUpdates)
+        .filter(([_, data]) => data.events.length > 0)
+        .map(([characterId, data]) => ({
+            characterId,
+            eventIds: data.events,
+            description: popularityDescription,
+        }));
+    
+    if (updates.length === 0) {
+        toast({ variant: 'destructive', title: 'Ошибка', description: 'Выберите хотя бы одно событие для одного персонажа.' });
         return;
     }
     
     setIsProcessingPopularity(true);
     try {
-        await updatePopularity(popularityCharacters, eventData, popularityDescription);
-        toast({ title: 'Популярность обновлена', description: `Изменения применены к ${users.flatMap(u => u.characters).length} персонажам.` });
-        setPopularityCharacters([]);
-        setPopularityEvent('');
+        await updatePopularity(updates);
+        toast({ title: 'Популярность обновлена', description: `Изменения применены к выбранным персонажам, у остальных популярность понижена.` });
+        setPopularityCharIds([]);
+        setPopularityUpdates({});
         setPopularityDescription('');
     } catch(err) {
         const msg = err instanceof Error ? err.message : 'Произошла неизвестная ошибка.';
@@ -801,6 +816,13 @@ export default function AdminTab() {
     } finally {
         setIsProcessingPopularity(false);
     }
+   };
+
+   const handlePopularityEventChange = (charId: string, events: string[]) => {
+        setPopularityUpdates(prev => ({
+            ...prev,
+            [charId]: { ...prev[charId], events }
+        }));
    };
 
 
@@ -888,7 +910,7 @@ export default function AdminTab() {
     return groupedOptions;
   }, [itemUserId, itemCharId, users]);
 
-  const allCharactersForMail = useMemo(() => {
+  const allCharactersForSelection = useMemo(() => {
     return users.flatMap(user => 
         user.characters.map(char => ({
             value: char.id,
@@ -1417,7 +1439,7 @@ export default function AdminTab() {
       </TabsContent>
       
       <TabsContent value="popularity" className="mt-4">
-        <Card className="max-w-2xl mx-auto">
+        <Card className="max-w-4xl mx-auto">
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><Eye /> Управление популярностью</CardTitle>
             <CardDescription>
@@ -1425,30 +1447,50 @@ export default function AdminTab() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handlePopularityUpdate} className="space-y-4">
+            <form onSubmit={handlePopularityUpdate} className="space-y-6">
               <div>
-                <Label>Персонажи в центре внимания</Label>
+                <Label>1. Персонажи в центре внимания</Label>
                 <SearchableMultiSelect
-                    options={allCharactersForMail}
-                    selected={popularityCharacters}
-                    onChange={setPopularityCharacters}
+                    options={allCharactersForSelection}
+                    selected={popularityCharIds}
+                    onChange={setPopularityCharIds}
                     placeholder="Выберите одного или нескольких персонажей..."
                 />
               </div>
-              <div>
-                <Label>Событие</Label>
-                <SearchableSelect
-                    options={popularityEventOptions}
-                    value={popularityEvent}
-                    onValueChange={setPopularityEvent}
-                    placeholder="Выберите событие..."
-                />
-              </div>
-               <div>
-                <Label>Описание (необязательно)</Label>
-                <Input value={popularityDescription} onChange={e => setPopularityDescription(e.target.value)} placeholder="Напр., статья 'Скандалы недели'"/>
-              </div>
-              <Button type="submit" className="w-full" disabled={isProcessingPopularity}>
+
+              {popularityCharIds.length > 0 && (
+                <div className="space-y-4">
+                    <div>
+                        <Label>2. События для персонажей</Label>
+                        <div className="space-y-3 rounded-md border p-3">
+                            {popularityCharIds.map(charId => {
+                                const char = allCharactersForSelection.find(c => c.value === charId);
+                                if (!char) return null;
+                                return (
+                                    <div key={charId} className="grid grid-cols-1 sm:grid-cols-3 items-center gap-3">
+                                        <Label className="sm:col-span-1 truncate">{char.label}</Label>
+                                        <div className="sm:col-span-2">
+                                            <SearchableMultiSelect
+                                                options={popularityEventOptions}
+                                                selected={popularityUpdates[charId]?.events || []}
+                                                onChange={(events) => handlePopularityEventChange(charId, events)}
+                                                placeholder="Выберите события..."
+                                            />
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </div>
+                     <div>
+                        <Label>3. Общее описание (необязательно)</Label>
+                        <Input value={popularityDescription} onChange={e => setPopularityDescription(e.target.value)} placeholder="Напр., статья 'Скандалы недели'"/>
+                        <p className="text-xs text-muted-foreground mt-1">Это описание будет добавлено к каждому событию для выбранных персонажей.</p>
+                      </div>
+                </div>
+              )}
+             
+              <Button type="submit" className="w-full" disabled={isProcessingPopularity || popularityCharIds.length === 0}>
                 {isProcessingPopularity ? "Обновление..." : "Применить изменения"}
               </Button>
             </form>
@@ -1934,7 +1976,7 @@ export default function AdminTab() {
                 </CardHeader>
                 <CardContent>
                      <Tabs defaultValue="add">
-                        <TabsList className="w-full flex-wrap justify-start h-auto">
+                        <TabsList className="w-full flex flex-wrap h-auto justify-start">
                             <TabsTrigger value="add">Добавить предмет</TabsTrigger>
                             <TabsTrigger value="edit">Редактировать предмет</TabsTrigger>
                         </TabsList>
@@ -2112,7 +2154,7 @@ export default function AdminTab() {
                             <div>
                                 <Label htmlFor="mail-recipients">Получатели</Label>
                                 <SearchableMultiSelect
-                                    options={allCharactersForMail}
+                                    options={allCharactersForSelection}
                                     selected={mailRecipients}
                                     onChange={setMailRecipients}
                                     placeholder="Выберите одного или нескольких персонажей..."
@@ -2164,3 +2206,4 @@ export default function AdminTab() {
 }
 
     
+
