@@ -3,11 +3,11 @@
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
-import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage, Cooldowns } from '@/lib/types';
+import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage, Cooldowns, PopularityLog } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter } from "firebase/firestore";
-import { ALL_FAMILIARS, FAMILIARS_BY_ID, MOODLETS_DATA, DEFAULT_GAME_SETTINGS, WEALTH_LEVELS, FAME_LEVELS_POINTS, ALL_SHOPS, SHOPS_BY_ID } from '@/lib/data';
+import { ALL_FAMILIARS, FAMILIARS_BY_ID, MOODLETS_DATA, DEFAULT_GAME_SETTINGS, WEALTH_LEVELS, ALL_SHOPS, SHOPS_BY_ID } from '@/lib/data';
 import { differenceInDays } from 'date-fns';
 
 interface AuthContextType {
@@ -96,6 +96,7 @@ interface UserContextType {
   markMailAsRead: (mailId: string) => Promise<void>;
   deleteMailMessage: (mailId: string) => Promise<void>;
   clearAllMailboxes: () => Promise<void>;
+  updatePopularity: (characterIds: string[], event: { label: string; value: number }, description?: string) => Promise<void>;
 }
 
 export const UserContext = createContext<UserContextType | null>(null);
@@ -265,6 +266,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     countryOfResidence: '',
     citizenshipStatus: 'non-citizen',
     taxpayerStatus: 'taxable',
+    popularity: 0,
+    popularityHistory: [],
   }), []);
 
   const fetchUserById = useCallback(async (userId: string): Promise<User | null> => {
@@ -292,6 +295,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 relationships: (Array.isArray(char.relationships) ? char.relationships : []).map(r => ({ ...r, id: r.id || `rel-${Math.random()}` })),
                 inventory: { ...initialFormData.inventory, ...(char.inventory || {}) },
                 moodlets: char.moodlets || [],
+                popularity: char.popularity ?? 0,
+                popularityHistory: char.popularityHistory || [],
             })) || [];
            userData.achievementIds = userData.achievementIds || [];
            userData.extraCharacterSlots = userData.extraCharacterSlots || 0;
@@ -579,7 +584,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             sanitized.inventory = { ...initialFormData.inventory, ...(sanitized.inventory || {}) };
             sanitized.bankAccount = { ...initialFormData.bankAccount, ...(sanitized.bankAccount || {}) };
             
-            const arrayFields: (keyof Character)[] = ['accomplishments', 'training', 'relationships', 'marriedTo', 'moodlets'];
+            const arrayFields: (keyof Character)[] = ['accomplishments', 'training', 'relationships', 'marriedTo', 'moodlets', 'popularityHistory'];
             arrayFields.forEach(field => {
                 if (!Array.isArray(sanitized[field])) {
                     (sanitized as any)[field] = [];
@@ -2059,14 +2064,11 @@ const processWeeklyBonus = useCallback(async () => {
         let totalBonus = 800;
         let reason = "Еженедельный бонус за активность";
         
-        const famePoints = user.characters.reduce((acc, char) => {
-            const charFame = (char.accomplishments || []).reduce((charAcc, acco) => charAcc + (FAME_LEVELS_POINTS[acco.fameLevel as keyof typeof FAME_LEVELS_POINTS] || 0), 0);
-            return acc + charFame;
-        }, 0);
+        const popularityPoints = user.characters.reduce((acc, char) => acc + (char.popularity ?? 0), 0);
 
-        if (famePoints > 0) {
-            totalBonus += famePoints;
-            reason += ` и известность (${famePoints})`;
+        if (popularityPoints > 0) {
+            totalBonus += popularityPoints;
+            reason += ` и популярность (${popularityPoints})`;
         }
 
         if (isOverdue) {
@@ -2300,6 +2302,57 @@ const clearAllMailboxes = useCallback(async () => {
     }
 }, [fetchUsersForAdmin, currentUser, fetchUserById]);
 
+const updatePopularity = useCallback(async (characterIds: string[], event: { label: string; value: number }, description?: string) => {
+    const allUsers = await fetchUsersForAdmin();
+    const batch = writeBatch(db);
+    const selectedCharIds = new Set(characterIds);
+
+    for (const user of allUsers) {
+        let hasChanges = false;
+        const updatedCharacters = user.characters.map(char => {
+            const newHistoryEntry: PopularityLog = {
+                id: `pop-${Date.now()}-${char.id.slice(0, 4)}`,
+                date: new Date().toISOString(),
+                reason: '',
+                amount: 0,
+            };
+
+            let newPopularity = char.popularity ?? 0;
+
+            if (selectedCharIds.has(char.id)) {
+                newPopularity += event.value;
+                newHistoryEntry.amount = event.value;
+                newHistoryEntry.reason = description ? `${event.label}: ${description}` : event.label;
+            } else {
+                newPopularity -= 5;
+                newHistoryEntry.amount = -5;
+                newHistoryEntry.reason = 'Еженедельный спад популярности';
+            }
+            
+            newPopularity = Math.max(0, newPopularity); // Ensure popularity doesn't go below 0
+
+            if (newPopularity !== (char.popularity ?? 0)) {
+                hasChanges = true;
+                const updatedHistory = [newHistoryEntry, ...(char.popularityHistory || [])];
+                return { ...char, popularity: newPopularity, popularityHistory: updatedHistory };
+            }
+            return char;
+        });
+
+        if (hasChanges) {
+            const userRef = doc(db, "users", user.id);
+            batch.update(userRef, { characters: updatedCharacters });
+        }
+    }
+
+    await batch.commit();
+
+    if (currentUser) {
+        const updatedCurrentUser = await fetchUserById(currentUser.id);
+        if (updatedCurrentUser) setCurrentUser(updatedCurrentUser);
+    }
+}, [fetchUsersForAdmin, currentUser, fetchUserById]);
+
 
   const signOutUser = useCallback(() => {
     signOut(auth);
@@ -2382,8 +2435,9 @@ const clearAllMailboxes = useCallback(async () => {
       markMailAsRead,
       deleteMailMessage,
       clearAllMailboxes,
+      updatePopularity,
     }),
-    [currentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes]
+    [currentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity]
   );
 
   return (
@@ -2398,3 +2452,4 @@ const clearAllMailboxes = useCallback(async () => {
 
 
     
+

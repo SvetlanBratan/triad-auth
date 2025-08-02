@@ -16,6 +16,31 @@ export const COUNTRIES: string[] = [
     'Остров Отчуждения', 'Кураж'
 ];
 
+export const POPULARITY_LEVELS: { min: number, max: number, label: string }[] = [
+    { min: 0, max: 0, label: 'Неизвестен' },
+    { min: 1, max: 9, label: 'Малоизвестен' },
+    { min: 10, max: 24, label: 'Известен в узком кругу' },
+    { min: 25, max: 39, label: 'Узнаваемый' },
+    { min: 40, max: 54, label: 'Приметный' },
+    { min: 55, max: 69, label: 'Популярный' },
+    { min: 70, max: 84, label: 'Широко известный' },
+    { min: 85, max: 99, label: 'Очень популярный' },
+    { min: 100, max: 119, label: 'Знаменитость' },
+    { min: 120, max: 139, label: 'Публичная фигура' },
+    { min: 140, max: 180, label: 'На пике славы' },
+    { min: 181, max: 200, label: 'Герой эпохи' },
+];
+
+export const POPULARITY_EVENTS: { label: string, value: number }[] = [
+    { label: 'Упоминание в газете (любое)', value: 5 },
+    { label: 'Фото персонажа в статье', value: 7 },
+    { label: 'Имя в заголовке', value: 10 },
+    { label: 'Персонаж — тема целой статьи', value: 15 },
+    { label: 'Статья с искажённым/сенсационным содержанием', value: 5 },
+    { label: 'Интервью с персонажем', value: 15 },
+];
+
+
 export const INVENTORY_CATEGORIES: { value: InventoryCategory, label: string }[] = [
     { value: 'оружие', label: 'Оружие' },
     { value: 'гардероб', label: 'Гардероб' },
@@ -186,22 +211,6 @@ export const FAME_LEVELS: string[] = [
     'Почитаемый', 'Известный среди горожан', 'Прославленный среди Высшего Общества',
     'Знаменитый на весь мир', 'Вошедший в историю'
 ];
-
-export const FAME_LEVELS_POINTS = {
-    'Незаметный': 100,
-    'Неизвестный': 100,
-    'Непризнанный': 100,
-    'Заметный в узких кругах': 200,
-    'Обсуждаемый соратниками': 300,
-    'Проверенный': 400,
-    'Узнаваемый': 400,
-    'Уважаемый': 400,
-    'Почитаемый': 500,
-    'Известный среди горожан': 600,
-    'Прославленный среди Высшего Общества': 700,
-    'Знаменитый на весь мир': 800,
-    'Вошедший в историю': 1000,
-};
 
 export const TRAINING_OPTIONS: OptionType[] = [
     { value: 'peasant_school', label: 'Крестьянская школа' },

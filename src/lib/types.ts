@@ -188,6 +188,13 @@ export interface Accomplishment {
     description: string;
 }
 
+export interface PopularityLog {
+    id: string;
+    date: string; // ISO
+    reason: string;
+    amount: number;
+}
+
 export interface Character {
   id: string;
   name: string;
@@ -222,6 +229,8 @@ export interface Character {
   wealthLevel: WealthLevel;
   crimeLevel?: CrimeLevel;
   criminalRecords?: string;
+  popularity?: number;
+  popularityHistory?: PopularityLog[];
   // Deprecated fields, kept for migration
   skillLevels?: CharacterLevel[];
   fameLevels?: CharacterLevel[];
@@ -358,6 +367,7 @@ export interface UserContextType {
   processMonthlySalary: () => Promise<void>;
   processAnnualTaxes: () => Promise<{ taxedCharactersCount: number; totalTaxesCollected: BankAccount }>;
   updateCharacterWealthLevel: (userId: string, characterId: string, wealthLevel: WealthLevel) => Promise<void>;
+  updatePopularity: (characterIds: string[], event: { label: string; value: number }, description?: string) => Promise<void>;
   createExchangeRequest: (creatorUserId: string, creatorCharacterId: string, fromCurrency: Currency, fromAmount: number, toCurrency: Currency, toAmount: number) => Promise<void>;
   fetchOpenExchangeRequests: () => Promise<ExchangeRequest[]>;
   acceptExchangeRequest: (acceptorUserId: string, acceptorCharacterId: string, request: ExchangeRequest) => Promise<void>;
