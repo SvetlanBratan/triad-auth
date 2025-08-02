@@ -52,7 +52,7 @@ function SearchableMultiSelect({
     .filter(Boolean);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal={false}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
