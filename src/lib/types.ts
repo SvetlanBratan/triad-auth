@@ -358,6 +358,7 @@ export interface UserContextType {
   giveAnyFamiliarToCharacter: (userId: string, characterId: string, familiarId: string) => Promise<void>;
   clearPointHistoryForUser: (userId: string) => Promise<void>;
   clearAllPointHistories: () => Promise<void>;
+  clearAllPopularityHistories: () => Promise<void>;
   addMoodletToCharacter: (userId: string, characterId: string, moodletId: string, durationInDays: number, source?: string) => Promise<void>;
   removeMoodletFromCharacter: (userId: string, characterId: string, moodletId: string) => Promise<void>;
   clearRewardRequestsHistory: () => Promise<void>;
@@ -402,4 +403,5 @@ export interface UserContextType {
   deleteMailMessage: (mailId: string) => Promise<void>;
   clearAllMailboxes: () => Promise<void>;
 }
+
 

@@ -32,7 +32,7 @@ export const POPULARITY_LEVELS: { min: number, max: number, label: string }[] = 
 ];
 
 export const POPULARITY_EVENTS: { label: string, value: number }[] = [
-    { label: 'Упоминание в газете (любое)', value: 5 },
+    { label: 'Упоминание в газете', value: 5 },
     { label: 'Фото персонажа в статье', value: 7 },
     { label: 'Имя в заголовке', value: 10 },
     { label: 'Персонаж — тема целой статьи', value: 15 },
@@ -153,6 +153,9 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
   { id: 'ach-era-face', name: 'Лицо эпохи', description: 'Даётся за покупку награды "Арт от ИИ"', iconName: 'Image' },
 
   // Manual
+  { id: 'ach-rumor-of-the-week', name: 'Слух недели', description: 'Персонаж был упомянут в газете, став предметом обсуждений и сплетен.', iconName: 'MessageSquareQuote' },
+  { id: 'ach-cover-star', name: 'Звезда с обложки', description: 'Персонаж удостоился чести появиться на обложке газеты, привлекая всеобщее внимание.', iconName: 'Star' },
+  { id: 'ach-big-name', name: 'Громкое имя Триады', description: 'Персонаж стал главной темой газетной статьи, его история и поступки теперь на устах у всех.', iconName: 'Megaphone' },
   { id: 'ach-ruler', name: 'Правитель государства', description: 'Несёт тяжкое бремя правления и ответственности за судьбу всего государства в Триаде.', iconName: 'ShieldCheck' },
   { id: 'ach-august-family', name: 'Из семьи августейших особ', description: 'Связан семейными узами с правителем государства и несёт бремя известности.', iconName: 'Users' },
   { id: 'ach-your-grace', name: 'Ваша Светлость', description: 'Является вторым по важности землевладельцем в государстве, обладая огромным влиянием.', iconName: 'Landmark' },
