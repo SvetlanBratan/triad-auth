@@ -86,6 +86,7 @@ export default function AdminTab() {
     sendMassMail,
     clearAllMailboxes,
     updatePopularity,
+    clearAllPopularityHistories
   } = useUser();
   const queryClient = useQueryClient();
 
@@ -509,6 +510,18 @@ export default function AdminTab() {
     await refetchUsers();
     toast({ title: 'Все истории очищены!', description: `Журналы баллов всех пользователей были успешно очищены.` });
   };
+  
+   const handleClearAllPopularityHistories = async () => {
+    try {
+        await clearAllPopularityHistories();
+        await refetchUsers();
+        toast({ title: "История популярности очищена" });
+    } catch(e) {
+        const msg = e instanceof Error ? e.message : 'Произошла неизвестная ошибка.';
+        toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+    }
+  };
+
 
   const handleClearAllMailboxes = async () => {
     try {
@@ -1494,6 +1507,31 @@ export default function AdminTab() {
                 {isProcessingPopularity ? "Обновление..." : "Применить изменения"}
               </Button>
             </form>
+             <Separator className="my-6" />
+             <div className="p-4 border border-destructive/50 rounded-lg">
+                <h4 className="font-semibold text-destructive mb-2 flex items-center gap-2"><ShieldAlert /> Опасная зона</h4>
+                    <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="destructive" className="w-full">Очистить историю популярности у всех</Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                        <AlertDialogTitle>Вы абсолютно уверены?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Это действие необратимо. Вся история начисления и списания очков популярности для <strong>ВСЕХ</strong> персонажей будет навсегда удалена.
+                            <br/><br/>
+                            <strong>Текущие очки популярности не изменятся.</strong>
+                        </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                        <AlertDialogCancel>Отмена</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleClearAllPopularityHistories} className="bg-destructive hover:bg-destructive/90">
+                            Да, я понимаю, очистить историю
+                        </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            </div>
           </CardContent>
         </Card>
       </TabsContent>
@@ -2206,4 +2244,3 @@ export default function AdminTab() {
 }
 
     
-

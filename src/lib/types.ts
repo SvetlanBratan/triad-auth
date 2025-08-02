@@ -323,6 +323,13 @@ export interface PerformRelationshipActionParams {
     content?: string; // For letters
 }
 
+export interface PopularityEvent {
+    label: string;
+    value: number;
+    achievementId?: string;
+}
+
+
 export interface CharacterPopularityUpdate {
     characterId: string;
     eventIds: string[];

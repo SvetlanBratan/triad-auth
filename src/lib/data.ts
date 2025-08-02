@@ -1,5 +1,5 @@
 
-import type { Reward, FamiliarCard, Achievement, GameSettings, WealthLevel, BankAccount, CapitalLevel, CrimeLevel, Shop, InventoryCategory } from './types';
+import type { Reward, FamiliarCard, Achievement, GameSettings, WealthLevel, BankAccount, CapitalLevel, CrimeLevel, Shop, InventoryCategory, PopularityEvent } from './types';
 import type { OptionType } from '@/components/ui/multi-select';
 
 // Game Date is now fetched from Firestore. See UserProvider.
@@ -31,13 +31,13 @@ export const POPULARITY_LEVELS: { min: number, max: number, label: string }[] = 
     { min: 181, max: 200, label: 'Герой эпохи' },
 ];
 
-export const POPULARITY_EVENTS: { label: string, value: number }[] = [
-    { label: 'Упоминание в газете', value: 5 },
-    { label: 'Фото персонажа в статье', value: 7 },
-    { label: 'Имя в заголовке', value: 10 },
-    { label: 'Персонаж — тема целой статьи', value: 15 },
+export const POPULARITY_EVENTS: PopularityEvent[] = [
+    { label: 'Упоминание в газете', value: 5, achievementId: 'ach-rumor-of-the-week' },
+    { label: 'Фото персонажа в статье', value: 7, achievementId: 'ach-cover-star' },
+    { label: 'Имя в заголовке', value: 10, achievementId: 'ach-cover-star' },
+    { label: 'Персонаж — тема целой статьи', value: 15, achievementId: 'ach-big-name' },
     { label: 'Статья с искажённым/сенсационным содержанием', value: 5 },
-    { label: 'Интервью с персонажем', value: 15 },
+    { label: 'Интервью с персонажем', value: 15, achievementId: 'ach-big-name' },
 ];
 
 
@@ -152,8 +152,8 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
   { id: 'ach-gods-favorite', name: 'Любимчик Богов', description: 'Даётся за покупку благословения богов.', iconName: 'Heart' },
   { id: 'ach-era-face', name: 'Лицо эпохи', description: 'Даётся за покупку награды "Арт от ИИ"', iconName: 'Image' },
 
-  // Manual
-  { id: 'ach-rumor-of-the-week', name: 'Слух недели', description: 'Персонаж был упомянут в газете, став предметом обсуждений и сплетен.', iconName: 'MessageSquareQuote' },
+  // Manual & Popularity-based
+  { id: 'ach-rumor-of-the-week', name: 'Слух недели', description: 'Персонаж был упомянут в газете, став предметом обсуждений и сплетен.', iconName: 'Newspaper' },
   { id: 'ach-cover-star', name: 'Звезда с обложки', description: 'Персонаж удостоился чести появиться на обложке газеты, привлекая всеобщее внимание.', iconName: 'Star' },
   { id: 'ach-big-name', name: 'Громкое имя Триады', description: 'Персонаж стал главной темой газетной статьи, его история и поступки теперь на устах у всех.', iconName: 'Megaphone' },
   { id: 'ach-ruler', name: 'Правитель государства', description: 'Несёт тяжкое бремя правления и ответственности за судьбу всего государства в Триаде.', iconName: 'ShieldCheck' },
