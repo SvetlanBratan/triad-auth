@@ -17,13 +17,13 @@ export const COUNTRIES: string[] = [
 ];
 
 export const POPULARITY_LEVELS: { min: number, max: number, label: string }[] = [
-    { min: 0, max: 0, label: 'Неизвестен' },
-    { min: 1, max: 9, label: 'Малоизвестен' },
-    { min: 10, max: 24, label: 'Известен в узком кругу' },
+    { min: 0, max: 0, label: 'Непопулярен' },
+    { min: 1, max: 9, label: 'Почти не популярен' },
+    { min: 10, max: 24, label: 'Популярен в узком кругу' },
     { min: 25, max: 39, label: 'Узнаваемый' },
     { min: 40, max: 54, label: 'Приметный' },
     { min: 55, max: 69, label: 'Популярный' },
-    { min: 70, max: 84, label: 'Широко известный' },
+    { min: 70, max: 84, label: 'Широко обсуждаемый' },
     { min: 85, max: 99, label: 'Очень популярный' },
     { min: 100, max: 119, label: 'Знаменитость' },
     { min: 120, max: 139, label: 'Публичная фигура' },
