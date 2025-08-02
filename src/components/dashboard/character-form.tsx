@@ -202,21 +202,21 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
 
     const characterOptions = React.useMemo(() => {
         if (!allUsers) return [];
-        let currentRelationshipIds = new Set<string>((character?.relationships || []).map(r => r.targetCharacterId));
-        
-        if(editingState?.type === 'relationship' && editingState.mode === 'edit') {
+        const currentRelationshipIds = new Set<string>((formData.relationships || []).map(r => r.targetCharacterId));
+
+        if (editingState?.type === 'relationship' && editingState.mode === 'edit') {
             currentRelationshipIds.delete(editingState.relationship.targetCharacterId);
         }
 
         return allUsers.flatMap(user =>
             user.characters
-                .filter(c => c.id !== formData.id) // Cannot be married to self
+                .filter(c => c.id !== formData.id && !currentRelationshipIds.has(c.id)) // Cannot have relationship with self or existing ones
                 .map(c => ({
                     value: c.id,
                     label: `${c.name} (${user.name})`
                 }))
         );
-    }, [allUsers, formData.id, character, editingState]);
+    }, [allUsers, formData.id, formData.relationships, editingState]);
 
     const handleFieldChange = (field: keyof Character, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
