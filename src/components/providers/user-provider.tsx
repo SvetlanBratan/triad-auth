@@ -97,6 +97,7 @@ interface UserContextType {
   deleteMailMessage: (mailId: string) => Promise<void>;
   clearAllMailboxes: () => Promise<void>;
   updatePopularity: (updates: CharacterPopularityUpdate[]) => Promise<void>;
+  clearAllPopularityHistories: () => Promise<void>;
 }
 
 export const UserContext = createContext<UserContextType | null>(null);
@@ -2305,10 +2306,12 @@ const clearAllMailboxes = useCallback(async () => {
 const updatePopularity = useCallback(async (updates: CharacterPopularityUpdate[]) => {
     const allUsers = await fetchUsersForAdmin();
     const batch = writeBatch(db);
-    const updatedCharIds = new Set(updates.map(u => u.characterId));
 
-    for (const user of allUsers) {
-        let hasChanges = false;
+    const usersToUpdate = new Map<string, User>();
+    allUsers.forEach(user => usersToUpdate.set(user.id, JSON.parse(JSON.stringify(user))));
+
+    for (const user of usersToUpdate.values()) {
+        let userHasChanges = false;
         const updatedCharacters = user.characters.map(char => {
             const charUpdate = updates.find(u => u.characterId === char.id);
             let newPopularity = char.popularity ?? 0;
@@ -2327,10 +2330,14 @@ const updatePopularity = useCallback(async (updates: CharacterPopularityUpdate[]
                             reason: reason,
                             amount: eventData.value,
                         });
+                        
+                        if (eventData.achievementId && !(user.achievementIds || []).includes(eventData.achievementId)) {
+                             user.achievementIds = [...(user.achievementIds || []), eventData.achievementId];
+                             userHasChanges = true;
+                        }
                     }
                 });
                 newPopularity += totalPoints;
-
             } else {
                 newPopularity -= 5;
                 newHistoryEntries.push({
@@ -2344,9 +2351,46 @@ const updatePopularity = useCallback(async (updates: CharacterPopularityUpdate[]
             newPopularity = Math.max(0, newPopularity);
 
             if (newPopularity !== (char.popularity ?? 0)) {
-                hasChanges = true;
+                userHasChanges = true;
                 const updatedHistory = [...newHistoryEntries, ...(char.popularityHistory || [])];
                 return { ...char, popularity: newPopularity, popularityHistory: updatedHistory };
+            }
+            return char;
+        });
+
+        if (userHasChanges) {
+             const userToUpdate = usersToUpdate.get(user.id)!;
+             userToUpdate.characters = updatedCharacters;
+        }
+    }
+
+     for (const user of usersToUpdate.values()) {
+        const userRef = doc(db, "users", user.id);
+        batch.update(userRef, { 
+            characters: user.characters, 
+            achievementIds: user.achievementIds 
+        });
+    }
+
+    await batch.commit();
+
+    if (currentUser) {
+        const updatedCurrentUser = await fetchUserById(currentUser.id);
+        if (updatedCurrentUser) setCurrentUser(updatedCurrentUser);
+    }
+}, [fetchUsersForAdmin, currentUser, fetchUserById, grantAchievementToUser]);
+
+const clearAllPopularityHistories = useCallback(async () => {
+    const allUsers = await fetchUsersForAdmin();
+    const batch = writeBatch(db);
+    for (const user of allUsers) {
+        let hasChanges = false;
+        const updatedCharacters = user.characters.map(char => {
+            if (char.popularityHistory && char.popularityHistory.length > 0) {
+                hasChanges = true;
+                // Create a new object without popularityHistory
+                const { popularityHistory, ...rest } = char;
+                return { ...rest, popularityHistory: [] };
             }
             return char;
         });
@@ -2356,14 +2400,8 @@ const updatePopularity = useCallback(async (updates: CharacterPopularityUpdate[]
             batch.update(userRef, { characters: updatedCharacters });
         }
     }
-
     await batch.commit();
-
-    if (currentUser) {
-        const updatedCurrentUser = await fetchUserById(currentUser.id);
-        if (updatedCurrentUser) setCurrentUser(updatedCurrentUser);
-    }
-}, [fetchUsersForAdmin, currentUser, fetchUserById]);
+}, [fetchUsersForAdmin]);
 
 
   const signOutUser = useCallback(() => {
@@ -2448,8 +2486,9 @@ const updatePopularity = useCallback(async (updates: CharacterPopularityUpdate[]
       deleteMailMessage,
       clearAllMailboxes,
       updatePopularity,
+      clearAllPopularityHistories,
     }),
-    [currentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity]
+    [currentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories]
   );
 
   return (
@@ -2464,5 +2503,6 @@ const updatePopularity = useCallback(async (updates: CharacterPopularityUpdate[]
 
 
     
+
 
 
