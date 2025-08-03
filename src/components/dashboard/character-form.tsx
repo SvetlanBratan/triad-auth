@@ -102,6 +102,8 @@ const initialFormData: Omit<Character, 'id'> = {
     },
     bankAccount: { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] },
     wealthLevel: 'Бедный',
+    popularity: 0,
+    popularityHistory: [],
 };
 
 const fameLevelOptions = FAME_LEVELS.map(level => ({ value: level, label: level }));
