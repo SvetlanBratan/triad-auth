@@ -479,9 +479,9 @@ export default function CharacterPage() {
                                         <div className="pr-4"><FormattedTextRenderer text={character.biography || 'Описание отсутствует.'} /></div>
                                     </ScrollArea>
                                 ) : (
-                                    <div className="flex flex-col items-center justify-center h-64 text-center text-muted-foreground bg-muted/50 rounded-md">
+                                    <div className="flex flex-col items-center justify-center h-32 text-center text-muted-foreground bg-muted/50 rounded-md">
                                         <Lock className="w-8 h-8 mb-2" />
-                                        <p className="font-semibold">Биография скрыта владельцем</p>
+                                        <p className="font-semibold">Биография скрыта</p>
                                     </div>
                                 )}
                             </CardContent>
