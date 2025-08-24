@@ -954,8 +954,8 @@ export default function CharacterPage() {
                                 <DialogHeader className="flex-grow">
                                     <DialogTitle>{selectedItem.name}</DialogTitle>
                                     <ScrollArea className="max-h-64 pr-4 mt-2">
-                                        <div className="text-sm text-muted-foreground whitespace-pre-wrap">
-                                            {selectedItem.description || 'Описание отсутствует.'}
+                                        <div className="text-sm text-muted-foreground">
+                                           <FormattedTextRenderer text={selectedItem.description || 'Описание отсутствует.'} />
                                         </div>
                                     </ScrollArea>
                                 </DialogHeader>

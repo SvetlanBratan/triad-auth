@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React from 'react';
@@ -32,6 +33,7 @@ import { Label } from '@/components/ui/label';
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import FormattedTextRenderer from '@/components/dashboard/formatted-text-renderer';
 
 export default function ShopPage() {
     const { id } = useParams();
@@ -295,7 +297,7 @@ export default function ShopPage() {
                                                     </div>
                                                 )}
                                             </div>
-                                            {item.description && <CardDescription className="pt-2 text-sm">{item.description}</CardDescription>}
+                                            {item.description && <CardDescription className="pt-2 text-sm"><FormattedTextRenderer text={item.description} /></CardDescription>}
                                         </CardHeader>
                                         <CardFooter className="flex-col items-start gap-4 pt-0 mt-auto">
                                              {item.quantity !== undefined && item.quantity >= 0 && (
