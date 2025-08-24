@@ -162,7 +162,6 @@ export default function AdminTab() {
   const [capitalLevel, setCapitalLevel] = useState('');
 
   // Weekly bonus state
-  const [isProcessingWeekly, setIsProcessingWeekly] = useState(false);
   const [isProcessingTaxes, setIsProcessingTaxes] = useState(false);
 
   // Shop management state
@@ -407,32 +406,13 @@ export default function AdminTab() {
   
   const weeklyBonusStatus = useMemo(() => {
     if (!lastWeeklyBonusAwardedAt || new Date(lastWeeklyBonusAwardedAt).getFullYear() < 2000) {
-        return { canAward: true, daysSinceLast: 7, isOverdue: false };
+        return { canAward: true, daysSinceLast: 7, daysUntilNext: 0 };
     }
     const daysSinceLast = differenceInDays(new Date(), new Date(lastWeeklyBonusAwardedAt));
     const canAward = daysSinceLast >= 7;
-    const isOverdue = daysSinceLast > 7;
-    return { canAward, daysSinceLast, isOverdue };
+    const daysUntilNext = canAward ? 0 : 7 - daysSinceLast;
+    return { canAward, daysSinceLast, daysUntilNext };
   }, [lastWeeklyBonusAwardedAt]);
-
-
-  const handleWeeklyCalculations = async () => {
-    setIsProcessingWeekly(true);
-    try {
-        const { awardedCount, isOverdue } = await processWeeklyBonus();
-        await refetchUsers();
-        let description = `Еженедельные бонусы (активность + популярность) начислены ${awardedCount} активным пользователям.`;
-        if (isOverdue) {
-            description += ' Была также начислена компенсация за просрочку.';
-        }
-        toast({ title: "Еженедельные расчеты завершены", description });
-    } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Неизвестная ошибка";
-        toast({ variant: 'destructive', title: 'Ошибка', description: errorMessage });
-    } finally {
-        setIsProcessingWeekly(false);
-    }
-  };
 
   const handleInactivityPenalty = async () => {
     const inactiveUsers = users.filter(u => u.status === 'неактивный');
@@ -1138,43 +1118,20 @@ export default function AdminTab() {
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><Clock /> Автоматические действия</CardTitle>
-                    <CardDescription>Симулируйте автоматические расчеты баллов.</CardDescription>
+                    <CardDescription>Автоматические еженедельные расчеты баллов.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div>
                         <h3 className="font-semibold mb-2 flex items-center gap-2"><Users /> Еженедельный бонус</h3>
-                        <p className="text-sm text-muted-foreground mb-3">Начисляет 800 баллов за активность и баллы за популярность всем 'активным' игрокам.</p>
+                        <p className="text-sm text-muted-foreground mb-3">Автоматически начисляет 800 баллов за активность и баллы за популярность всем 'активным' игрокам раз в 7 дней.</p>
                         <div className="p-4 rounded-md border space-y-3">
-                            {weeklyBonusStatus.canAward ? (
-                                weeklyBonusStatus.isOverdue ? (
-                                <Alert variant="destructive">
-                                    <AlertTriangle className="h-4 w-4" />
-                                    <AlertTitle>Просрочено!</AlertTitle>
-                                    <AlertDescription>
-                                        Начисление просрочено на {weeklyBonusStatus.daysSinceLast - 7} д. Игроки получат компенсацию 1000 баллов.
-                                    </AlertDescription>
-                                </Alert>
-                                ) : (
-                                <Alert className="border-green-500/50 text-green-700">
-                                     <Bell className="h-4 w-4" />
-                                    <AlertTitle>Время начислять!</AlertTitle>
-                                    <AlertDescription>
-                                        Прошло 7 дней. Пора начислить еженедельные бонусы.
-                                    </AlertDescription>
-                                </Alert>
-                                )
-                            ) : (
-                                 <Alert variant="default">
-                                    <CheckCircle className="h-4 w-4" />
-                                    <AlertTitle>Все в порядке</AlertTitle>
-                                    <AlertDescription>
-                                       Следующее начисление через {7 - weeklyBonusStatus.daysSinceLast} д.
-                                    </AlertDescription>
-                                </Alert>
-                            )}
-                            <Button onClick={handleWeeklyCalculations} disabled={!weeklyBonusStatus.canAward || isProcessingWeekly} className="w-full">
-                                {isProcessingWeekly ? 'Обработка...' : 'Запустить еженедельный расчет'}
-                            </Button>
+                             <Alert variant="default">
+                                <CheckCircle className="h-4 w-4" />
+                                <AlertTitle>Все в порядке</AlertTitle>
+                                <AlertDescription>
+                                   Следующее автоматическое начисление через {weeklyBonusStatus.daysUntilNext} д.
+                                </AlertDescription>
+                            </Alert>
                         </div>
                     </div>
                     <Separator />

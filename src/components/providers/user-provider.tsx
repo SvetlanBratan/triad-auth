@@ -61,7 +61,7 @@ interface UserContextType {
   updateUser: (userId: string, updates: Partial<User>) => Promise<void>;
   updateUserAvatar: (userId: string, avatarUrl: string) => Promise<void>;
   updateGameDate: (newDateString: string) => Promise<void>;
-  processWeeklyBonus: () => Promise<{awardedCount: number, isOverdue: boolean}>;
+  processWeeklyBonus: () => Promise<{awardedCount: number}>;
   checkExtraCharacterSlots: (userId: string) => Promise<number>;
   performRelationshipAction: (params: PerformRelationshipActionParams) => Promise<void>;
   recoverFamiliarsFromHistory: (userId: string, characterId: string, oldCharacterName?: string) => Promise<number>;
@@ -2051,10 +2051,11 @@ const processWeeklyBonus = useCallback(async () => {
     const daysSinceLast = differenceInDays(now, lastAwarded);
     
     if (daysSinceLast < 7) {
-        throw new Error(`Еженедельные бонусы можно начислять только раз в 7 дней. Осталось: ${7 - daysSinceLast} д.`);
+        // Not using throw new Error to avoid user-facing errors for a background task.
+        console.log(`Weekly bonus not due yet. Days since last: ${daysSinceLast}`);
+        return { awardedCount: 0 };
     }
 
-    const isOverdue = daysSinceLast > 7;
     const allUsers = await fetchUsersForAdmin();
     const activeUsers = allUsers.filter(u => u.status === 'активный');
     let awardedCount = 0;
@@ -2070,11 +2071,6 @@ const processWeeklyBonus = useCallback(async () => {
         if (popularityPoints > 0) {
             totalBonus += popularityPoints;
             reason += ` и популярность (${popularityPoints})`;
-        }
-
-        if (isOverdue) {
-            totalBonus += 1000;
-            reason += ` + компенсация за просрочку`;
         }
 
         const userRef = doc(db, "users", user.id);
@@ -2094,8 +2090,23 @@ const processWeeklyBonus = useCallback(async () => {
     await batch.commit();
     await fetchGameSettings();
 
-    return { awardedCount, isOverdue };
+    return { awardedCount };
 }, [fetchUsersForAdmin, fetchGameSettings]);
+
+useEffect(() => {
+    if(currentUser) {
+        processWeeklyBonus().then(({ awardedCount }) => {
+            if (awardedCount > 0) {
+                console.log(`Successfully awarded weekly bonus to ${awardedCount} users.`);
+                // Optionally refetch current user data if they were part of the bonus
+                fetchUserById(currentUser.id).then(setCurrentUser);
+            }
+        }).catch(error => {
+            console.error("Failed to process weekly bonus automatically:", error);
+        });
+    }
+}, [currentUser, processWeeklyBonus, fetchUserById]);
+
 
 const processAnnualTaxes = useCallback(async (): Promise<{ taxedCharactersCount: number; totalTaxesCollected: BankAccount }> => {
     const allUsers = await fetchUsersForAdmin();
@@ -2503,6 +2514,7 @@ const clearAllPopularityHistories = useCallback(async () => {
 
 
     
+
 
 
 
