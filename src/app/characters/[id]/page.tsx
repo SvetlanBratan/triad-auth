@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FAMILIARS_BY_ID, MOODLETS_DATA, TRAINING_OPTIONS, CRIME_LEVELS, INVENTORY_CATEGORIES, POPULARITY_LEVELS } from '@/lib/data';
 import FamiliarCardDisplay from '@/components/dashboard/familiar-card';
-import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users, HeartHandshake, Wallet, Coins, Award, Zap, ShieldOff, History, Info, PlusCircle, BookUser, Gavel, Group, Building, Package, LandPlot, ShieldCheck, FileQuestion, BadgeCheck, BadgeAlert, Landmark, Eye } from 'lucide-react';
+import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users, HeartHandshake, Wallet, Coins, Award, Zap, ShieldOff, History, Info, PlusCircle, BookUser, Gavel, Group, Building, Package, LandPlot, ShieldCheck, FileQuestion, BadgeCheck, BadgeAlert, Landmark, Eye, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -328,6 +328,7 @@ export default function CharacterPage() {
     const age = gameDate ? calculateAge(character.birthDate, gameDate) : null;
     const canViewHistory = isOwnerOrAdmin;
     const accomplishments = character.accomplishments || [];
+    const isBiographyVisible = !character.biographyIsHidden || isOwnerOrAdmin;
     
     const backLink = currentUser?.id === owner.id ? '/' : `/users/${owner.id}`;
     const backLinkText = currentUser?.id === owner.id ? 'Вернуться в профиль' : 'Вернуться в профиль игрока';
@@ -473,9 +474,16 @@ export default function CharacterPage() {
                         <Card>
                             <SectionHeader title="Биография" icon={<BookOpen />} section="biography" />
                             <CardContent>
-                                <ScrollArea className="h-64 w-full">
-                                    <div className="pr-4"><FormattedTextRenderer text={character.biography || 'Описание отсутствует.'} /></div>
-                                </ScrollArea>
+                                {isBiographyVisible ? (
+                                    <ScrollArea className="h-64 w-full">
+                                        <div className="pr-4"><FormattedTextRenderer text={character.biography || 'Описание отсутствует.'} /></div>
+                                    </ScrollArea>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center h-64 text-center text-muted-foreground bg-muted/50 rounded-md">
+                                        <Lock className="w-8 h-8 mb-2" />
+                                        <p className="font-semibold">Биография скрыта владельцем</p>
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
                         

@@ -233,6 +233,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     appearance: '',
     personality: '',
     biography: '',
+    biographyIsHidden: false,
     diary: '',
     training: [],
     relationships: [],
@@ -2051,7 +2052,6 @@ const processWeeklyBonus = useCallback(async () => {
     const daysSinceLast = differenceInDays(now, lastAwarded);
     
     if (daysSinceLast < 7) {
-        // Not using throw new Error to avoid user-facing errors for a background task.
         console.log(`Weekly bonus not due yet. Days since last: ${daysSinceLast}`);
         return { awardedCount: 0 };
     }
@@ -2094,18 +2094,20 @@ const processWeeklyBonus = useCallback(async () => {
 }, [fetchUsersForAdmin, fetchGameSettings]);
 
 useEffect(() => {
-    if(currentUser) {
+    if(firebaseUser) { // Run only when a user is logged in
         processWeeklyBonus().then(({ awardedCount }) => {
             if (awardedCount > 0) {
                 console.log(`Successfully awarded weekly bonus to ${awardedCount} users.`);
                 // Optionally refetch current user data if they were part of the bonus
-                fetchUserById(currentUser.id).then(setCurrentUser);
+                if (currentUser) {
+                    fetchUserById(currentUser.id).then(setCurrentUser);
+                }
             }
         }).catch(error => {
             console.error("Failed to process weekly bonus automatically:", error);
         });
     }
-}, [currentUser, processWeeklyBonus, fetchUserById]);
+}, [firebaseUser, currentUser, processWeeklyBonus, fetchUserById]);
 
 
 const processAnnualTaxes = useCallback(async (): Promise<{ taxedCharactersCount: number; totalTaxesCollected: BankAccount }> => {
@@ -2361,7 +2363,7 @@ const updatePopularity = useCallback(async (updates: CharacterPopularityUpdate[]
             
             newPopularity = Math.max(0, newPopularity);
 
-            if (newPopularity !== (char.popularity ?? 0)) {
+            if (newPopularity !== (char.popularity ?? 0) || newHistoryEntries.length > 0) {
                 userHasChanges = true;
                 const updatedHistory = [...newHistoryEntries, ...(char.popularityHistory || [])];
                 return { ...char, popularity: newPopularity, popularityHistory: updatedHistory };
@@ -2399,9 +2401,7 @@ const clearAllPopularityHistories = useCallback(async () => {
         const updatedCharacters = user.characters.map(char => {
             if (char.popularityHistory && char.popularityHistory.length > 0) {
                 hasChanges = true;
-                // Create a new object without popularityHistory
-                const { popularityHistory, ...rest } = char;
-                return { ...rest, popularityHistory: [] };
+                return { ...char, popularityHistory: [] };
             }
             return char;
         });
@@ -2514,6 +2514,7 @@ const clearAllPopularityHistories = useCallback(async () => {
 
 
     
+
 
 
 

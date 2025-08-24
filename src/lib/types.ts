@@ -215,6 +215,7 @@ export interface Character {
   appearanceImage?: string;
   personality: string;
   biography: string;
+  biographyIsHidden?: boolean;
   diary: string; 
   training: string[]; 
   relationships: Relationship[];
@@ -373,7 +374,7 @@ export interface UserContextType {
   updateUser: (userId: string, updates: Partial<User>) => Promise<void>;
   updateUserAvatar: (userId: string, avatarUrl: string) => Promise<void>;
   updateGameDate: (newDateString: string) => Promise<void>;
-  processWeeklyBonus: () => Promise<{awardedCount: number, isOverdue: boolean}>;
+  processWeeklyBonus: () => Promise<{awardedCount: number}>;
   checkExtraCharacterSlots: (userId: string) => Promise<number>;
   performRelationshipAction: (params: PerformRelationshipActionParams) => Promise<void>;
   recoverFamiliarsFromHistory: (userId: string, characterId: string, oldCharacterName?: string) => Promise<number>;

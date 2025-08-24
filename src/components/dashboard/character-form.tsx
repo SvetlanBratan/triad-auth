@@ -11,10 +11,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '../ui/textarea';
 import { ScrollArea } from '../ui/scroll-area';
-import { Trash2, PlusCircle } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { SearchableSelect } from '../ui/searchable-select';
 import ImageUploader from './image-uploader';
 import { SearchableMultiSelect } from '../ui/searchable-multi-select';
+import { Switch } from '../ui/switch';
 
 
 export type EditableSection = 
@@ -72,6 +73,7 @@ const initialFormData: Omit<Character, 'id'> = {
     appearanceImage: '',
     personality: '',
     biography: '',
+    biographyIsHidden: false,
     diary: '',
     training: [],
     relationships: [],
@@ -396,7 +398,23 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                                 />
                                 <div><Label htmlFor="appearance">Описание внешности</Label><Textarea id="appearance" value={formData.appearance ?? ''} onChange={(e) => handleFieldChange('appearance', e.target.value)} rows={10} placeholder="Опишите внешность вашего персонажа..."/> <FormattingHelp /></div></div>;
                     case 'personality': return <div><Label htmlFor="personality">Характер</Label><Textarea id="personality" value={formData.personality ?? ''} onChange={(e) => handleFieldChange('personality', e.target.value)} rows={10} placeholder="Опишите характер персонажа..."/> <FormattingHelp /></div>;
-                    case 'biography': return <div><Label htmlFor="biography">Биография</Label><Textarea id="biography" value={formData.biography ?? ''} onChange={(e) => handleFieldChange('biography', e.target.value)} rows={15} placeholder="Расскажите историю вашего персонажа..."/> <FormattingHelp /></div>;
+                    case 'biography': return (
+                        <div className="space-y-4">
+                            <div>
+                                <Label htmlFor="biography">Биография</Label>
+                                <Textarea id="biography" value={formData.biography ?? ''} onChange={(e) => handleFieldChange('biography', e.target.value)} rows={15} placeholder="Расскажите историю вашего персонажа..."/>
+                                <FormattingHelp />
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <Switch
+                                    id="biography-hidden-switch"
+                                    checked={formData.biographyIsHidden}
+                                    onCheckedChange={(checked) => handleFieldChange('biographyIsHidden', checked)}
+                                />
+                                <Label htmlFor="biography-hidden-switch">Скрыть биографию от других игроков</Label>
+                            </div>
+                        </div>
+                    );
                     case 'abilities': return <div><Label htmlFor="abilities">Способности</Label><Textarea id="abilities" value={formData.abilities ?? ''} onChange={(e) => handleFieldChange('abilities', e.target.value)} rows={8} placeholder="Опишите уникальные способности или навыки..."/> <FormattingHelp /></div>;
                     case 'weaknesses': return <div><Label htmlFor="weaknesses">Слабости</Label><Textarea id="weaknesses" value={formData.weaknesses ?? ''} onChange={(e) => handleFieldChange('weaknesses', e.target.value)} rows={8} placeholder="Укажите слабости, уязвимости или страхи..."/> <FormattingHelp /></div>;
                     case 'marriage': return <div><Label htmlFor="marriedTo">В браке с</Label><SearchableMultiSelect placeholder="Выберите персонажей..." options={characterOptions} selected={formData.marriedTo ?? []} onChange={(v) => handleMultiSelectChange('marriedTo', v)} /></div>;
