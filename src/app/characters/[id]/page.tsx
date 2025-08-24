@@ -57,6 +57,10 @@ const relationshipColors: Record<RelationshipType, string> = {
     'нейтралитет': 'bg-gray-500',
     'любовь': 'bg-red-700',
     'семья': 'bg-blue-700',
+    'уважение': 'bg-teal-500',
+    'страсть': 'bg-orange-600',
+    'заинтересованность': 'bg-indigo-500',
+    'сотрудничество': 'bg-sky-600',
 };
 const relationshipLabels: Record<RelationshipType, string> = {
     'романтика': 'Романтика',
@@ -66,6 +70,10 @@ const relationshipLabels: Record<RelationshipType, string> = {
     'нейтралитет': 'Нейтралитет',
     'любовь': 'Любовь',
     'семья': 'Семья',
+    'уважение': 'Уважение',
+    'страсть': 'Страсть',
+    'заинтересованность': 'Заинтересованность',
+    'сотрудничество': 'Сотрудничество',
 }
 
 const currencyNames: Record<string, string> = {
@@ -965,6 +973,3 @@ export default function CharacterPage() {
         </div>
     );
 }
-
-
-    

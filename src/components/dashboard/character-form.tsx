@@ -151,6 +151,10 @@ const relationshipTypeOptions: { value: RelationshipType, label: string }[] = [
     { value: 'вражда', label: 'Вражда' },
     { value: 'конкуренция', label: 'Конкуренция' },
     { value: 'нейтралитет', label: 'Нейтралитет' },
+    { value: 'уважение', label: 'Уважение' },
+    { value: 'страсть', label: 'Страсть' },
+    { value: 'заинтересованность', label: 'Заинтересованность' },
+    { value: 'сотрудничество', label: 'Сотрудничество' },
 ];
 
 const FormattingHelp = () => (

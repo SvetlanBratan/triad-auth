@@ -5,7 +5,7 @@ export type UserStatus = 'активный' | 'неактивный' | 'отпу
 export type RewardRequestStatus = 'в ожидании' | 'одобрено' | 'отклонено';
 export type FamiliarRank = 'обычный' | 'редкий' | 'легендарный' | 'мифический' | 'ивентовый';
 export type InventoryCategory = 'оружие' | 'гардероб' | 'еда' | 'подарки' | 'артефакты' | 'зелья' | 'недвижимость' | 'транспорт' | 'драгоценности' | 'книгиИСвитки' | 'прочее' | 'предприятия' | 'души' | 'мебель';
-export type RelationshipType = 'романтика' | 'дружба' | 'вражда' | 'конкуренция' | 'нейтралитет' | 'любовь' | 'семья';
+export type RelationshipType = 'романтика' | 'дружба' | 'вражда' | 'конкуренция' | 'нейтралитет' | 'любовь' | 'семья' | 'уважение' | 'страсть' | 'заинтересованность' | 'сотрудничество';
 export type RelationshipActionType = 'подарок' | 'письмо';
 export type RelationshipActionStatus = 'pending' | 'confirmed';
 export type WealthLevel = 'Нищий' | 'Бедный' | 'Просветленный' | 'Средний' | 'Выше среднего' | 'Высокий' | 'Сказочно богат';
@@ -410,6 +410,3 @@ export interface UserContextType {
   deleteMailMessage: (mailId: string) => Promise<void>;
   clearAllMailboxes: () => Promise<void>;
 }
-
-
-
