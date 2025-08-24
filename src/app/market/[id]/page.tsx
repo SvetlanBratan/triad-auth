@@ -34,6 +34,7 @@ import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import FormattedTextRenderer from '@/components/dashboard/formatted-text-renderer';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function ShopPage() {
     const { id } = useParams();
@@ -297,7 +298,13 @@ export default function ShopPage() {
                                                     </div>
                                                 )}
                                             </div>
-                                            {item.description && <CardDescription className="pt-2 text-sm"><FormattedTextRenderer text={item.description} /></CardDescription>}
+                                            {item.description && 
+                                                <ScrollArea className="h-24 w-full pr-4 mt-2">
+                                                    <CardDescription className="text-sm">
+                                                        <FormattedTextRenderer text={item.description} />
+                                                    </CardDescription>
+                                                </ScrollArea>
+                                            }
                                         </CardHeader>
                                         <CardFooter className="flex-col items-start gap-4 pt-0 mt-auto">
                                              {item.quantity !== undefined && item.quantity >= 0 && (
