@@ -299,7 +299,7 @@ export default function ShopPage() {
                                                 )}
                                             </div>
                                             {item.description && 
-                                                <ScrollArea className="h-24 w-full pr-4 mt-2">
+                                                <ScrollArea className="h-32 w-full pr-4 mt-2">
                                                     <CardDescription className="text-sm">
                                                         <FormattedTextRenderer text={item.description} />
                                                     </CardDescription>
