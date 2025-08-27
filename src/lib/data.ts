@@ -555,6 +555,13 @@ export const ALL_SHOPS: Shop[] = [
     image: "https://i.postimg.cc/c1ppYXhd/image.png",
     aiHint: "weapon shop"
   },
+  {
+    id: 'grocery-yaterochka',
+    title: 'Продуктовый магазин "Ятёрочка"',
+    description: 'Ятёрочка — магазин, где всегда найдётся всё нужное: свежие продукты каждый день рядом с домом.',
+    image: 'https://i.postimg.cc/1tKXf5Pf/x7z01u-Sn-XXy-Rn-Yv8r-VJp-K3s-UWEJDyc-LFBz6-Z-v-Ysxl-YYl-DPM4ullr-Rs9-RMas-Q7-ONJPFK-W9-Sjmyhr-X1-Z8-LV3-PKG.jpg',
+    aiHint: 'grocery store',
+  },
 ];
 
 export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) => {
