@@ -19,6 +19,7 @@ interface ShopItemFormProps {
     shopId: string;
     item: ShopItem | null;
     closeDialog: () => void;
+    defaultCategory: InventoryCategory;
 }
 
 const initialFormData: Omit<ShopItem, 'id'> = {
@@ -30,7 +31,7 @@ const initialFormData: Omit<ShopItem, 'id'> = {
     quantity: undefined, // undefined for infinite
 };
 
-export default function ShopItemForm({ shopId, item, closeDialog }: ShopItemFormProps) {
+export default function ShopItemForm({ shopId, item, closeDialog, defaultCategory }: ShopItemFormProps) {
     const { addShopItem, updateShopItem } = useUser();
     const { toast } = useToast();
     const [formData, setFormData] = useState<Omit<ShopItem, 'id'>>(initialFormData);
@@ -52,9 +53,10 @@ export default function ShopItemForm({ shopId, item, closeDialog }: ShopItemForm
                 quantity: item.quantity,
             });
         } else {
-            setFormData(initialFormData);
+            // For new items, use the default category passed from the parent
+            setFormData({ ...initialFormData, inventoryTag: defaultCategory });
         }
-    }, [item]);
+    }, [item, defaultCategory]);
     
     const handlePriceChange = (currency: Currency, value: string) => {
         const numValue = parseInt(value, 10) || 0;

@@ -5,7 +5,7 @@
 import React from 'react';
 import { useParams, notFound, useRouter } from 'next/navigation';
 import { useUser } from '@/hooks/use-user';
-import type { Shop, ShopItem, BankAccount, Character } from '@/lib/types';
+import type { Shop, ShopItem, BankAccount, Character, InventoryCategory } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, UserCircle, PlusCircle, Edit, Trash2, ShoppingCart, Info, Package, Settings, RefreshCw, BadgeCheck, Save } from 'lucide-react';
@@ -35,6 +35,7 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import FormattedTextRenderer from '@/components/dashboard/formatted-text-renderer';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { INVENTORY_CATEGORIES } from '@/lib/data';
 
 export default function ShopPage() {
     const { id } = useParams();
@@ -64,6 +65,7 @@ export default function ShopPage() {
     const [editedTitle, setEditedTitle] = React.useState('');
     const [editedDescription, setEditedDescription] = React.useState('');
     const [isSavingDetails, setIsSavingDetails] = React.useState(false);
+    const [defaultNewItemCategory, setDefaultNewItemCategory] = React.useState<InventoryCategory>('прочее');
 
     React.useEffect(() => {
         if (shop) {
@@ -336,7 +338,12 @@ export default function ShopPage() {
                      <DialogHeader>
                         <DialogTitle>{editingItem ? "Редактировать товар" : "Добавить новый товар"}</DialogTitle>
                      </DialogHeader>
-                     <ShopItemForm shopId={shopId!} item={editingItem} closeDialog={handleFormClose} />
+                     <ShopItemForm 
+                        shopId={shopId!} 
+                        item={editingItem} 
+                        closeDialog={handleFormClose} 
+                        defaultCategory={defaultNewItemCategory}
+                     />
                 </DialogContent>
             </Dialog>
 
@@ -350,7 +357,7 @@ export default function ShopPage() {
                     </DialogHeader>
                     <div className="py-4 space-y-6">
                         <div className="space-y-4 p-4 border rounded-md">
-                             <h4 className="font-semibold mb-2">Информация о заведении</h4>
+                             <h4 className="font-semibold mb-2">Настройки магазина</h4>
                              <div className="space-y-2">
                                 <Label htmlFor="shopTitle">Название</Label>
                                 <Input id="shopTitle" value={editedTitle} onChange={(e) => setEditedTitle(e.target.value)} />
@@ -358,6 +365,15 @@ export default function ShopPage() {
                              <div className="space-y-2">
                                 <Label htmlFor="shopDescription">Описание</Label>
                                 <Textarea id="shopDescription" value={editedDescription} onChange={(e) => setEditedDescription(e.target.value)} />
+                             </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="defaultCategory">Категория по умолчанию для новых товаров</Label>
+                                 <SearchableSelect
+                                    options={INVENTORY_CATEGORIES}
+                                    value={defaultNewItemCategory}
+                                    onValueChange={(v) => setDefaultNewItemCategory(v as InventoryCategory)}
+                                    placeholder="Выберите категорию..."
+                                />
                              </div>
                               <Button onClick={handleSaveChanges} disabled={isSavingDetails}>
                                 <Save className="mr-2 h-4 w-4" /> {isSavingDetails ? "Сохранение..." : "Сохранить информацию"}
