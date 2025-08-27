@@ -628,7 +628,7 @@ export const ALL_SHOPS: Shop[] = [
   {
     id: 'sweet-shop-rouz',
     title: 'Лавочка «Сладость Роуза»',
-    description: 'Рай для сладкоежек! Лучшие торты, пирожные и конфеты ручной работы от мадам Роузы. Идеальное место для чаепития и покупки десертов.',
+    description: 'Рай для сладкоежек! Лучшие торты, пирожные и конфеты ручной работы от барона Роуз. Идеальное место для чаепития и покупки десертов.',
     image: 'https://i.postimg.cc/jqhrGKp2/a-K3lcl-M3-Ujr-VAOa-Cou-DF7w3-Ingk-HC594i-Htx-L7i-GHt-Gogp-Oj-B-yv-Pa-GCd-6-Xd-Nyfx-Dca-Nh0ryrl-X-5-n7-Ig-Icuh.jpg',
     aiHint: 'sweet shop'
   },
