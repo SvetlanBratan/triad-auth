@@ -241,7 +241,7 @@ export default function ShopPage() {
                                 </span>
                             </div>
                         ) : (
-                            <p className="text-sm text-muted-foreground">У этого магазина пока нет владельца.</p>
+                            <p className="text-sm text-muted-foreground">У этого заведения пока нет владельца.</p>
                         )}
 
                         {isOwnerOrAdmin && (
