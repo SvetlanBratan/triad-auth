@@ -556,6 +556,13 @@ export const ALL_SHOPS: Shop[] = [
     aiHint: "weapon shop"
   },
   {
+    id: 'book-shop-scrolls',
+    title: 'Лавка «Книги и свитки»',
+    description: 'Тихое место для искателей знаний. От древних гримуаров до последних научных трактатов — каждый найдет что-то для себя.',
+    image: 'https://i.postimg.cc/Rh5QR7Zp/s-Vzx-Kp-Tno-FN12r-ILzk-BDHOokb-WE7-Qv-Rj-Qu-IUNv-Y-Hnf-PW0gl5-S2-I-b-A1g9d-IKFkoa32-V-EUCdz-H1enx-YJDWdx-RZ.jpg',
+    aiHint: 'bookstore fantasy',
+  },
+  {
     id: 'grocery-yaterochka',
     title: 'Продуктовый магазин «Ятёрочка»',
     description: 'Ятёрочка — магазин, где всегда найдётся всё нужное: свежие продукты каждый день рядом с домом.',
@@ -591,3 +598,4 @@ export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) =>
     
 
     
+
