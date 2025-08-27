@@ -583,6 +583,13 @@ export const ALL_SHOPS: Shop[] = [
     image: 'https://i.postimg.cc/jqcY23wg/t-Gq6-Sm3q-La-QLAz-U4qrkw7k-L14o-Z7-Vzl-FWo-MIETTGUOJR7-S5e-Pd-Mt-C5-DT9-W6t-Gp60-YH5ba-Xz-J3-Tnk-Sk60-Wg93rk-E.jpg',
     aiHint: 'fantasy market',
   },
+  {
+    id: 'furniture-shop-cozy-hearth',
+    title: 'Мебельная лавка «Уютный очаг»',
+    description: 'От изысканной мебели для аристократических особняков до простой и надежной обстановки для скромного жилища. Создайте интерьер своей мечты!',
+    image: 'https://i.postimg.cc/RZLSV4tW/jdq-H3-Hqec-MECX9j-Aq-O-IRr-Lc6-Rjxce-ZUm7j-SQ1-Say-P-arv0pqdp-ESHt3-Cb0w0-JRAJ6-I5x7-Demy-SSCPwb-Ihw-H6-Rra.jpg',
+    aiHint: 'furniture store',
+  },
 ];
 
 export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) => {
@@ -598,4 +605,5 @@ export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) =>
     
 
     
+
 
