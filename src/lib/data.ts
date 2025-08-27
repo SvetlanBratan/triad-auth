@@ -611,6 +611,48 @@ export const ALL_SHOPS: Shop[] = [
     image: 'https://i.postimg.cc/XvfSV8y4/1n-Sg-Yqj883-Fu-Ktf764-AQxk-Sxii3-P45-O8e7k93fs3-Z0-VIHGAW5u8-Jin-Bv-LVXe-N-JKXE8-Zw-GCsw-PRir9y-BRjqk-c-Wl.jpg',
     aiHint: 'various services',
   },
+  {
+    id: 'business-startup',
+    title: 'Своё дело',
+    description: 'Место, где можно начать свой путь предпринимателя. Откройте ремесленную лавку, мастерскую или любое другое дело, о котором вы мечтали.',
+    image: 'https://i.postimg.cc/8zNfT15Y/i06f-Hzu-N0kgh1-JQCG3-WQq-HGG1-YWRws-Gl-VGej-GJb0-Oc-Qpsht5x-R1b-A0vr1ro-WV5-Zo-Ve-UUwt15net-W35ed-KKl8-QQel.jpg',
+    aiHint: 'small business'
+  },
+  {
+    id: 'post-office',
+    title: 'Почта',
+    description: 'Надежная доставка писем и посылок в любую точку мира. Отправляйте весточки близким и получайте важные документы без задержек.',
+    image: 'https://i.postimg.cc/sgxyY80X/u-Er-AC4-PTOV-6-Gym-KV8m-Kgsa-DFv-Bxg-GSu876y5j-Cp-Oy-SN6q8v-XIlt-Ech2-H8v-AZHy-Hlibr-VG8o-Qt-Qb8va-Psmym43.png',
+    aiHint: 'post office'
+  },
+  {
+    id: 'sweet-shop-rouz',
+    title: 'Лавочка «Сладость Роуза»',
+    description: 'Рай для сладкоежек! Лучшие торты, пирожные и конфеты ручной работы от мадам Роузы. Идеальное место для чаепития и покупки десертов.',
+    image: 'https://i.postimg.cc/jqhrGKp2/a-K3lcl-M3-Ujr-VAOa-Cou-DF7w3-Ingk-HC594i-Htx-L7i-GHt-Gogp-Oj-B-yv-Pa-GCd-6-Xd-Nyfx-Dca-Nh0ryrl-X-5-n7-Ig-Icuh.jpg',
+    aiHint: 'sweet shop'
+  },
+  {
+    id: 'pet-store',
+    title: 'Зоомагазин',
+    description: 'Все для ваших любимых питомцев: от кормов и игрушек до экзотических животных и фамильяров. Найдите себе верного друга!',
+    image: 'https://i.postimg.cc/jqhrGKp2/a-K3lcl-M3-Ujr-VAOa-Cou-DF7w3-Ingk-HC594i-Htx-L7i-GHt-Gogp-Oj-B-yv-Pa-GCd-6-Xd-Nyfx-Dca-Nh0ryrl-X-5-n7-Ig-Icuh.jpg',
+    aiHint: 'pet store'
+  },
+  {
+    id: 'gemstone-shop',
+    title: 'Лавка с драгоценными камнями',
+    description: 'Редкие и драгоценные камни со всех уголков Триады. Идеально для ювелиров, магов и коллекционеров.',
+    image: 'https://i.postimg.cc/x13xdTPN/WBc-Z1j-Kdyre-KOrixg-QJL9s-Gb-Ai8al-NWCo-LOOh-CT-GWAs-Le-P0-Gx-YBo1y-VLa-Jfl-B12q-Bj9b-GZAV2utbr-FGYk-3t-Fk.jpg',
+    aiHint: 'gemstone shop'
+  },
+  {
+    id: 'brothel-dark-dreams',
+    title: 'Бордель «Тёмные грёзы»',
+    description: 'Место, где сбываются самые сокровенные желания. Конфиденциальность и высочайший уровень обслуживания гарантированы.',
+    image: 'https://i.postimg.cc/zX5TGw2p/g76z-R1-UXk-GHr-Spjl5-FUuy-ZFv-Ft-Uf-A3l-TBGz-WLC0-Iws-BWNK6-V-MC1-IP20m52-Trp-Xl-bl-Bcsq5kir-A4-Bl-Bz-Jk-QGyy-Z.jpg',
+    aiHint: 'fantasy brothel'
+  },
 ];
 
 export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) => {
@@ -630,6 +672,9 @@ export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) =>
 
 
 
+
+
+    
 
 
     
