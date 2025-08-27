@@ -584,7 +584,7 @@ export const ALL_SHOPS: Shop[] = [
     aiHint: 'fantasy market',
   },
   {
-    id: 'furniture-shop-cozy-hearth',
+    id: 'furniture-shop-carved-chest',
     title: 'Мебельная лавка «Резной сундук»',
     description: 'От изысканной мебели для аристократических особняков до простой и надежной обстановки для скромного жилища. Создайте интерьер своей мечты!',
     image: 'https://i.postimg.cc/RZLSV4tW/jdq-H3-Hqec-MECX9j-Aq-O-IRr-Lc6-Rjxce-ZUm7j-SQ1-Say-P-arv0pqdp-ESHt3-Cb0w0-JRAJ6-I5x7-Demy-SSCPwb-Ihw-H6-Rra.jpg',
@@ -596,6 +596,13 @@ export const ALL_SHOPS: Shop[] = [
     description: 'Самые свежие продукты со всего мира: от экзотических фруктов до редких специй. Идеальное место, чтобы пополнить запасы и насладиться атмосферой оживленной торговли.',
     image: 'https://i.postimg.cc/jdKN8dR5/w-I-f-Ay-RAYrhs-M8m-DLWd-DSNr4-EGD8-JCt-Abu3-OIBZJGr2-JZuez-Amct-DOXJ7-F4-Xz5-L2-SG55-E6p-Huso15-T9-Hveksd-HI.jpg',
     aiHint: 'food market'
+  },
+  {
+    id: 'flower-shop-fantasy',
+    title: 'Цветочная лавка «Цветочная феерия»',
+    description: 'Лавка, наполненная ароматами свежих цветов со всего мира. Здесь вы найдете букеты для любого случая, редкие растения и магические семена.',
+    image: 'https://i.postimg.cc/BQSWJHqG/PI8fb53ze8foyk-Pc-MA62o-B4-FPv-MQDf6-Pgglx-jh906cae-UVng-Tz2m-Ff-Qxw-S4ee-X3k-Fq-Mbx-C0j-Si-V2-UMZANe-GYD.jpg',
+    aiHint: 'flower shop'
   },
 ];
 
@@ -616,3 +623,6 @@ export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) =>
 
 
 
+
+
+    
