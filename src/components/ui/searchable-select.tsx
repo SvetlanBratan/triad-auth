@@ -19,7 +19,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { ScrollArea } from './scroll-area';
 
 type SelectOption = { value: string; label: string };
 type SelectOptionGroup = { label: string; options: SelectOption[] };
@@ -86,57 +85,55 @@ export const SearchableSelect = ({
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
         <Command>
           <CommandInput placeholder="Поиск..." />
-          <ScrollArea className="max-h-72">
-            <CommandList>
-                <CommandEmpty>Ничего не найдено.</CommandEmpty>
-                {options.map((option, index) => {
-                if (isOptionGroup(option)) {
-                    return (
-                    <CommandGroup key={`${option.label}-${index}`} heading={option.label}>
-                        {option.options.map((item) => (
-                        <CommandItem
-                            key={item.value}
-                            value={item.label}
-                            onSelect={() => {
-                            onValueChange(item.value === value ? "" : item.value);
-                            setOpen(false);
-                            }}
-                        >
-                            <Check
-                            className={cn(
-                                'mr-2 h-4 w-4',
-                                value === item.value ? 'opacity-100' : 'opacity-0'
-                            )}
-                            />
-                            {renderOption ? renderOption(item) : item.label}
-                        </CommandItem>
-                        ))}
-                    </CommandGroup>
-                    );
-                }
-                return (
-                    <CommandGroup key={`${option.value}-${index}`}>
-                        <CommandItem
-                            key={option.value}
-                            value={option.label}
-                            onSelect={() => {
-                                onValueChange(option.value === value ? "" : option.value);
-                                setOpen(false);
-                            }}
-                            >
-                            <Check
-                                className={cn(
+          <CommandList>
+              <CommandEmpty>Ничего не найдено.</CommandEmpty>
+              {options.map((option, index) => {
+              if (isOptionGroup(option)) {
+                  return (
+                  <CommandGroup key={`${option.label}-${index}`} heading={option.label}>
+                      {option.options.map((item) => (
+                      <CommandItem
+                          key={item.value}
+                          value={item.label}
+                          onSelect={() => {
+                          onValueChange(item.value === value ? "" : item.value);
+                          setOpen(false);
+                          }}
+                      >
+                          <Check
+                          className={cn(
+                              'mr-2 h-4 w-4',
+                              value === item.value ? 'opacity-100' : 'opacity-0'
+                          )}
+                          />
+                          {renderOption ? renderOption(item) : item.label}
+                      </CommandItem>
+                      ))}
+                  </CommandGroup>
+                  );
+              }
+              return (
+                  <CommandGroup key={`${option.value}-${index}`}>
+                      <CommandItem
+                          key={option.value}
+                          value={option.label}
+                          onSelect={() => {
+                              onValueChange(option.value === value ? "" : option.value);
+                              setOpen(false);
+                          }}
+                          >
+                          <Check
+                              className={cn(
                                 'mr-2 h-4 w-4',
                                 value === option.value ? 'opacity-100' : 'opacity-0'
-                                )}
-                            />
-                            {renderOption ? renderOption(option) : option.label}
-                        </CommandItem>
-                    </CommandGroup>
-                );
-                })}
-            </CommandList>
-          </ScrollArea>
+                              )}
+                          />
+                          {renderOption ? renderOption(option) : option.label}
+                      </CommandItem>
+                  </CommandGroup>
+              );
+              })}
+          </CommandList>
         </Command>
       </PopoverContent>
     </Popover>
