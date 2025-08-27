@@ -63,7 +63,7 @@ export const SearchableSelect = ({
   const selectedOption = allOptions.find((opt) => opt.value === value);
 
   return (
-    <Popover open={open} onOpenChange={setOpen} modal={false}>
+    <Popover open={open} onOpenChange={setOpen} modal>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -85,7 +85,7 @@ export const SearchableSelect = ({
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
         <Command>
           <CommandInput placeholder="Поиск..." />
-          <CommandList>
+          <CommandList className="max-h-72 overflow-y-auto overflow-x-hidden">
               <CommandEmpty>Ничего не найдено.</CommandEmpty>
               {options.map((option, index) => {
               if (isOptionGroup(option)) {

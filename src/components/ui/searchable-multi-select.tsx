@@ -52,7 +52,7 @@ function SearchableMultiSelect({
     .filter(Boolean);
 
   return (
-    <Popover open={open} onOpenChange={setOpen} modal={false}>
+    <Popover open={open} onOpenChange={setOpen} modal>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -100,7 +100,7 @@ function SearchableMultiSelect({
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
         <Command>
           <CommandInput placeholder="Поиск..." />
-          <CommandList>
+          <CommandList className="max-h-72 overflow-y-auto overflow-x-hidden">
             <CommandEmpty>Ничего не найдено.</CommandEmpty>
             <CommandGroup>
               {options.map((option) => (
