@@ -494,7 +494,7 @@ export const ALL_SHOPS: Shop[] = [
   },
   {
     id: 'dumpling-house',
-    title: 'Пельменная «Тесто и мясо»',
+    title: 'Пельменная Тесто и мясо',
     description: "Простое, но очень популярное место. Аромат свежесваренных пельменей слышен за квартал и привлекает всех, от стражников до аристократов.",
     image: "https://i.postimg.cc/3xBVs7Tw/image.png",
     aiHint: "dumpling house"
@@ -580,5 +580,7 @@ export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) =>
 
 
 
+
+    
 
     
