@@ -12,6 +12,7 @@ const FormattedTextRenderer: React.FC<FormattedTextRendererProps> = ({ text }) =
     const processLine = (line: string) => {
         const parts: React.ReactNode[] = [];
         let lastIndex = 0;
+        // Simplified regex to capture content within delimiters
         const regex = /(\'''(.*?)'''|''(.*?)''|\*(.*?)\*|<s>(.*?)<\/s>|<u>(.*?)<\/u>)/g;
         let match;
 
@@ -22,7 +23,7 @@ const FormattedTextRenderer: React.FC<FormattedTextRendererProps> = ({ text }) =
             }
 
             const [fullMatch, , boldContent1, italicContent, boldContent2, strikeContent, underlineContent] = match;
-
+            
             if (boldContent1 !== undefined) {
                 parts.push(<strong key={match.index}>{boldContent1}</strong>);
             } else if (italicContent !== undefined) {
