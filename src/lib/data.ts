@@ -590,6 +590,13 @@ export const ALL_SHOPS: Shop[] = [
     image: 'https://i.postimg.cc/RZLSV4tW/jdq-H3-Hqec-MECX9j-Aq-O-IRr-Lc6-Rjxce-ZUm7j-SQ1-Say-P-arv0pqdp-ESHt3-Cb0w0-JRAJ6-I5x7-Demy-SSCPwb-Ihw-H6-Rra.jpg',
     aiHint: 'furniture store',
   },
+  {
+    id: 'food-market',
+    title: 'Рынок еды',
+    description: 'Самые свежие продукты со всего мира: от экзотических фруктов до редких специй. Идеальное место, чтобы пополнить запасы и насладиться атмосферой оживленной торговли.',
+    image: 'https://i.postimg.cc/jdKN8dR5/w-I-f-Ay-RAYrhs-M8m-DLWd-DSNr4-EGD8-JCt-Abu3-OIBZJGr2-JZuez-Amct-DOXJ7-F4-Xz5-L2-SG55-E6p-Huso15-T9-Hveksd-HI.jpg',
+    aiHint: 'food market'
+  },
 ];
 
 export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) => {
@@ -605,6 +612,7 @@ export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) =>
     
 
     
+
 
 
 
