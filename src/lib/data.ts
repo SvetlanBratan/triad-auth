@@ -569,6 +569,13 @@ export const ALL_SHOPS: Shop[] = [
     image: 'https://i.postimg.cc/R0N2WPBf/6-MLFUIp-Zw-Su-XKQG-Z42-MCOAu-Fu-Cw-Lyx1-IPERvyat-KWy-CNlvu4w-Aob8-Ttqqe-W2-Unq-C-Ijy-N8-Us-Tomd-P2-N15c2l-No.jpg',
     aiHint: 'rental property',
   },
+  {
+    id: 'market-lost-souls',
+    title: 'Рынок Неприкаянных Душ',
+    description: 'Здесь души, не нашедшие покоя, ищут новый смысл или нового хозяина. Уникальные товары и услуги для тех, кто не боится заглянуть за грань.',
+    image: 'https://i.postimg.cc/jqcY23wg/t-Gq6-Sm3q-La-QLAz-U4qrkw7k-L14o-Z7-Vzl-FWo-MIETTGUOJR7-S5e-Pd-Mt-C5-DT9-W6t-Gp60-YH5ba-Xz-J3-Tnk-Sk60-Wg93rk-E.jpg',
+    aiHint: 'fantasy market',
+  },
 ];
 
 export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) => {
