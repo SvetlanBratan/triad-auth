@@ -9,48 +9,42 @@ const FormattedTextRenderer: React.FC<FormattedTextRendererProps> = ({ text }) =
         return <p className="whitespace-pre-wrap">{text}</p>;
     }
 
-    const processLine = (line: string) => {
-        const parts: React.ReactNode[] = [];
+    const processLine = (line: string): React.ReactNode[] => {
+        // A simple state machine parser would be more robust, but for these simple replacements, regex is fine.
+        // We do this in stages to avoid complex regex interactions.
+        let processedLine = line
+            .replace(/\*(.*?)\*/g, '<strong>$1</strong>')
+            .replace(/''(.*?)''/g, '<em>$1</em>');
+            // s and u are already valid HTML tags, so they will be handled by dangerouslySetInnerHTML
+
+        const parts: (string | React.ReactElement)[] = [];
+        const splitRegex = /(<strong>.*?<\/strong>|<em>.*?<\/em>|<s>.*?<\/s>|<u>.*?<\/u>)/g;
         let lastIndex = 0;
-        // Simplified regex to capture content within delimiters
-        const regex = /(\'''(.*?)'''|''(.*?)''|\*(.*?)\*|<s>(.*?)<\/s>|<u>(.*?)<\/u>)/g;
         let match;
 
-        while ((match = regex.exec(line)) !== null) {
-            // Add text before the match
+        while ((match = splitRegex.exec(processedLine)) !== null) {
+            // Push the text before the match
             if (match.index > lastIndex) {
-                parts.push(line.substring(lastIndex, match.index));
+                parts.push(processedLine.substring(lastIndex, match.index));
             }
-
-            const [fullMatch, , boldContent1, italicContent, boldContent2, strikeContent, underlineContent] = match;
-            
-            if (boldContent1 !== undefined) {
-                parts.push(<strong key={match.index}>{boldContent1}</strong>);
-            } else if (italicContent !== undefined) {
-                parts.push(<em key={match.index}>{italicContent}</em>);
-            } else if (boldContent2 !== undefined) {
-                parts.push(<strong key={match.index}>{boldContent2}</strong>);
-            } else if (strikeContent !== undefined) {
-                parts.push(<s key={match.index}>{strikeContent}</s>);
-            } else if (underlineContent !== undefined) {
-                parts.push(<u key={match.index}>{underlineContent}</u>);
-            }
-            
-            lastIndex = match.index + fullMatch.length;
+            // Push the matched HTML element
+            parts.push(<span dangerouslySetInnerHTML={{ __html: match[0] }} />);
+            lastIndex = match.index + match[0].length;
         }
 
-        // Add any remaining text after the last match
-        if (lastIndex < line.length) {
-            parts.push(line.substring(lastIndex));
+        // Push any remaining text
+        if (lastIndex < processedLine.length) {
+            parts.push(processedLine.substring(lastIndex));
         }
-
-        return parts;
+        
+        return parts.map((part, index) => <React.Fragment key={index}>{part}</React.Fragment>);
     };
     
+    // Split by newlines and <br> tags
     const lines = text.split(/<br\s*\/?>|\n/);
 
     return (
-        <div className="whitespace-normal">
+        <div className="whitespace-pre-wrap">
             {lines.map((line, index) => (
                 <React.Fragment key={index}>
                     {processLine(line)}
