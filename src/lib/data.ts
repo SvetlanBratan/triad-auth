@@ -636,7 +636,7 @@ export const ALL_SHOPS: Shop[] = [
     id: 'pet-store',
     title: 'Зоомагазин',
     description: 'Все для ваших любимых питомцев: от кормов и игрушек до экзотических животных и фамильяров. Найдите себе верного друга!',
-    image: 'https://i.postimg.cc/jqhrGKp2/a-K3lcl-M3-Ujr-VAOa-Cou-DF7w3-Ingk-HC594i-Htx-L7i-GHt-Gogp-Oj-B-yv-Pa-GCd-6-Xd-Nyfx-Dca-Nh0ryrl-X-5-n7-Ig-Icuh.jpg',
+    image: 'https://i.postimg.cc/NfPZc0ps/image.png',
     aiHint: 'pet store'
   },
   {
@@ -678,3 +678,4 @@ export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) =>
 
 
     
+
