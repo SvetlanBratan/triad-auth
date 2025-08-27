@@ -562,6 +562,13 @@ export const ALL_SHOPS: Shop[] = [
     image: 'https://i.postimg.cc/1tKXf5Pf/x7z01u-Sn-XXy-Rn-Yv8r-VJp-K3s-UWEJDyc-LFBz6-Z-v-Ysxl-YYl-DPM4ullr-Rs9-RMas-Q7-ONJPFK-W9-Sjmyhr-X1-Z8-LV3-PKG.jpg',
     aiHint: 'grocery store',
   },
+  {
+    id: 'rental-agency-cozy-corner',
+    title: 'Агентство аренды «Уютный уголок»',
+    description: 'Ищете временное жилье или хотите сдать свою недвижимость? Наше агентство поможет вам найти идеальный вариант аренды.',
+    image: 'https://i.postimg.cc/R0N2WPBf/6-MLFUIp-Zw-Su-XKQG-Z42-MCOAu-Fu-Cw-Lyx1-IPERvyat-KWy-CNlvu4w-Aob8-Ttqqe-W2-Unq-C-Ijy-N8-Us-Tomd-P2-N15c2l-No.jpg',
+    aiHint: 'rental property',
+  },
 ];
 
 export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) => {
@@ -570,3 +577,4 @@ export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) =>
 }, {} as Record<string, Shop>);
 
     
+
