@@ -466,35 +466,35 @@ export const FAMILIARS_BY_ID: Record<string, FamiliarCard> = [...ALL_FAMILIARS, 
 export const ALL_SHOPS: Shop[] = [
   {
     id: 'potions-licorice',
-    title: "Магазинчик зелий 'Ликорис'",
+    title: "Магазинчик зелий «Ликорис»",
     description: "Уютная лавка, где воздух пропитан ароматами сушеных трав и магических эссенций. Здесь можно найти зелья на любой случай жизни.",
     image: "https://i.postimg.cc/kgvP7Kxq/image.png",
     aiHint: "potion shop"
   },
   {
     id: 'tailor-pavlo',
-    title: "Портной-башмачник 'Павло'",
+    title: "Портной-башмачник «Павло»",
     description: "Мастерская, где пахнет кожей и свежей тканью. Павло может сшить как прочную походную одежду, так и роскошный бальный наряд.",
     image: "https://i.postimg.cc/4yqF1NV8/image.png",
     aiHint: "tailor workshop"
   },
   {
     id: 'bar-three-salamanders',
-    title: "Бар 'Три саламандры'",
+    title: "Бар «Три саламандры»",
     description: "Полумрачное заведение с тихой музыкой и крепкими напитками. Идеальное место для тайных встреч и спокойных бесед.",
     image: "https://i.postimg.cc/xj5mN4nz/image.png",
     aiHint: "fantasy tavern"
   },
   {
     id: 'tavern-jolly-joker',
-    title: "Трактир 'Весёлый Джокер'",
+    title: "Трактир «Весёлый Джокер»",
     description: "Шумное и веселое место, где всегда можно найти выпивку, еду и последние сплетни. Излюбленное место встреч авантюристов и местных жителей.",
     image: "https://i.postimg.cc/DZ2Z27WY/image.png",
     aiHint: "jolly inn"
   },
   {
     id: 'dumpling-house',
-    title: "Пельменная 'Тесто и мясо'",
+    title: "Пельменная «Тесто и мясо»",
     description: "Простое, но очень популярное место. Аромат свежесваренных пельменей слышен за квартал и привлекает всех, от стражников до аристократов.",
     image: "https://i.postimg.cc/3xBVs7Tw/image.png",
     aiHint: "dumpling house"
@@ -508,21 +508,21 @@ export const ALL_SHOPS: Shop[] = [
   },
   {
     id: 'real-estate-dragons-nest',
-    title: "Агентство недвижимости 'Гнездо Дракона'",
+    title: "Агентство недвижимости «Гнездо Дракона»",
     description: "Ищете уютный домик в лесу или роскошный особняк в центре города? Мы подберем идеальное жилье для вас и вашей семьи.",
     image: "https://i.postimg.cc/nrDNgDF8/image.png",
     aiHint: "real estate"
   },
   {
     id: 'transport-path-reins',
-    title: "Транспортная лавка 'Путь и Поводья'",
+    title: "Транспортная лавка «Путь и Поводья»",
     description: "От быстрых скакунов до надежных карет. Все, что нужно для комфортного и безопасного путешествия по землям Триады.",
     image: "https://i.postimg.cc/J0rBdbc0/image.png",
     aiHint: "carriage shop"
   },
   {
     id: 'ritual-bureau-last-feast',
-    title: "Ритуальное бюро 'Последний праздник'",
+    title: "Ритуальное бюро «Последний праздник»",
     description: "Мы позаботимся о том, чтобы проводы в последний путь были достойными и запоминающимися. Все виды ритуальных услуг.",
     image: "https://i.postimg.cc/tRxfXFjw/image.png",
     aiHint: "funeral home"
@@ -536,7 +536,7 @@ export const ALL_SHOPS: Shop[] = [
   },
   {
     id: 'souvenir-shop-surprise-madam',
-    title: "Сувенирная лавка 'Сюрприз-Мадам'",
+    title: "Сувенирная лавка «Сюрприз-Мадам»",
     description: "Удивительные и необычные сувениры со всего света! Найдите идеальный подарок для себя или своих близких.",
     image: "https://i.postimg.cc/XqYpgn4y/image.png",
     aiHint: "souvenir shop"
@@ -550,14 +550,14 @@ export const ALL_SHOPS: Shop[] = [
   },
   {
     id: 'weapon-shop-dead-man-in-armor',
-    title: "Оружейная лавка 'Покойник в Доспехах'",
+    title: "Оружейная лавка «Покойник в Доспехах»",
     description: "Лучшее оружие и доспехи для любого воина. Каждый клинок проверен в бою, каждый щит готов выдержать удар.",
     image: "https://i.postimg.cc/c1ppYXhd/image.png",
     aiHint: "weapon shop"
   },
   {
     id: 'grocery-yaterochka',
-    title: 'Продуктовый магазин "Ятёрочка"',
+    title: 'Продуктовый магазин «Ятёрочка»',
     description: 'Ятёрочка — магазин, где всегда найдётся всё нужное: свежие продукты каждый день рядом с домом.',
     image: 'https://i.postimg.cc/1tKXf5Pf/x7z01u-Sn-XXy-Rn-Yv8r-VJp-K3s-UWEJDyc-LFBz6-Z-v-Ysxl-YYl-DPM4ullr-Rs9-RMas-Q7-ONJPFK-W9-Sjmyhr-X1-Z8-LV3-PKG.jpg',
     aiHint: 'grocery store',
