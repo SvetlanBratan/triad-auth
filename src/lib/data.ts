@@ -604,6 +604,13 @@ export const ALL_SHOPS: Shop[] = [
     image: 'https://i.postimg.cc/BQSWJHqG/PI8fb53ze8foyk-Pc-MA62o-B4-FPv-MQDf6-Pgglx-jh906cae-UVng-Tz2m-Ff-Qxw-S4ee-X3k-Fq-Mbx-C0j-Si-V2-UMZANe-GYD.jpg',
     aiHint: 'flower shop'
   },
+  {
+    id: 'services-general',
+    title: 'Услуги',
+    description: 'Здесь вы можете найти различные услуги, от ремонта до магических консультаций. Лучшие специалисты города к вашим услугам.',
+    image: 'https://i.postimg.cc/XvfSV8y4/1n-Sg-Yqj883-Fu-Ktf764-AQxk-Sxii3-P45-O8e7k93fs3-Z0-VIHGAW5u8-Jin-Bv-LVXe-N-JKXE8-Zw-GCsw-PRir9y-BRjqk-c-Wl.jpg',
+    aiHint: 'various services',
+  },
 ];
 
 export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) => {
