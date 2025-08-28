@@ -1756,10 +1756,10 @@ const processMonthlySalary = useCallback(async () => {
         if (item.inventoryTag === 'проживание') {
             buyerChar.residenceLocation = item.name;
         } else if (item.inventoryTag) {
-            const inventory = (buyerChar.inventory ??= {} as Partial<Inventory>);
+            const inv = (buyerChar.inventory ??= {} as Partial<Inventory>);
             const tag = item.inventoryTag as keyof Inventory;
-            (inventory[tag] ??= []);
-            const list = inventory[tag]!;
+            (inv[tag] ??= []);
+            const list = inv[tag]!;
 
             const existingItemIndex = list.findIndex(invItem => invItem.name === item.name);
 
@@ -2469,6 +2469,7 @@ const clearAllPopularityHistories = useCallback(async () => {
     </AuthContext.Provider>
   );
 }
+
 
 
 
