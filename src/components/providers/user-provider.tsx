@@ -1763,10 +1763,7 @@ const processMonthlySalary = useCallback(async () => {
         buyerChar.bankAccount.history = [buyerTx, ...(buyerChar.bankAccount.history || [])];
 
         // Add item to buyer's inventory or update character field
-        if (item.inventoryTag === 'питомцы') {
-            const currentPets = buyerChar.pets ? `${buyerChar.pets}, ${item.name}` : item.name;
-            buyerChar.pets = currentPets;
-        } else if (item.inventoryTag === 'проживание') {
+        if (item.inventoryTag === 'проживание') {
             buyerChar.residenceLocation = item.name;
         } else if (item.inventoryTag) {
             const inventory = buyerChar.inventory || initialFormData.inventory;
@@ -2487,6 +2484,7 @@ const clearAllPopularityHistories = useCallback(async () => {
 
 
     
+
 
 
 
