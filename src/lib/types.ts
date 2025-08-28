@@ -4,7 +4,7 @@ export type UserRole = 'admin' | 'user';
 export type UserStatus = 'активный' | 'неактивный' | 'отпуск';
 export type RewardRequestStatus = 'в ожидании' | 'одобрено' | 'отклонено';
 export type FamiliarRank = 'обычный' | 'редкий' | 'легендарный' | 'мифический' | 'ивентовый';
-export type InventoryCategory = 'оружие' | 'гардероб' | 'еда' | 'подарки' | 'артефакты' | 'зелья' | 'недвижимость' | 'транспорт' | 'драгоценности' | 'книгиИСвитки' | 'прочее' | 'предприятия' | 'души' | 'мебель';
+export type InventoryCategory = 'оружие' | 'гардероб' | 'еда' | 'подарки' | 'артефакты' | 'зелья' | 'недвижимость' | 'транспорт' | 'драгоценности' | 'книгиИСвитки' | 'прочее' | 'предприятия' | 'души' | 'мебель' | 'доспехи' | 'инструменты' | 'питомцы' | 'проживание';
 export type RelationshipType = 'романтика' | 'дружба' | 'вражда' | 'конкуренция' | 'нейтралитет' | 'любовь' | 'семья' | 'уважение' | 'страсть' | 'заинтересованность' | 'сотрудничество';
 export type RelationshipActionType = 'подарок' | 'письмо';
 export type RelationshipActionStatus = 'pending' | 'confirmed';
@@ -75,23 +75,7 @@ export interface InventoryItem {
     image?: string;
 }
 
-export interface Inventory {
-    оружие: InventoryItem[];
-    гардероб: InventoryItem[];
-    еда: InventoryItem[];
-    подарки: InventoryItem[];
-    артефакты: InventoryItem[];
-    зелья: InventoryItem[];
-    недвижимость: InventoryItem[];
-    транспорт: InventoryItem[];
-    familiarCards: OwnedFamiliarCard[];
-    драгоценности: InventoryItem[];
-    книгиИСвитки: InventoryItem[];
-    прочее: InventoryItem[];
-    предприятия: InventoryItem[];
-    души: InventoryItem[];
-    мебель: InventoryItem[];
-}
+export type Inventory = Record<InventoryCategory, InventoryItem[]>;
 
 export interface RelationshipAction {
   id: string;
@@ -202,6 +186,7 @@ export interface Character {
   race: string;
   birthDate: string;
   countryOfResidence?: string;
+  residenceLocation?: string;
   citizenshipStatus?: CitizenshipStatus;
   taxpayerStatus?: TaxpayerStatus;
   accomplishments: Accomplishment[];
@@ -210,7 +195,6 @@ export interface Character {
   abilities?: string;
   weaknesses?: string;
   lifeGoal?: string;
-  pets?: string;
   appearance: string;
   appearanceImage?: string;
   personality: string;

@@ -114,12 +114,14 @@ const inventoryLayout: {
         icon: Package,
         categories: [
             { key: 'оружие', label: 'Оружие', icon: Swords },
+            { key: 'доспехи', label: 'Доспехи', icon: Shield },
             { key: 'артефакты', label: 'Артефакты', icon: Gem },
             { key: 'зелья', label: 'Зелья/лекарства', icon: BrainCircuit },
             { key: 'гардероб', label: 'Гардероб', icon: RussianRuble },
             { key: 'драгоценности', label: 'Драгоценности', icon: Sparkles },
             { key: 'книгиИСвитки', label: 'Книги и свитки', icon: BookOpen },
             { key: 'еда', label: 'Еда', icon: Star },
+            { key: 'инструменты', label: 'Инструменты', icon: Gavel },
             { key: 'прочее', label: 'Прочее', icon: Dices },
         ]
     },
@@ -137,7 +139,7 @@ const inventoryLayout: {
 ];
 
 const FamiliarsSection = ({ character }: { character: Character }) => {
-    const familiarCards = character.inventory?.familiarCards || [];
+    const familiarCards = character.familiarCards || [];
 
     const groupedFamiliars = familiarCards.reduce((acc, ownedCard, index) => {
         const cardDetails = FAMILIARS_BY_ID[ownedCard.id];
@@ -600,13 +602,6 @@ export default function CharacterPage() {
                                     content={<p className="whitespace-pre-wrap text-sm pt-2">{character.criminalRecords}</p>}
                                 />
                                 <SubSection 
-                                    title="Питомцы"
-                                    section="pets"
-                                    isVisible={!!character.pets || isOwnerOrAdmin}
-                                    isEmpty={!character.pets}
-                                    content={<p className="whitespace-pre-wrap text-sm pt-2">{character.pets}</p>}
-                                />
-                                <SubSection 
                                     title="Личный дневник"
                                     section="diary"
                                     isVisible={!!character.diary}
@@ -678,6 +673,7 @@ export default function CharacterPage() {
                                     isVisible={!!character.countryOfResidence || isOwnerOrAdmin} 
                                     icon={<Landmark className="w-4 h-4" />}
                                 />
+                                <InfoRow label="Место проживания" value={character.residenceLocation} field="residenceLocation" section="mainInfo" isVisible={!!character.residenceLocation || isOwnerOrAdmin} icon={<Home className="w-4 h-4" />} />
                                 <InfoRow 
                                     label="Уровень преступности" 
                                     value={crimeLevelInfo ? crimeLevelInfo.title : ''} 
@@ -862,7 +858,7 @@ export default function CharacterPage() {
                                 if (cat.key === 'предприятия') return ownedShops.length > 0;
                                 const items = inventory[cat.key as keyof typeof inventory] as InventoryItem[];
                                 return items && items.length > 0;
-                            }) || (section.title === 'Инвентарь' && inventory.familiarCards?.length > 0);
+                            }) || (section.title === 'Инвентарь' && character.familiarCards?.length > 0);
 
                             if (!hasContent) return null;
 
@@ -875,9 +871,9 @@ export default function CharacterPage() {
                                     </CardHeader>
                                     <CardContent>
                                         <Accordion type="multiple" className="w-full">
-                                            {section.title === 'Инвентарь' && inventory.familiarCards?.length > 0 && (
+                                            {section.title === 'Инвентарь' && character.familiarCards?.length > 0 && (
                                                 <AccordionItem value="familiars">
-                                                    <AccordionTrigger><ShieldAlert className="mr-2 w-4 h-4" />Фамильяры ({inventory.familiarCards.length})</AccordionTrigger>
+                                                    <AccordionTrigger><ShieldAlert className="mr-2 w-4 h-4" />Фамильяры ({character.familiarCards.length})</AccordionTrigger>
                                                     <AccordionContent>
                                                         <FamiliarsSection character={character} />
                                                     </AccordionContent>

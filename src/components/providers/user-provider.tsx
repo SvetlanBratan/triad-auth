@@ -3,11 +3,11 @@
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
-import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage, Cooldowns, PopularityLog, CharacterPopularityUpdate } from '@/lib/types';
+import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage, Cooldowns, PopularityLog, CharacterPopularityUpdate, OwnedFamiliarCard } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter } from "firebase/firestore";
-import { ALL_FAMILIARS, FAMILIARS_BY_ID, MOODLETS_DATA, DEFAULT_GAME_SETTINGS, WEALTH_LEVELS, ALL_SHOPS, SHOPS_BY_ID, POPULARITY_EVENTS, ALL_ACHIEVEMENTS } from '@/lib/data';
+import { ALL_FAMILIARS, FAMILIARS_BY_ID, MOODLETS_DATA, DEFAULT_GAME_SETTINGS, WEALTH_LEVELS, ALL_SHOPS, SHOPS_BY_ID, POPULARITY_EVENTS, ALL_ACHIEVEMENTS, INVENTORY_CATEGORIES } from '@/lib/data';
 import { differenceInDays } from 'date-fns';
 
 interface AuthContextType {
@@ -180,6 +180,12 @@ const drawFamiliarCard = (hasBlessing: boolean, unavailableMythicIds: Set<string
     return chosenPool[Math.floor(Math.random() * chosenPool.length)];
 };
 
+const defaultInventory: Inventory = INVENTORY_CATEGORIES.reduce((acc, category) => {
+    acc[category.value] = [];
+    return acc;
+}, {} as Inventory);
+
+
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
@@ -241,31 +247,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     abilities: '',
     weaknesses: '',
     lifeGoal: '',
-    pets: '',
     criminalRecords: '',
     familiarCards: [],
     moodlets: [],
-    inventory: {
-        оружие: [],
-        гардероб: [],
-        еда: [],
-        подарки: [],
-        артефакты: [],
-        зелья: [],
-        недвижимость: [],
-        транспорт: [],
-        familiarCards: [],
-        драгоценности: [],
-        книгиИСвитки: [],
-        прочее: [],
-        предприятия: [],
-        души: [],
-        мебель: [],
-    },
+    inventory: defaultInventory,
     bankAccount: { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] },
     wealthLevel: 'Бедный',
     crimeLevel: 5,
     countryOfResidence: '',
+    residenceLocation: '',
     citizenshipStatus: 'non-citizen',
     taxpayerStatus: 'taxable',
     popularity: 0,
@@ -277,29 +267,42 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const docSnap = await getDoc(userRef);
       if (docSnap.exists()) {
           const userData = docSnap.data() as User;
-           userData.characters = userData.characters?.map(char => ({
-                ...initialFormData,
-                ...char,
-                crimeLevel: char.crimeLevel ?? 5, 
-                bankAccount:
-                  typeof char.bankAccount !== 'object' || char.bankAccount === null
-                    ? { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] }
-                    : {
-                        platinum: char.bankAccount.platinum ?? 0,
-                        gold: char.bankAccount.gold ?? 0,
-                        silver: char.bankAccount.silver ?? 0,
-                        copper: char.bankAccount.copper ?? 0,
-                        history: Array.isArray(char.bankAccount.history) ? char.bankAccount.history : []
-                      },
-                accomplishments: char.accomplishments || [],
-                training: Array.isArray(char.training) ? char.training : [],
-                marriedTo: Array.isArray(char.marriedTo) ? char.marriedTo : [],
-                relationships: (Array.isArray(char.relationships) ? char.relationships : []).map(r => ({ ...r, id: r.id || `rel-${Math.random()}` })),
-                inventory: { ...initialFormData.inventory, ...(char.inventory || {}) },
-                moodlets: char.moodlets || [],
-                popularity: char.popularity ?? 0,
-                popularityHistory: char.popularityHistory || [],
-            })) || [];
+           userData.characters = userData.characters?.map(char => {
+                const processedChar = {
+                    ...initialFormData,
+                    ...char,
+                    inventory: { ...defaultInventory, ...(char.inventory || {}) },
+                    familiarCards: char.familiarCards || [],
+                    crimeLevel: char.crimeLevel ?? 5, 
+                    bankAccount:
+                      typeof char.bankAccount !== 'object' || char.bankAccount === null
+                        ? { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] }
+                        : {
+                            platinum: char.bankAccount.platinum ?? 0,
+                            gold: char.bankAccount.gold ?? 0,
+                            silver: char.bankAccount.silver ?? 0,
+                            copper: char.bankAccount.copper ?? 0,
+                            history: Array.isArray(char.bankAccount.history) ? char.bankAccount.history : []
+                          },
+                    accomplishments: char.accomplishments || [],
+                    training: Array.isArray(char.training) ? char.training : [],
+                    marriedTo: Array.isArray(char.marriedTo) ? char.marriedTo : [],
+                    relationships: (Array.isArray(char.relationships) ? char.relationships : []).map(r => ({ ...r, id: r.id || `rel-${Math.random()}` })),
+                    moodlets: char.moodlets || [],
+                    popularity: char.popularity ?? 0,
+                    popularityHistory: char.popularityHistory || [],
+                };
+                 // Ensure familiarCards is at the root and not in inventory for older data structures
+                if ('familiarCards' in (processedChar.inventory as any)) {
+                    processedChar.familiarCards = [
+                        ...(processedChar.familiarCards || []),
+                        ...(processedChar.inventory as any).familiarCards
+                    ];
+                    delete (processedChar.inventory as any).familiarCards;
+                }
+
+                return processedChar;
+            }) || [];
            userData.achievementIds = userData.achievementIds || [];
            userData.extraCharacterSlots = userData.extraCharacterSlots || 0;
            userData.pointHistory = userData.pointHistory || [];
@@ -413,35 +416,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     try {
         const usersCollection = collection(db, "users");
         const userSnapshot = await getDocs(query(usersCollection, orderBy("points", "desc")));
-        const users = userSnapshot.docs.map(doc => {
-            const userData = doc.data() as User;
-            userData.characters = userData.characters?.map(char => ({
-                ...initialFormData,
-                ...char,
-                 bankAccount:
-                    typeof char.bankAccount !== 'object' || char.bankAccount === null
-                      ? { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] }
-                      : {
-                          platinum: char.bankAccount.platinum ?? 0,
-                          gold: char.bankAccount.gold ?? 0,
-                          silver: char.bankAccount.silver ?? 0,
-                          copper: char.bankAccount.copper ?? 0,
-                          history: Array.isArray(char.bankAccount.history) ? char.bankAccount.history : [],
-                        },
-                inventory: { ...initialFormData.inventory, ...(char.inventory || {}) },
-                moodlets: char.moodlets || [],
-            })) || [];
-            userData.achievementIds = userData.achievementIds || [];
-            userData.pointHistory = userData.pointHistory || [];
-            userData.mail = userData.mail || [];
-            return userData;
-        });
-        return users;
+        const users = await Promise.all(userSnapshot.docs.map(doc => fetchUserById(doc.id)));
+        return users.filter((user): user is User => user !== null);
     } catch(error) {
         console.error("Error fetching users for admin.", error);
         throw error;
     }
-  }, [initialFormData]);
+  }, [fetchUserById]);
 
   const fetchAllRewardRequests = useCallback(async (): Promise<RewardRequest[]> => {
     const requests: RewardRequest[] = [];
@@ -583,8 +564,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             let sanitized: any = JSON.parse(JSON.stringify(char));
 
             sanitized = { ...initialFormData, ...sanitized };
-            sanitized.inventory = { ...initialFormData.inventory, ...(sanitized.inventory || {}) };
+            sanitized.inventory = { ...defaultInventory, ...(sanitized.inventory || {}) };
             sanitized.bankAccount = { ...initialFormData.bankAccount, ...(sanitized.bankAccount || {}) };
+            sanitized.familiarCards = sanitized.familiarCards || [];
             
             const arrayFields: (keyof Character)[] = ['accomplishments', 'training', 'relationships', 'marriedTo', 'moodlets', 'popularityHistory'];
             arrayFields.forEach(field => {
@@ -592,15 +574,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                     (sanitized as any)[field] = [];
                 }
             });
-            
-             // Ensure familiarCards is part of inventory
-            if (sanitized.inventory && !Array.isArray(sanitized.inventory.familiarCards)) {
-                sanitized.inventory.familiarCards = [];
-            }
-            // remove root familiarCards
-            delete sanitized.familiarCards;
 
-            const stringFields: (keyof Character)[] = ['factions', 'abilities', 'weaknesses', 'lifeGoal', 'pets', 'criminalRecords', 'appearanceImage', 'diary', 'workLocation', 'blessingExpires'];
+            const stringFields: (keyof Character)[] = ['factions', 'abilities', 'weaknesses', 'lifeGoal', 'criminalRecords', 'appearanceImage', 'diary', 'workLocation', 'blessingExpires'];
             stringFields.forEach(field => {
                 if (sanitized[field] === undefined || sanitized[field] === null) {
                     (sanitized as any)[field] = '';
@@ -612,6 +587,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                     delete sanitized[key];
                 }
             });
+            
+            delete (sanitized.inventory as any).familiarCards;
 
             return sanitized as Character;
         };
@@ -761,12 +738,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             if (characterToUpdateIndex !== -1) {
                 const updatedCharacters = [...user.characters];
                 let characterToUpdate = { ...updatedCharacters[characterToUpdateIndex] };
-                let inventory = characterToUpdate.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: [] };
+                let familiarCards = characterToUpdate.familiarCards || [];
 
                 if (request.rewardId === PUMPKIN_WIFE_REWARD_ID) {
-                     inventory.familiarCards = [...(inventory.familiarCards || []), { id: PUMPKIN_WIFE_CARD_ID }];
+                     familiarCards = [...familiarCards, { id: PUMPKIN_WIFE_CARD_ID }];
                 } else if (request.rewardId === PUMPKIN_HUSBAND_REWARD_ID) {
-                   inventory.familiarCards = [...(inventory.familiarCards || []), { id: PUMPKIN_HUSBAND_CARD_ID }];
+                   familiarCards = [...familiarCards, { id: PUMPKIN_HUSBAND_CARD_ID }];
                 } else if (request.rewardId === 'r-blessing') {
                     const expiryDate = new Date();
                     expiryDate.setDate(expiryDate.getDate() + 5);
@@ -777,7 +754,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                     characterToUpdate.hasCrimeConnections = true;
                 }
                 
-                characterToUpdate.inventory = inventory;
+                characterToUpdate.familiarCards = familiarCards;
                 updatedCharacters[characterToUpdateIndex] = characterToUpdate;
                 updatesForUser.characters = updatedCharacters;
             }
@@ -809,8 +786,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     for (const user of allUsers) {
         for (const character of user.characters) {
-            const inventory = character.inventory || { familiarCards: [] };
-            for (const card of (inventory.familiarCards || [])) {
+            for (const card of (character.familiarCards || [])) {
                 const cardDetails = FAMILIARS_BY_ID[card.id];
                 if (cardDetails && cardDetails.rank === 'мифический') {
                     claimedMythicIds.add(card.id);
@@ -836,7 +812,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (characterIndex === -1) throw new Error("Персонаж не найден.");
         const character = user.characters[characterIndex];
 
-        const hasCards = character.inventory?.familiarCards && character.inventory.familiarCards.length > 0;
+        const hasCards = character.familiarCards && character.familiarCards.length > 0;
         const hasHistory = user.pointHistory.some(log => log.characterId === characterId && log.reason.includes('Рулетка'));
         const isFirstPullForChar = !hasCards && !hasHistory;
         
@@ -849,7 +825,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         allUsersSnapshot.forEach(doc => {
             const u = doc.data() as User;
             (u.characters || []).forEach(c => {
-                (c.inventory?.familiarCards || []).forEach(cardRef => {
+                (c.familiarCards || []).forEach(cardRef => {
                     const cardDetails = FAMILIARS_BY_ID[cardRef.id];
                     if(cardDetails && cardDetails.rank === 'мифический') {
                         claimedMythicIds.add(cardRef.id);
@@ -861,7 +837,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const hasBlessing = character.blessingExpires ? new Date(character.blessingExpires) > new Date() : false;
         newCard = drawFamiliarCard(hasBlessing, claimedMythicIds);
         
-        const ownedCardIds = new Set((character.inventory?.familiarCards || []).map(c => c.id));
+        const ownedCardIds = new Set((character.familiarCards || []).map(c => c.id));
         isDuplicate = ownedCardIds.has(newCard.id);
         
         const updatedUser = { ...user };
@@ -872,9 +848,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             reason = `Рулетка: дубликат ${newCard.name}, возврат ${DUPLICATE_REFUND} баллов`;
         } else {
             const updatedCharacter = { ...character };
-            const inventory = updatedCharacter.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: [] };
-            inventory.familiarCards = [...(inventory.familiarCards || []), { id: newCard.id }];
-            updatedCharacter.inventory = inventory;
+            const familiarCards = [...(updatedCharacter.familiarCards || []), { id: newCard.id }];
+            updatedCharacter.familiarCards = familiarCards;
             
             updatedUser.characters[characterIndex] = updatedCharacter;
             
@@ -923,10 +898,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (!familiar) return;
 
     const character = { ...user.characters[characterIndex] };
-    const inventory = character.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: [] };
-    
-    inventory.familiarCards = [...(inventory.familiarCards || []), { id: familiarId }];
-    character.inventory = inventory;
+    const familiarCards = [...(character.familiarCards || []), { id: familiarId }];
+    character.familiarCards = familiarCards;
 
     const updatedCharacters = [...user.characters];
     updatedCharacters[characterIndex] = character;
@@ -1032,16 +1005,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (characterIndex === -1) throw new Error("Character not found");
 
     const character = { ...user.characters[characterIndex] };
-    const inventory = character.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: [] };
-    const ownedCards = inventory.familiarCards || [];
+    const ownedCards = character.familiarCards || [];
 
     const cardIndexToRemove = ownedCards.findIndex(card => card.id === cardId);
     if (cardIndexToRemove === -1) throw new Error("Card not found on character");
 
     const updatedCards = [...ownedCards];
     updatedCards.splice(cardIndexToRemove, 1);
-    inventory.familiarCards = updatedCards;
-    character.inventory = inventory;
+    character.familiarCards = updatedCards;
 
     const updatedCharacters = [...user.characters];
     updatedCharacters[characterIndex] = character;
@@ -1247,8 +1218,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
     });
     
-    const inventory = character.inventory || { оружие: [], гардероб: [], еда: [], подарки: [], артефакты: [], зелья: [], недвижимость: [], транспорт: [], familiarCards: [] };
-    const currentOwnedCardIds = new Set((inventory.familiarCards || []).map(c => c.id));
+    const currentOwnedCardIds = new Set((character.familiarCards || []).map(c => c.id));
     const cardsToAdd: { id: string }[] = [];
 
     historicalCardWins.forEach(cardId => {
@@ -1261,9 +1231,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const characterIndex = user.characters.findIndex(c => c.id === characterId);
         if (characterIndex !== -1) {
             const updatedCharacter = { ...character };
-            const updatedInventory = { ...inventory };
-            updatedInventory.familiarCards = [...(updatedInventory.familiarCards || []), ...cardsToAdd];
-            updatedCharacter.inventory = updatedInventory;
+            updatedCharacter.familiarCards = [...(updatedCharacter.familiarCards || []), ...cardsToAdd];
 
             const updatedCharacters = [...user.characters];
             updatedCharacters[characterIndex] = updatedCharacter;
@@ -1624,17 +1592,17 @@ const processMonthlySalary = useCallback(async () => {
         }
 
         const initiatorChar = initiatorData.characters[initiatorCharIndex];
-        const initiatorCardIndex = (initiatorChar.inventory.familiarCards || []).findIndex(c => c.id === request.initiatorFamiliarId);
+        const initiatorCardIndex = (initiatorChar.familiarCards || []).findIndex(c => c.id === request.initiatorFamiliarId);
         if (initiatorCardIndex === -1) throw new Error(`Фамильяр ${request.initiatorFamiliarName} не найден у ${request.initiatorCharacterName}.`);
-        initiatorChar.inventory.familiarCards.splice(initiatorCardIndex, 1);
+        initiatorChar.familiarCards.splice(initiatorCardIndex, 1);
 
         const targetChar = targetData.characters[targetCharIndex];
-        const targetCardIndex = (targetChar.inventory.familiarCards || []).findIndex(c => c.id === request.targetFamiliarId);
+        const targetCardIndex = (targetChar.familiarCards || []).findIndex(c => c.id === request.targetFamiliarId);
         if (targetCardIndex === -1) throw new Error(`Фамильяр ${request.targetFamiliarName} не найден у ${request.targetCharacterName}.`);
-        targetChar.inventory.familiarCards.splice(targetCardIndex, 1);
+        targetChar.familiarCards.splice(targetCardIndex, 1);
 
-        initiatorChar.inventory.familiarCards.push({ id: request.targetFamiliarId });
-        targetChar.inventory.familiarCards.push({ id: request.initiatorFamiliarId });
+        initiatorChar.familiarCards.push({ id: request.targetFamiliarId });
+        targetChar.familiarCards.push({ id: request.initiatorFamiliarId });
 
         transaction.update(initiatorUserRef, { characters: initiatorData.characters });
         transaction.update(targetUserRef, { characters: targetData.characters });
@@ -1794,8 +1762,13 @@ const processMonthlySalary = useCallback(async () => {
         const buyerTx: BankTransaction = { id: `txn-buy-${Date.now()}`, date: new Date().toISOString(), reason: `Покупка: ${item.name} x${quantity}`, amount: { platinum: -totalPrice.platinum, gold: -totalPrice.gold, silver: -totalPrice.silver, copper: -totalPrice.copper } };
         buyerChar.bankAccount.history = [buyerTx, ...(buyerChar.bankAccount.history || [])];
 
-        // Add item to buyer's inventory
-        if (item.inventoryTag) {
+        // Add item to buyer's inventory or update character field
+        if (item.inventoryTag === 'питомцы') {
+            const currentPets = buyerChar.pets ? `${buyerChar.pets}, ${item.name}` : item.name;
+            buyerChar.pets = currentPets;
+        } else if (item.inventoryTag === 'проживание') {
+            buyerChar.residenceLocation = item.name;
+        } else if (item.inventoryTag) {
             const inventory = buyerChar.inventory || initialFormData.inventory;
             if (!Array.isArray(inventory[item.inventoryTag])) {
                 inventory[item.inventoryTag] = [];
@@ -2514,6 +2487,7 @@ const clearAllPopularityHistories = useCallback(async () => {
 
 
     
+
 
 
 

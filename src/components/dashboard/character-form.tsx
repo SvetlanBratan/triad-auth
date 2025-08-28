@@ -21,7 +21,7 @@ import { Switch } from '../ui/switch';
 export type EditableSection = 
     | 'appearance' | 'personality' 
     | 'biography' | 'abilities' | 'weaknesses' | 'marriage' 
-    | 'training' | 'lifeGoal' | 'pets' | 'diary' | 'criminalRecords' | 'mainInfo';
+    | 'training' | 'lifeGoal' | 'diary' | 'criminalRecords' | 'mainInfo';
 
 export type EditingState = {
     type: 'section',
@@ -64,6 +64,7 @@ const initialFormData: Omit<Character, 'id'> = {
     birthDate: '',
     crimeLevel: 5,
     countryOfResidence: '',
+    residenceLocation: '',
     citizenshipStatus: 'non-citizen',
     taxpayerStatus: 'taxable',
     accomplishments: [],
@@ -81,7 +82,6 @@ const initialFormData: Omit<Character, 'id'> = {
     abilities: '',
     weaknesses: '',
     lifeGoal: '',
-    pets: '',
     criminalRecords: '',
     familiarCards: [],
     moodlets: [],
@@ -94,13 +94,16 @@ const initialFormData: Omit<Character, 'id'> = {
         зелья: [],
         недвижимость: [],
         транспорт: [],
-        familiarCards: [],
         драгоценности: [],
         книгиИСвитки: [],
         прочее: [],
         предприятия: [],
         души: [],
         мебель: [],
+        доспехи: [],
+        инструменты: [],
+        питомцы: [],
+        проживание: [],
     },
     bankAccount: { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] },
     wealthLevel: 'Бедный',
@@ -128,7 +131,6 @@ const SectionTitles: Record<EditableSection, string> = {
     marriage: 'Семейное положение',
     training: 'Обучение',
     lifeGoal: 'Жизненная цель',
-    pets: 'Питомцы',
     diary: 'Личный дневник',
     criminalRecords: 'Судимости',
 };
@@ -143,6 +145,7 @@ const FieldLabels: Partial<Record<keyof Character, string>> = {
     factions: 'Фракции/гильдии',
     countryOfResidence: 'Страна проживания',
     citizenshipStatus: 'Статус гражданства',
+    residenceLocation: 'Место проживания',
 };
 
 const relationshipTypeOptions: { value: RelationshipType, label: string }[] = [
@@ -184,6 +187,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                     crimeLevel: character.crimeLevel || 5,
                     accomplishments: character.accomplishments || [],
                     inventory: { ...initialFormData.inventory, ...(character.inventory || {}) },
+                    familiarCards: character.familiarCards || [],
                     training: Array.isArray(character.training) ? character.training : [],
                     marriedTo: Array.isArray(character.marriedTo) ? character.marriedTo : [],
                     relationships: (Array.isArray(character.relationships) ? character.relationships : []).map(r => ({...r, id: r.id || `rel-${Math.random()}`})),
@@ -311,7 +315,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                  return `${titleAction}: ${SectionTitles[sectionKey]}`;
             }
             case 'field': {
-                if (editingState.field === 'countryOfResidence' || editingState.field === 'citizenshipStatus') {
+                if (editingState.field === 'countryOfResidence' || editingState.field === 'citizenshipStatus' || editingState.field === 'residenceLocation') {
                     return 'Редактировать: Место жительства';
                 }
                 return `Редактировать: ${FieldLabels[editingState.field] || 'поле'}`;
@@ -351,6 +355,10 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                                     onValueChange={(v) => handleFieldChange('countryOfResidence', v)}
                                     placeholder="Выберите страну..."
                                 />
+                            </div>
+                            <div>
+                                <Label htmlFor="residenceLocation">{FieldLabels['residenceLocation']}</Label>
+                                <Input id="residenceLocation" value={(formData['residenceLocation'] as string) ?? ''} onChange={(e) => handleFieldChange('residenceLocation', e.target.value)} />
                             </div>
                              <div>
                                 <Label htmlFor="citizenshipStatus">Статус гражданства</Label>
@@ -421,14 +429,13 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                     case 'training': return <div><Label htmlFor="training">Обучение</Label><SearchableMultiSelect placeholder="Выберите варианты..." options={TRAINING_OPTIONS} selected={formData.training ?? []} onChange={(v) => handleMultiSelectChange('training', v)} /></div>;
                     case 'lifeGoal': return <div><Label htmlFor="lifeGoal">Жизненная цель</Label><Textarea id="lifeGoal" value={formData.lifeGoal ?? ''} onChange={(e) => handleFieldChange('lifeGoal', e.target.value)} rows={4} placeholder="Какова главная цель или мечта вашего персонажа?"/></div>;
                     case 'criminalRecords': return <div><Label htmlFor="criminalRecords">Судимости</Label><Textarea id="criminalRecords" value={formData.criminalRecords ?? ''} onChange={(e) => handleFieldChange('criminalRecords', e.target.value)} rows={4} placeholder="Опишите судимости персонажа."/></div>;
-                    case 'pets': return <div><Label htmlFor="pets">Питомцы</Label><Textarea id="pets" value={formData.pets ?? ''} onChange={(e) => handleFieldChange('pets', e.target.value)} rows={4} placeholder="Есть ли у вашего персонажа питомцы? Расскажите о них."/></div>;
                     case 'diary': return <div><Label htmlFor="diary">Личный дневник</Label><Textarea id="diary" value={formData.diary ?? ''} onChange={(e) => handleFieldChange('diary', e.target.value)} rows={8} placeholder="Здесь можно вести записи от лица персонажа. Этот раздел виден только вам и администраторам."/></div>;
                     default: return <p>Неизвестная секция для редактирования.</p>;
                 }
 
             case 'field':
                 const field = editingState.field;
-                 if(field === 'countryOfResidence' || field === 'citizenshipStatus') {
+                 if(field === 'countryOfResidence' || field === 'citizenshipStatus' || field === 'residenceLocation') {
                      return (
                          <div className="space-y-4">
                             <div>
@@ -439,6 +446,10 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                                     onValueChange={(v) => handleFieldChange('countryOfResidence', v)}
                                     placeholder="Выберите страну..."
                                 />
+                            </div>
+                            <div>
+                                <Label htmlFor="residenceLocation">{FieldLabels['residenceLocation']}</Label>
+                                <Input id="residenceLocation" value={(formData['residenceLocation'] as string) ?? ''} onChange={(e) => handleFieldChange('residenceLocation', e.target.value)} />
                             </div>
                              <div>
                                 <Label htmlFor="citizenshipStatus">Статус гражданства</Label>
