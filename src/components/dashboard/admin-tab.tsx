@@ -916,16 +916,14 @@ export default function AdminTab() {
     if (!removeFamiliarUserId || !removeFamiliarCharId) return [];
     const user = users.find(u => u.id === removeFamiliarUserId);
     const character = user?.characters.find(c => c.id === removeFamiliarCharId);
-    if (!character || !character.inventory?.familiarCards) return [];
+    if (!character || !character.familiarCards) return [];
     
-    // Create a map to count occurrences of each card ID
     const cardCount = new Map<string, number>();
-    character.inventory.familiarCards.forEach(ownedCard => {
+    character.familiarCards.forEach(ownedCard => {
         cardCount.set(ownedCard.id, (cardCount.get(ownedCard.id) || 0) + 1);
     });
 
-    // Create a unique list of owned cards for the options
-    const uniqueOwnedCards = Array.from(new Set(character.inventory.familiarCards.map(c => c.id)))
+    const uniqueOwnedCards = Array.from(new Set(character.familiarCards.map(c => c.id)))
         .map(id => FAMILIARS_BY_ID[id])
         .filter((card): card is FamiliarCard => !!card);
 
@@ -2201,3 +2199,4 @@ export default function AdminTab() {
 }
 
     
+
