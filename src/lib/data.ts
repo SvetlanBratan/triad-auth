@@ -43,17 +43,20 @@ export const POPULARITY_EVENTS: PopularityEvent[] = [
 
 export const INVENTORY_CATEGORIES: { value: InventoryCategory, label: string }[] = [
     { value: 'оружие', label: 'Оружие' },
+    { value: 'доспехи', label: 'Доспехи' },
     { value: 'гардероб', label: 'Гардероб' },
     { value: 'артефакты', label: 'Артефакты' },
     { value: 'зелья', label: 'Зелья/лекарства' },
     { value: 'еда', label: 'Еда' },
     { value: 'драгоценности', label: 'Драгоценности' },
     { value: 'книгиИСвитки', label: 'Книги и свитки' },
+    { value: 'инструменты', label: 'Инструменты' },
     { value: 'недвижимость', label: 'Недвижимость' },
     { value: 'транспорт', label: 'Транспорт' },
     { value: 'предприятия', label: 'Предприятия' },
     { value: 'души', label: 'Души (рабочая сила)' },
     { value: 'мебель', label: 'Мебель' },
+    { value: 'питомцы', label: 'Питомцы' },
     { value: 'прочее', label: 'Прочее' },
     { value: 'подарки', label: 'Подарки' },
 ];

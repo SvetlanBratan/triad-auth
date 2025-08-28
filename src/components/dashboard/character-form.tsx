@@ -3,7 +3,7 @@
 'use client';
 
 import React from 'react';
-import type { Character, User, Accomplishment, Relationship, RelationshipType, CrimeLevel, CitizenshipStatus } from '@/lib/types';
+import type { Character, User, Accomplishment, Relationship, RelationshipType, CrimeLevel, CitizenshipStatus, Inventory } from '@/lib/types';
 import { SKILL_LEVELS, FAME_LEVELS, TRAINING_OPTIONS, CRIME_LEVELS, COUNTRIES } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { DialogClose, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -109,6 +109,7 @@ const initialFormData: Omit<Character, 'id'> = {
     wealthLevel: 'Бедный',
     popularity: 0,
     popularityHistory: [],
+    pets: '',
 };
 
 const fameLevelOptions = FAME_LEVELS.map(level => ({ value: level, label: level }));
@@ -164,7 +165,7 @@ const relationshipTypeOptions: { value: RelationshipType, label: string }[] = [
 
 const FormattingHelp = () => (
     <p className="text-xs text-muted-foreground mt-2">
-        Форматирование: '''жирный''', ''курсив'', *жирный*, &lt;s&gt;зачеркнутый&lt;/s&gt;, &lt;u&gt;подчеркнутый&lt;/u&gt;.
+        Форматирование: '''жирный''', ''курсив'', *жирный*, <s>зачеркнутый</s>, <u>подчеркнутый</u>.
     </p>
 );
 

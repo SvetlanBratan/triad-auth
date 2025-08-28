@@ -75,7 +75,26 @@ export interface InventoryItem {
     image?: string;
 }
 
-export type Inventory = Record<InventoryCategory, InventoryItem[]>;
+export interface Inventory {
+    оружие: InventoryItem[];
+    гардероб: InventoryItem[];
+    еда: InventoryItem[];
+    подарки: InventoryItem[];
+    артефакты: InventoryItem[];
+    зелья: InventoryItem[];
+    недвижимость: InventoryItem[];
+    транспорт: InventoryItem[];
+    драгоценности: InventoryItem[];
+    книгиИСвитки: InventoryItem[];
+    прочее: InventoryItem[];
+    предприятия: InventoryItem[];
+    души: InventoryItem[];
+    мебель: InventoryItem[];
+    доспехи: InventoryItem[];
+    инструменты: InventoryItem[];
+    питомцы: InventoryItem[];
+    проживание: InventoryItem[];
+}
 
 export interface RelationshipAction {
   id: string;
@@ -204,7 +223,7 @@ export interface Character {
   training: string[]; 
   relationships: Relationship[];
   marriedTo?: string[];
-  inventory: Inventory;
+  inventory: Partial<Inventory>;
   familiarCards: OwnedFamiliarCard[];
   moodlets?: Moodlet[];
   blessingExpires?: string; 
@@ -219,6 +238,7 @@ export interface Character {
   // Deprecated fields, kept for migration
   skillLevels?: CharacterLevel[];
   fameLevels?: CharacterLevel[];
+  pets?: string;
 }
 
 export interface PointLog {
