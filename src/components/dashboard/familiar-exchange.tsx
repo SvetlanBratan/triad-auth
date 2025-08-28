@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -69,7 +68,7 @@ export default function FamiliarExchange() {
   
   const myFamiliarsOptions = useMemo(() => {
     if (!mySelectedChar) return [];
-    return (mySelectedChar.inventory?.familiarCards || [])
+    return (mySelectedChar.familiarCards || [])
         .map(owned => FAMILIARS_BY_ID[owned.id])
         .filter(Boolean)
         .map(fam => ({ value: fam.id, label: `${fam.name} (${rankNames[fam.rank]})` }));
@@ -95,7 +94,7 @@ export default function FamiliarExchange() {
     allUsers.forEach(u => u.characters.forEach(c => ownerMap.set(c.id, u.name)));
 
     return allUsers.flatMap(u => u.characters.filter(c => 
-        c.id !== initiatorCharId && (c.inventory?.familiarCards || []).some(f => {
+        c.id !== initiatorCharId && (c.familiarCards || []).some(f => {
             const card = FAMILIARS_BY_ID[f.id];
             return card && targetRanks.includes(card.rank);
         })
@@ -113,7 +112,7 @@ export default function FamiliarExchange() {
 
   const targetFamiliarsOptions = useMemo(() => {
       if (!targetSelectedChar || targetRanks.length === 0) return [];
-      return (targetSelectedChar.inventory?.familiarCards || [])
+      return (targetSelectedChar.familiarCards || [])
           .map(owned => FAMILIARS_BY_ID[owned.id])
           .filter((card): card is FamiliarCard => !!card && targetRanks.includes(card.rank))
           .map(fam => ({ value: fam.id, label: `${fam.name} (${rankNames[fam.rank]})` }));
