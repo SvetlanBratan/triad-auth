@@ -1824,7 +1824,7 @@ const processMonthlySalary = useCallback(async () => {
     if (characterIndex === -1) throw new Error("Character not found");
 
     const character = { ...user.characters[characterIndex] };
-    const inventory = character.inventory || initialFormData.inventory;
+    const inventory = (character.inventory ??= {} as Partial<Inventory>);
     
     const newInventoryItem: InventoryItem = {
         id: `inv-item-admin-${Date.now()}`,
@@ -1834,11 +1834,10 @@ const processMonthlySalary = useCallback(async () => {
         quantity: itemData.quantity || 1,
     };
 
-    if (!Array.isArray(inventory[itemData.inventoryTag])) {
-        inventory[itemData.inventoryTag] = [];
-    }
-    inventory[itemData.inventoryTag].push(newInventoryItem);
-    character.inventory = inventory;
+    const tag = itemData.inventoryTag as keyof Inventory;
+    (inventory[tag] ??= []);
+    const list = inventory[tag]!;
+    list.push(newInventoryItem);
 
     const updatedCharacters = [...user.characters];
     updatedCharacters[characterIndex] = character;
@@ -2469,6 +2468,7 @@ const clearAllPopularityHistories = useCallback(async () => {
     </AuthContext.Provider>
   );
 }
+
 
 
 
