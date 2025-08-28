@@ -65,7 +65,7 @@ const rankNames: Record<FamiliarRank, string> = {
 const CharacterDisplay = ({ character, onDelete }: { character: Character, onDelete: (characterId: string) => void }) => {
     const isBlessed = character.blessingExpires && new Date(character.blessingExpires) > new Date();
     const activeMoodlets = (character.moodlets || []).filter(m => new Date(m.expiresAt) > new Date());
-    const familiarCards = character.inventory?.familiarCards || [];
+    const familiarCards = character.familiarCards || [];
 
     const groupedFamiliars = familiarCards.reduce((acc, ownedCard, index) => {
         const cardDetails = FAMILIARS_BY_ID[ownedCard.id];
