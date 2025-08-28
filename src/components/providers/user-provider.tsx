@@ -1756,14 +1756,15 @@ const processMonthlySalary = useCallback(async () => {
         if (item.inventoryTag === 'проживание') {
             buyerChar.residenceLocation = item.name;
         } else if (item.inventoryTag) {
-            const inventory = buyerChar.inventory || initialFormData.inventory;
-            if (!Array.isArray(inventory[item.inventoryTag])) {
-                inventory[item.inventoryTag] = [];
-            }
-            
-            const existingItemIndex = inventory[item.inventoryTag].findIndex(invItem => invItem.name === item.name);
+            const inventory = (buyerChar.inventory ??= {} as Partial<Inventory>);
+            const tag = item.inventoryTag as keyof Inventory;
+            (inventory[tag] ??= []);
+            const list = inventory[tag]!;
+
+            const existingItemIndex = list.findIndex(invItem => invItem.name === item.name);
+
             if (existingItemIndex > -1) {
-                 inventory[item.inventoryTag][existingItemIndex].quantity += quantity;
+                list[existingItemIndex].quantity += quantity;
             } else {
                 const newInventoryItem: InventoryItem = {
                     id: `inv-item-${Date.now()}`,
@@ -1772,10 +1773,8 @@ const processMonthlySalary = useCallback(async () => {
                     image: item.image,
                     quantity: quantity,
                 };
-                inventory[item.inventoryTag].push(newInventoryItem);
+                list.push(newInventoryItem);
             }
-            
-            buyerChar.inventory = inventory;
         }
 
         // Add to owner
@@ -1815,7 +1814,7 @@ const processMonthlySalary = useCallback(async () => {
         const updatedUser = await fetchUserById(buyerUserId);
         if (updatedUser) setCurrentUser(updatedUser);
     }
-  }, [currentUser, fetchUserById, initialFormData]);
+  }, [currentUser, fetchUserById]);
 
   const adminGiveItemToCharacter = useCallback(async (userId: string, characterId: string, itemData: AdminGiveItemForm) => {
     const user = await fetchUserById(userId);
@@ -2470,5 +2469,6 @@ const clearAllPopularityHistories = useCallback(async () => {
     </AuthContext.Provider>
   );
 }
+
 
 
