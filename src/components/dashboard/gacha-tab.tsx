@@ -50,7 +50,7 @@ export default function RouletteTab() {
     if (!character) return false;
     
     // Check if the character has any familiar cards yet
-    const hasCards = character.inventory?.familiarCards && character.inventory.familiarCards.length > 0;
+    const hasCards = character.familiarCards && character.familiarCards.length > 0;
     
     // Check if there is any roulette log for this character
     const hasHistory = currentUser.pointHistory.some(log => 
