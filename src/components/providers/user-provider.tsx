@@ -157,7 +157,7 @@ const drawFamiliarCard = (hasBlessing: boolean, unavailableMythicIds: Set<string
     } else if (rand < chances.мифический + chances.легендарный && availableLegendary.length > 0) {
         chosenPool = availableLegendary;
     } else if (rand < chances.мифический + chances.легендарный + chances.редкий && availableRare.length > 0) {
-        chosenPool = availableCommon;
+        chosenPool = availableRare; 
     } else { 
         chosenPool = availableCommon;
     }
@@ -292,14 +292,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                     popularity: char.popularity ?? 0,
                     popularityHistory: char.popularityHistory || [],
                 };
-                 // Ensure familiarCards is at the root and not in inventory for older data structures
-                if ('familiarCards' in (processedChar.inventory as any)) {
-                    processedChar.familiarCards = [
-                        ...(processedChar.familiarCards || []),
-                        ...(processedChar.inventory as any).familiarCards
-                    ];
-                    delete (processedChar.inventory as any).familiarCards;
-                }
 
                 return processedChar;
             }) || [];
@@ -588,8 +580,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 }
             });
             
-            delete (sanitized.inventory as any).familiarCards;
-
             return sanitized as Character;
         };
         
@@ -1505,7 +1495,7 @@ const processMonthlySalary = useCallback(async () => {
     const ranksAreDifferent = initiatorFamiliar.rank !== targetFamiliar.rank;
     const isMythicEventTrade =
       (initiatorFamiliar.rank === 'мифический' && targetFamiliar.rank === 'ивентовый') ||
-      (initiatorFamiliar.rank === 'ивентовый' && targetFamiliar.rank === 'мифический');
+      (initiatorFamiliar.rank === 'ивентовый' && initiatorFamiliar.rank === 'мифический');
 
     if (ranksAreDifferent && !isMythicEventTrade) {
         throw new Error("Обмен возможен только между фамильярами одного ранга, или между мифическим и ивентовым.");
@@ -2480,15 +2470,3 @@ const clearAllPopularityHistories = useCallback(async () => {
     </AuthContext.Provider>
   );
 }
-
-
-
-    
-
-
-
-
-
-
-
-
