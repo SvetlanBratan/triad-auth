@@ -317,7 +317,26 @@ export default function CharacterPage() {
     const TaxpayerIcon = taxpayerIcons[taxpayerStatus];
 
     const isOwnerOrAdmin = currentUser?.id === owner.id || currentUser?.role === 'admin';
-    const inventory = character.inventory;
+    
+    const inventory = {
+      оружие: [],
+      доспехи: [],
+      артефакты: [],
+      зелья: [],
+      гардероб: [],
+      драгоценности: [],
+      книгиИСвитки: [],
+      еда: [],
+      инструменты: [],
+      питомцы: [],
+      прочее: [],
+      недвижимость: [],
+      души: [],
+      мебель: [],
+      транспорт: [],
+      предприятия: [],
+      ...(character.inventory ?? {})
+    } as Character['inventory'];
     
     const trainingValues = Array.isArray(character.training) ? character.training : [];
     const uniqueTrainingValues = [...new Set(trainingValues)];
@@ -395,6 +414,9 @@ export default function CharacterPage() {
         }
         if (category === 'зелья') {
             return { text: 'Использовать', variant: 'secondary' as const };
+        }
+        if (category === 'питомцы' || category === 'души') {
+            return { text: 'Отпустить', variant: 'outline' as const };
         }
         return { text: 'Удалить', variant: 'destructive' as const };
     };
@@ -857,8 +879,9 @@ export default function CharacterPage() {
                         {inventoryLayout.map(section => {
                             const hasContent = section.categories.some(cat => {
                                 if (cat.key === 'предприятия') return ownedShops.length > 0;
-                                const items = inventory[cat.key as keyof typeof inventory] as InventoryItem[];
-                                return items && items.length > 0;
+                                const items = (inventory[cat.key as keyof typeof inventory] || []) as InventoryItem[];
+                                const visible = cat.key === 'питомцы' ? items.filter(i => !FAMILIARS_BY_ID[i.id as keyof typeof FAMILIARS_BY_ID]) : items;
+                                return visible.length > 0;
                             }) || (section.title === 'Инвентарь' && character.familiarCards?.length > 0);
 
                             if (!hasContent) return null;
@@ -880,32 +903,42 @@ export default function CharacterPage() {
                                                     </AccordionContent>
                                                 </AccordionItem>
                                             )}
-                                            {ownedShops.length > 0 && section.categories.some(c => c.key === 'предприятия') && (
-                                                <AccordionItem value="businesses">
-                                                    <AccordionTrigger><Building className="mr-2 w-4 h-4" />Предприятия ({ownedShops.length})</AccordionTrigger>
-                                                    <AccordionContent>
-                                                        <ul className="space-y-1 text-sm pt-2">
-                                                            {ownedShops.map(shop => (
+                                            {section.categories.map(cat => {
+                                                if (cat.key === 'предприятия') {
+                                                    if (ownedShops.length === 0) return null;
+                                                    return (
+                                                        <AccordionItem key="businesses" value="businesses">
+                                                            <AccordionTrigger>
+                                                            <Building className="mr-2 w-4 h-4" />
+                                                            Предприятия ({ownedShops.length})
+                                                            </AccordionTrigger>
+                                                            <AccordionContent>
+                                                            <ul className="space-y-1 text-sm pt-2">
+                                                                {ownedShops.map(shop => (
                                                                 <li key={shop.id}>
                                                                     <Link href={`/market/${shop.id}`} className="hover:underline">{shop.title}</Link>
                                                                 </li>
-                                                            ))}
-                                                        </ul>
-                                                    </AccordionContent>
-                                                </AccordionItem>
-                                            )}
-                                            {section.categories.map(cat => {
-                                                if (cat.key === 'предприятия') return null;
+                                                                ))}
+                                                            </ul>
+                                                            </AccordionContent>
+                                                        </AccordionItem>
+                                                    );
+                                                }
+
                                                 const items = (inventory[cat.key as keyof typeof inventory] || []) as InventoryItem[];
-                                                if (items.length === 0) return null;
+                                                
+                                                const visibleItems = cat.key === 'питомцы' ? items.filter(i => !FAMILIARS_BY_ID[i.id as keyof typeof FAMILIARS_BY_ID]) : items;
+
+                                                if (visibleItems.length === 0) return null;
+
                                                 return (
                                                     <AccordionItem key={cat.key} value={cat.key}>
                                                         <AccordionTrigger>
-                                                            <cat.icon className="mr-2 w-4 h-4" />{cat.label} ({items.length})
+                                                            <cat.icon className="mr-2 w-4 h-4" />{cat.label} ({visibleItems.length})
                                                         </AccordionTrigger>
                                                         <AccordionContent>
                                                             <ul className="space-y-1 text-sm pt-2">
-                                                                {items.map(item => (
+                                                                {visibleItems.map(item => (
                                                                     <li key={item.id}>
                                                                         <button className="text-left hover:underline" onClick={() => setSelectedItem({ ...item, category: cat.key as InventoryCategory })}>
                                                                             {item.name} {item.quantity > 1 ? `(x${item.quantity})` : ''}
