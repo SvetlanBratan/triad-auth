@@ -40,7 +40,7 @@ const rankNames: Record<FamiliarRank, string> = {
 };
 
 const CharacterDisplay = ({ character }: { character: Character }) => {
-    const familiarCards = character.inventory?.familiarCards || [];
+    const familiarCards = character.familiarCards || [];
     const isBlessed = character.blessingExpires && new Date(character.blessingExpires) > new Date();
     const activeMoodlets = (character.moodlets || []).filter(m => new Date(m.expiresAt) > new Date());
 
@@ -318,3 +318,5 @@ export default function UserProfileDialog({ user }: { user: User }) {
     </div>
   );
 }
+
+    
