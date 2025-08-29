@@ -49,7 +49,7 @@ export default function MarketTab() {
             <CardContent className="flex-grow p-6 space-y-2">
               <div className="flex items-center gap-2">
                  <CardTitle className="font-headline text-xl">{shop.title}</CardTitle>
-                 {shop.hasLicense && <BadgeCheck className="w-5 h-5 text-green-600" />}
+                 {shop.hasLicense && <BadgeCheck className="w-5 h-5 text-green-600 shrink-0" />}
               </div>
               <CardDescription>{shop.description}</CardDescription>
               {shop.ownerCharacterName && <p className="text-sm text-muted-foreground pt-2">Владелец: <span className="font-semibold text-primary">{shop.ownerCharacterName}</span></p>}
