@@ -6,7 +6,7 @@ import React, { createContext, useState, useMemo, useCallback, useEffect, useCon
 import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage, Cooldowns, PopularityLog, CharacterPopularityUpdate, OwnedFamiliarCard } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
-import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter, increment } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter, increment, FieldValue } from "firebase/firestore";
 import { ALL_FAMILIARS, FAMILIARS_BY_ID, MOODLETS_DATA, DEFAULT_GAME_SETTINGS, WEALTH_LEVELS, ALL_SHOPS, SHOPS_BY_ID, POPULARITY_EVENTS, ALL_ACHIEVEMENTS, INVENTORY_CATEGORIES } from '@/lib/data';
 import { differenceInDays } from 'date-fns';
 
@@ -1804,12 +1804,13 @@ const processMonthlySalary = useCallback(async () => {
 
         // Decrease stock in shop and increment purchase count
         const updatedShopData: Partial<Shop> = {};
+        const updatedItems = [...shopData.items!];
         if (item.quantity !== undefined) {
-            const updatedItems = [...shopData.items!];
             updatedItems[itemIndex].quantity = item.quantity - quantity;
-            updatedShopData.items = updatedItems;
         }
-        updatedShopData.purchaseCount = increment(quantity);
+        updatedItems[itemIndex].purchaseCount = (updatedItems[itemIndex].purchaseCount || 0) + quantity;
+        updatedShopData.items = updatedItems;
+        updatedShopData.purchaseCount = increment(quantity) as unknown as number;
         transaction.set(shopRef, updatedShopData, { merge: true });
 
     });
@@ -2472,6 +2473,8 @@ const clearAllPopularityHistories = useCallback(async () => {
     </AuthContext.Provider>
   );
 }
+
+
 
 
 
