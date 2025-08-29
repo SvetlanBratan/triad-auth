@@ -79,7 +79,7 @@ interface UserContextType {
   fetchAllShops: () => Promise<Shop[]>;
   fetchShopById: (shopId: string) => Promise<Shop | null>;
   updateShopOwner: (shopId: string, ownerUserId: string, ownerCharacterId: string, ownerCharacterName: string) => Promise<void>;
-  updateShopDetails: (shopId: string, details: { title?: string; description?: string }) => Promise<void>;
+  updateShopDetails: (shopId: string, details: Partial<Pick<Shop, 'title' | 'description' | 'defaultNewItemCategory'>>) => Promise<void>;
   addShopItem: (shopId: string, item: Omit<ShopItem, 'id'>) => Promise<void>;
   updateShopItem: (shopId: string, item: ShopItem) => Promise<void>;
   deleteShopItem: (shopId: string, itemId: string) => Promise<void>;
@@ -1648,7 +1648,7 @@ const processMonthlySalary = useCallback(async () => {
       }, { merge: true });
   }, []);
 
-  const updateShopDetails = useCallback(async (shopId: string, details: { title?: string; description?: string }) => {
+  const updateShopDetails = useCallback(async (shopId: string, details: Partial<Pick<Shop, 'title' | 'description' | 'defaultNewItemCategory'>>) => {
     const shopRef = doc(db, "shops", shopId);
     await setDoc(shopRef, details, { merge: true });
   }, []);
@@ -2468,6 +2468,7 @@ const clearAllPopularityHistories = useCallback(async () => {
     </AuthContext.Provider>
   );
 }
+
 
 
 

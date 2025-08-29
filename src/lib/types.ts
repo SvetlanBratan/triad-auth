@@ -307,6 +307,7 @@ export interface Shop {
   ownerCharacterName?: string;
   items?: ShopItem[];
   hasLicense?: boolean;
+  defaultNewItemCategory?: InventoryCategory;
 }
 
 export type AdminGiveItemForm = {
@@ -398,7 +399,7 @@ export interface UserContextType {
   fetchAllShops: () => Promise<Shop[]>;
   fetchShopById: (shopId: string) => Promise<Shop | null>;
   updateShopOwner: (shopId: string, ownerUserId: string, ownerCharacterId: string, ownerCharacterName: string) => Promise<void>;
-  updateShopDetails: (shopId: string, details: { title?: string; description?: string }) => Promise<void>;
+  updateShopDetails: (shopId: string, details: Partial<Pick<Shop, 'title' | 'description' | 'defaultNewItemCategory'>>) => Promise<void>;
   addShopItem: (shopId: string, item: Omit<ShopItem, 'id'>) => Promise<void>;
   updateShopItem: (shopId: string, item: ShopItem) => Promise<void>;
   deleteShopItem: (shopId: string, itemId: string) => Promise<void>;
