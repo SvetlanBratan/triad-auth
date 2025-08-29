@@ -19,6 +19,10 @@ export default function MarketTab() {
     queryKey: ['allShops'],
     queryFn: fetchAllShops
   });
+
+  const sortedShops = React.useMemo(() => {
+    return [...shops].sort((a, b) => (b.purchaseCount || 0) - (a.purchaseCount || 0));
+  }, [shops]);
   
   if (isLoading) {
       return <p>Загрузка магазинов...</p>
@@ -31,7 +35,7 @@ export default function MarketTab() {
         <p className="text-muted-foreground">Добро пожаловать! Здесь вы найдете лучшие магазины и таверны города.</p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {shops.map((shop) => (
+        {sortedShops.map((shop) => (
           <Card key={shop.id} className="flex flex-col overflow-hidden hover:shadow-xl transition-shadow duration-300">
             <CardHeader className="p-0">
               <div className="relative aspect-video bg-muted">
@@ -39,8 +43,8 @@ export default function MarketTab() {
                     <Image
                       src={shop.image}
                       alt={shop.title}
-                      layout="fill"
-                      objectFit="cover"
+                      fill
+                      style={{objectFit: "cover"}}
                       className="w-full h-full"
                       data-ai-hint={shop.aiHint}
                     />

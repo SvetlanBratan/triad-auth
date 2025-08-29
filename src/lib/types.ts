@@ -308,6 +308,7 @@ export interface Shop {
   items?: ShopItem[];
   hasLicense?: boolean;
   defaultNewItemCategory?: InventoryCategory;
+  purchaseCount?: number;
 }
 
 export type AdminGiveItemForm = {
