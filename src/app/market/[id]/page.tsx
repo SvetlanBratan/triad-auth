@@ -8,7 +8,7 @@ import { useUser } from '@/hooks/use-user';
 import type { Shop, ShopItem, BankAccount, Character, InventoryCategory } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, UserCircle, PlusCircle, Edit, Trash2, ShoppingCart, Info, Package, Settings, RefreshCw, BadgeCheck, Save } from 'lucide-react';
+import { ArrowLeft, UserCircle, PlusCircle, Edit, Trash2, ShoppingCart, Info, Package, Settings, RefreshCw, BadgeCheck, Save, Search } from 'lucide-react';
 import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import ShopItemForm from '@/components/dashboard/shop-item-form';
@@ -40,7 +40,7 @@ import { INVENTORY_CATEGORIES } from '@/lib/data';
 export default function ShopPage() {
     const { id } = useParams();
     const router = useRouter();
-    const { currentUser, deleteShopItem, purchaseShopItem, restockShopItem, fetchShopById, updateShopDetails } = useUser();
+    const { currentUser, deleteShopItem, purchaseShopItem, restockShopItem, fetchShopById, updateShopDetails } from 'useUser()';
     const { toast } = useToast();
     
     const shopId = Array.isArray(id) ? id[0] : id;
@@ -60,6 +60,7 @@ export default function ShopPage() {
     const [purchaseQuantity, setPurchaseQuantity] = React.useState(1);
     const [isManageDialogOpen, setIsManageDialogOpen] = React.useState(false);
     const [isRestockingId, setIsRestockingId] = React.useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = React.useState('');
     
     // State for editing shop details
     const [editedTitle, setEditedTitle] = React.useState('');
@@ -196,6 +197,16 @@ export default function ShopPage() {
         return (shop?.items || []).filter(item => item.quantity === 0);
     }, [shop]);
 
+    const filteredItems = React.useMemo(() => {
+        if (!shop?.items) return [];
+        const sortedItems = [...shop.items].sort((a, b) => (b.purchaseCount || 0) - (a.purchaseCount || 0));
+        if (!searchQuery) return sortedItems;
+
+        return sortedItems.filter(item =>
+            item.name.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    }, [shop?.items, searchQuery]);
+
 
     if (isLoading) {
         return <div className="container mx-auto p-8"><p>Загрузка магазина...</p></div>;
@@ -262,10 +273,22 @@ export default function ShopPage() {
                     </div>
                     
                     <div className="mt-8">
-                        <h3 className="text-2xl font-semibold mb-4">Ассортимент</h3>
-                        {shop.items && shop.items.length > 0 ? (
+                        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
+                             <h3 className="text-2xl font-semibold">Ассортимент</h3>
+                             <div className="relative w-full sm:max-w-xs">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input 
+                                    placeholder="Найти товар..."
+                                    className="pl-9"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                             </div>
+                        </div>
+                       
+                        {filteredItems.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                {shop.items.map(item => {
+                                {filteredItems.map(item => {
                                     const isOutOfStock = item.quantity === 0;
                                     return (
                                     <Card key={item.id} className="flex flex-col group overflow-hidden max-w-sm mx-auto">
@@ -331,7 +354,9 @@ export default function ShopPage() {
                                 )})}
                             </div>
                         ) : (
-                             <p className="text-center text-muted-foreground py-8">В этом магазине пока нет товаров.</p>
+                             <p className="text-center text-muted-foreground py-8">
+                                {shop.items && shop.items.length > 0 ? "По вашему запросу ничего не найдено." : "В этом магазине пока нет товаров."}
+                             </p>
                         )}
                     </div>
 
