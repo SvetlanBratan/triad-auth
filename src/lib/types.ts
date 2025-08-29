@@ -294,6 +294,7 @@ export interface ShopItem {
     price: Omit<BankAccount, 'history'>;
     inventoryTag?: InventoryCategory;
     quantity?: number; // undefined or -1 for infinite
+    purchaseCount?: number;
 }
 
 export interface Shop {
