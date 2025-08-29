@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React from 'react';
@@ -35,15 +34,17 @@ export default function MarketTab() {
         {shops.map((shop) => (
           <Card key={shop.id} className="flex flex-col overflow-hidden hover:shadow-xl transition-shadow duration-300">
             <CardHeader className="p-0">
-              <div className="relative aspect-video">
-                <Image
-                  src={shop.image}
-                  alt={shop.title}
-                  layout="fill"
-                  objectFit="cover"
-                  className="w-full h-full"
-                  data-ai-hint={shop.aiHint}
-                />
+              <div className="relative aspect-video bg-muted">
+                {shop.image && (
+                    <Image
+                      src={shop.image}
+                      alt={shop.title}
+                      layout="fill"
+                      objectFit="cover"
+                      className="w-full h-full"
+                      data-ai-hint={shop.aiHint}
+                    />
+                )}
               </div>
             </CardHeader>
             <CardContent className="flex-grow p-6 space-y-2">
