@@ -65,6 +65,7 @@ interface UserContextType {
   checkExtraCharacterSlots: (userId: string) => Promise<number>;
   performRelationshipAction: (params: PerformRelationshipActionParams) => Promise<void>;
   recoverFamiliarsFromHistory: (userId: string, characterId: string, oldCharacterName?: string) => Promise<number>;
+  recoverAllFamiliars: () => Promise<{ totalRecovered: number; usersAffected: number }>;
   addBankPointsToCharacter: (userId: string, characterId: string, amount: Partial<BankAccount>, reason: string) => Promise<void>;
   processMonthlySalary: () => Promise<void>;
   updateCharacterWealthLevel: (userId: string, characterId: string, wealthLevel: WealthLevel) => Promise<void>;
@@ -792,6 +793,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     let newCard: FamiliarCard;
     let isDuplicate = false;
     
+    // Use a transaction to ensure atomicity
     await runTransaction(db, async (transaction) => {
         const userRef = doc(db, "users", userId);
         const userDoc = await transaction.get(userRef);
@@ -802,6 +804,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (characterIndex === -1) throw new Error("Персонаж не найден.");
         const character = user.characters[characterIndex];
 
+        // Cost calculation
         const hasCards = character.familiarCards && character.familiarCards.length > 0;
         const hasHistory = user.pointHistory.some(log => log.characterId === characterId && log.reason.includes('Рулетка'));
         const isFirstPullForChar = !hasCards && !hasHistory;
@@ -810,20 +813,20 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (user.points < cost) throw new Error("Недостаточно очков.");
         let finalPointChange = -cost;
 
-        const allUsersSnapshot = await getDocs(collection(db, 'users'));
+        // Fetch all users safely to determine claimed mythic cards
+        const allUsers = await fetchUsersForAdmin(); // This uses the safe fetchUserById internally
         const claimedMythicIds = new Set<string>();
-        allUsersSnapshot.forEach(doc => {
-            const u = doc.data() as User;
+        for (const u of allUsers) {
             (u.characters || []).forEach(c => {
                 (c.familiarCards || []).forEach(cardRef => {
                     const cardDetails = FAMILIARS_BY_ID[cardRef.id];
-                    if(cardDetails && cardDetails.rank === 'мифический') {
+                    if (cardDetails && cardDetails.rank === 'мифический') {
                         claimedMythicIds.add(cardRef.id);
                     }
                 });
             });
-        });
-
+        }
+        
         const hasBlessing = character.blessingExpires ? new Date(character.blessingExpires) > new Date() : false;
         newCard = drawFamiliarCard(hasBlessing, claimedMythicIds);
         
@@ -874,7 +877,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
 
     return { updatedUser: finalUser, newCard: newCard!, isDuplicate };
-  }, []);
+  }, [fetchUsersForAdmin]);
   
 
   const giveAnyFamiliarToCharacter = useCallback(async (userId: string, characterId: string, familiarId: string) => {
@@ -1232,6 +1235,68 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     return cardsToAdd.length;
 }, [fetchUserById, updateUser]);
+
+const recoverAllFamiliars = useCallback(async (): Promise<{ totalRecovered: number; usersAffected: number }> => {
+    const allUsers = await fetchUsersForAdmin();
+    let totalRecovered = 0;
+    let usersAffected = 0;
+    
+    const batch = writeBatch(db);
+
+    for (const user of allUsers) {
+        let userHasChanges = false;
+        const updatedCharacters = [...user.characters];
+
+        for (let i = 0; i < updatedCharacters.length; i++) {
+            const character = updatedCharacters[i];
+            const gachaLogRegex = /Рулетка: получена карта (.+?) \((.+?)\)/;
+            const historicalCardWins = new Set<string>();
+
+            user.pointHistory.forEach(log => {
+                if (log.characterId && character.id === log.characterId) {
+                    const match = log.reason.match(gachaLogRegex);
+                    if (match) {
+                        const cardName = match[1].trim();
+                        const foundCard = ALL_FAMILIARS.find(c => c.name === cardName);
+                        if (foundCard) {
+                            historicalCardWins.add(foundCard.id);
+                        }
+                    }
+                }
+            });
+
+            const currentOwnedCardIds = new Set((character.familiarCards || []).map(c => c.id));
+            const cardsToAdd: OwnedFamiliarCard[] = [];
+            historicalCardWins.forEach(cardId => {
+                if (!currentOwnedCardIds.has(cardId)) {
+                    cardsToAdd.push({ id: cardId });
+                }
+            });
+            
+            if (cardsToAdd.length > 0) {
+                updatedCharacters[i].familiarCards = [...(character.familiarCards || []), ...cardsToAdd];
+                totalRecovered += cardsToAdd.length;
+                userHasChanges = true;
+            }
+        }
+
+        if (userHasChanges) {
+            const userRef = doc(db, 'users', user.id);
+            batch.update(userRef, { characters: updatedCharacters });
+            usersAffected++;
+        }
+    }
+
+    await batch.commit();
+    
+    if (currentUser) {
+       const updatedUser = await fetchUserById(currentUser.id);
+       if(updatedUser) setCurrentUser(updatedUser);
+    }
+    
+    return { totalRecovered, usersAffected };
+}, [fetchUsersForAdmin, fetchUserById, currentUser]);
+
 
 const updateCharacterWealthLevel = useCallback(async (userId: string, characterId: string, wealthLevel: WealthLevel) => {
     const user = await fetchUserById(userId);
@@ -2428,6 +2493,7 @@ const clearAllPopularityHistories = useCallback(async () => {
       checkExtraCharacterSlots,
       performRelationshipAction,
       recoverFamiliarsFromHistory,
+      recoverAllFamiliars,
       addBankPointsToCharacter,
       processMonthlySalary,
       updateCharacterWealthLevel,
@@ -2462,7 +2528,7 @@ const clearAllPopularityHistories = useCallback(async () => {
       updatePopularity,
       clearAllPopularityHistories,
     }),
-    [currentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories]
+    [currentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories]
   );
 
   return (
@@ -2473,6 +2539,7 @@ const clearAllPopularityHistories = useCallback(async () => {
     </AuthContext.Provider>
   );
 }
+
 
 
 

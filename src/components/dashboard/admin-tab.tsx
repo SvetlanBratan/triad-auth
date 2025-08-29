@@ -71,6 +71,7 @@ export default function AdminTab() {
     lastWeeklyBonusAwardedAt,
     processWeeklyBonus,
     recoverFamiliarsFromHistory,
+    recoverAllFamiliars,
     addBankPointsToCharacter,
     processMonthlySalary,
     updateCharacterWealthLevel,
@@ -105,6 +106,7 @@ export default function AdminTab() {
   const [recoveryCharId, setRecoveryCharId] = useState('');
   const [recoveryOldName, setRecoveryOldName] = useState('');
   const [isRecovering, setIsRecovering] = useState(false);
+  const [isRecoveringAll, setIsRecoveringAll] = useState(false);
 
   // Points state
   const [awardSelectedUserId, setAwardSelectedUserId] = useState<string>('');
@@ -287,6 +289,23 @@ export default function AdminTab() {
         setIsRecovering(false);
     }
   };
+
+  const handleRecoverAll = async () => {
+    setIsRecoveringAll(true);
+    try {
+        const { totalRecovered, usersAffected } = await recoverAllFamiliars();
+        toast({
+            title: 'Массовое восстановление завершено',
+            description: `Всего восстановлено ${totalRecovered} фамильяров у ${usersAffected} игроков.`
+        });
+        await refetchUsers();
+    } catch (error) {
+        console.error("Mass recovery failed:", error);
+        toast({ variant: 'destructive', title: 'Ошибка восстановления', description: 'Не удалось завершить процесс.' });
+    } finally {
+        setIsRecoveringAll(false);
+    }
+  }
 
   const handleUpdateGameDate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1629,8 +1648,9 @@ export default function AdminTab() {
                     <CardTitle className="flex items-center gap-2"><DatabaseZap /> Восстановление фамильяров</CardTitle>
                     <CardDescription>Восстановить утерянных фамильяров для персонажа на основе истории баллов.</CardDescription>
                 </CardHeader>
-                <CardContent>
-                    <div className="space-y-4">
+                <CardContent className="space-y-4">
+                    <div className="space-y-2 p-3 border rounded-md">
+                        <h4 className="font-semibold text-sm">Восстановление для одного персонажа</h4>
                         <div>
                             <Label htmlFor="recovery-user">Пользователь</Label>
                             <SearchableSelect
@@ -1663,6 +1683,31 @@ export default function AdminTab() {
                         <Button onClick={handleRecovery} disabled={!recoveryCharId || isRecovering}>
                             {isRecovering ? 'Восстановление...' : <><History className="mr-2 h-4 w-4" />Начать восстановление</>}
                         </Button>
+                    </div>
+                     <div className="space-y-2 p-3 border border-destructive/50 rounded-md">
+                        <h4 className="font-semibold text-sm text-destructive">Массовое восстановление</h4>
+                        <p className="text-xs text-muted-foreground">Эта функция восстановит фамильяров для ВСЕХ персонажей у ВСЕХ игроков на основе их истории покупок в рулетке. Используйте в случае массовой потери данных.</p>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" className="w-full" disabled={isRecoveringAll}>
+                                    {isRecoveringAll ? 'Восстановление...' : 'Восстановить у всех'}
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                <AlertDialogTitle>Вы абсолютно уверены?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Это действие запустит процесс восстановления фамильяров для всех игроков. Это может занять некоторое время.
+                                </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                <AlertDialogCancel>Отмена</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleRecoverAll} className="bg-destructive hover:bg-destructive/90">
+                                    Да, запустить
+                                </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
                     </div>
                 </CardContent>
             </Card>
@@ -2199,4 +2244,5 @@ export default function AdminTab() {
 }
 
     
+
 
