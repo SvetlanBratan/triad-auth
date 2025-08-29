@@ -89,7 +89,7 @@ interface UserContextType {
   adminUpdateItemInCharacter: (userId: string, characterId: string, itemData: InventoryItem, category: InventoryCategory) => Promise<void>;
   adminDeleteItemFromCharacter: (userId: string, characterId: string, itemId: string, category: InventoryCategory) => Promise<void>;
   consumeInventoryItem: (userId: string, characterId: string, itemId: string, category: InventoryCategory) => Promise<void>;
-  restockShopItem: (shopId: string, itemId: string, ownerUserId: string, ownerCharacterId: string) => Promise<void>;
+  restockShopItem: (shopId: string, itemId: string) => Promise<void>;
   adminUpdateCharacterStatus: (userId: string, characterId: string, updates: { taxpayerStatus?: TaxpayerStatus; citizenshipStatus?: CitizenshipStatus }) => Promise<void>;
   adminUpdateShopLicense: (shopId: string, hasLicense: boolean) => Promise<void>;
   processAnnualTaxes: () => Promise<{ taxedCharactersCount: number; totalTaxesCollected: BankAccount }>;
@@ -99,6 +99,7 @@ interface UserContextType {
   clearAllMailboxes: () => Promise<void>;
   updatePopularity: (updates: CharacterPopularityUpdate[]) => Promise<void>;
   clearAllPopularityHistories: () => Promise<void>;
+  withdrawFromShopTill: (shopId: string) => Promise<void>;
 }
 
 export const UserContext = createContext<UserContextType | null>(null);
@@ -1706,10 +1707,11 @@ const processMonthlySalary = useCallback(async () => {
 
   const updateShopOwner = useCallback(async (shopId: string, ownerUserId: string, ownerCharacterId: string, ownerCharacterName: string) => {
       const shopRef = doc(db, "shops", shopId);
-      await setDoc(shopRef, {
+       await setDoc(shopRef, {
           ownerUserId,
           ownerCharacterId,
-          ownerCharacterName
+          ownerCharacterName,
+          bankAccount: { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] } // Reset till on new owner
       }, { merge: true });
   }, []);
 
@@ -1842,33 +1844,21 @@ const processMonthlySalary = useCallback(async () => {
             }
         }
 
-        // Add to owner
-        if (shopData.ownerUserId && shopData.ownerCharacterId) {
-            const ownerUserRef = doc(db, "users", shopData.ownerUserId);
-            const ownerUserDoc = await transaction.get(ownerUserRef);
-            if (ownerUserDoc.exists()) {
-                const ownerUserData = ownerUserDoc.data() as User;
-                const ownerCharIndex = ownerUserData.characters.findIndex(c => c.id === shopData.ownerCharacterId);
-                if (ownerCharIndex !== -1) {
-                    const ownerChar = ownerUserData.characters[ownerCharIndex];
-                    ownerChar.bankAccount.platinum += totalPrice.platinum;
-                    ownerChar.bankAccount.gold += totalPrice.gold;
-                    ownerChar.bankAccount.silver += totalPrice.silver;
-                    ownerChar.bankAccount.copper += totalPrice.copper;
-                    
-                    const ownerTx: BankTransaction = { id: `txn-sell-${Date.now()}`, date: new Date().toISOString(), reason: `Продажа: ${item.name} x${quantity}`, amount: totalPrice };
-                    ownerChar.bankAccount.history = [ownerTx, ...(ownerChar.bankAccount.history || [])];
-                    
-                    transaction.update(ownerUserRef, { characters: ownerUserData.characters });
-                }
-            }
-        }
-        
+        // Add to shop till
+        const shopBankAccount = shopData.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
+        shopBankAccount.platinum = (shopBankAccount.platinum || 0) + totalPrice.platinum;
+        shopBankAccount.gold = (shopBankAccount.gold || 0) + totalPrice.gold;
+        shopBankAccount.silver = (shopBankAccount.silver || 0) + totalPrice.silver;
+        shopBankAccount.copper = (shopBankAccount.copper || 0) + totalPrice.copper;
+
+        const shopTx: BankTransaction = { id: `txn-sell-${Date.now()}`, date: new Date().toISOString(), reason: `Продажа: ${item.name} x${quantity}`, amount: totalPrice };
+        shopBankAccount.history = [shopTx, ...(shopBankAccount.history || [])];
+
         // 4. Update buyer's character data & shop data
         transaction.update(buyerUserRef, { characters: buyerUserData.characters });
 
         // Decrease stock in shop and increment purchase count
-        const updatedShopData: Partial<Shop> = {};
+        const updatedShopData: Partial<Shop> = { bankAccount: shopBankAccount };
         const updatedItems = [...shopData.items!];
         if (item.quantity !== undefined) {
             updatedItems[itemIndex].quantity = item.quantity - quantity;
@@ -1876,8 +1866,8 @@ const processMonthlySalary = useCallback(async () => {
         updatedItems[itemIndex].purchaseCount = (updatedItems[itemIndex].purchaseCount || 0) + quantity;
         updatedShopData.items = updatedItems;
         updatedShopData.purchaseCount = increment(quantity) as unknown as number;
-        transaction.set(shopRef, updatedShopData, { merge: true });
 
+        transaction.set(shopRef, updatedShopData, { merge: true });
     });
     
      if (currentUser?.id === buyerUserId) {
@@ -1992,7 +1982,7 @@ const consumeInventoryItem = useCallback(async (userId: string, characterId: str
 }, [fetchUserById, updateUser, initialFormData]);
 
 
-const restockShopItem = useCallback(async (shopId: string, itemId: string, ownerUserId: string, ownerCharacterId: string) => {
+const restockShopItem = useCallback(async (shopId: string, itemId: string) => {
     await runTransaction(db, async (transaction) => {
         const shopRef = doc(db, "shops", shopId);
         const shopDoc = await transaction.get(shopRef);
@@ -2005,15 +1995,6 @@ const restockShopItem = useCallback(async (shopId: string, itemId: string, owner
 
         if (item.quantity !== 0) throw new Error("Этот товар еще есть в наличии.");
         
-        const ownerUserRef = doc(db, "users", ownerUserId);
-        const ownerUserDoc = await transaction.get(ownerUserRef);
-        if (!ownerUserDoc.exists()) throw new Error("Владелец не найден.");
-        const ownerUserData = ownerUserDoc.data() as User;
-
-        const ownerCharIndex = ownerUserData.characters.findIndex(c => c.id === ownerCharacterId);
-        if (ownerCharIndex === -1) throw new Error("Персонаж владельца не найден.");
-        const ownerChar = ownerUserData.characters[ownerCharIndex];
-        
         const restockCost = {
             platinum: Math.ceil((item.price.platinum || 0) * 0.3),
             gold: Math.ceil((item.price.gold || 0) * 0.3),
@@ -2021,35 +2002,30 @@ const restockShopItem = useCallback(async (shopId: string, itemId: string, owner
             copper: Math.ceil((item.price.copper || 0) * 0.3),
         };
 
-        const balance = ownerChar.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 };
+        const shopTill = shopData.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 };
         if (
-            balance.platinum < restockCost.platinum ||
-            balance.gold < restockCost.gold ||
-            balance.silver < restockCost.silver ||
-            balance.copper < restockCost.copper
+            shopTill.platinum < restockCost.platinum ||
+            shopTill.gold < restockCost.gold ||
+            shopTill.silver < restockCost.silver ||
+            shopTill.copper < restockCost.copper
         ) {
-            throw new Error("У владельца недостаточно средств для пополнения запасов.");
+            throw new Error("В кассе заведения недостаточно средств для пополнения запасов.");
         }
         
-        ownerChar.bankAccount.platinum -= restockCost.platinum;
-        ownerChar.bankAccount.gold -= restockCost.gold;
-        ownerChar.bankAccount.silver -= restockCost.silver;
-        ownerChar.bankAccount.copper -= restockCost.copper;
+        shopTill.platinum -= restockCost.platinum;
+        shopTill.gold -= restockCost.gold;
+        shopTill.silver -= restockCost.silver;
+        shopTill.copper -= restockCost.copper;
 
         const restockTx: BankTransaction = { id: `txn-restock-${Date.now()}`, date: new Date().toISOString(), reason: `Пополнение товара: ${item.name}`, amount: { platinum: -restockCost.platinum, gold: -restockCost.gold, silver: -restockCost.silver, copper: -restockCost.copper } };
-        ownerChar.bankAccount.history = [restockTx, ...(ownerChar.bankAccount.history || [])];
+        shopTill.history = [restockTx, ...(shopTill.history || [])];
 
         const updatedItems = [...shopData.items!];
         updatedItems[itemIndex].quantity = 10;
 
-        transaction.update(ownerUserRef, { characters: ownerUserData.characters });
-        transaction.set(shopRef, { items: updatedItems }, { merge: true });
+        transaction.set(shopRef, { items: updatedItems, bankAccount: shopTill }, { merge: true });
     });
-     if (currentUser?.id === ownerUserId) {
-        const updatedUser = await fetchUserById(ownerUserId);
-        if (updatedUser) setCurrentUser(updatedUser);
-    }
-}, [currentUser, fetchUserById]);
+}, []);
 
 const adminUpdateCharacterStatus = useCallback(async (userId: string, characterId: string, updates: { taxpayerStatus?: TaxpayerStatus; citizenshipStatus?: CitizenshipStatus; }) => {
     const user = await fetchUserById(userId);
@@ -2442,6 +2418,65 @@ const clearAllPopularityHistories = useCallback(async () => {
     await batch.commit();
 }, [fetchUsersForAdmin]);
 
+const withdrawFromShopTill = useCallback(async (shopId: string) => {
+    if (!currentUser) throw new Error("Пользователь не авторизован.");
+    
+    await runTransaction(db, async (transaction) => {
+        const shopRef = doc(db, "shops", shopId);
+        const shopDoc = await transaction.get(shopRef);
+        if (!shopDoc.exists()) throw new Error("Магазин не найден.");
+        const shopData = shopDoc.data() as Shop;
+        
+        if (shopData.ownerUserId !== currentUser.id) {
+            throw new Error("Вы не являетесь владельцем этого заведения.");
+        }
+        
+        const ownerChar = currentUser.characters.find(c => c.id === shopData.ownerCharacterId);
+        if (!ownerChar) throw new Error("Персонаж-владелец не найден в вашем профиле.");
+
+        const shopTill = shopData.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
+        if (Object.values(shopTill).every(v => typeof v === 'number' && v === 0)) {
+            throw new Error("Касса заведения пуста.");
+        }
+
+        const userRef = doc(db, "users", currentUser.id);
+        const userDoc = await transaction.get(userRef);
+        const userData = userDoc.data() as User;
+        const charIndex = userData.characters.findIndex(c => c.id === ownerChar.id);
+        const characterToUpdate = userData.characters[charIndex];
+        
+        const charBalance = characterToUpdate.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
+        charBalance.platinum += shopTill.platinum;
+        charBalance.gold += shopTill.gold;
+        charBalance.silver += shopTill.silver;
+        charBalance.copper += shopTill.copper;
+        
+        const withdrawTx: BankTransaction = {
+            id: `txn-withdraw-${Date.now()}`,
+            date: new Date().toISOString(),
+            reason: `Вывод средств из кассы "${shopData.title}"`,
+            amount: { platinum: shopTill.platinum, gold: shopTill.gold, silver: shopTill.silver, copper: shopTill.copper }
+        };
+        charBalance.history = [withdrawTx, ...(charBalance.history || [])];
+
+        // Reset shop till
+        const newShopTill: BankAccount = { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
+        const shopWithdrawTx: BankTransaction = {
+            id: `txn-shop-withdraw-${Date.now()}`,
+            date: new Date().toISOString(),
+            reason: `Вывод средств владельцем`,
+            amount: { platinum: -shopTill.platinum, gold: -shopTill.gold, silver: -shopTill.silver, copper: -shopTill.copper }
+        };
+        newShopTill.history = [shopWithdrawTx, ...(shopTill.history || [])];
+        
+        transaction.update(userRef, { characters: userData.characters });
+        transaction.set(shopRef, { bankAccount: newShopTill }, { merge: true });
+    });
+    
+    const updatedUser = await fetchUserById(currentUser.id);
+    if(updatedUser) setCurrentUser(updatedUser);
+}, [currentUser, fetchUserById]);
+
 
   const signOutUser = useCallback(() => {
     signOut(auth);
@@ -2527,8 +2562,9 @@ const clearAllPopularityHistories = useCallback(async () => {
       clearAllMailboxes,
       updatePopularity,
       clearAllPopularityHistories,
+      withdrawFromShopTill,
     }),
-    [currentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories]
+    [currentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill]
   );
 
   return (
@@ -2539,6 +2575,7 @@ const clearAllPopularityHistories = useCallback(async () => {
     </AuthContext.Provider>
   );
 }
+
 
 
 
