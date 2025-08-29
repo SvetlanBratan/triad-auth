@@ -310,6 +310,7 @@ export interface Shop {
   hasLicense?: boolean;
   defaultNewItemCategory?: InventoryCategory;
   purchaseCount?: number;
+  bankAccount?: BankAccount;
 }
 
 export type AdminGiveItemForm = {
@@ -410,11 +411,12 @@ export interface UserContextType {
   adminUpdateItemInCharacter: (userId: string, characterId: string, itemData: InventoryItem, category: InventoryCategory) => Promise<void>;
   adminDeleteItemFromCharacter: (userId: string, characterId: string, itemId: string, category: InventoryCategory) => Promise<void>;
   consumeInventoryItem: (userId: string, characterId: string, itemId: string, category: InventoryCategory) => Promise<void>;
-  restockShopItem: (shopId: string, itemId: string, ownerUserId: string, ownerCharacterId: string) => Promise<void>;
+  restockShopItem: (shopId: string, itemId: string) => Promise<void>;
   adminUpdateCharacterStatus: (userId: string, characterId: string, updates: { taxpayerStatus?: TaxpayerStatus; citizenshipStatus?: CitizenshipStatus; }) => Promise<void>;
   adminUpdateShopLicense: (shopId: string, hasLicense: boolean) => Promise<void>;
   sendMassMail: (subject: string, content: string, senderName: string, recipientCharacterIds?: string[]) => Promise<void>;
   markMailAsRead: (mailId: string) => Promise<void>;
   deleteMailMessage: (mailId: string) => Promise<void>;
   clearAllMailboxes: () => Promise<void>;
+  withdrawFromShopTill: (shopId: string) => Promise<void>;
 }
