@@ -8,7 +8,7 @@ import { useUser } from '@/hooks/use-user';
 import type { Shop, ShopItem, BankAccount, Character, InventoryCategory } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, UserCircle, PlusCircle, Edit, Trash2, ShoppingCart, Info, Package, Settings, RefreshCw, BadgeCheck, Save, Search } from 'lucide-react';
+import { ArrowLeft, UserCircle, PlusCircle, Edit, Trash2, ShoppingCart, Info, Package, Settings, RefreshCw, BadgeCheck, Save, Search, WalletCards } from 'lucide-react';
 import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import ShopItemForm from '@/components/dashboard/shop-item-form';
@@ -40,7 +40,7 @@ import { INVENTORY_CATEGORIES } from '@/lib/data';
 export default function ShopPage() {
     const { id } = useParams();
     const router = useRouter();
-    const { currentUser, deleteShopItem, purchaseShopItem, restockShopItem, fetchShopById, updateShopDetails } = useUser();
+    const { currentUser, deleteShopItem, purchaseShopItem, restockShopItem, fetchShopById, updateShopDetails, withdrawFromShopTill } = useUser();
     const { toast } = useToast();
     
     const shopId = Array.isArray(id) ? id[0] : id;
@@ -67,6 +67,8 @@ export default function ShopPage() {
     const [editedDescription, setEditedDescription] = React.useState('');
     const [isSavingDetails, setIsSavingDetails] = React.useState(false);
     const [defaultNewItemCategory, setDefaultNewItemCategory] = React.useState<InventoryCategory>('прочее');
+    const [isWithdrawing, setIsWithdrawing] = React.useState(false);
+
 
     React.useEffect(() => {
         if (shop) {
@@ -111,10 +113,10 @@ export default function ShopPage() {
     };
     
     const handleRestock = async (item: ShopItem) => {
-        if (!shop || !shop.ownerUserId || !shop.ownerCharacterId) return;
+        if (!shop) return;
         setIsRestockingId(item.id);
         try {
-            await restockShopItem(shopId!, item.id, shop.ownerUserId, shop.ownerCharacterId);
+            await restockShopItem(shopId!, item.id);
             toast({ title: "Запасы пополнены!", description: `Товар "${item.name}" снова в наличии.` });
             refetch();
         } catch(e) {
@@ -162,6 +164,21 @@ export default function ShopPage() {
             setIsSavingDetails(false);
         }
     };
+    
+    const handleWithdraw = async () => {
+        if (!shop) return;
+        setIsWithdrawing(true);
+        try {
+            await withdrawFromShopTill(shop.id);
+            toast({ title: "Средства выведены", description: "Деньги из кассы заведения были перечислены на счет вашего персонажа." });
+            refetch();
+        } catch(e) {
+            const message = e instanceof Error ? e.message : "Произошла неизвестная ошибка.";
+            toast({ variant: 'destructive', title: "Ошибка вывода", description: message });
+        } finally {
+            setIsWithdrawing(false);
+        }
+    }
     
      const totalPrice = React.useMemo(() => {
         if (!selectedItemForPurchase) return null;
@@ -215,6 +232,10 @@ export default function ShopPage() {
     if (!shop) {
         notFound();
     }
+    
+    const shopBalance = shop.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 };
+    const hasMoneyInTill = Object.values(shopBalance).some(amount => amount > 0);
+
 
     return (
         <div className="container mx-auto p-4 md:p-8 space-y-6">
@@ -240,7 +261,7 @@ export default function ShopPage() {
                 </div>
                 <CardHeader>
                     <div className="flex items-center gap-2">
-                        <CardTitle className="text-3xl font-headline">{shop.title}</CardTitle>
+                        <CardTitle className="text-3xl font-headline shrink-0">{shop.title}</CardTitle>
                         {shop.hasLicense && <BadgeCheck className="w-6 h-6 text-green-600 shrink-0" />}
                     </div>
                     <CardDescription>{shop.description}</CardDescription>
@@ -409,10 +430,24 @@ export default function ShopPage() {
                                 <Save className="mr-2 h-4 w-4" /> {isSavingDetails ? "Сохранение..." : "Сохранить информацию"}
                             </Button>
                         </div>
+                        
+                        <div className="space-y-4 p-4 border rounded-md">
+                            <h4 className="font-semibold mb-2">Касса заведения</h4>
+                            <div className="p-4 bg-muted rounded-lg flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                                <div className="flex-1">
+                                    <p className="text-sm text-muted-foreground">Текущий баланс:</p>
+                                    <p className="text-xl font-bold text-primary">{formatCurrency(shopBalance)}</p>
+                                </div>
+                                <Button onClick={handleWithdraw} disabled={isWithdrawing || !hasMoneyInTill}>
+                                    <WalletCards className="mr-2 h-4 w-4" /> 
+                                    {isWithdrawing ? "Перевод..." : "Вывести средства"}
+                                </Button>
+                            </div>
+                        </div>
 
                         <div className="space-y-4 p-4 border rounded-md">
                             <h4 className="font-semibold mb-2">Товары не в наличии</h4>
-                             <p className="text-sm text-muted-foreground">Стоимость пополнения составляет 30% от базовой цены товара.</p>
+                             <p className="text-sm text-muted-foreground">Стоимость пополнения составляет 30% от базовой цены товара и списывается из кассы заведения.</p>
                             {outOfStockItems.length > 0 ? (
                                 <div className="space-y-4">
                                     {outOfStockItems.map(item => {
@@ -422,18 +457,24 @@ export default function ShopPage() {
                                             silver: Math.ceil((item.price.silver || 0) * 0.3),
                                             copper: Math.ceil((item.price.copper || 0) * 0.3),
                                         }
+                                        const canAffordRestock = 
+                                            (shopBalance.platinum >= restockCost.platinum) &&
+                                            (shopBalance.gold >= restockCost.gold) &&
+                                            (shopBalance.silver >= restockCost.silver) &&
+                                            (shopBalance.copper >= restockCost.copper);
+
                                         return (
                                             <div key={item.id} className="flex justify-between items-center p-3 bg-muted/50 rounded-md">
                                                 <div>
                                                     <p className="font-semibold">{item.name}</p>
-                                                    <p className="text-xs text-muted-foreground">Базовая цена: {formatCurrency(item.price)}</p>
+                                                    <p className="text-xs text-muted-foreground">Стоимость пополнения: {formatCurrency(restockCost)}</p>
                                                 </div>
                                                 <Button 
                                                     onClick={() => handleRestock(item)}
-                                                    disabled={isRestockingId === item.id}
+                                                    disabled={isRestockingId === item.id || !canAffordRestock}
                                                 >
                                                     <RefreshCw className="mr-2 h-4 w-4" />
-                                                    {isRestockingId === item.id ? "Пополняем..." : `Пополнить за ${formatCurrency(restockCost)}`}
+                                                    {isRestockingId === item.id ? "Пополняем..." : (canAffordRestock ? "Пополнить" : "Недостаточно средств")}
                                                 </Button>
                                             </div>
                                         )
@@ -536,3 +577,4 @@ export default function ShopPage() {
         </div>
     );
 }
+
