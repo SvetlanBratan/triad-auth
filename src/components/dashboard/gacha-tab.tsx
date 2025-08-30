@@ -13,7 +13,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Dices, Star, Sprout, Gift, ShieldAlert } from 'lucide-react';
+import { Dices, Star, Sprout, Gift, ShieldAlert, Wallet } from 'lucide-react';
 import type { FamiliarCard } from '@/lib/types';
 import FamiliarCardDisplay from './familiar-card';
 import Image from 'next/image';
@@ -154,16 +154,26 @@ export default function RouletteTab() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex justify-between items-center p-3 rounded-lg bg-primary/10">
-            <span className="font-semibold">Стоимость одной прокрутки:</span>
-            <span className={cn(
-                "font-bold text-lg text-primary flex items-center gap-1",
-                isFirstSpinForChar && "text-green-600"
-            )}>
-              {isFirstSpinForChar ? <Gift className="w-4 h-4" /> : <Star className="w-4 h-4" />}
-              {isFirstSpinForChar ? 'Бесплатно' : `${ROULETTE_COST.toLocaleString()}`}
-            </span>
-          </div>
+           <div className="space-y-2">
+              <div className="flex justify-between items-center p-3 rounded-lg bg-primary/10">
+                <span className="font-semibold">Стоимость одной прокрутки:</span>
+                <span className={cn(
+                    "font-bold text-lg text-primary flex items-center gap-1",
+                    isFirstSpinForChar && "text-green-600"
+                )}>
+                  {isFirstSpinForChar ? <Gift className="w-4 h-4" /> : <Star className="w-4 h-4" />}
+                  {isFirstSpinForChar ? 'Бесплатно' : `${ROULETTE_COST.toLocaleString()}`}
+                </span>
+              </div>
+               <div className="flex justify-between items-center p-3 rounded-lg bg-muted/50">
+                <span className="font-semibold">Ваш баланс:</span>
+                <span className="font-bold text-lg text-foreground/80 flex items-center gap-1">
+                  <Wallet className="w-4 h-4" />
+                  {currentUser?.points.toLocaleString()}
+                </span>
+              </div>
+           </div>
+
 
           {availableMythicCount !== null && (
              <div className="flex justify-between items-center p-3 rounded-lg bg-amber-500/10 text-amber-800 text-sm">
