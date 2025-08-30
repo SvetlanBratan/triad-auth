@@ -261,7 +261,7 @@ export default function ShopPage() {
                 </div>
                 <CardHeader>
                     <div className="flex items-center gap-2">
-                        <CardTitle className="text-3xl font-headline shrink-0">{shop.title}</CardTitle>
+                        <CardTitle className="text-3xl font-headline flex-shrink">{shop.title}</CardTitle>
                         {shop.hasLicense && <BadgeCheck className="w-6 h-6 text-green-600 shrink-0" />}
                     </div>
                     <CardDescription>{shop.description}</CardDescription>
