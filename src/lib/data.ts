@@ -129,9 +129,9 @@ export const rewards: Reward[] = [
 
 export const ALL_ACHIEVEMENTS: Achievement[] = [
   // Automated
-  { id: 'ach-first-gacha', name: 'Первый раз?', description: 'Даётся за первое использование рулетки, независимо от того, получили вы дубликат или нет.', iconName: 'Dices' },
+  { id: 'ach-first-gacha', name: 'Первый раз?', description: 'Даётся за первое использование рулетки.', iconName: 'Dices' },
   { id: 'ach-mythic-pull', name: 'Мифическое везение', description: 'Выдаётся за получение первого мифического фамильяра, которого нет ни у одного другого игрока.', iconName: 'Sparkles' },
-  { id: 'ach-generous', name: 'Меценат', description: 'Даётся игроку, потратившему более 100,000 баллов на награды в магазине. Учитываются только одобренные запросы.', iconName: 'Gem' },
+  { id: 'ach-generous', name: 'Меценат', description: 'Даётся игроку, потратившему более 100,000 баллов на награды в магазине.', iconName: 'Gem' },
   { id: 'ach-forbes-list', name: 'В списке Forbes', description: 'Выдаётся за попадание в топ-3 таблицы лидеров.', iconName: 'Trophy' },
   { id: 'ach-unique-character', name: 'Владелец уникального персонажа', description: 'Выдаётся за покупку закрытой расы для персонажа. Любой уровень расы засчитывается.', iconName: 'VenetianMask' },
   { id: 'ach-multi-hand', name: 'Многоручка', description: 'Игрок, купивший дополнительного персонажа, когда лимит на бесплатных персонажей исчерпан.', iconName: 'Users' },
@@ -682,5 +682,6 @@ export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) =>
 
 
     
+
 
 
