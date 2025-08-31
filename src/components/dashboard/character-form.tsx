@@ -104,6 +104,7 @@ const initialFormData: Omit<Character, 'id'> = {
         инструменты: [],
         питомцы: [],
         проживание: [],
+        услуги: [],
     },
     bankAccount: { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] },
     wealthLevel: 'Бедный',
