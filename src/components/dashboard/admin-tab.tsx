@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
-import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info, AlertTriangle, Bell, CheckCircle, Store, PackagePlus, Edit, BadgeCheck, FileText, Send, Gavel, Eye, UserMinus } from 'lucide-react';
+import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info, AlertTriangle, Bell, CheckCircle, Store, PackagePlus, Edit, BadgeCheck, FileText, Send, Gavel, Eye, UserMinus, FlaskConical } from 'lucide-react';
 import type { UserStatus, UserRole, User, FamiliarCard, BankAccount, WealthLevel, FamiliarRank, Shop, InventoryCategory, AdminGiveItemForm, InventoryItem, CitizenshipStatus, TaxpayerStatus, CharacterPopularityUpdate } from '@/lib/types';
 import { EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, FAMILIARS_BY_ID, WEALTH_LEVELS, ALL_FAMILIARS, STARTING_CAPITAL_LEVELS, ALL_SHOPS, INVENTORY_CATEGORIES, POPULARITY_EVENTS } from '@/lib/data';
 import {
@@ -1062,6 +1062,7 @@ export default function AdminTab() {
         <TabsTrigger value="familiars" className="text-xs sm:text-sm">Фамильяры</TabsTrigger>
         <TabsTrigger value="economy" className="text-xs sm:text-sm">Экономика</TabsTrigger>
         <TabsTrigger value="shops" className="text-xs sm:text-sm">Магазины</TabsTrigger>
+        <TabsTrigger value="alchemy" className="text-xs sm:text-sm">Алхимия</TabsTrigger>
         <TabsTrigger value="mail" className="text-xs sm:text-sm">Рассылка</TabsTrigger>
       </TabsList>
 
@@ -2217,6 +2218,32 @@ export default function AdminTab() {
            </div>
         </div>
       </TabsContent>
+      <TabsContent value="alchemy" className="mt-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><FlaskConical /> Управление алхимией</CardTitle>
+            <CardDescription>Создание и редактирование ингредиентов, зелий и рецептов для алхимической лаборатории.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="ingredients" className="w-full">
+              <TabsList>
+                <TabsTrigger value="ingredients">Ингредиенты</TabsTrigger>
+                <TabsTrigger value="potions">Зелья</TabsTrigger>
+                <TabsTrigger value="recipes">Рецепты</TabsTrigger>
+              </TabsList>
+              <TabsContent value="ingredients" className="pt-4">
+                <p className="text-muted-foreground">Здесь будет интерфейс для управления ингредиентами.</p>
+              </TabsContent>
+              <TabsContent value="potions" className="pt-4">
+                <p className="text-muted-foreground">Здесь будет интерфейс для управления зельями.</p>
+              </TabsContent>
+              <TabsContent value="recipes" className="pt-4">
+                <p className="text-muted-foreground">Здесь будет интерфейс для управления рецептами.</p>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+      </TabsContent>
        <TabsContent value="mail" className="mt-4">
             <Card className="max-w-2xl mx-auto">
                 <CardHeader>
@@ -2290,6 +2317,7 @@ export default function AdminTab() {
 }
 
     
+
 
 
 

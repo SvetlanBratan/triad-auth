@@ -17,6 +17,34 @@ export type CitizenshipStatus = 'citizen' | 'non-citizen' | 'refugee';
 export type TaxpayerStatus = 'taxable' | 'exempt';
 export type MailMessageType = 'announcement' | 'personal';
 
+// --- ALCHEMY TYPES ---
+
+export interface AlchemyIngredient {
+  id: string;
+  name: string;
+  tags: string[];
+  potency: number;
+}
+
+export interface Potion {
+  id: string;
+  name: string;
+  effects: { stat: 'hp' | 'mana' | 'luck'; value: number; durationSec?: number }[];
+  tier: 'обычный' | 'редкий' | 'легендарный';
+  basePrice: number;
+}
+
+export interface AlchemyRecipe {
+  id: string;
+  name: string;
+  inputs: { id: string; qty: number }[];
+  output: { id: string; qty: number };
+  difficulty: number;
+  requires?: string[];
+}
+
+// --- END ALCHEMY TYPES ---
+
 
 export interface MailMessage {
   id: string;
