@@ -510,7 +510,7 @@ export const ALL_SHOPS: Shop[] = [
     id: 'jewelry-shop',
     title: 'Ювелирная Лавка',
     description: "Витрины этой лавки сверкают блеском драгоценных камней и благородных металлов. Здесь можно найти украшения на любой вкус и кошелек.",
-    image: "https://i.postimg.cc/gjstfqCT/image.png",
+    image: "https://i.postimg.cc/SNQMcwbt/image.png",
     aiHint: "jewelry store"
   },
   {
@@ -524,7 +524,7 @@ export const ALL_SHOPS: Shop[] = [
     id: 'transport-path-reins',
     title: 'Транспортная лавка «Путь и Поводья»',
     description: "От быстрых скакунов до надежных карет. Все, что нужно для комфортного и безопасного путешествия по землям Триады.",
-    image: "https://i.postimg.cc/J0rBdbc0/image.png",
+    image: "https://i.postimg.cc/05VQ1jhc/image.png",
     aiHint: "carriage shop"
   },
   {
@@ -552,7 +552,7 @@ export const ALL_SHOPS: Shop[] = [
     id: 'artifacts-sherlas-vihelmsky',
     title: 'Лавка артефактов и зелий Шерласа Вихельмского',
     description: "Редчайшие магические артефакты и мощные зелья от известного мастера. Качество гарантировано именем Шерласа.",
-    image: "https://i.postimg.cc/kMLmsnJ3/image.png",
+    image: "https://i.postimg.cc/QxScPjq3/image.png",
     aiHint: "artifact shop"
   },
   {
@@ -566,7 +566,7 @@ export const ALL_SHOPS: Shop[] = [
     id: 'book-shop-scrolls',
     title: 'Лавка «Книги и свитки»',
     description: 'Тихое место для искателей знаний. От древних гримуаров до последних научных трактатов — каждый найдет что-то для себя.',
-    image: 'https://i.postimg.cc/Rh5QR7Zp/s-Vzx-Kp-Tno-FN12r-ILzk-BDHOokb-WE7-Qv-Rj-Qu-IUNv-Y-Hnf-PW0gl5-S2-I-b-A1g9d-IKFkoa32-V-EUCdz-H1enx-YJDWdx-RZ.jpg',
+    image: 'https://i.postimg.cc/tTPhmPBS/s-Vzx-Kp-Tno-FN12r-ILzk-BDHOokb-WE7-Qv-Rj-Qu-IUNv-Y-Hnf-PW0gl5-S2-I-b-A1g9d-IKFkoa32-V-EUCdz-H1enx-YJDWdx-RZ.png',
     aiHint: 'bookstore fantasy',
   },
   {
@@ -587,7 +587,7 @@ export const ALL_SHOPS: Shop[] = [
     id: 'market-lost-souls',
     title: 'Рынок Неприкаянных Душ',
     description: 'Здесь души, не нашедшие покоя, ищут новый смысл или нового хозяина. Уникальные товары и услуги для тех, кто не боится заглянуть за грань.',
-    image: 'https://i.postimg.cc/jqcY23wg/t-Gq6-Sm3q-La-QLAz-U4qrkw7k-L14o-Z7-Vzl-FWo-MIETTGUOJR7-S5e-Pd-Mt-C5-DT9-W6t-Gp60-YH5ba-Xz-J3-Tnk-Sk60-Wg93rk-E.jpg',
+    image: 'https://i.postimg.cc/wjLgMjbK/t-Gq6-Sm3q-La-QLAz-U4qrkw7k-L14o-Z7-Vzl-FWo-MIETTGUOJR7-S5e-Pd-Mt-C5-DT9-W6t-Gp60-YH5ba-Xz-J3-Tnk-Sk60-Wg93rk-E.png',
     aiHint: 'fantasy market',
   },
   {
@@ -608,7 +608,7 @@ export const ALL_SHOPS: Shop[] = [
     id: 'flower-shop-fantasy',
     title: 'Цветочная лавка «Цветочная феерия»',
     description: 'Лавка, наполненная ароматами свежих цветов со всего мира. Здесь вы найдете букеты для любого случая, редкие растения и магические семена.',
-    image: 'https://i.postimg.cc/BQSWJHqG/PI8fb53ze8foyk-Pc-MA62o-B4-FPv-MQDf6-Pgglx-jh906cae-UVng-Tz2m-Ff-Qxw-S4ee-X3k-Fq-Mbx-C0j-Si-V2-UMZANe-GYD.jpg',
+    image: 'https://i.postimg.cc/3JZZTXYz/PI8fb53ze8foyk-Pc-MA62o-B4-FPv-MQDf6-Pgglx-jh906cae-UVng-Tz2m-Ff-Qxw-S4ee-X3k-Fq-Mbx-C0j-Si-V2-UMZANe-GYD.png',
     aiHint: 'flower shop'
   },
   {
@@ -636,7 +636,7 @@ export const ALL_SHOPS: Shop[] = [
     id: 'sweet-shop-rouz',
     title: 'Лавочка «Сладость Роуза»',
     description: 'Рай для сладкоежек! Лучшие торты, пирожные и конфеты ручной работы от барона Роуз. Идеальное место для чаепития и покупки десертов.',
-    image: 'https://i.postimg.cc/jqhrGKp2/a-K3lcl-M3-Ujr-VAOa-Cou-DF7w3-Ingk-HC594i-Htx-L7i-GHt-Gogp-Oj-B-yv-Pa-GCd-6-Xd-Nyfx-Dca-Nh0ryrl-X-5-n7-Ig-Icuh.jpg',
+    image: 'https://i.postimg.cc/rFpDDx5B/a-K3lcl-M3-Ujr-VAOa-Cou-DF7w3-Ingk-HC594i-Htx-L7i-GHt-Gogp-Oj-B-yv-Pa-GCd-6-Xd-Nyfx-Dca-Nh0ryrl-X-5-n7-Ig-Icuh.png',
     aiHint: 'sweet shop'
   },
   {
