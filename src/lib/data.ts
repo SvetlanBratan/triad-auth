@@ -1,5 +1,5 @@
 
-import type { Reward, FamiliarCard, Achievement, GameSettings, WealthLevel, BankAccount, CapitalLevel, CrimeLevel, Shop, InventoryCategory, PopularityEvent } from './types';
+import type { Reward, FamiliarCard, Achievement, GameSettings, WealthLevel, BankAccount, CapitalLevel, CrimeLevel, Shop, InventoryCategory, PopularityEvent, AlchemyIngredient, Potion, AlchemyRecipe } from './types';
 import type { OptionType } from '@/components/ui/multi-select';
 
 // Game Date is now fetched from Firestore. See UserProvider.
@@ -531,7 +531,7 @@ export const ALL_SHOPS: Shop[] = [
     id: 'ritual-bureau-last-feast',
     title: 'Ритуальное бюро «Последний праздник»',
     description: "Мы позаботимся о том, чтобы проводы в последний путь были достойными и запоминающимися. Все виды ритуальных услуг.",
-    image: "https://i.postimg.cc/tRxfXFjw/image.png",
+    image: "https://i.postimg.cc/FFDfFY5Y/image.png",
     aiHint: "funeral home"
   },
   {
@@ -685,6 +685,7 @@ export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) =>
 
 
     
+
 
 
 
