@@ -660,6 +660,13 @@ export const ALL_SHOPS: Shop[] = [
     image: 'https://i.postimg.cc/zX5TGw2p/g76z-R1-UXk-GHr-Spjl5-FUuy-ZFv-Ft-Uf-A3l-TBGz-WLC0-Iws-BWNK6-V-MC1-IP20m52-Trp-Xl-bl-Bcsq5kir-A4-Bl-Bz-Jk-QGyy-Z.jpg',
     aiHint: 'fantasy brothel'
   },
+  {
+    id: 'ingredient-shop',
+    title: 'Лавка ингредиентов',
+    description: 'Здесь вы найдете самые редкие и экзотические ингредиенты для алхимии, зельеварения и ритуалов. От корня мандрагоры до пыльцы фей — все, что нужно настоящему мастеру.',
+    image: 'https://i.postimg.cc/hv2b9nyc/Chat-GPT-Image-1-2025-22-59-24.png',
+    aiHint: 'alchemy ingredients'
+  },
 ];
 
 export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) => {
