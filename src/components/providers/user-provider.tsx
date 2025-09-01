@@ -1078,7 +1078,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             // Add to target
             const targetInventory = targetChar.inventory || initialFormData.inventory;
             const targetCategoryItems = (targetInventory[itemCategory] as InventoryItem[] | undefined) || [];
-            const existingTargetItemIndex = targetCategoryItems.findIndex(i => i.name === itemToGift.name);
+            const existingTargetItemIndex = targetCategoryItems.findIndex(invItem => invItem.name === itemToGift.name);
 
             if (existingTargetItemIndex > -1) {
                  targetCategoryItems[existingTargetItemIndex].quantity += 1;
@@ -2097,23 +2097,6 @@ const processWeeklyBonus = useCallback(async () => {
     return { awardedCount };
 }, [fetchUsersForAdmin, fetchGameSettings]);
 
-useEffect(() => {
-    if(firebaseUser) { // Run only when a user is logged in
-        processWeeklyBonus().then(({ awardedCount }) => {
-            if (awardedCount > 0) {
-                console.log(`Successfully awarded weekly bonus to ${awardedCount} users.`);
-                // Optionally refetch current user data if they were part of the bonus
-                if (currentUser) {
-                    fetchUserById(currentUser.id).then(setCurrentUser);
-                }
-            }
-        }).catch(error => {
-            console.error("Failed to process weekly bonus automatically:", error);
-        });
-    }
-}, [firebaseUser, currentUser, processWeeklyBonus, fetchUserById]);
-
-
 const processAnnualTaxes = useCallback(async (): Promise<{ taxedCharactersCount: number; totalTaxesCollected: BankAccount }> => {
     const allUsers = await fetchUsersForAdmin();
     const allShops = await fetchAllShops();
@@ -2575,6 +2558,7 @@ const withdrawFromShopTill = useCallback(async (shopId: string) => {
     </AuthContext.Provider>
   );
 }
+
 
 
 
