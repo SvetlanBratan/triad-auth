@@ -59,6 +59,8 @@ export const INVENTORY_CATEGORIES: { value: InventoryCategory, label: string }[]
     { value: 'мебель', label: 'Мебель' },
     { value: 'питомцы', label: 'Питомцы' },
     { value: 'услуги', label: 'Услуги' },
+    { value: 'документы', label: 'Документы' },
+    { value: 'ингредиенты', label: 'Ингредиенты' },
     { value: 'прочее', label: 'Прочее' },
     { value: 'подарки', label: 'Подарки' },
 ];
@@ -683,6 +685,7 @@ export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) =>
 
 
     
+
 
 
 

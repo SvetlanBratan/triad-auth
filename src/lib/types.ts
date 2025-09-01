@@ -4,7 +4,7 @@ export type UserRole = 'admin' | 'user';
 export type UserStatus = 'активный' | 'неактивный' | 'отпуск';
 export type RewardRequestStatus = 'в ожидании' | 'одобрено' | 'отклонено';
 export type FamiliarRank = 'обычный' | 'редкий' | 'легендарный' | 'мифический' | 'ивентовый';
-export type InventoryCategory = 'оружие' | 'гардероб' | 'еда' | 'подарки' | 'артефакты' | 'зелья' | 'недвижимость' | 'транспорт' | 'драгоценности' | 'книгиИСвитки' | 'прочее' | 'предприятия' | 'души' | 'мебель' | 'доспехи' | 'инструменты' | 'питомцы' | 'проживание' | 'услуги';
+export type InventoryCategory = 'оружие' | 'гардероб' | 'еда' | 'подарки' | 'артефакты' | 'зелья' | 'недвижимость' | 'транспорт' | 'драгоценности' | 'книгиИСвитки' | 'прочее' | 'предприятия' | 'души' | 'мебель' | 'доспехи' | 'инструменты' | 'питомцы' | 'проживание' | 'услуги' | 'документы' | 'ингредиенты';
 export type RelationshipType = 'романтика' | 'дружба' | 'вражда' | 'конкуренция' | 'нейтралитет' | 'любовь' | 'семья' | 'уважение' | 'страсть' | 'заинтересованность' | 'сотрудничество';
 export type RelationshipActionType = 'подарок' | 'письмо';
 export type RelationshipActionStatus = 'pending' | 'confirmed';
@@ -95,6 +95,8 @@ export interface Inventory {
     питомцы: InventoryItem[];
     проживание: InventoryItem[];
     услуги: InventoryItem[];
+    документы: InventoryItem[];
+    ингредиенты: InventoryItem[];
 }
 
 export interface RelationshipAction {
