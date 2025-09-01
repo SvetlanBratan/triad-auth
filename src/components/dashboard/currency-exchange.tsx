@@ -14,15 +14,17 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowRightLeft, Coins, Trash2, Repeat, Info } from 'lucide-react';
+import { ArrowRightLeft, Coins, Trash2, Repeat, Info, Send } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { BankAccount, Character, Currency, ExchangeRequest } from '@/lib/types';
+import { BankAccount, Character, Currency, ExchangeRequest, User } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { SearchableSelect } from '../ui/searchable-select';
+import { useQuery } from '@tanstack/react-query';
+import { Textarea } from '../ui/textarea';
 
 const CURRENCY_OPTIONS: { value: Currency, label: string }[] = [
     { value: 'platinum', label: 'Платина' },
@@ -39,7 +41,7 @@ const EXCHANGE_RATE: Record<Currency, Record<Currency, number>> = {
 };
 
 export default function CurrencyExchange() {
-  const { currentUser, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest } = useUser();
+  const { currentUser, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, fetchUsersForAdmin, transferCurrency } = useUser();
   const { toast } = useToast();
 
   const [fromCharacterId, setFromCharacterId] = useState<string>('');
@@ -55,6 +57,18 @@ export default function CurrencyExchange() {
   const [openRequests, setOpenRequests] = useState<ExchangeRequest[]>([]);
   
   const [selectedAcceptorCharId, setSelectedAcceptorCharId] = useState('');
+
+  // State for direct transfer
+  const [transferSourceCharId, setTransferSourceCharId] = useState('');
+  const [transferTargetCharId, setTransferTargetCharId] = useState('');
+  const [transferAmount, setTransferAmount] = useState<Partial<Omit<BankAccount, 'history'>>>({ platinum: 0, gold: 0, silver: 0, copper: 0});
+  const [transferReason, setTransferReason] = useState('');
+  const [isTransferring, setIsTransferring] = useState(false);
+
+  const { data: allUsers = [], isLoading: isUsersLoading } = useQuery<User[]>({
+    queryKey: ['adminUsers'],
+    queryFn: fetchUsersForAdmin,
+  });
 
 
   const fetchRequests = async () => {
@@ -91,6 +105,15 @@ export default function CurrencyExchange() {
       label: char.name,
     }));
   }, [currentUser]);
+  
+   const allCharactersForSelection = useMemo(() => {
+    return allUsers.flatMap(user => 
+        user.characters.map(char => ({
+            value: char.id,
+            label: `${char.name} (${user.name})`
+        }))
+    );
+  }, [allUsers]);
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value, 10);
@@ -145,12 +168,52 @@ export default function CurrencyExchange() {
           setIsLoading(false);
       }
   }
+  
+    const handleTransferAmountChange = (currency: keyof Omit<BankAccount, 'history'>, value: string) => {
+      const numValue = parseInt(value, 10) || 0;
+      setTransferAmount(prev => ({ ...prev, [currency]: numValue }));
+  };
+
+  const handleTransfer = async () => {
+    if (!currentUser || !transferSourceCharId || !transferTargetCharId || Object.values(transferAmount).every(v => v === 0)) {
+        toast({ variant: 'destructive', title: 'Ошибка', description: 'Выберите отправителя, получателя и укажите сумму.' });
+        return;
+    }
+    setIsTransferring(true);
+    try {
+        await transferCurrency(currentUser.id, transferSourceCharId, transferTargetCharId, transferAmount, transferReason || 'Прямой перевод');
+        toast({ title: 'Успех!', description: 'Средства успешно переведены.' });
+        setTransferAmount({ platinum: 0, gold: 0, silver: 0, copper: 0 });
+        setTransferReason('');
+        setTransferTargetCharId('');
+    } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Произошла неизвестная ошибка.';
+        toast({ variant: 'destructive', title: 'Ошибка перевода', description: msg });
+    } finally {
+        setIsTransferring(false);
+    }
+  };
+
 
   const hasSufficientFunds = useMemo(() => {
       if (!selectedCharacter || !fromCurrency) return false;
       const account = selectedCharacter.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 };
       return account[fromCurrency] >= fromAmount;
   }, [selectedCharacter, fromCurrency, fromAmount]);
+  
+  const transferSourceCharacter = useMemo(() => {
+    return currentUser?.characters.find(c => c.id === transferSourceCharId);
+  }, [currentUser, transferSourceCharId]);
+
+  const hasSufficientFundsForTransfer = useMemo(() => {
+    if (!transferSourceCharacter) return false;
+    const balance = transferSourceCharacter.bankAccount;
+    return (balance.platinum >= (transferAmount.platinum || 0)) &&
+           (balance.gold >= (transferAmount.gold || 0)) &&
+           (balance.silver >= (transferAmount.silver || 0)) &&
+           (balance.copper >= (transferAmount.copper || 0));
+  }, [transferSourceCharacter, transferAmount]);
+
 
   const myOpenRequests = openRequests.filter(r => r.creatorUserId === currentUser?.id);
   const otherOpenRequests = openRequests.filter(r => r.creatorUserId !== currentUser?.id);
@@ -158,10 +221,62 @@ export default function CurrencyExchange() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         <div className="lg:col-span-1 space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Send /> Перевод средств</CardTitle>
+                    <CardDescription>Отправьте деньги любому персонажу в игре.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                     <div>
+                        <Label>Отправитель (ваш персонаж)</Label>
+                         <SearchableSelect
+                            options={myCharacterOptions}
+                            value={transferSourceCharId}
+                            onValueChange={setTransferSourceCharId}
+                            placeholder="Выберите персонажа..."
+                        />
+                        {transferSourceCharacter && (
+                            <div className="mt-2 p-2 bg-muted rounded-md text-sm text-muted-foreground">
+                            {formatCurrency(transferSourceCharacter.bankAccount)}
+                            </div>
+                        )}
+                    </div>
+                     <div>
+                        <Label>Получатель</Label>
+                        <SearchableSelect
+                            options={allCharactersForSelection.filter(opt => opt.value !== transferSourceCharId)}
+                            value={transferTargetCharId}
+                            onValueChange={setTransferTargetCharId}
+                            placeholder="Выберите персонажа..."
+                            disabled={!transferSourceCharId}
+                        />
+                    </div>
+                     <div>
+                        <Label>Сумма</Label>
+                        <div className="grid grid-cols-2 gap-2">
+                            <Input type="number" placeholder="Платина" value={transferAmount.platinum || ''} onChange={e => handleTransferAmountChange('platinum', e.target.value)} disabled={!transferSourceCharId} />
+                            <Input type="number" placeholder="Золото" value={transferAmount.gold || ''} onChange={e => handleTransferAmountChange('gold', e.target.value)} disabled={!transferSourceCharId} />
+                            <Input type="number" placeholder="Серебро" value={transferAmount.silver || ''} onChange={e => handleTransferAmountChange('silver', e.target.value)} disabled={!transferSourceCharId} />
+                            <Input type="number" placeholder="Медь" value={transferAmount.copper || ''} onChange={e => handleTransferAmountChange('copper', e.target.value)} disabled={!transferSourceCharId} />
+                        </div>
+                         {!hasSufficientFundsForTransfer && <p className="text-xs text-destructive mt-1">Недостаточно средств</p>}
+                    </div>
+                    <div>
+                        <Label htmlFor="transfer-reason">Примечание (необязательно)</Label>
+                        <Textarea id="transfer-reason" value={transferReason} onChange={e => setTransferReason(e.target.value)} placeholder="Напр., оплата за товар" disabled={!transferSourceCharId} />
+                    </div>
+                </CardContent>
+                <CardFooter>
+                    <Button className="w-full" onClick={handleTransfer} disabled={isTransferring || !transferSourceCharId || !transferTargetCharId || !hasSufficientFundsForTransfer || Object.values(transferAmount).every(v => v === 0)}>
+                        {isTransferring ? "Отправка..." : "Отправить"}
+                    </Button>
+                </CardFooter>
+            </Card>
+
             <Card className="w-full">
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><ArrowRightLeft /> Васильковый Банк</CardTitle>
-                    <CardDescription>Создайте запрос на обмен тыквинов, который будет виден всем игрокам.</CardDescription>
+                    <CardTitle className="flex items-center gap-2"><ArrowRightLeft /> Обмен на доске</CardTitle>
+                    <CardDescription>Создайте запрос на обмен валюты, который будет виден всем игрокам.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <Alert>
@@ -236,7 +351,7 @@ export default function CurrencyExchange() {
             </Card>
              {myOpenRequests.length > 0 && (
                 <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Мои активные запросы</h3>
+                    <h3 className="text-lg font-semibold">Мои активные запросы на обмен</h3>
                      {myOpenRequests.map(req => (
                         <Card key={req.id} className="bg-muted/50">
                              <CardContent className="p-4 space-y-2">
@@ -251,7 +366,7 @@ export default function CurrencyExchange() {
         </div>
         <div className="lg:col-span-2 space-y-4">
              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold">Доска объявлений</h2>
+                <h2 className="text-2xl font-bold">Доска объявлений обмена</h2>
                 <Button variant="ghost" size="icon" onClick={fetchRequests}><Repeat className="h-4 w-4" /></Button>
              </div>
              {otherOpenRequests.length > 0 ? (
