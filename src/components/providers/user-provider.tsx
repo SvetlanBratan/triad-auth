@@ -67,6 +67,7 @@ interface UserContextType {
   recoverFamiliarsFromHistory: (userId: string, characterId: string, oldCharacterName?: string) => Promise<number>;
   recoverAllFamiliars: () => Promise<{ totalRecovered: number; usersAffected: number }>;
   addBankPointsToCharacter: (userId: string, characterId: string, amount: Partial<BankAccount>, reason: string) => Promise<void>;
+  transferCurrency: (sourceUserId: string, sourceCharacterId: string, targetCharacterId: string, amount: Partial<Omit<BankAccount, 'history'>>, reason: string) => Promise<void>;
   processMonthlySalary: () => Promise<void>;
   updateCharacterWealthLevel: (userId: string, characterId: string, wealthLevel: WealthLevel) => Promise<void>;
   createExchangeRequest: (creatorUserId: string, creatorCharacterId: string, fromCurrency: Currency, fromAmount: number, toCurrency: Currency, toAmount: number) => Promise<void>;
@@ -1084,7 +1085,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             if (existingTargetItemIndex > -1) {
                  targetCategoryItems[existingTargetItemIndex].quantity += 1;
             } else {
-                targetCategoryItems.push({ ...itemToGift, id: `inv-${Date.now()}`, quantity: 1 });
+                targetCategoryItems.push({ ...itemToGift, id: `inv-item-${Date.now()}`, quantity: 1 });
             }
             targetInventory[itemCategory] = targetCategoryItems;
             
@@ -1343,6 +1344,80 @@ const addBankPointsToCharacter = useCallback(async (userId: string, characterId:
     
     await updateUser(userId, { characters: updatedCharacters });
 }, [fetchUserById, updateUser]);
+
+const transferCurrency = useCallback(async (sourceUserId: string, sourceCharacterId: string, targetCharacterId: string, amount: Partial<Omit<BankAccount, 'history'>>, reason: string) => {
+    await runTransaction(db, async (transaction) => {
+        // --- 1. Get all necessary documents ---
+        const sourceUserRef = doc(db, "users", sourceUserId);
+        const sourceUserDoc = await transaction.get(sourceUserRef);
+        if (!sourceUserDoc.exists()) throw new Error("Исходный пользователь не найден.");
+        const sourceUserData = sourceUserDoc.data() as User;
+
+        let targetUserDoc: any = null, targetUserData: User | null = null, targetUserId: string | null = null;
+        const allUsersSnapshot = await getDocs(collection(db, "users"));
+        allUsersSnapshot.forEach(doc => {
+            const user = doc.data() as User;
+            if (user.characters?.some(c => c.id === targetCharacterId)) {
+                targetUserDoc = doc;
+                targetUserData = user;
+                targetUserId = doc.id;
+            }
+        });
+        if (!targetUserDoc || !targetUserData || !targetUserId) throw new Error("Владелец целевого персонажа не найден.");
+
+        const targetUserFromTx = await transaction.get(targetUserDoc.ref);
+        if (!targetUserFromTx.exists()) throw new Error("Целевой пользователь не найден в транзакции.");
+        targetUserData = targetUserFromTx.data() as User;
+
+        // --- 2. Find characters and check funds ---
+        const sourceCharIndex = sourceUserData.characters.findIndex(c => c.id === sourceCharacterId);
+        if (sourceCharIndex === -1) throw new Error("Исходный персонаж не найден.");
+        const sourceChar = sourceUserData.characters[sourceCharIndex];
+        const sourceBalance = sourceChar.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 };
+        if (
+            sourceBalance.platinum < (amount.platinum || 0) ||
+            sourceBalance.gold < (amount.gold || 0) ||
+            sourceBalance.silver < (amount.silver || 0) ||
+            sourceBalance.copper < (amount.copper || 0)
+        ) {
+            throw new Error("Недостаточно средств у отправителя.");
+        }
+
+        const targetCharIndex = targetUserData.characters.findIndex(c => c.id === targetCharacterId);
+        if (targetCharIndex === -1) throw new Error("Целевой персонаж не найден.");
+        const targetChar = targetUserData.characters[targetCharIndex];
+        
+        // --- 3. Perform transfer and record history ---
+        const now = new Date().toISOString();
+        const reasonText = reason || 'Прямой перевод';
+
+        // Deduct from source
+        sourceChar.bankAccount.platinum -= (amount.platinum || 0);
+        sourceChar.bankAccount.gold -= (amount.gold || 0);
+        sourceChar.bankAccount.silver -= (amount.silver || 0);
+        sourceChar.bankAccount.copper -= (amount.copper || 0);
+        const sourceTx: BankTransaction = { id: `txn-send-${Date.now()}`, date: now, reason: `Перевод для ${targetChar.name}: ${reasonText}`, amount: { platinum: -(amount.platinum || 0), gold: -(amount.gold || 0), silver: -(amount.silver || 0), copper: -(amount.copper || 0) } };
+        sourceChar.bankAccount.history = [sourceTx, ...(sourceChar.bankAccount.history || [])];
+
+        // Add to target
+        targetChar.bankAccount.platinum += (amount.platinum || 0);
+        targetChar.bankAccount.gold += (amount.gold || 0);
+        targetChar.bankAccount.silver += (amount.silver || 0);
+        targetChar.bankAccount.copper += (amount.copper || 0);
+        const targetTx: BankTransaction = { id: `txn-recv-${Date.now()}`, date: now, reason: `Перевод от ${sourceChar.name}: ${reasonText}`, amount: { platinum: (amount.platinum || 0), gold: (amount.gold || 0), silver: (amount.silver || 0), copper: (amount.copper || 0) } };
+        targetChar.bankAccount.history = [targetTx, ...(targetChar.bankAccount.history || [])];
+
+        // --- 4. Commit transaction ---
+        transaction.update(sourceUserRef, { characters: sourceUserData.characters });
+        transaction.update(targetUserDoc.ref, { characters: targetUserData.characters });
+    });
+
+    if (currentUser && currentUser.id === sourceUserId) {
+        const updatedUser = await fetchUserById(sourceUserId);
+        if(updatedUser) setCurrentUser(updatedUser);
+    }
+}, [currentUser, fetchUserById]);
+
 
 const processMonthlySalary = useCallback(async () => {
     const allUsers = await fetchUsersForAdmin();
@@ -1659,7 +1734,7 @@ const processMonthlySalary = useCallback(async () => {
         targetChar.familiarCards.splice(targetCardIndex, 1);
 
         initiatorChar.familiarCards.push({ id: request.targetFamiliarId });
-        targetChar.familiarCards.push({ id: request.initiatorFamiliarId });
+        targetChar.familiarCards.push({ id: request.targetFamiliarId });
 
         transaction.update(initiatorUserRef, { characters: initiatorData.characters });
         transaction.update(targetUserRef, { characters: targetData.characters });
@@ -2524,6 +2599,7 @@ const withdrawFromShopTill = useCallback(async (shopId: string) => {
       recoverFamiliarsFromHistory,
       recoverAllFamiliars,
       addBankPointsToCharacter,
+      transferCurrency,
       processMonthlySalary,
       updateCharacterWealthLevel,
       createExchangeRequest,
@@ -2559,7 +2635,7 @@ const withdrawFromShopTill = useCallback(async (shopId: string) => {
       clearAllPopularityHistories,
       withdrawFromShopTill,
     }),
-    [currentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill]
+    [currentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill]
   );
 
   return (
@@ -2570,6 +2646,7 @@ const withdrawFromShopTill = useCallback(async (shopId: string) => {
     </AuthContext.Provider>
   );
 }
+
 
 
 
