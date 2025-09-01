@@ -189,6 +189,23 @@ const defaultInventory: Inventory = INVENTORY_CATEGORIES.reduce((acc, category) 
     return acc;
 }, {} as Inventory);
 
+const sanitizeObjectForFirestore = (obj: any): any => {
+    if (obj === null || obj === undefined) return obj;
+    if (Array.isArray(obj)) {
+      return obj.map(sanitizeObjectForFirestore);
+    }
+    if (typeof obj === 'object' && obj.constructor === Object) {
+      const newObj: { [key: string]: any } = {};
+      for (const key in obj) {
+        if (obj[key] !== undefined) {
+          newObj[key] = sanitizeObjectForFirestore(obj[key]);
+        }
+      }
+      return newObj;
+    }
+    return obj;
+};
+
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -1155,23 +1172,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         updateRelationship(sourceChar, targetCharacterId, sourceCharacterId, pointsToAdd, newAction);
         updateRelationship(targetChar, sourceCharacterId, sourceCharacterId, pointsToAdd, newAction);
         
-        const sanitizeObjectForFirestore = (obj: any): any => {
-          if (obj === null || obj === undefined) return obj;
-          if (Array.isArray(obj)) {
-            return obj.map(sanitizeObjectForFirestore);
-          }
-          if (typeof obj === 'object' && obj.constructor === Object) {
-            const newObj: { [key: string]: any } = {};
-            for (const key in obj) {
-              if (obj[key] !== undefined) {
-                newObj[key] = sanitizeObjectForFirestore(obj[key]);
-              }
-            }
-            return newObj;
-          }
-          return obj;
-        };
-        
         const sanitizedSourceUser = sanitizeObjectForFirestore(sourceUserData);
         const sanitizedTargetUser = sanitizeObjectForFirestore(targetUserData);
 
@@ -1407,9 +1407,12 @@ const transferCurrency = useCallback(async (sourceUserId: string, sourceCharacte
         const targetTx: BankTransaction = { id: `txn-recv-${Date.now()}`, date: now, reason: `Перевод от ${sourceChar.name}: ${reasonText}`, amount: { platinum: (amount.platinum || 0), gold: (amount.gold || 0), silver: (amount.silver || 0), copper: (amount.copper || 0) } };
         targetChar.bankAccount.history = [targetTx, ...(targetChar.bankAccount.history || [])];
 
+        const sanitizedSourceUser = sanitizeObjectForFirestore(sourceUserData);
+        const sanitizedTargetUser = sanitizeObjectForFirestore(targetUserData);
+
         // --- 4. Commit transaction ---
-        transaction.update(sourceUserRef, { characters: sourceUserData.characters });
-        transaction.update(targetUserDoc.ref, { characters: targetUserData.characters });
+        transaction.update(sourceUserRef, { characters: sanitizedSourceUser.characters });
+        transaction.update(targetUserDoc.ref, { characters: sanitizedTargetUser.characters });
     });
 
     if (currentUser && currentUser.id === sourceUserId) {
@@ -2646,6 +2649,7 @@ const withdrawFromShopTill = useCallback(async (shopId: string) => {
     </AuthContext.Provider>
   );
 }
+
 
 
 
