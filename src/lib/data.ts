@@ -648,10 +648,10 @@ export const ALL_SHOPS: Shop[] = [
   },
   {
     id: 'gemstone-shop',
-    title: 'Лавка с драгоценными камнями',
+    title: 'Документный двор',
     description: 'Редкие и драгоценные камни со всех уголков Триады. Идеально для ювелиров, магов и коллекционеров.',
-    image: 'https://i.postimg.cc/x13xdTPN/WBc-Z1j-Kdyre-KOrixg-QJL9s-Gb-Ai8al-NWCo-LOOh-CT-GWAs-Le-P0-Gx-YBo1y-VLa-Jfl-B12q-Bj9b-GZAV2utbr-FGYk-3t-Fk.jpg',
-    aiHint: 'gemstone shop'
+    image: 'https://i.postimg.cc/TPbrssf6/6666f319-226a-4b80-ba35-b92858fa75f8.jpg',
+    aiHint: 'documents office'
   },
   {
     id: 'brothel-dark-dreams',
@@ -685,6 +685,7 @@ export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) =>
 
 
     
+
 
 
 
