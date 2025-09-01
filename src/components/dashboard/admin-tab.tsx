@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
-import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info, AlertTriangle, Bell, CheckCircle, Store, PackagePlus, Edit, BadgeCheck, FileText, Send, Gavel, Eye } from 'lucide-react';
+import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info, AlertTriangle, Bell, CheckCircle, Store, PackagePlus, Edit, BadgeCheck, FileText, Send, Gavel, Eye, UserMinus } from 'lucide-react';
 import type { UserStatus, UserRole, User, FamiliarCard, BankAccount, WealthLevel, FamiliarRank, Shop, InventoryCategory, AdminGiveItemForm, InventoryItem, CitizenshipStatus, TaxpayerStatus, CharacterPopularityUpdate } from '@/lib/types';
 import { EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, FAMILIARS_BY_ID, WEALTH_LEVELS, ALL_FAMILIARS, STARTING_CAPITAL_LEVELS, ALL_SHOPS, INVENTORY_CATEGORIES, POPULARITY_EVENTS } from '@/lib/data';
 import {
@@ -77,6 +77,7 @@ export default function AdminTab() {
     updateCharacterWealthLevel,
     giveAnyFamiliarToCharacter,
     updateShopOwner,
+    removeShopOwner,
     fetchAllShops,
     adminGiveItemToCharacter,
     adminUpdateItemInCharacter,
@@ -716,6 +717,19 @@ export default function AdminTab() {
     setShopOwnerCharId('');
   };
 
+  const handleRemoveShopOwner = async () => {
+    if (!shopId) return;
+    try {
+        await removeShopOwner(shopId);
+        toast({ title: 'Владелец снят', description: 'Магазин теперь не имеет владельца.' });
+        await queryClient.invalidateQueries({ queryKey: ['allShops'] });
+        setShopId('');
+    } catch (e) {
+        const msg = e instanceof Error ? e.message : "Произошла ошибка";
+        toast({ variant: 'destructive', title: "Ошибка", description: msg });
+    }
+};
+
   const handleGiveItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!itemUserId || !itemCharId) {
@@ -1020,10 +1034,14 @@ export default function AdminTab() {
       label: level.name,
   })), []);
 
-  const shopOptions = useMemo(() => ALL_SHOPS.map(shop => ({
+  const shopOptions = useMemo(() => allShops.map(shop => ({
       value: shop.id,
       label: shop.title,
-  })), []);
+  })), [allShops]);
+  
+  const selectedShop = useMemo(() => {
+    return allShops.find(s => s.id === shopId);
+  }, [allShops, shopId]);
   
    const popularityEventOptions = useMemo(() => POPULARITY_EVENTS.map(event => ({
         value: event.label,
@@ -1937,7 +1955,7 @@ export default function AdminTab() {
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><Store /> Управление магазинами</CardTitle>
-                    <CardDescription>Назначьте владельца для магазина или таверны на рынке.</CardDescription>
+                    <CardDescription>Назначьте или снимите владельца для магазина или таверны на рынке.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleAssignShopOwner} className="space-y-4">
@@ -1950,6 +1968,13 @@ export default function AdminTab() {
                                 placeholder="Выберите магазин..."
                             />
                         </div>
+                        {selectedShop?.ownerCharacterName && (
+                            <Alert>
+                                <Info className="h-4 w-4" />
+                                <AlertTitle>Текущий владелец</AlertTitle>
+                                <AlertDescription>{selectedShop.ownerCharacterName}</AlertDescription>
+                            </Alert>
+                        )}
                         <div>
                             <Label>Пользователь-владелец</Label>
                             <SearchableSelect
@@ -1969,7 +1994,28 @@ export default function AdminTab() {
                                 disabled={!shopOwnerUserId}
                             />
                         </div>
-                        <Button type="submit">Назначить владельца</Button>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                            <Button type="submit" className="flex-1">Назначить владельца</Button>
+                            {selectedShop?.ownerUserId && (
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button type="button" variant="destructive" className="flex-1"><UserMinus className="mr-2"/>Снять владельца</Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Вы уверены?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                Это действие удалит владельца с магазина "{selectedShop.title}". Магазин снова станет бесхозным.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Отмена</AlertDialogCancel>
+                                            <AlertDialogAction onClick={handleRemoveShopOwner} className="bg-destructive hover:bg-destructive/90">Да, снять владельца</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            )}
+                        </div>
                     </form>
                 </CardContent>
             </Card>
@@ -2244,5 +2290,6 @@ export default function AdminTab() {
 }
 
     
+
 
 
