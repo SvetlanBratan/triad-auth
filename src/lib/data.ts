@@ -545,7 +545,7 @@ export const ALL_SHOPS: Shop[] = [
     id: 'souvenir-shop-surprise-madam',
     title: 'Сувенирная лавка «Сюрприз-Мадам»',
     description: "Удивительные и необычные сувениры со всего света! Найдите идеальный подарок для себя или своих близких.",
-    image: "https://i.postimg.cc/XqYpgn4y/image.png",
+    image: "https://i.postimg.cc/wBD8q4M9/image.png",
     aiHint: "souvenir shop"
   },
   {
@@ -559,7 +559,7 @@ export const ALL_SHOPS: Shop[] = [
     id: 'weapon-shop-dead-man-in-armor',
     title: 'Оружейная лавка «Покойник в Доспехах»',
     description: "Лучшее оружие и доспехи для любого воина. Каждый клинок проверен в бою, каждый щит готов выдержать удар.",
-    image: "https://i.postimg.cc/c1ppYXhd/image.png",
+    image: "https://i.postimg.cc/0ymHDMsf/image.png",
     aiHint: "weapon shop"
   },
   {
@@ -594,7 +594,7 @@ export const ALL_SHOPS: Shop[] = [
     id: 'furniture-shop-carved-chest',
     title: 'Мебельная лавка «Резной сундук»',
     description: 'От изысканной мебели для аристократических особняков до простой и надежной обстановки для скромного жилища. Создайте интерьер своей мечты!',
-    image: 'https://i.postimg.cc/RZLSV4tW/jdq-H3-Hqec-MECX9j-Aq-O-IRr-Lc6-Rjxce-ZUm7j-SQ1-Say-P-arv0pqdp-ESHt3-Cb0w0-JRAJ6-I5x7-Demy-SSCPwb-Ihw-H6-Rra.jpg',
+    image: 'https://i.postimg.cc/zGsY1YJd/jdq-H3-Hqec-MECX9j-Aq-O-IRr-Lc6-Rjxce-ZUm7j-SQ1-Say-P-arv0pqdp-ESHt3-Cb0w0-JRAJ6-I5x7-Demy-SSCPwb-Ihw-H6-Rra.png',
     aiHint: 'furniture store',
   },
   {
@@ -693,3 +693,6 @@ export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) =>
 
 
 
+
+
+    
