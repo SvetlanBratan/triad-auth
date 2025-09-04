@@ -1062,7 +1062,6 @@ export default function AdminTab() {
         <TabsTrigger value="familiars" className="text-xs sm:text-sm">Фамильяры</TabsTrigger>
         <TabsTrigger value="economy" className="text-xs sm:text-sm">Экономика</TabsTrigger>
         <TabsTrigger value="shops" className="text-xs sm:text-sm">Магазины</TabsTrigger>
-        <TabsTrigger value="alchemy" className="text-xs sm:text-sm">Алхимия</TabsTrigger>
         <TabsTrigger value="mail" className="text-xs sm:text-sm">Рассылка</TabsTrigger>
       </TabsList>
 
@@ -1923,14 +1922,14 @@ export default function AdminTab() {
                                         value={capitalUserId}
                                         onValueChange={uid => { setCapitalUserId(uid); setCapitalCharId(''); }}
                                         placeholder="Пользователь"
-                                    />
-                                    <SearchableSelect
+                                     />
+                                     <SearchableSelect
                                         options={charactersForCapital}
                                         value={capitalCharId}
                                         onValueChange={setCapitalCharId}
                                         placeholder="Персонаж"
                                         disabled={!capitalUserId}
-                                    />
+                                     />
                                 </div>
                             </div>
                             <div>
@@ -2218,32 +2217,6 @@ export default function AdminTab() {
            </div>
         </div>
       </TabsContent>
-      <TabsContent value="alchemy" className="mt-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><FlaskConical /> Управление алхимией</CardTitle>
-            <CardDescription>Создание и редактирование ингредиентов, зелий и рецептов для алхимической лаборатории.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="ingredients" className="w-full">
-              <TabsList>
-                <TabsTrigger value="ingredients">Ингредиенты</TabsTrigger>
-                <TabsTrigger value="potions">Зелья</TabsTrigger>
-                <TabsTrigger value="recipes">Рецепты</TabsTrigger>
-              </TabsList>
-              <TabsContent value="ingredients" className="pt-4">
-                <p className="text-muted-foreground">Здесь будет интерфейс для управления ингредиентами.</p>
-              </TabsContent>
-              <TabsContent value="potions" className="pt-4">
-                <p className="text-muted-foreground">Здесь будет интерфейс для управления зельями.</p>
-              </TabsContent>
-              <TabsContent value="recipes" className="pt-4">
-                <p className="text-muted-foreground">Здесь будет интерфейс для управления рецептами.</p>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-      </TabsContent>
        <TabsContent value="mail" className="mt-4">
             <Card className="max-w-2xl mx-auto">
                 <CardHeader>
@@ -2317,6 +2290,8 @@ export default function AdminTab() {
 }
 
     
+
+
 
 
 
