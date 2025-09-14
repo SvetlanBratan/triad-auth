@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -59,7 +60,6 @@ export function Dashboard() {
     { value: 'rewards', label: 'Награды', icon: Award },
     { value: 'bank', label: 'Банк', icon: Landmark },
     { value: 'market', label: 'Рынок', icon: Store },
-    ...(isAdmin ? [{ value: 'alchemy', label: 'Алхимия', icon: FlaskConical }] : []),
     ...(isAdmin ? [{ value: 'requests', label: 'Запросы', icon: GitPullRequest }] : []),
     ...(isAdmin ? [{ value: 'admin', label: 'Админ', icon: Shield }] : []),
   ];
@@ -101,12 +101,6 @@ export function Dashboard() {
          <TabsContent value="market" className="mt-4">
           <MarketTab />
         </TabsContent>
-        {isAdmin && (
-          <TabsContent value="alchemy" className="mt-4">
-            {/* Alchemy content will go here */}
-             <p>Alchemy tab is under construction.</p>
-          </TabsContent>
-        )}
         {isAdmin && (
           <TabsContent value="requests" className="mt-4">
             <RequestsTab />

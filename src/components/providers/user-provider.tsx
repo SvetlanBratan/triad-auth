@@ -213,6 +213,69 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [gameSettings, setGameSettings] = useState<GameSettings>(DEFAULT_GAME_SETTINGS);
   const [loading, setLoading] = useState(true);
 
+  const fetchUsersForAdmin = useCallback(async (): Promise<User[]> => {
+    try {
+        const usersCollection = collection(db, "users");
+        const userSnapshot = await getDocs(query(usersCollection, orderBy("points", "desc")));
+        const users = await Promise.all(userSnapshot.docs.map(doc => fetchUserById(doc.id)));
+        return users.filter((user): user is User => user !== null);
+    } catch(error) {
+        console.error("Error fetching users for admin.", error);
+        throw error;
+    }
+  }, []);
+
+  const processWeeklyBonus = useCallback(async () => {
+    const settingsRef = doc(db, 'game_settings', 'main');
+    const settingsDoc = await getDoc(settingsRef);
+    const settings = settingsDoc.data() as GameSettings;
+
+    const now = new Date();
+    const lastAwarded = settings.lastWeeklyBonusAwardedAt ? new Date(settings.lastWeeklyBonusAwardedAt) : new Date(0);
+    const daysSinceLast = differenceInDays(now, lastAwarded);
+    
+    if (daysSinceLast < 7) {
+        console.log(`Weekly bonus not due yet. Days since last: ${daysSinceLast}`);
+        return { awardedCount: 0 };
+    }
+
+    const allUsers = await fetchUsersForAdmin();
+    const activeUsers = allUsers.filter(u => u.status === 'активный');
+    let awardedCount = 0;
+
+    const batch = writeBatch(db);
+
+    for (const user of activeUsers) {
+        let totalBonus = 800;
+        let reason = "Еженедельный бонус за активность";
+        
+        const popularityPoints = user.characters.reduce((acc, char) => acc + (char.popularity ?? 0), 0);
+
+        if (popularityPoints > 0) {
+            totalBonus += popularityPoints;
+            reason += ` и популярность (${popularityPoints})`;
+        }
+
+        const userRef = doc(db, "users", user.id);
+        const newPointLog: PointLog = {
+            id: `h-weekly-${Date.now()}-${user.id.slice(0, 4)}`,
+            date: now.toISOString(),
+            amount: totalBonus,
+            reason,
+        };
+        const newPoints = user.points + totalBonus;
+        const newHistory = [newPointLog, ...user.pointHistory];
+        batch.update(userRef, { points: newPoints, pointHistory: newHistory });
+        awardedCount++;
+    }
+
+    batch.update(settingsRef, { lastWeeklyBonusAwardedAt: now.toISOString() });
+    await batch.commit();
+    await fetchGameSettings();
+
+    return { awardedCount };
+  }, [fetchUsersForAdmin]);
+
   const fetchGameSettings = useCallback(async () => {
     try {
         const settingsRef = doc(db, 'game_settings', 'main');
@@ -388,6 +451,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 userData = await createNewUser(user.uid, nickname);
             }
             setCurrentUser(userData);
+            if(userData?.role === 'admin') {
+                processWeeklyBonus();
+            }
         } catch (error) {
             console.error("Error fetching user data:", error);
             setCurrentUser(null);
@@ -401,7 +467,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => unsubscribe();
-  }, [createNewUser, fetchUserById, fetchGameSettings]);
+  }, [createNewUser, fetchUserById, fetchGameSettings, processWeeklyBonus]);
 
 
     const fetchLeaderboardUsers = useCallback(async (): Promise<User[]> => {
@@ -424,18 +490,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         });
         return users;
     }, []);
-
-  const fetchUsersForAdmin = useCallback(async (): Promise<User[]> => {
-    try {
-        const usersCollection = collection(db, "users");
-        const userSnapshot = await getDocs(query(usersCollection, orderBy("points", "desc")));
-        const users = await Promise.all(userSnapshot.docs.map(doc => fetchUserById(doc.id)));
-        return users.filter((user): user is User => user !== null);
-    } catch(error) {
-        console.error("Error fetching users for admin.", error);
-        throw error;
-    }
-  }, [fetchUserById]);
 
   const fetchAllRewardRequests = useCallback(async (): Promise<RewardRequest[]> => {
     const requests: RewardRequest[] = [];
@@ -2135,56 +2189,7 @@ const adminUpdateShopLicense = useCallback(async (shopId: string, hasLicense: bo
     await setDoc(shopRef, { hasLicense }, { merge: true });
 }, []);
 
-const processWeeklyBonus = useCallback(async () => {
-    const settingsRef = doc(db, 'game_settings', 'main');
-    const settingsDoc = await getDoc(settingsRef);
-    const settings = settingsDoc.data() as GameSettings;
 
-    const now = new Date();
-    const lastAwarded = settings.lastWeeklyBonusAwardedAt ? new Date(settings.lastWeeklyBonusAwardedAt) : new Date(0);
-    const daysSinceLast = differenceInDays(now, lastAwarded);
-    
-    if (daysSinceLast < 7) {
-        console.log(`Weekly bonus not due yet. Days since last: ${daysSinceLast}`);
-        return { awardedCount: 0 };
-    }
-
-    const allUsers = await fetchUsersForAdmin();
-    const activeUsers = allUsers.filter(u => u.status === 'активный');
-    let awardedCount = 0;
-
-    const batch = writeBatch(db);
-
-    for (const user of activeUsers) {
-        let totalBonus = 800;
-        let reason = "Еженедельный бонус за активность";
-        
-        const popularityPoints = user.characters.reduce((acc, char) => acc + (char.popularity ?? 0), 0);
-
-        if (popularityPoints > 0) {
-            totalBonus += popularityPoints;
-            reason += ` и популярность (${popularityPoints})`;
-        }
-
-        const userRef = doc(db, "users", user.id);
-        const newPointLog: PointLog = {
-            id: `h-weekly-${Date.now()}-${user.id.slice(0, 4)}`,
-            date: now.toISOString(),
-            amount: totalBonus,
-            reason,
-        };
-        const newPoints = user.points + totalBonus;
-        const newHistory = [newPointLog, ...user.pointHistory];
-        batch.update(userRef, { points: newPoints, pointHistory: newHistory });
-        awardedCount++;
-    }
-
-    batch.update(settingsRef, { lastWeeklyBonusAwardedAt: now.toISOString() });
-    await batch.commit();
-    await fetchGameSettings();
-
-    return { awardedCount };
-}, [fetchUsersForAdmin, fetchGameSettings]);
 
 const processAnnualTaxes = useCallback(async (): Promise<{ taxedCharactersCount: number; totalTaxesCollected: BankAccount }> => {
     const allUsers = await fetchUsersForAdmin();
@@ -2649,6 +2654,7 @@ const withdrawFromShopTill = useCallback(async (shopId: string) => {
     </AuthContext.Provider>
   );
 }
+
 
 
 
