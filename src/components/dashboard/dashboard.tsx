@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,7 +8,7 @@ import LeaderboardTab from "./leaderboard-tab";
 import RewardsTab from "./rewards-tab";
 import AdminTab from "./admin-tab";
 import RequestsTab from "./requests-tab";
-import { User, Trophy, Award, Shield, GitPullRequest, Landmark, Cat, Store, Mail } from "lucide-react";
+import { User, Trophy, Award, Shield, GitPullRequest, Landmark, Cat, Store, Mail, FlaskConical } from "lucide-react";
 import AuthPage from "../auth/auth-page";
 import { useAuth } from "../providers/user-provider";
 import CurrencyExchange from "./currency-exchange";
@@ -60,6 +59,7 @@ export function Dashboard() {
     { value: 'rewards', label: 'Награды', icon: Award },
     { value: 'bank', label: 'Банк', icon: Landmark },
     { value: 'market', label: 'Рынок', icon: Store },
+    ...(isAdmin ? [{ value: 'alchemy', label: 'Алхимия', icon: FlaskConical }] : []),
     ...(isAdmin ? [{ value: 'requests', label: 'Запросы', icon: GitPullRequest }] : []),
     ...(isAdmin ? [{ value: 'admin', label: 'Админ', icon: Shield }] : []),
   ];
@@ -101,6 +101,12 @@ export function Dashboard() {
          <TabsContent value="market" className="mt-4">
           <MarketTab />
         </TabsContent>
+        {isAdmin && (
+          <TabsContent value="alchemy" className="mt-4">
+            {/* Alchemy content will go here */}
+             <p>Alchemy tab is under construction.</p>
+          </TabsContent>
+        )}
         {isAdmin && (
           <TabsContent value="requests" className="mt-4">
             <RequestsTab />
