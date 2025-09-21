@@ -194,14 +194,13 @@ export default function ShopPage() {
     const buyerCharacters = React.useMemo(() => {
         if (!currentUser || !totalPrice) return [];
         return currentUser.characters.filter(char => {
-            if (shop && char.id === shop.ownerCharacterId) return false;
             const balance = char.bankAccount;
             return (balance.platinum >= totalPrice.platinum) &&
                    (balance.gold >= totalPrice.gold) &&
                    (balance.silver >= totalPrice.silver) &&
                    (balance.copper >= totalPrice.copper);
         });
-    }, [currentUser, totalPrice, shop]);
+    }, [currentUser, totalPrice]);
 
     const buyerCharacterOptions = React.useMemo(() => {
         return buyerCharacters.map(char => ({
