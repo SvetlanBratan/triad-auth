@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Hammer, FlaskConical, Plus, Trash2 } from 'lucide-react';
 import { useUser } from '@/hooks/use-user';
-import { ALL_ALCHEMY_INGREDIENTS, ALL_POTIONS } from '@/lib/data';
 import type { AlchemyRecipe, AlchemyRecipeComponent } from '@/lib/types';
 import { SearchableSelect } from '../ui/searchable-select';
 import { Slider } from '../ui/slider';
@@ -25,7 +24,7 @@ export default function CraftingTab() {
   const [isLoading, setIsLoading] = useState(false);
 
   const { data: allShops = [] } = useQuery({ queryKey: ['allShops'], queryFn: fetchAllShops });
-  const { data: recipes = [] } = useQuery<AlchemyRecipe[]>({ queryKey: ['alchemyRecipes'], queryFn: fetchAlchemyRecipes });
+  const { data: recipes = [] } = useQuery<AlchemyRecipe[]>({ queryKey: ['alchemyRecipes'], queryFn: () => fetchAlchemyRecipes() });
 
 
   const characterOptions = useMemo(() => 
