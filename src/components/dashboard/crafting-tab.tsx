@@ -6,22 +6,27 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Hammer, FlaskConical, Plus, Trash2 } from 'lucide-react';
 import { useUser } from '@/hooks/use-user';
-import { ALL_ALCHEMY_INGREDIENTS, ALL_ALCHEMY_RECIPES, ALL_POTIONS } from '@/lib/data';
-import type { AlchemyRecipeComponent } from '@/lib/types';
+import { ALL_ALCHEMY_INGREDIENTS, ALL_POTIONS } from '@/lib/data';
+import type { AlchemyRecipe, AlchemyRecipeComponent } from '@/lib/types';
 import { SearchableSelect } from '../ui/searchable-select';
 import { Slider } from '../ui/slider';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Label } from '../ui/label';
+import { useQuery } from '@tanstack/react-query';
 
 export default function CraftingTab() {
-  const { currentUser, brewPotion, setCurrentUser } = useUser();
+  const { currentUser, brewPotion, setCurrentUser, fetchAllShops, fetchAlchemyRecipes } = useUser();
   const { toast } = useToast();
 
   const [selectedCharacterId, setSelectedCharacterId] = useState<string>('');
   const [selectedIngredients, setSelectedIngredients] = useState<AlchemyRecipeComponent[]>([]);
   const [heatLevel, setHeatLevel] = useState(50);
   const [isLoading, setIsLoading] = useState(false);
+
+  const { data: allShops = [] } = useQuery({ queryKey: ['allShops'], queryFn: fetchAllShops });
+  const { data: recipes = [] } = useQuery<AlchemyRecipe[]>({ queryKey: ['alchemyRecipes'], queryFn: fetchAlchemyRecipes });
+
 
   const characterOptions = useMemo(() => 
     (currentUser?.characters || []).map(c => ({ value: c.id, label: c.name })),
@@ -32,6 +37,16 @@ export default function CraftingTab() {
     currentUser?.characters.find(c => c.id === selectedCharacterId),
     [currentUser, selectedCharacterId]
   );
+  
+  const allItemsMap = useMemo(() => {
+    const map = new Map<string, { name: string; image?: string }>();
+    allShops.forEach(shop => {
+        (shop.items || []).forEach(item => {
+            map.set(item.id, { name: item.name, image: item.image });
+        });
+    });
+    return map;
+  }, [allShops]);
 
   const availableIngredientsOptions = useMemo(() => {
     if (!selectedCharacter) return [];
@@ -39,13 +54,13 @@ export default function CraftingTab() {
     return inventoryIngredients
       .filter(invItem => invItem.quantity > 0)
       .map(invItem => {
-        const ingredientData = ALL_ALCHEMY_INGREDIENTS.find(i => i.id === invItem.id);
+        const itemData = allItemsMap.get(invItem.id);
         return {
           value: invItem.id,
-          label: `${ingredientData?.name || invItem.name} (x${invItem.quantity})`,
+          label: `${itemData?.name || invItem.name} (x${invItem.quantity})`,
         };
       });
-  }, [selectedCharacter]);
+  }, [selectedCharacter, allItemsMap]);
 
   const addIngredient = (ingredientId: string) => {
     if (!ingredientId) return;
@@ -117,14 +132,14 @@ export default function CraftingTab() {
         <div className="md:col-span-1 space-y-4">
           <h3 className="font-semibold">Рецепты</h3>
           <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
-            {ALL_ALCHEMY_RECIPES.map(recipe => {
-              const resultPotion = ALL_POTIONS.find(p => p.id === recipe.resultPotionId);
+            {recipes.map(recipe => {
+              const resultPotion = allItemsMap.get(recipe.resultPotionId);
               return (
               <div key={recipe.id} className="p-3 border rounded-md text-sm">
                 <p className="font-bold">{resultPotion?.name || recipe.name}</p>
                 <ul className="text-xs text-muted-foreground list-disc pl-4 mt-1">
                   {recipe.components.map(comp => {
-                    const ingredient = ALL_ALCHEMY_INGREDIENTS.find(i => i.id === comp.ingredientId);
+                    const ingredient = allItemsMap.get(comp.ingredientId);
                     return <li key={comp.ingredientId}>{ingredient?.name || comp.ingredientId} x{comp.qty}</li>
                   })}
                 </ul>
@@ -151,7 +166,7 @@ export default function CraftingTab() {
                 <div className="p-4 border rounded-lg min-h-48 mt-2 space-y-2">
                   {selectedIngredients.length > 0 ? (
                     selectedIngredients.map(ing => {
-                      const ingredientData = ALL_ALCHEMY_INGREDIENTS.find(i => i.id === ing.ingredientId);
+                      const ingredientData = allItemsMap.get(ing.ingredientId);
                       return (
                       <div key={ing.ingredientId} className="flex items-center justify-between p-2 bg-muted rounded-md">
                         <div className="flex items-center gap-2">

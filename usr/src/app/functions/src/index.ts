@@ -65,9 +65,10 @@ function deepSanitize<T>(obj: T): T {
 
 // Helper to find a recipe that matches the provided ingredients, regardless of order.
 const findMatchingRecipe = (
-  submittedIngredients: AlchemyRecipeComponent[]
+  submittedIngredients: AlchemyRecipeComponent[],
+  allRecipes: AlchemyRecipe[]
 ): AlchemyRecipe | undefined => {
-  return ALL_ALCHEMY_RECIPES.find((recipe) => {
+  return allRecipes.find((recipe) => {
     if (recipe.components.length !== submittedIngredients.length) {
       return false;
     }
@@ -127,12 +128,16 @@ export const brewPotion = functions.https.onCall(async (data, context) => {
 
   try {
     const userRef = db.collection("users").doc(userId);
+    const recipesRef = db.collection("alchemy_recipes");
 
     await db.runTransaction(async (transaction) => {
       const userDoc = await transaction.get(userRef);
       if (!userDoc.exists) {
         throw new HttpsError("not-found", "Пользователь не найден.");
       }
+      
+      const recipesSnapshot = await transaction.get(recipesRef);
+      const allRecipes = recipesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AlchemyRecipe));
 
       const user = userDoc.data() as User;
       const characters = user.characters || [];
@@ -153,7 +158,7 @@ export const brewPotion = functions.https.onCall(async (data, context) => {
       };
 
       // 1. Find a matching recipe
-      const recipe = findMatchingRecipe(ingredients);
+      const recipe = findMatchingRecipe(ingredients, allRecipes);
       if (!recipe) {
         throw new HttpsError("not-found", "Подходящий рецепт не найден.");
       }
@@ -189,14 +194,14 @@ export const brewPotion = functions.https.onCall(async (data, context) => {
       }
       
       const norm = (v:any) => String(v);
-      const existingPotionIndex = potionsList.findIndex(p => norm(p.id) === norm(resultPotion.id));
+      const existingPotionIndex = potionsList.findIndex(p => norm(p.name) === norm(resultPotion.name));
       const outputQty = safeNumber(recipe.outputQty, 1) > 0 ? safeNumber(recipe.outputQty, 1) : 1;
       
       if (existingPotionIndex > -1) {
           potionsList[existingPotionIndex].quantity = safeNumber(potionsList[existingPotionIndex].quantity) + outputQty;
       } else {
           potionsList.push({
-              id: resultPotion.id,
+              id: `inv-item-${Date.now()}`,
               name: resultPotion.name,
               description: resultPotion.note,
               image: resultPotion.image,

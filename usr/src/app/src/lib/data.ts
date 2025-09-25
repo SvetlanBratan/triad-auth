@@ -1,4 +1,5 @@
 
+
 import type { Reward, FamiliarCard, Achievement, GameSettings, WealthLevel, BankAccount, CapitalLevel, CrimeLevel, Shop, InventoryCategory, PopularityEvent, AlchemyIngredient, Potion, AlchemyRecipe } from './types';
 import type { OptionType } from '@/components/ui/multi-select';
 
@@ -674,32 +675,13 @@ export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) =>
     return acc;
 }, {} as Record<string, Shop>);
 
-export const ALL_POTIONS: Potion[] = [
-  { id: 'potion-small-heal', name: 'Малое зелье лечения', tier: 'обычный', effects: [{ stat: 'hp', value: 25 }], note: 'Простое зелье, восстанавливающее немного здоровья.', image: 'https://i.postimg.cc/P5g1xG3G/image.png' },
-  { id: 'potion-medium-heal', name: 'Среднее зелье лечения', tier: 'редкий', effects: [{ stat: 'hp', value: 100 }], note: 'Более мощное зелье для серьезных ран.', image: 'https://i.postimg.cc/P5g1xG3G/image.png' },
-];
-
-export const ALL_ALCHEMY_INGREDIENTS: AlchemyIngredient[] = [
-    { id: 'ing-flower-fire', name: 'Огненный цветок', tags: ['растение', 'огонь'], image: 'https://i.postimg.cc/PqGy27G8/image.png' },
-    { id: 'ing-crystal-water', name: 'Водный кристалл', tags: ['минерал', 'вода'], image: 'https://i.postimg.cc/J0RYGNzB/image.png' },
-    { id: 'ing-herb-mountain', name: 'Горная трава', tags: ['растение', 'земля'], image: 'https://i.postimg.cc/y8YJpMWR/image.png' },
-];
     
-export const ALL_ALCHEMY_RECIPES: AlchemyRecipe[] = [
-    {
-        id: 'rec-small-heal',
-        name: 'Малое зелье лечения',
-        resultPotionId: 'potion-small-heal',
-        components: [
-            { ingredientId: 'ing-herb-mountain', qty: 2 },
-            { ingredientId: 'ing-crystal-water', qty: 1 }
-        ],
-        outputQty: 1,
-        minHeat: 20,
-        maxHeat: 50,
-        difficulty: 2,
-    }
-];
+// These are now obsolete as the data is loaded dynamically from shops.
+// Kept empty to avoid breaking imports, but will be removed in a future step.
+export const ALL_ALCHEMY_INGREDIENTS: AlchemyIngredient[] = [];
+export const ALL_POTIONS: Potion[] = [];
+    
+export const ALL_ALCHEMY_RECIPES: AlchemyRecipe[] = [];
 
     
 
@@ -725,5 +707,7 @@ export const ALL_ALCHEMY_RECIPES: AlchemyRecipe[] = [
 
 
     
+
+
 
 
