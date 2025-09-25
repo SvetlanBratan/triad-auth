@@ -1,5 +1,4 @@
 
-
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { HttpsError } from "firebase-functions/v1/https";
@@ -29,17 +28,48 @@ db.settings({ ignoreUndefinedProperties: true });
 
 const isFirestoreSpecial = (v: any): boolean => {
   if (!v || typeof v !== "object") return false;
+
+  // Явные типы
+  if (v instanceof admin.firestore.Timestamp) return true;
+  if (v instanceof admin.firestore.GeoPoint) return true;
+  if (v instanceof admin.firestore.DocumentReference) return true;
+  if (v instanceof Date) return true;
+  if (v instanceof Buffer) return true;
+  if (v instanceof Uint8Array) return true;
+
+  // Разные реализации FieldValue в @google-cloud/firestore
   const ctor = v.constructor?.name;
-  return (
-    v instanceof admin.firestore.Timestamp ||
-    v instanceof admin.firestore.GeoPoint ||
-    v instanceof admin.firestore.DocumentReference ||
-    v instanceof Date ||
-    v instanceof Buffer ||
-    v instanceof Uint8Array ||
-    ctor === "Bytes" ||
-    ctor === "FieldValue"
-  );
+  if (
+    ctor === "FieldValue" ||
+    ctor === "FieldValueImpl" ||
+    ctor === "ServerTimestampFieldValueImpl" ||
+    ctor === "DeleteFieldValueImpl" ||
+    ctor === "IncrementFieldValueImpl" ||
+    ctor === "ArrayUnionFieldValueImpl" ||
+    ctor === "ArrayRemoveFieldValueImpl"
+  ) {
+    return true;
+  }
+
+  // У сентинелов часто есть внутренние признаки:
+  if (typeof (v as any)._methodName === "string") return true; // "FieldValue.serverTimestamp"
+  if (
+    typeof (v as any).isEqual === "function" &&
+    typeof (v as any).toString === "function" &&
+    (v as any).toString().includes("FieldValue")
+  ) {
+    return true;
+  }
+
+  // Firestore Bytes (на всякий)
+  if (
+    typeof (v as any).toUint8Array === "function" &&
+    typeof (v as any).toBase64 === "function"
+  ) {
+    return true;
+  }
+
+  return false;
 };
 
 function deepSanitize<T>(obj: T): T {
