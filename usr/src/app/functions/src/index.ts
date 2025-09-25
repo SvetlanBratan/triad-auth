@@ -1,3 +1,4 @@
+
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { HttpsError } from "firebase-functions/v1/https";
@@ -246,9 +247,17 @@ export const brewPotion = functions.https.onCall(async (data, context) => {
 });
 
 export const addAlchemyRecipe = functions.https.onCall(async (data, context) => {
-  if (!context.auth || !context.auth.token.admin) {
-    throw new HttpsError("permission-denied", "Только администраторы могут добавлять рецепты.");
+  if (!context.auth) {
+    throw new HttpsError("unauthenticated", "Пользователь не авторизован.");
   }
+
+  // Verify admin status by checking Firestore document
+  const userRef = db.collection("users").doc(context.auth.uid);
+  const userDoc = await userRef.get();
+  if (!userDoc.exists || userDoc.data()?.role !== 'admin') {
+      throw new HttpsError("permission-denied", "Только администраторы могут добавлять рецепты.");
+  }
+
 
   const { name, resultPotionId, components, minHeat, maxHeat } = data;
 
