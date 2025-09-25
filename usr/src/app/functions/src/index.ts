@@ -256,36 +256,142 @@ export const addAlchemyRecipe = functions.https.onCall(async (data, context) => 
     throw new HttpsError("unauthenticated", "Пользователь не авторизован.");
   }
 
-  const userRef = db.collection("users").doc(context.auth.uid);
-  const userDoc = await userRef.get();
-  if (!userDoc.exists || userDoc.data()?.role !== 'admin') {
-      throw new HttpsError("permission-denied", "Только администраторы могут добавлять рецепты.");
+  const uid = context.auth.uid;
+  const userRef = db.collection("users").doc(uid);
+  const userSnap = await userRef.get();
+  if (!userSnap.exists) {
+    throw new HttpsError("not-found", "Пользователь не найден.");
   }
-  
-  const { name, resultPotionId, components, minHeat, maxHeat, outputQty, difficulty } = data;
 
-  if (!name || !resultPotionId || !Array.isArray(components) || components.length === 0 || typeof minHeat !== 'number' || typeof maxHeat !== 'number') {
-    throw new HttpsError("invalid-argument", "Неверные данные для создания рецепта.");
+  const u = userSnap.data() as any;
+  // Поддержим обе модели: { role: 'admin' } ИЛИ { roles: ['admin', ...] }
+  const isAdmin =
+    u?.role === "admin" ||
+    (Array.isArray(u?.roles) && u.roles.includes("admin"));
+
+  if (!isAdmin) {
+    throw new HttpsError("permission-denied", "Только администраторы могут добавлять рецепты.");
   }
+
+  // Извлекаем и приводим входные поля
+  const {
+    name,
+    resultPotionId,
+    components,
+    minHeat,
+    maxHeat,
+    outputQty,
+    difficulty,
+  } = data ?? {};
+
+  // Базовая валидация типов
+  if (typeof name !== "string" || !name.trim()) {
+    throw new HttpsError("invalid-argument", "name обязателен и должен быть строкой.");
+  }
+  if (typeof resultPotionId !== "string" || !resultPotionId.trim()) {
+    throw new HttpsError("invalid-argument", "resultPotionId обязателен и должен быть строкой.");
+  }
+  if (!Array.isArray(components) || components.length === 0) {
+    throw new HttpsError("invalid-argument", "components должен быть непустым массивом.");
+  }
+
+  // Нормализация/валидация компонентов
+  const normComponents = components.map((c: any, idx: number) => {
+    const id = String(c?.ingredientId ?? "").trim();
+    const rawQty = Number(c?.qty);
+    const qty = Number.isInteger(rawQty) ? rawQty : NaN;
+
+    if (!id) {
+      throw new HttpsError("invalid-argument", `components[${idx}].ingredientId пустой.`);
+    }
+    if (!Number.isInteger(qty) || qty < 1) {
+      throw new HttpsError("invalid-argument", `components[${idx}].qty должен быть целым ≥ 1.`);
+    }
+    return { ingredientId: id, qty };
+  });
+
+  // Нормализация чисел
+  const int = (v: any) => (Number.isInteger(Number(v)) ? Number(v) : NaN);
+
+  const minH = int(minHeat);
+  const maxH = int(maxHeat);
+  if (!Number.isInteger(minH) || !Number.isInteger(maxH)) {
+    throw new HttpsError("invalid-argument", "minHeat/maxHeat должны быть целыми числами.");
+  }
+  if (minH > maxH) {
+    throw new HttpsError("invalid-argument", "minHeat не может быть больше maxHeat.");
+  }
+
+  let outQty = int(outputQty);
+  if (!Number.isInteger(outQty) || outQty < 1) outQty = 1;
+
+  let diff = int(difficulty);
+  if (!Number.isInteger(diff) || diff < 1) diff = 1;
+
+  // Очистка полезной нагрузки (убрать undefined/NaN)
+  const safe = (obj: any) => {
+    if (obj === null || obj === undefined) return obj;
+    if (Array.isArray(obj)) return obj.map(safe).filter(v => v !== undefined);
+    if (typeof obj === "object") {
+      const out: any = {};
+      for (const [k, v] of Object.entries(obj)) {
+        if (v === undefined) continue;
+        if (typeof v === "number" && !Number.isFinite(v)) continue; // убираем NaN/Infinity
+        out[k] = safe(v);
+      }
+      return out;
+    }
+    return obj;
+  };
+
+  // (опц.) добавим signature для быстрого поиска по наборам
+  const signature = normComponents
+    .slice()
+    .sort((a, b) => a.ingredientId.localeCompare(b.ingredientId))
+    .map(c => `${c.ingredientId}#${c.qty}`)
+    .join("+");
+
+  const newRecipeData = safe({
+    name: name.trim(),
+    resultPotionId: resultPotionId.trim(),
+    components: normComponents,
+    minHeat: minH,
+    maxHeat: maxH,
+    outputQty: outQty,
+    difficulty: diff,
+    signature,           // пригодится потом
+    isActive: true,      // можно сразу активировать
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
 
   try {
-    const newRecipeData = {
-      name,
-      resultPotionId,
-      components,
-      minHeat,
-      maxHeat,
-      outputQty: outputQty || 1,
-      difficulty: difficulty || 1,
-      createdAt: new Date().toISOString(),
-    };
-
-    const recipesRef = db.collection("alchemy_recipes");
-    await recipesRef.add(newRecipeData);
-
+    await db.collection("alchemy_recipes").add(newRecipeData);
     return { success: true, message: "Рецепт успешно добавлен." };
-  } catch (error) {
-    console.error("Error in addAlchemyRecipe:", error);
+  } catch (e: any) {
+    console.error("Error in addAlchemyRecipe:", {
+      code: e?.code,
+      message: e?.message,
+      details: e?.details,
+      stack: e?.stack,
+      dataPreview: newRecipeData, // поможет в логах
+    });
+    // Если Firestore ответил числовым кодом
+    if (typeof e?.code === "number") {
+      const map: Record<number, string> = {
+        3: "invalid-argument",
+        5: "not-found",
+        7: "permission-denied",
+        10: "aborted",
+        13: "internal",
+        16: "unauthenticated",
+      };
+      throw new HttpsError((map[e.code] ?? "internal") as any, e?.message ?? "Ошибка.");
+    }
+    // Если это уже HttpsError — пробросим
+    if (e instanceof HttpsError) throw e;
+    // Строковый код Firestore — пробросим как есть
+    if (typeof e?.code === "string") throw new HttpsError(e.code as any, e?.message ?? "Ошибка.");
+    // По умолчанию
     throw new HttpsError("internal", "Не удалось добавить рецепт.");
   }
 });
