@@ -264,7 +264,6 @@ export const addAlchemyRecipe = functions.https.onCall(async (data, context) => 
   }
 
   const u = userSnap.data() as any;
-  // Поддержим обе модели: { role: 'admin' } ИЛИ { roles: ['admin', ...] }
   const isAdmin =
     u?.role === "admin" ||
     (Array.isArray(u?.roles) && u.roles.includes("admin"));
@@ -273,7 +272,6 @@ export const addAlchemyRecipe = functions.https.onCall(async (data, context) => 
     throw new HttpsError("permission-denied", "Только администраторы могут добавлять рецепты.");
   }
 
-  // Извлекаем и приводим входные поля
   const {
     name,
     resultPotionId,
@@ -284,7 +282,6 @@ export const addAlchemyRecipe = functions.https.onCall(async (data, context) => 
     difficulty,
   } = data ?? {};
 
-  // Базовая валидация типов
   if (typeof name !== "string" || !name.trim()) {
     throw new HttpsError("invalid-argument", "name обязателен и должен быть строкой.");
   }
@@ -295,7 +292,6 @@ export const addAlchemyRecipe = functions.https.onCall(async (data, context) => 
     throw new HttpsError("invalid-argument", "components должен быть непустым массивом.");
   }
 
-  // Нормализация/валидация компонентов
   const normComponents = components.map((c: any, idx: number) => {
     const id = String(c?.ingredientId ?? "").trim();
     const rawQty = Number(c?.qty);
@@ -310,7 +306,6 @@ export const addAlchemyRecipe = functions.https.onCall(async (data, context) => 
     return { ingredientId: id, qty };
   });
 
-  // Нормализация чисел
   const int = (v: any) => (Number.isInteger(Number(v)) ? Number(v) : NaN);
 
   const minH = int(minHeat);
@@ -328,30 +323,13 @@ export const addAlchemyRecipe = functions.https.onCall(async (data, context) => 
   let diff = int(difficulty);
   if (!Number.isInteger(diff) || diff < 1) diff = 1;
 
-  // Очистка полезной нагрузки (убрать undefined/NaN)
-  const safe = (obj: any) => {
-    if (obj === null || obj === undefined) return obj;
-    if (Array.isArray(obj)) return obj.map(safe).filter(v => v !== undefined);
-    if (typeof obj === "object") {
-      const out: any = {};
-      for (const [k, v] of Object.entries(obj)) {
-        if (v === undefined) continue;
-        if (typeof v === "number" && !Number.isFinite(v)) continue; // убираем NaN/Infinity
-        out[k] = safe(v);
-      }
-      return out;
-    }
-    return obj;
-  };
-
-  // (опц.) добавим signature для быстрого поиска по наборам
   const signature = normComponents
     .slice()
     .sort((a, b) => a.ingredientId.localeCompare(b.ingredientId))
     .map(c => `${c.ingredientId}#${c.qty}`)
     .join("+");
 
-  const newRecipeData = safe({
+  const newRecipeData = {
     name: name.trim(),
     resultPotionId: resultPotionId.trim(),
     components: normComponents,
@@ -359,13 +337,14 @@ export const addAlchemyRecipe = functions.https.onCall(async (data, context) => 
     maxHeat: maxH,
     outputQty: outQty,
     difficulty: diff,
-    signature,           // пригодится потом
-    isActive: true,      // можно сразу активировать
+    signature,
+    isActive: true,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
-  });
+  };
 
   try {
-    await db.collection("alchemy_recipes").add(newRecipeData);
+    const cleanedPayload = deepSanitize(newRecipeData);
+    await db.collection("alchemy_recipes").add(cleanedPayload);
     return { success: true, message: "Рецепт успешно добавлен." };
   } catch (e: any) {
     console.error("Error in addAlchemyRecipe:", {
@@ -373,9 +352,8 @@ export const addAlchemyRecipe = functions.https.onCall(async (data, context) => 
       message: e?.message,
       details: e?.details,
       stack: e?.stack,
-      dataPreview: newRecipeData, // поможет в логах
+      dataPreview: newRecipeData,
     });
-    // Если Firestore ответил числовым кодом
     if (typeof e?.code === "number") {
       const map: Record<number, string> = {
         3: "invalid-argument",
@@ -387,11 +365,8 @@ export const addAlchemyRecipe = functions.https.onCall(async (data, context) => 
       };
       throw new HttpsError((map[e.code] ?? "internal") as any, e?.message ?? "Ошибка.");
     }
-    // Если это уже HttpsError — пробросим
     if (e instanceof HttpsError) throw e;
-    // Строковый код Firestore — пробросим как есть
     if (typeof e?.code === "string") throw new HttpsError(e.code as any, e?.message ?? "Ошибка.");
-    // По умолчанию
     throw new HttpsError("internal", "Не удалось добавить рецепт.");
   }
 });
