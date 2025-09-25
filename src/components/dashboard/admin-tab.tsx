@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
 import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info, AlertTriangle, Bell, CheckCircle, Store, PackagePlus, Edit, BadgeCheck, FileText, Send, Gavel, Eye, UserMinus, FlaskConical } from 'lucide-react';
-import type { UserStatus, UserRole, User, FamiliarCard, BankAccount, WealthLevel, FamiliarRank, Shop, InventoryCategory, AdminGiveItemForm, InventoryItem, CitizenshipStatus, TaxpayerStatus, CharacterPopularityUpdate } from '@/lib/types';
+import type { UserStatus, UserRole, User, FamiliarCard, BankAccount, WealthLevel, FamiliarRank, Shop, InventoryCategory, AdminGiveItemForm, InventoryItem, CitizenshipStatus, TaxpayerStatus, CharacterPopularityUpdate, AlchemyIngredient, AlchemyRecipe } from '@/lib/types';
 import { EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, FAMILIARS_BY_ID, WEALTH_LEVELS, ALL_FAMILIARS, STARTING_CAPITAL_LEVELS, ALL_SHOPS, INVENTORY_CATEGORIES, POPULARITY_EVENTS } from '@/lib/data';
 import {
   AlertDialog,
@@ -197,6 +197,13 @@ export default function AdminTab() {
   const [popularityUpdates, setPopularityUpdates] = useState<Record<string, { events: string[] }>>({});
   const [popularityDescription, setPopularityDescription] = useState('');
   const [isProcessingPopularity, setIsProcessingPopularity] = useState(false);
+  
+  // Alchemy state
+  const [isIngredientDialogOpen, setIsIngredientDialogOpen] = useState(false);
+  const [editingIngredient, setEditingIngredient] = useState<AlchemyIngredient | null>(null);
+  const [isRecipeDialogOpen, setIsRecipeDialogOpen] = useState(false);
+  const [editingRecipe, setEditingRecipe] = useState<AlchemyRecipe | null>(null);
+
 
   useEffect(() => {
     const newUpdates: Record<string, { events: string[] }> = {};
@@ -1060,6 +1067,7 @@ export default function AdminTab() {
         <TabsTrigger value="general" className="text-xs sm:text-sm">Общее</TabsTrigger>
         <TabsTrigger value="popularity" className="text-xs sm:text-sm">Популярность</TabsTrigger>
         <TabsTrigger value="familiars" className="text-xs sm:text-sm">Фамильяры</TabsTrigger>
+        <TabsTrigger value="alchemy" className="text-xs sm:text-sm">Алхимия</TabsTrigger>
         <TabsTrigger value="economy" className="text-xs sm:text-sm">Экономика</TabsTrigger>
         <TabsTrigger value="shops" className="text-xs sm:text-sm">Магазины</TabsTrigger>
         <TabsTrigger value="mail" className="text-xs sm:text-sm">Рассылка</TabsTrigger>
@@ -1733,6 +1741,28 @@ export default function AdminTab() {
         </div>
       </TabsContent>
 
+       <TabsContent value="alchemy" className="mt-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><FlaskConical /> Алхимия и Ремесло</CardTitle>
+            <CardDescription>Управление алхимическими ингредиентами, зельями и рецептами для крафта.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+             <div className="flex flex-col sm:flex-row gap-4">
+                <Button className="flex-1" onClick={() => { setEditingIngredient(null); setIsIngredientDialogOpen(true); }}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Управление ингредиентами
+                </Button>
+                <Button className="flex-1" variant="secondary" onClick={() => { setEditingRecipe(null); setIsRecipeDialogOpen(true); }}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Управление рецептами
+                </Button>
+             </div>
+             <p className="text-sm text-muted-foreground text-center">Здесь будет список всех ингредиентов и рецептов в игре.</p>
+          </CardContent>
+        </Card>
+      </TabsContent>
+
       <TabsContent value="economy" className="mt-4">
         <div className="gap-6 column-1 md:column-2 lg:column-3">
             <div className="break-inside-avoid mb-6">
@@ -2290,6 +2320,7 @@ export default function AdminTab() {
 }
 
     
+
 
 
 

@@ -18,31 +18,38 @@ export type TaxpayerStatus = 'taxable' | 'exempt';
 export type MailMessageType = 'announcement' | 'personal';
 
 // --- ALCHEMY TYPES ---
-
 export interface AlchemyIngredient {
   id: string;
   name: string;
-  tags: string[];
-  potency: number;
+  note?: string; // Changed from description to note
+  tags: string[]; // e.g., ['растение', 'магический']
+  image?: string;
 }
 
 export interface Potion {
   id: string;
   name: string;
+  note?: string; // Changed from description to note
   effects: { stat: 'hp' | 'mana' | 'luck'; value: number; durationSec?: number }[];
   tier: 'обычный' | 'редкий' | 'легендарный';
-  basePrice: number;
+  image?: string;
+}
+
+export interface AlchemyRecipeComponent {
+  ingredientId: string;
+  qty: number;
 }
 
 export interface AlchemyRecipe {
   id: string;
   name: string;
-  inputs: { id: string; qty: number }[];
-  output: { id: string; qty: number };
-  difficulty: number;
-  requires?: string[];
+  components: AlchemyRecipeComponent[];
+  resultPotionId: string;
+  outputQty: number;
+  minHeat: number; // 0-100
+  maxHeat: number; // 0-100
+  difficulty: number; // 1-10
 }
-
 // --- END ALCHEMY TYPES ---
 
 
