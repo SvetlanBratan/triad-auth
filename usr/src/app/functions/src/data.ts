@@ -1124,6 +1124,127 @@ const ALL_FAMILIAR_CARDS_RAW: Omit<FamiliarCard, "data-ai-hint">[] = [
   },
 ];
 
+export const EVENT_FAMILIARS_RAW: Omit<FamiliarCard, "data-ai-hint">[] = [
+    { id: 'fam-e-anubis', name: 'Анубис', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753197215/%D0%90%D0%BD%D1%83%D0%B1%D0%B8%D1%81_sqmdss.png' },
+    { id: 'fam-e-zhut', name: 'Жуть', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199419/%D0%96%D1%83%D1%82%D1%8C_hmausj.png'},
+    { id: 'fam-e-blues', name: 'Колодезный дух Блюз', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199422/%D0%9A%D0%BE%D0%BB%D0%BE%D0%B4%D0%B5%D0%B7%D0%BD%D1%8B%D0%B9_%D0%B4%D1%83%D1%85_%D0%91%D0%BB%D1%8E%D0%B7_c9d8nc.png'},
+    { id: 'fam-e-bone-crow', name: 'Костяная ворона', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199424/%D0%9A%D0%BE%D1%81%D1%82%D1%8F%D0%BD%D0%B0%D1%8F_%D0%92%D0%BE%D1%80%D0%BE%D0%BD%D0%B0_u9vlpc.png'},
+    { id: 'fam-e-bone-dog', name: 'Костяная собака', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199424/%D0%9A%D0%BE%D1%81%D1%82%D1%8F%D0%BD%D0%B0%D1%8F_%D1%81%D0%BE%D0%B1%D0%B0%D0%BA%D0%B0_cmdjk6.png'},
+    { id: 'fam-e-bone-cat', name: 'Костяной кот', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199425/%D0%9A%D0%BE%D1%81%D1%82%D1%8F%D0%BD%D0%BE%D0%B9_%D0%BA%D0%BE%D1%82_hr2gmk.png'},
+    { id: 'fam-e-leviathan', name: 'Левиафан', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199426/%D0%BB%D0%B5%D0%B2%D0%B8%D0%B0%D1%84%D0%B0%D0%BD_hr6tat.png' },
+    { id: 'fam-e-ariana', name: 'Леди Ариана', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199427/%D0%9B%D0%B5%D0%B4%D0%B8_%D0%90%D1%80%D0%B8%D0%B0%D0%BD%D0%B0_w15swi.png' },
+    { id: 'fam-e-cerberus', name: 'Цербер', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199467/%D0%A6%D0%B5%D1%80%D0%B1%D0%B5%D1%80_rznwpc.png' },
+    { id: 'fam-e-sherlas', name: 'Шерлас', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753272049/2131541243_sci3mx.jpg' },
+    { id: 'fam-e-anhel', name: 'Анхель', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753272049/123123_oljkkn.jpg' },
+    { id: 'fam-e-faust', name: 'Фауст', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753272049/312312412341_kl5exi.jpg' },
+    { id: 'fam-e-pumpkin-wife', name: 'Тыкво-жена', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753276855/%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B8%D0%9A%D0%9A%D0%98_sqv5if.png' },
+    { id: 'fam-e-pumpkin-husband', name: 'Тыкво-муж', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753286999/%D0%A2%D1%8B%D0%BA%D0%B2%D0%BE%D0%BC%D1%83%D0%B6_v9bpsg.png' },
+];
+
+const addHint = (card: Omit<FamiliarCard, 'data-ai-hint'>): FamiliarCard => {
+    let hint = '';
+    const lowerCaseName = card.name.toLowerCase();
+    if (lowerCaseName.includes('анчутка')) hint = 'imp demon';
+    else if (lowerCaseName.includes('артерианская гончая')) hint = 'arterian hound';
+    else if (lowerCaseName.includes('альви')) hint = 'elf girl';
+    else if (lowerCaseName.includes('альдуин')) hint = 'dragon';
+    else if (lowerCaseName.includes('тыквенный')) hint = 'pumpkin monster';
+    else if (lowerCaseName.includes('дух рождества')) hint = 'christmas spirit';
+    else if (lowerCaseName.includes('анубис')) hint = 'anubis god';
+    else if (lowerCaseName.includes('баргест')) hint = 'barghest hound';
+    else if (lowerCaseName.includes('артерианский бреллопир')) hint = 'antlered beast';
+    else if (lowerCaseName.includes('браффа')) hint = 'fluffy creature';
+    else if (lowerCaseName.includes('божья тварь')) hint = 'divine beast';
+    else if (lowerCaseName.includes('вивер')) hint = 'wyvern dragon';
+    else if (lowerCaseName.includes('грифон')) hint = 'gryphon';
+    else if (lowerCaseName.includes('громовая птица')) hint = 'thunderbird';
+    else if (lowerCaseName.includes('грубас')) hint = 'fat beast';
+    else if (lowerCaseName.includes('грызмар')) hint = 'grizzly monster';
+    else if (lowerCaseName.includes('единорог')) hint = 'unicorn';
+    else if (lowerCaseName.includes('енот-некромант')) hint = 'raccoon necromancer';
+    else if (lowerCaseName.includes('зеленоградская гончая')) hint = 'green hound';
+    else if (lowerCaseName.includes('жуть')) hint = 'terror beast';
+    else if (lowerCaseName.includes('златоуст')) hint = 'golden dragon';
+    else if (lowerCaseName.includes('золотце')) hint = 'golden creature';
+    else if (lowerCaseName.includes('зеленоградский бреллопир')) hint = 'green antlered';
+    else if (lowerCaseName.includes('келпи')) hint = 'kelpie horse';
+    else if (lowerCaseName.includes('кирин')) hint = 'qilin beast';
+    else if (lowerCaseName.includes('блюз')) hint = 'well spirit';
+    else if (lowerCaseName.includes('комаину')) hint = 'komainu lion';
+    else if (lowerCaseName.includes('костяная ворона')) hint = 'bone crow';
+    else if (lowerCaseName.includes('костяная собака')) hint = 'bone dog';
+    else if (lowerCaseName.includes('костяной кот')) hint = 'bone cat';
+    else if (lowerCaseName.includes('кракен')) hint = 'kraken monster';
+    else if (lowerCaseName.includes('левиафан')) hint = 'leviathan sea monster';
+    else if (lowerCaseName.includes('леди ариана')) hint = 'lady ariana';
+    else if (lowerCaseName.includes('лёдинова и огнова')) hint = 'ice fire wolves';
+    else if (lowerCaseName.includes('ледяная кобыла')) hint = 'ice mare';
+    else if (lowerCaseName.includes('ледяная рысь')) hint = 'ice lynx';
+    else if (lowerCaseName.includes('лисобелка')) hint = 'fox squirrel';
+    else if (lowerCaseName.includes('майри кото')) hint = 'mairi koto';
+    else if (lowerCaseName.includes('найтмар')) hint = 'nightmare horse';
+    else if (lowerCaseName.includes('небесный кит')) hint = 'sky whale';
+    else if (lowerCaseName.includes('огнекус')) hint = 'fire biter';
+    else if (lowerCaseName.includes('огнемур')) hint = 'fire lemur';
+    else if (lowerCaseName.includes('огнеславская гончая')) hint = 'fire hound';
+    else if (lowerCaseName.includes('панцефлот')) hint = 'armored fleet';
+    else if (lowerCaseName.includes('пегас')) hint = 'pegasus';
+    else if (lowerCaseName.includes('пчелокот')) hint = 'bee cat';
+    else if (lowerCaseName.includes('ремох')) hint = 'remoh monster';
+    else if (lowerCaseName.includes('савокль')) hint = 'owl creature';
+    else if (lowerCaseName.includes('серпопард')) hint = 'sickle leopard';
+    else if (lowerCaseName.includes('софил')) hint = 'sofil creature';
+    else if (lowerCaseName.includes('тыквоходка')) hint = 'pumpkin walker';
+    else if (lowerCaseName.includes('файфи')) hint = 'faifi creature';
+    else if (lowerCaseName.includes('цербер')) hint = 'cerberus hound';
+    else if (lowerCaseName.includes('хрустальный аликорн')) hint = 'crystal alicorn';
+    else if (lowerCaseName.includes('чупакабра')) hint = 'chupacabra';
+    else if (lowerCaseName.includes('швепсель')) hint = 'shvepsel creature';
+    else if (lowerCaseName.includes('шорёк')) hint = 'shorek creature';
+    else if (lowerCaseName.includes('эйктюрнир')) hint = 'eikthyrnir deer';
+    else if (lowerCaseName.includes('элементаль тьмы')) hint = 'dark elemental';
+    else if (lowerCaseName.includes('шерлас')) hint = 'sherlas portrait';
+    else if (lowerCaseName.includes('анхель')) hint = 'anhel portrait';
+    else if (lowerCaseName.includes('фауст')) hint = 'faust portrait';
+    else if (lowerCaseName.includes('тыкво-жена')) hint = 'pumpkin wife';
+    else if (lowerCaseName.includes('тыкво-муж')) hint = 'pumpkin husband';
+    else if (lowerCaseName.includes('цветокот')) hint = 'flower cat';
+    else if (lowerCaseName.includes('серисса')) hint = 'serissa creature';
+    else if (lowerCaseName.includes('ночной сыч')) hint = 'night owl';
+    else if (lowerCaseName.includes('быкозёбр')) hint = 'bull zebra';
+    else if (lowerCaseName.includes('огненная лисица')) hint = 'fire fox';
+    else if (lowerCaseName.includes('клоуарк')) hint = 'clown shark';
+    else if (lowerCaseName.includes('глуборез')) hint = 'deep cutter';
+    else if (lowerCaseName.includes('элефваль')) hint = 'elephwal creature';
+    else if (lowerCaseName.includes('огнеящер')) hint = 'fire lizard';
+    else if (lowerCaseName.includes('грифолень')) hint = 'griffon deer';
+    else if (lowerCaseName.includes('совурат')) hint = 'owl rat';
+    else if (lowerCaseName.includes('дракоскорпиус')) hint = 'dragon scorpion';
+    else if (lowerCaseName.includes('меринаг')) hint = 'merinag creature';
+    else if (lowerCaseName.includes('скоргус')) hint = 'skorgus creature';
+    else if (lowerCaseName.includes('крокун')) hint = 'krokun creature';
+    else if (lowerCaseName.includes('ленико')) hint = 'leniko creature';
+    else if (lowerCaseName.includes('крылопотам')) hint = 'winged hippo';
+    else if (lowerCaseName.includes('оркалень')) hint = 'orca deer';
+    else if (lowerCaseName.includes('паукок')) hint = 'peacock spider';
+    else if (lowerCaseName.includes('медопус')) hint = 'honey octopus';
+    else if (lowerCaseName.includes('варассас')) hint = 'varassas creature';
+    else if (lowerCaseName.includes('кирафа')) hint = 'kirafa creature';
+    else if (lowerCaseName.includes('лунория')) hint = 'lunoria creature';
+    else if (lowerCaseName.includes('фенортул')) hint = 'fenortul creature';
+    else if (lowerCaseName.includes('кицуда')) hint = 'kitsuda creature';
+    else if (lowerCaseName.includes('зеврогриф')) hint = 'zebrogriff';
+    else if (lowerCaseName.includes('виоракси')) hint = 'vioraxi';
+    else if (lowerCaseName.includes('огненногрив')) hint = 'firemane';
+    else if (lowerCaseName.includes('ксантеаль')) hint = 'xantheal';
+    else if (lowerCaseName.includes('лотль')) hint = 'lotl';
+    else if (lowerCaseName.includes('олигр')) hint = 'oligr';
+    else if (lowerCaseName.includes('пупурита')) hint = 'pupurita';
+    return { ...card, 'data-ai-hint': hint };
+};
+
+
+export const ALL_FAMILIARS: FamiliarCard[] = ALL_FAMILIAR_CARDS_RAW.map(addHint);
 export const EVENT_FAMILIARS: FamiliarCard[] = EVENT_FAMILIARS_RAW.map(addHint);
 
 
@@ -1335,35 +1456,3 @@ export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) =>
     acc[shop.id] = shop;
     return acc;
 }, {} as Record<string, Shop>);
-
-    
-export const ALL_ALCHEMY_INGREDIENTS: AlchemyIngredient[] = [];
-export const ALL_POTIONS: Potion[] = [];
-export const ALL_ALCHEMY_RECIPES: AlchemyRecipe[] = [];
-
-    
-
-    
-
-
-
-
-
-
-    
-
-
-    
-
-
-
-
-
-
-
-
-
-
-    
-
-
