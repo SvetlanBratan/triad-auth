@@ -1,3 +1,4 @@
+
 export type UserRole = "admin" | "user";
 export type UserStatus = "активный" | "неактивный" | "отпуск";
 export type RewardRequestStatus = "в ожидании" | "одобрено" | "отклонено";
@@ -95,6 +96,7 @@ export interface AlchemyRecipe {
   minHeat: number; // 0-100
   maxHeat: number; // 0-100
   difficulty: number; // 1-10
+  createdAt?: string; // ISO string
 }
 // --- END ALCHEMY TYPES ---
 
@@ -631,4 +633,12 @@ export interface UserContextType {
     heatLevel: number
   ) => Promise<User>;
   addAlchemyRecipe: (recipe: Omit<AlchemyRecipe, "id">) => Promise<void>;
+  transferCurrency: (
+    sourceUserId: string,
+    sourceCharacterId: string,
+    targetCharacterId: string,
+    amount: Partial<Omit<BankAccount, 'history'>>,
+    reason: string
+  ) => Promise<void>;
+  fetchAlchemyRecipes: () => Promise<AlchemyRecipe[]>;
 }

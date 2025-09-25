@@ -256,34 +256,32 @@ export const addAlchemyRecipe = functions.https.onCall(async (data, context) => 
     throw new HttpsError("unauthenticated", "Пользователь не авторизован.");
   }
 
-  // Verify admin status by checking Firestore document
   const userRef = db.collection("users").doc(context.auth.uid);
   const userDoc = await userRef.get();
   if (!userDoc.exists || userDoc.data()?.role !== 'admin') {
       throw new HttpsError("permission-denied", "Только администраторы могут добавлять рецепты.");
   }
-
-
-  const { name, resultPotionId, components, minHeat, maxHeat } = data;
+  
+  const { name, resultPotionId, components, minHeat, maxHeat, outputQty, difficulty } = data;
 
   if (!name || !resultPotionId || !Array.isArray(components) || components.length === 0 || typeof minHeat !== 'number' || typeof maxHeat !== 'number') {
     throw new HttpsError("invalid-argument", "Неверные данные для создания рецепта.");
   }
 
   try {
-    const newRecipe = {
+    const newRecipeData = {
       name,
       resultPotionId,
       components,
       minHeat,
       maxHeat,
-      outputQty: data.outputQty || 1,
-      difficulty: data.difficulty || 1,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      outputQty: outputQty || 1,
+      difficulty: difficulty || 1,
+      createdAt: new Date().toISOString(),
     };
 
     const recipesRef = db.collection("alchemy_recipes");
-    await recipesRef.add(newRecipe);
+    await recipesRef.add(newRecipeData);
 
     return { success: true, message: "Рецепт успешно добавлен." };
   } catch (error) {
