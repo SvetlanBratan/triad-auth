@@ -675,21 +675,11 @@ export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) =>
 }, {} as Record<string, Shop>);
 
     
-
-
-
-
-    
+export const ALL_ALCHEMY_INGREDIENTS: AlchemyIngredient[] = [];
+export const ALL_POTIONS: Potion[] = [];
+export const ALL_ALCHEMY_RECIPES: AlchemyRecipe[] = [];
 
     
-
-
-
-
-
-
-    
-
 
     
 
@@ -698,8 +688,19 @@ export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) =>
 
 
 
+    
+
+
+    
+
+
+
+
+
+
 
 
 
 
     
+
