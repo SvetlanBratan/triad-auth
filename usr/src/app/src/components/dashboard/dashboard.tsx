@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -43,6 +44,8 @@ export function Dashboard() {
   }
 
   if (!currentUser) {
+    // This case should theoretically be handled by the root page now,
+    // but as a fallback, we can show the AuthPage or a message.
     return <AuthPage />;
   }
 
