@@ -205,6 +205,8 @@ export default function AdminTab() {
   const [recipeResultId, setRecipeResultId] = useState('');
   const [recipeComponents, setRecipeComponents] = useState<AlchemyRecipeComponent[]>([{ ingredientId: '', qty: 1 }]);
   const [isAddingRecipe, setIsAddingRecipe] = useState(false);
+  const [recipeOutputQty, setRecipeOutputQty] = useState(1);
+  const [recipeDifficulty, setRecipeDifficulty] = useState(1);
 
 
   useEffect(() => {
@@ -886,8 +888,8 @@ export default function AdminTab() {
             name: recipeName,
             resultPotionId: recipeResultId,
             components: recipeComponents,
-            outputQty: 1, // Defaulting to 1 for now
-            difficulty: 1, // Defaulting to 1
+            outputQty: parseInt(String(recipeOutputQty), 10) || 1,
+            difficulty: parseInt(String(recipeDifficulty), 10) || 1,
         };
         await addAlchemyRecipe(newRecipe);
         toast({ title: 'Рецепт добавлен!', description: `Новый рецепт "${recipeName}" успешно сохранен.` });
@@ -895,6 +897,8 @@ export default function AdminTab() {
         setRecipeName('');
         setRecipeResultId('');
         setRecipeComponents([{ ingredientId: '', qty: 1 }]);
+        setRecipeOutputQty(1);
+        setRecipeDifficulty(1);
 
     } catch(err) {
         const msg = err instanceof Error ? err.message : 'Произошла неизвестная ошибка.';
@@ -2346,6 +2350,16 @@ export default function AdminTab() {
                             <PlusCircle className="mr-2 h-4 w-4" />Добавить ингредиент
                         </Button>
                     </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="recipe-output-qty">Количество на выходе</Label>
+                        <Input id="recipe-output-qty" type="number" value={recipeOutputQty} onChange={e => setRecipeOutputQty(parseInt(e.target.value) || 1)} min={1} />
+                      </div>
+                      <div>
+                        <Label htmlFor="recipe-difficulty">Сложность (1-10)</Label>
+                        <Input id="recipe-difficulty" type="number" value={recipeDifficulty} onChange={e => setRecipeDifficulty(parseInt(e.target.value) || 1)} min={1} max={10} />
+                      </div>
+                    </div>
                     <Button type="submit" disabled={isAddingRecipe} className="w-full">
                         {isAddingRecipe ? 'Добавление...' : 'Добавить рецепт'}
                     </Button>
@@ -2424,5 +2438,6 @@ export default function AdminTab() {
     </Tabs>
   );
 }
+
 
 

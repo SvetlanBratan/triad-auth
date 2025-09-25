@@ -334,13 +334,13 @@ export const addAlchemyRecipe = functions.https.onCall(async (data, context) => 
     return { ingredientId: id, qty };
   });
 
-  const int = (v: any) => (Number.isInteger(Number(v)) ? Number(v) : NaN);
+  const int = (v: any, fallback: number) => {
+    const n = Number(v);
+    return Number.isInteger(n) && n > 0 ? n : fallback;
+  };
 
-  let outQty = int(outputQty);
-  if (!Number.isInteger(outQty) || outQty < 1) outQty = 1;
-
-  let diff = int(difficulty);
-  if (!Number.isInteger(diff) || diff < 1) diff = 1;
+  const outQty = int(outputQty, 1);
+  const diff = int(difficulty, 1);
 
   const signature = normComponents
     .slice()
