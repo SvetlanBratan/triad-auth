@@ -632,7 +632,7 @@ export interface UserContextType {
     ingredients: AlchemyRecipeComponent[],
     heatLevel: number
   ) => Promise<User>;
-  addAlchemyRecipe: (recipe: Omit<AlchemyRecipe, 'id'>) => Promise<void>;
+  addAlchemyRecipe: (recipe: Omit<AlchemyRecipe, "id">) => Promise<void>;
   transferCurrency: (
     sourceUserId: string,
     sourceCharacterId: string,
@@ -640,4 +640,5 @@ export interface UserContextType {
     amount: Partial<Omit<BankAccount, 'history'>>,
     reason: string
   ) => Promise<void>;
+  fetchAlchemyRecipes: () => Promise<AlchemyRecipe[]>;
 }
