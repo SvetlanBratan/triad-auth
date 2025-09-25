@@ -6,9 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Hammer, FlaskConical, Plus, Trash2 } from 'lucide-react';
 import { useUser } from '@/hooks/use-user';
-import type { AlchemyRecipe, AlchemyRecipeComponent } from '@/lib/types';
+import type { AlchemyRecipe, AlchemyRecipeComponent, InventoryItem } from '@/lib/types';
 import { SearchableSelect } from '../ui/searchable-select';
-import { Slider } from '../ui/slider';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Label } from '../ui/label';
@@ -20,7 +19,6 @@ export default function CraftingTab() {
 
   const [selectedCharacterId, setSelectedCharacterId] = useState<string>('');
   const [selectedIngredients, setSelectedIngredients] = useState<AlchemyRecipeComponent[]>([]);
-  const [heatLevel, setHeatLevel] = useState(50);
   const [isLoading, setIsLoading] = useState(false);
 
   const { data: allShops = [] } = useQuery({ queryKey: ['allShops'], queryFn: fetchAllShops });
@@ -39,13 +37,27 @@ export default function CraftingTab() {
   
   const allItemsMap = useMemo(() => {
     const map = new Map<string, { name: string; image?: string }>();
+    // First, add all items from all shops to create a global lookup table
     allShops.forEach(shop => {
         (shop.items || []).forEach(item => {
             map.set(item.id, { name: item.name, image: item.image });
         });
     });
+     // Then, add all items from the current user's characters' inventories
+    currentUser?.characters.forEach(char => {
+        if (char.inventory) {
+            Object.values(char.inventory).forEach(category => {
+                (category as InventoryItem[]).forEach(item => {
+                    if (!map.has(item.id)) {
+                        map.set(item.id, { name: item.name, image: item.image });
+                    }
+                });
+            });
+        }
+    });
+
     return map;
-  }, [allShops]);
+  }, [allShops, currentUser]);
 
   const availableIngredientsOptions = useMemo(() => {
     if (!selectedCharacter) return [];
@@ -53,13 +65,12 @@ export default function CraftingTab() {
     return inventoryIngredients
       .filter(invItem => invItem.quantity > 0)
       .map(invItem => {
-        const itemData = allItemsMap.get(invItem.id);
         return {
           value: invItem.id,
-          label: `${itemData?.name || invItem.name} (x${invItem.quantity})`,
+          label: `${invItem.name} (x${invItem.quantity})`,
         };
       });
-  }, [selectedCharacter, allItemsMap]);
+  }, [selectedCharacter]);
 
   const addIngredient = (ingredientId: string) => {
     if (!ingredientId) return;
@@ -106,7 +117,7 @@ export default function CraftingTab() {
     }
     setIsLoading(true);
     try {
-      const updatedUser = await brewPotion(selectedCharacterId, selectedIngredients, heatLevel);
+      const updatedUser = await brewPotion(selectedCharacterId, selectedIngredients);
       setCurrentUser(updatedUser);
       toast({ title: 'Успех!', description: 'Зелье успешно сварено и добавлено в инвентарь.' });
       setSelectedIngredients([]);
@@ -144,6 +155,11 @@ export default function CraftingTab() {
                 </ul>
               </div>
             )})}
+             {recipes.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center pt-8">
+                Рецепты пока не добавлены администратором.
+              </p>
+            )}
           </div>
         </div>
 
@@ -169,7 +185,7 @@ export default function CraftingTab() {
                       return (
                       <div key={ing.ingredientId} className="flex items-center justify-between p-2 bg-muted rounded-md">
                         <div className="flex items-center gap-2">
-                          {ingredientData?.image && <Image src={ingredientData.image} alt={ingredientData.name} width={24} height={24} />}
+                          {ingredientData?.image && <Image src={ingredientData.image} alt={ingredientData.name || ''} width={24} height={24} />}
                           <span>{ingredientData?.name || ing.ingredientId} x{ing.qty}</span>
                         </div>
                         <Button size="icon-sm" variant="ghost" onClick={() => removeIngredient(ing.ingredientId)}>
@@ -191,15 +207,6 @@ export default function CraftingTab() {
                     placeholder="Добавить ингредиент..."
                   />
                 </div>
-              </div>
-              <div>
-                <Label>Нагрев котла ({heatLevel}°)</Label>
-                <Slider
-                  defaultValue={[50]}
-                  max={100}
-                  step={1}
-                  onValueChange={(value) => setHeatLevel(value[0])}
-                />
               </div>
               <Button onClick={handleBrew} disabled={isLoading || selectedIngredients.length === 0} className="w-full">
                 <FlaskConical className="mr-2" />
