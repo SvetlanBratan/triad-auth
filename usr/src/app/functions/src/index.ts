@@ -360,10 +360,8 @@ export const addAlchemyRecipe = functions.https.onCall(async (data, context) => 
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
   };
 
-  const cleanedPayload = deepSanitize(newRecipeData);
-
   try {
-    await db.collection("alchemy_recipes").add(cleanedPayload);
+    await db.collection("alchemy_recipes").add(newRecipeData);
     return { success: true, message: "Рецепт успешно добавлен." };
   } catch (e: any) {
     console.error("Error in addAlchemyRecipe:", {
@@ -371,7 +369,7 @@ export const addAlchemyRecipe = functions.https.onCall(async (data, context) => 
       message: e?.message,
       details: e?.details,
       stack: e?.stack,
-      dataPreview: cleanedPayload, 
+      dataPreview: newRecipeData, 
     });
     if (typeof e?.code === "number") {
       const map: Record<number, string> = {
