@@ -22,6 +22,45 @@ import type {
 
 admin.initializeApp();
 const db = admin.firestore();
+db.settings({ ignoreUndefinedProperties: true });
+
+
+const isFirestoreSpecial = (v: any): boolean => {
+  if (!v || typeof v !== "object") return false;
+  const ctor = v.constructor?.name;
+  return (
+    v instanceof admin.firestore.Timestamp ||
+    v instanceof admin.firestore.GeoPoint ||
+    v instanceof admin.firestore.DocumentReference ||
+    v instanceof Date ||
+    v instanceof Buffer ||
+    v instanceof Uint8Array ||
+    ctor === "Bytes" ||
+    ctor === "FieldValue"
+  );
+};
+
+function deepSanitize<T>(obj: T): T {
+  if (isFirestoreSpecial(obj)) return obj;
+
+  if (Array.isArray(obj)) {
+    const out = obj.map(deepSanitize).filter((v) => v !== undefined);
+    return out as any;
+  }
+
+  if (obj && typeof obj === "object") {
+    const out: any = {};
+    for (const [k, v] of Object.entries(obj)) {
+      if (v === undefined) continue;
+      if (typeof v === "number" && Number.isNaN(v)) continue;
+      out[k] = deepSanitize(v as any);
+    }
+    return out;
+  }
+
+  return obj;
+}
+
 
 // Helper to find a recipe that matches the provided ingredients, regardless of order.
 const findMatchingRecipe = (
@@ -106,6 +145,11 @@ export const brewPotion = functions.https.onCall(async (data, context) => {
       const inventory = character.inventory || {};
       const ingredientsList = (inventory.ингредиенты || []) as InventoryItem[];
       const potionsList = (inventory.зелья || []) as InventoryItem[];
+      
+      const safeNumber = (v: any, fallback = 0) => {
+        const n = Number(v);
+        return Number.isFinite(n) ? n : fallback;
+      };
 
       // 1. Find a matching recipe
       const recipe = findMatchingRecipe(ingredients);
@@ -120,39 +164,42 @@ export const brewPotion = functions.https.onCall(async (data, context) => {
 
       // 3. Check and consume ingredients
       for (const comp of recipe.components) {
+        const norm = (v:any) => String(v);
         const itemIndex = ingredientsList.findIndex(
-          (item) => item.id === comp.ingredientId
+            (item) => norm(item.id) === norm(comp.ingredientId)
         );
-        if (itemIndex === -1 || ingredientsList[itemIndex].quantity < comp.qty) {
+        if (itemIndex === -1 || safeNumber(ingredientsList[itemIndex].quantity) < safeNumber(comp.qty)) {
           throw new HttpsError(
             "failed-precondition",
             `Недостаточно ингредиента: ${comp.ingredientId}`
           );
         }
-        ingredientsList[itemIndex].quantity -= comp.qty;
+        ingredientsList[itemIndex].quantity = safeNumber(ingredientsList[itemIndex].quantity) - safeNumber(comp.qty);
       }
       // Filter out ingredients with 0 quantity
       inventory.ингредиенты = ingredientsList.filter((item) => item.quantity > 0);
 
       // 4. Add resulting potion
       const resultPotion = ALL_POTIONS.find(
-        (p) => p.id === recipe.resultPotionId
+        (p) => String(p.id) === String(recipe.resultPotionId)
       );
       if (!resultPotion) {
         throw new HttpsError("internal", "Не удалось найти зелье из рецепта.");
       }
       
-      const existingPotionIndex = potionsList.findIndex(p => p.id === resultPotion.id);
+      const norm = (v:any) => String(v);
+      const existingPotionIndex = potionsList.findIndex(p => norm(p.id) === norm(resultPotion.id));
+      const outputQty = safeNumber(recipe.outputQty, 1) > 0 ? safeNumber(recipe.outputQty, 1) : 1;
       
       if (existingPotionIndex > -1) {
-          potionsList[existingPotionIndex].quantity += recipe.outputQty;
+          potionsList[existingPotionIndex].quantity = safeNumber(potionsList[existingPotionIndex].quantity) + outputQty;
       } else {
           potionsList.push({
               id: resultPotion.id,
               name: resultPotion.name,
               description: resultPotion.note,
               image: resultPotion.image,
-              quantity: recipe.outputQty,
+              quantity: outputQty,
           });
       }
       inventory.зелья = potionsList;
@@ -160,18 +207,73 @@ export const brewPotion = functions.https.onCall(async (data, context) => {
 
       const updatedCharacters = [...characters];
       updatedCharacters[charIndex] = character;
+      
+      const cleanedPayload = deepSanitize({ characters: updatedCharacters });
 
-      transaction.update(userRef, { characters: updatedCharacters });
+      transaction.update(userRef, cleanedPayload);
     });
 
     // Return the updated user data to the client
     const updatedUserDoc = await userRef.get();
     return updatedUserDoc.data();
   } catch (error: any) {
-    console.error("Error in brewPotion:", error);
-     if (error instanceof HttpsError) {
+    console.error("Error in brewPotion:", {
+      code: error?.code,
+      message: error?.message,
+      details: error?.details,
+      stack: error?.stack,
+    });
+
+    if (error instanceof HttpsError) {
       throw error;
     }
-    throw new HttpsError("internal", "Внутренняя ошибка сервера при создании зелья.");
+
+    if (typeof error?.code === "string") {
+      throw new HttpsError(error.code as any, error.message ?? "Ошибка.");
+    }
+
+    if (typeof error?.code === "number") {
+      const map: Record<number, string> = {
+        3: "invalid-argument", 5: "not-found", 7: "permission-denied",
+        10:"aborted", 13:"internal", 16:"unauthenticated",
+      };
+      const mapped = map[error.code] ?? "internal";
+      throw new HttpsError(mapped as any, error.message ?? "Ошибка.");
+    }
+
+    throw new HttpsError("unknown", "Неизвестная ошибка.");
+  }
+});
+
+export const addAlchemyRecipe = functions.https.onCall(async (data, context) => {
+  if (!context.auth || !context.auth.token.admin) {
+    throw new HttpsError("permission-denied", "Только администраторы могут добавлять рецепты.");
+  }
+
+  const { name, resultPotionId, components, minHeat, maxHeat } = data;
+
+  if (!name || !resultPotionId || !Array.isArray(components) || components.length === 0 || typeof minHeat !== 'number' || typeof maxHeat !== 'number') {
+    throw new HttpsError("invalid-argument", "Неверные данные для создания рецепта.");
+  }
+
+  try {
+    const newRecipe = {
+      name,
+      resultPotionId,
+      components,
+      minHeat,
+      maxHeat,
+      outputQty: data.outputQty || 1,
+      difficulty: data.difficulty || 1,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    const recipesRef = db.collection("alchemy_recipes");
+    await recipesRef.add(newRecipe);
+
+    return { success: true, message: "Рецепт успешно добавлен." };
+  } catch (error) {
+    console.error("Error in addAlchemyRecipe:", error);
+    throw new HttpsError("internal", "Не удалось добавить рецепт.");
   }
 });

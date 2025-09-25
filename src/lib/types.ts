@@ -459,4 +459,5 @@ export interface UserContextType {
   clearAllMailboxes: () => Promise<void>;
   withdrawFromShopTill: (shopId: string) => Promise<void>;
   brewPotion: (characterId: string, ingredients: AlchemyRecipeComponent[], heatLevel: number) => Promise<User>;
+  addAlchemyRecipe: (recipe: Omit<AlchemyRecipe, 'id'>) => Promise<void>;
 }

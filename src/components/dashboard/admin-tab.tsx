@@ -12,9 +12,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
-import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info, AlertTriangle, Bell, CheckCircle, Store, PackagePlus, Edit, BadgeCheck, FileText, Send, Gavel, Eye, UserMinus } from 'lucide-react';
-import type { UserStatus, UserRole, User, FamiliarCard, BankAccount, WealthLevel, FamiliarRank, Shop, InventoryCategory, AdminGiveItemForm, InventoryItem, CitizenshipStatus, TaxpayerStatus, CharacterPopularityUpdate } from '@/lib/types';
-import { EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, FAMILIARS_BY_ID, WEALTH_LEVELS, ALL_FAMILIARS, STARTING_CAPITAL_LEVELS, ALL_SHOPS, INVENTORY_CATEGORIES, POPULARITY_EVENTS } from '@/lib/data';
+import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info, AlertTriangle, Bell, CheckCircle, Store, PackagePlus, Edit, BadgeCheck, FileText, Send, Gavel, Eye, UserMinus, Hammer } from 'lucide-react';
+import type { UserStatus, UserRole, User, FamiliarCard, BankAccount, WealthLevel, FamiliarRank, Shop, InventoryCategory, AdminGiveItemForm, InventoryItem, CitizenshipStatus, TaxpayerStatus, CharacterPopularityUpdate, AlchemyRecipe, AlchemyRecipeComponent } from '@/lib/types';
+import { EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, FAMILIARS_BY_ID, WEALTH_LEVELS, ALL_FAMILIARS, STARTING_CAPITAL_LEVELS, ALL_SHOPS, INVENTORY_CATEGORIES, POPULARITY_EVENTS, ALL_POTIONS, ALL_ALCHEMY_INGREDIENTS } from '@/lib/data';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,6 +35,7 @@ import { Switch } from '../ui/switch';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import ImageKitUploader from './imagekit-uploader';
 import { SearchableMultiSelect } from '../ui/searchable-multi-select';
+import { Slider } from '../ui/slider';
 
 const rankNames: Record<FamiliarRank, string> = {
     'мифический': 'Мифический',
@@ -88,7 +89,8 @@ export default function AdminTab() {
     sendMassMail,
     clearAllMailboxes,
     updatePopularity,
-    clearAllPopularityHistories
+    clearAllPopularityHistories,
+    addAlchemyRecipe,
   } = useUser();
   const queryClient = useQueryClient();
 
@@ -197,6 +199,13 @@ export default function AdminTab() {
   const [popularityUpdates, setPopularityUpdates] = useState<Record<string, { events: string[] }>>({});
   const [popularityDescription, setPopularityDescription] = useState('');
   const [isProcessingPopularity, setIsProcessingPopularity] = useState(false);
+  
+  // Alchemy Recipe state
+  const [recipeName, setRecipeName] = useState('');
+  const [recipeResultId, setRecipeResultId] = useState('');
+  const [recipeComponents, setRecipeComponents] = useState<AlchemyRecipeComponent[]>([{ ingredientId: '', qty: 1 }]);
+  const [recipeHeat, setRecipeHeat] = useState<[number, number]>([30, 70]);
+  const [isAddingRecipe, setIsAddingRecipe] = useState(false);
 
 
   useEffect(() => {
@@ -851,6 +860,53 @@ export default function AdminTab() {
             [charId]: { ...prev[charId], events }
         }));
    };
+   
+  const handleAddComponent = () => {
+    setRecipeComponents([...recipeComponents, { ingredientId: '', qty: 1 }]);
+  };
+  
+  const handleRemoveComponent = (index: number) => {
+    setRecipeComponents(recipeComponents.filter((_, i) => i !== index));
+  };
+
+  const handleComponentChange = (index: number, field: keyof AlchemyRecipeComponent, value: string | number) => {
+    const newComponents = [...recipeComponents];
+    (newComponents[index] as any)[field] = value;
+    setRecipeComponents(newComponents);
+  };
+  
+  const handleAddRecipe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!recipeName || !recipeResultId || recipeComponents.some(c => !c.ingredientId || c.qty <= 0)) {
+        toast({ variant: 'destructive', title: 'Ошибка', description: 'Пожалуйста, заполните все поля рецепта корректно.' });
+        return;
+    }
+    setIsAddingRecipe(true);
+    try {
+        const newRecipe: Omit<AlchemyRecipe, 'id'> = {
+            name: recipeName,
+            resultPotionId: recipeResultId,
+            components: recipeComponents,
+            outputQty: 1, // Defaulting to 1 for now
+            minHeat: recipeHeat[0],
+            maxHeat: recipeHeat[1],
+            difficulty: 1, // Defaulting to 1
+        };
+        await addAlchemyRecipe(newRecipe);
+        toast({ title: 'Рецепт добавлен!', description: `Новый рецепт "${recipeName}" успешно сохранен.` });
+        // Reset form
+        setRecipeName('');
+        setRecipeResultId('');
+        setRecipeComponents([{ ingredientId: '', qty: 1 }]);
+        setRecipeHeat([30, 70]);
+
+    } catch(err) {
+        const msg = err instanceof Error ? err.message : 'Произошла неизвестная ошибка.';
+        toast({ variant: 'destructive', title: 'Ошибка при добавлении рецепта', description: msg });
+    } finally {
+        setIsAddingRecipe(false);
+    }
+  };
 
 
   // --- Memos ---
@@ -1048,6 +1104,9 @@ export default function AdminTab() {
         value: event.label,
         label: `${event.label} (+${event.value})`,
     })), []);
+    
+    const potionOptions = useMemo(() => ALL_POTIONS.map(p => ({ value: p.id, label: `${p.name} (${p.tier})` })), []);
+    const ingredientOptions = useMemo(() => ALL_ALCHEMY_INGREDIENTS.map(i => ({ value: i.id, label: i.name })), []);
 
 
   if (isUsersLoading || isShopsLoading) {
@@ -1063,6 +1122,7 @@ export default function AdminTab() {
         <TabsTrigger value="familiars" className="text-xs sm:text-sm">Фамильяры</TabsTrigger>
         <TabsTrigger value="economy" className="text-xs sm:text-sm">Экономика</TabsTrigger>
         <TabsTrigger value="shops" className="text-xs sm:text-sm">Магазины</TabsTrigger>
+        <TabsTrigger value="crafting" className="text-xs sm:text-sm">Ремесло</TabsTrigger>
         <TabsTrigger value="mail" className="text-xs sm:text-sm">Рассылка</TabsTrigger>
       </TabsList>
 
@@ -2217,6 +2277,74 @@ export default function AdminTab() {
             </Card>
            </div>
         </div>
+      </TabsContent>
+      <TabsContent value="crafting" className="mt-4">
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Hammer /> Управление ремеслом</CardTitle>
+                <CardDescription>Создавайте и редактируйте рецепты для алхимии.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <form onSubmit={handleAddRecipe} className="space-y-6">
+                    <div>
+                        <Label htmlFor="recipe-name">Название рецепта</Label>
+                        <Input id="recipe-name" value={recipeName} onChange={e => setRecipeName(e.target.value)} placeholder="Напр., Малое зелье лечения" />
+                    </div>
+                    <div>
+                        <Label htmlFor="recipe-result">Итоговое зелье</Label>
+                        <SearchableSelect
+                            options={potionOptions}
+                            value={recipeResultId}
+                            onValueChange={setRecipeResultId}
+                            placeholder="Выберите зелье..."
+                        />
+                    </div>
+                    <div>
+                        <Label>Компоненты</Label>
+                        <div className="space-y-3">
+                            {recipeComponents.map((comp, index) => (
+                                <div key={index} className="flex items-center gap-2 p-2 border rounded-md">
+                                    <div className="flex-1">
+                                         <SearchableSelect
+                                            options={ingredientOptions}
+                                            value={comp.ingredientId}
+                                            onValueChange={(val) => handleComponentChange(index, 'ingredientId', val)}
+                                            placeholder="Выберите ингредиент..."
+                                        />
+                                    </div>
+                                    <Input 
+                                        type="number" 
+                                        className="w-24" 
+                                        value={comp.qty} 
+                                        onChange={e => handleComponentChange(index, 'qty', parseInt(e.target.value, 10) || 1)}
+                                        min={1}
+                                    />
+                                    <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveComponent(index)} disabled={recipeComponents.length <= 1}>
+                                        <Trash2 className="w-4 h-4 text-destructive" />
+                                    </Button>
+                                </div>
+                            ))}
+                        </div>
+                         <Button type="button" variant="outline" size="sm" onClick={handleAddComponent} className="mt-2">
+                            <PlusCircle className="mr-2 h-4 w-4" />Добавить ингредиент
+                        </Button>
+                    </div>
+                    <div>
+                        <Label>Диапазон температур ({recipeHeat[0]}° - {recipeHeat[1]}°)</Label>
+                        <Slider
+                            defaultValue={[30, 70]}
+                            max={100}
+                            min={0}
+                            step={1}
+                            onValueChange={(value) => setRecipeHeat(value as [number, number])}
+                        />
+                    </div>
+                    <Button type="submit" disabled={isAddingRecipe} className="w-full">
+                        {isAddingRecipe ? 'Добавление...' : 'Добавить рецепт'}
+                    </Button>
+                </form>
+            </CardContent>
+        </Card>
       </TabsContent>
        <TabsContent value="mail" className="mt-4">
             <Card className="max-w-2xl mx-auto">
