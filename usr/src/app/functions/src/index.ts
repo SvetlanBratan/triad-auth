@@ -164,10 +164,7 @@ export const brewPotion = functions.https.onCall(async (data, context) => {
         throw new HttpsError("not-found", "Подходящий рецепт не найден.");
       }
       
-      // 2. Check heat level (assuming this logic will be added back or handled differently)
-      // For now, we skip it as it was removed.
-
-      // 3. Check and consume ingredients
+      // 2. Check and consume ingredients
       for (const comp of recipe.components) {
         const norm = (v:any) => String(v);
         const itemIndex = ingredientsList.findIndex(
@@ -327,7 +324,7 @@ export const addAlchemyRecipe = functions.https.onCall(async (data, context) => 
     isActive: true,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
   };
-  
+
   const cleanedPayload = deepSanitize(newRecipeData);
 
   try {
@@ -339,7 +336,7 @@ export const addAlchemyRecipe = functions.https.onCall(async (data, context) => 
       message: e?.message,
       details: e?.details,
       stack: e?.stack,
-      dataPreview: newRecipeData,
+      dataPreview: cleanedPayload, 
     });
     if (typeof e?.code === "number") {
       const map: Record<number, string> = {
