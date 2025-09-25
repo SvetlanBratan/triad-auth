@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
 import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info, AlertTriangle, Bell, CheckCircle, Store, PackagePlus, Edit, BadgeCheck, FileText, Send, Gavel, Eye, UserMinus, Hammer } from 'lucide-react';
 import type { UserStatus, UserRole, User, FamiliarCard, BankAccount, WealthLevel, FamiliarRank, Shop, InventoryCategory, AdminGiveItemForm, InventoryItem, CitizenshipStatus, TaxpayerStatus, CharacterPopularityUpdate, AlchemyRecipe, AlchemyRecipeComponent } from '@/lib/types';
-import { EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, FAMILIARS_BY_ID, WEALTH_LEVELS, ALL_FAMILIARS, STARTING_CAPITAL_LEVELS, ALL_SHOPS, INVENTORY_CATEGORIES, POPULARITY_EVENTS, ALL_POTIONS, ALL_ALCHEMY_INGREDIENTS } from '@/lib/data';
+import { EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, FAMILIARS_BY_ID, WEALTH_LEVELS, ALL_FAMILIARS, STARTING_CAPITAL_LEVELS, ALL_SHOPS, INVENTORY_CATEGORIES, POPULARITY_EVENTS } from '@/lib/data';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -1105,8 +1105,29 @@ export default function AdminTab() {
         label: `${event.label} (+${event.value})`,
     })), []);
     
-    const potionOptions = useMemo(() => ALL_POTIONS.map(p => ({ value: p.id, label: `${p.name} (${p.tier})` })), []);
-    const ingredientOptions = useMemo(() => ALL_ALCHEMY_INGREDIENTS.map(i => ({ value: i.id, label: i.name })), []);
+    const potionOptions = useMemo(() => {
+      const uniquePotions = new Map<string, { value: string; label: string }>();
+      allShops.forEach(shop => {
+        (shop.items || []).forEach(item => {
+          if (item.inventoryTag === 'зелья') {
+            uniquePotions.set(item.name, { value: item.id, label: item.name });
+          }
+        });
+      });
+      return Array.from(uniquePotions.values());
+    }, [allShops]);
+
+    const ingredientOptions = useMemo(() => {
+        const uniqueIngredients = new Map<string, { value: string; label: string }>();
+        allShops.forEach(shop => {
+            (shop.items || []).forEach(item => {
+                if (item.inventoryTag === 'ингредиенты') {
+                    uniqueIngredients.set(item.name, { value: item.id, label: item.name });
+                }
+            });
+        });
+        return Array.from(uniqueIngredients.values());
+    }, [allShops]);
 
 
   if (isUsersLoading || isShopsLoading) {
@@ -2417,3 +2438,4 @@ export default function AdminTab() {
     </Tabs>
   );
 }
+
