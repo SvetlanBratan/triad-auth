@@ -204,7 +204,6 @@ export default function AdminTab() {
   const [recipeName, setRecipeName] = useState('');
   const [recipeResultId, setRecipeResultId] = useState('');
   const [recipeComponents, setRecipeComponents] = useState<AlchemyRecipeComponent[]>([{ ingredientId: '', qty: 1 }]);
-  const [recipeHeat, setRecipeHeat] = useState<[number, number]>([30, 70]);
   const [isAddingRecipe, setIsAddingRecipe] = useState(false);
 
 
@@ -888,8 +887,6 @@ export default function AdminTab() {
             resultPotionId: recipeResultId,
             components: recipeComponents,
             outputQty: 1, // Defaulting to 1 for now
-            minHeat: recipeHeat[0],
-            maxHeat: recipeHeat[1],
             difficulty: 1, // Defaulting to 1
         };
         await addAlchemyRecipe(newRecipe);
@@ -898,7 +895,6 @@ export default function AdminTab() {
         setRecipeName('');
         setRecipeResultId('');
         setRecipeComponents([{ ingredientId: '', qty: 1 }]);
-        setRecipeHeat([30, 70]);
 
     } catch(err) {
         const msg = err instanceof Error ? err.message : 'Произошла неизвестная ошибка.';
@@ -2350,16 +2346,6 @@ export default function AdminTab() {
                             <PlusCircle className="mr-2 h-4 w-4" />Добавить ингредиент
                         </Button>
                     </div>
-                    <div>
-                        <Label>Диапазон температур ({recipeHeat[0]}° - {recipeHeat[1]}°)</Label>
-                        <Slider
-                            defaultValue={[30, 70]}
-                            max={100}
-                            min={0}
-                            step={1}
-                            onValueChange={(value) => setRecipeHeat(value as [number, number])}
-                        />
-                    </div>
                     <Button type="submit" disabled={isAddingRecipe} className="w-full">
                         {isAddingRecipe ? 'Добавление...' : 'Добавить рецепт'}
                     </Button>
@@ -2438,4 +2424,5 @@ export default function AdminTab() {
     </Tabs>
   );
 }
+
 

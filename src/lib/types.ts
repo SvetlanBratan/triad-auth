@@ -46,8 +46,6 @@ export interface AlchemyRecipe {
   components: AlchemyRecipeComponent[];
   resultPotionId: string;
   outputQty: number;
-  minHeat: number; // 0-100
-  maxHeat: number; // 0-100
   difficulty: number; // 1-10
 }
 // --- END ALCHEMY TYPES ---
@@ -424,11 +422,11 @@ export interface UserContextType {
   checkExtraCharacterSlots: (userId: string) => Promise<number>;
   performRelationshipAction: (params: PerformRelationshipActionParams) => Promise<void>;
   recoverFamiliarsFromHistory: (userId: string, characterId: string, oldCharacterName?: string) => Promise<number>;
+  recoverAllFamiliars: () => Promise<{ totalRecovered: number; usersAffected: number }>;
   addBankPointsToCharacter: (userId: string, characterId: string, amount: Partial<BankAccount>, reason: string) => Promise<void>;
+  transferCurrency: (sourceUserId: string, sourceCharacterId: string, targetCharacterId: string, amount: Partial<Omit<BankAccount, 'history'>>, reason: string) => Promise<void>;
   processMonthlySalary: () => Promise<void>;
-  processAnnualTaxes: () => Promise<{ taxedCharactersCount: number; totalTaxesCollected: BankAccount }>;
   updateCharacterWealthLevel: (userId: string, characterId: string, wealthLevel: WealthLevel) => Promise<void>;
-  updatePopularity: (updates: CharacterPopularityUpdate[]) => Promise<void>;
   createExchangeRequest: (creatorUserId: string, creatorCharacterId: string, fromCurrency: Currency, fromAmount: number, toCurrency: Currency, toAmount: number) => Promise<void>;
   fetchOpenExchangeRequests: () => Promise<ExchangeRequest[]>;
   acceptExchangeRequest: (acceptorUserId: string, acceptorCharacterId: string, request: ExchangeRequest) => Promise<void>;
@@ -453,11 +451,15 @@ export interface UserContextType {
   restockShopItem: (shopId: string, itemId: string) => Promise<void>;
   adminUpdateCharacterStatus: (userId: string, characterId: string, updates: { taxpayerStatus?: TaxpayerStatus; citizenshipStatus?: CitizenshipStatus; }) => Promise<void>;
   adminUpdateShopLicense: (shopId: string, hasLicense: boolean) => Promise<void>;
+  processAnnualTaxes: () => Promise<{ taxedCharactersCount: number; totalTaxesCollected: BankAccount }>;
   sendMassMail: (subject: string, content: string, senderName: string, recipientCharacterIds?: string[]) => Promise<void>;
   markMailAsRead: (mailId: string) => Promise<void>;
   deleteMailMessage: (mailId: string) => Promise<void>;
   clearAllMailboxes: () => Promise<void>;
+  updatePopularity: (updates: CharacterPopularityUpdate[]) => Promise<void>;
+  clearAllPopularityHistories: () => Promise<void>;
   withdrawFromShopTill: (shopId: string) => Promise<void>;
   brewPotion: (characterId: string, ingredients: AlchemyRecipeComponent[], heatLevel: number) => Promise<User>;
   addAlchemyRecipe: (recipe: Omit<AlchemyRecipe, 'id'>) => Promise<void>;
+  fetchAlchemyRecipes: () => Promise<AlchemyRecipe[]>;
 }

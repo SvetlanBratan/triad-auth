@@ -1,4 +1,5 @@
 
+
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { HttpsError } from "firebase-functions/v1/https";
@@ -163,10 +164,8 @@ export const brewPotion = functions.https.onCall(async (data, context) => {
         throw new HttpsError("not-found", "Подходящий рецепт не найден.");
       }
       
-      // 2. Check heat level
-      if (heatLevel < recipe.minHeat || heatLevel > recipe.maxHeat) {
-          throw new HttpsError('failed-precondition', 'Неверный уровень нагрева для этого рецепта.');
-      }
+      // 2. Check heat level (assuming this logic will be added back or handled differently)
+      // For now, we skip it as it was removed.
 
       // 3. Check and consume ingredients
       for (const comp of recipe.components) {
@@ -276,8 +275,6 @@ export const addAlchemyRecipe = functions.https.onCall(async (data, context) => 
     name,
     resultPotionId,
     components,
-    minHeat,
-    maxHeat,
     outputQty,
     difficulty,
   } = data ?? {};
@@ -308,15 +305,6 @@ export const addAlchemyRecipe = functions.https.onCall(async (data, context) => 
 
   const int = (v: any) => (Number.isInteger(Number(v)) ? Number(v) : NaN);
 
-  const minH = int(minHeat);
-  const maxH = int(maxHeat);
-  if (!Number.isInteger(minH) || !Number.isInteger(maxH)) {
-    throw new HttpsError("invalid-argument", "minHeat/maxHeat должны быть целыми числами.");
-  }
-  if (minH > maxH) {
-    throw new HttpsError("invalid-argument", "minHeat не может быть больше maxHeat.");
-  }
-
   let outQty = int(outputQty);
   if (!Number.isInteger(outQty) || outQty < 1) outQty = 1;
 
@@ -333,17 +321,16 @@ export const addAlchemyRecipe = functions.https.onCall(async (data, context) => 
     name: name.trim(),
     resultPotionId: resultPotionId.trim(),
     components: normComponents,
-    minHeat: minH,
-    maxHeat: maxH,
     outputQty: outQty,
     difficulty: diff,
     signature,
     isActive: true,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
   };
+  
+  const cleanedPayload = deepSanitize(newRecipeData);
 
   try {
-    const cleanedPayload = deepSanitize(newRecipeData);
     await db.collection("alchemy_recipes").add(cleanedPayload);
     return { success: true, message: "Рецепт успешно добавлен." };
   } catch (e: any) {

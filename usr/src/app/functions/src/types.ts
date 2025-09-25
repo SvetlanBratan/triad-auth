@@ -1,4 +1,5 @@
 
+
 export type UserRole = "admin" | "user";
 export type UserStatus = "активный" | "неактивный" | "отпуск";
 export type RewardRequestStatus = "в ожидании" | "одобрено" | "отклонено";
@@ -93,8 +94,6 @@ export interface AlchemyRecipe {
   components: AlchemyRecipeComponent[];
   resultPotionId: string;
   outputQty: number;
-  minHeat: number; // 0-100
-  maxHeat: number; // 0-100
   difficulty: number; // 1-10
   createdAt?: string; // ISO string
 }
