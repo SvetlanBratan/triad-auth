@@ -43,24 +43,29 @@ const isFirestoreSpecial = (v: any): boolean => {
 };
 
 function deepSanitize<T>(obj: T): T {
-  if (isFirestoreSpecial(obj)) return obj;
-
-  if (Array.isArray(obj)) {
-    const out = obj.map(deepSanitize).filter((v) => v !== undefined);
-    return out as any;
-  }
-
-  if (obj && typeof obj === "object") {
-    const out: any = {};
-    for (const [k, v] of Object.entries(obj)) {
-      if (v === undefined) continue;
-      if (typeof v === "number" && Number.isNaN(v)) continue;
-      out[k] = deepSanitize(v as any);
+    if (obj === null || obj === undefined || isFirestoreSpecial(obj)) {
+        return obj;
     }
-    return out;
-  }
 
-  return obj;
+    if (Array.isArray(obj)) {
+        return obj.map(deepSanitize).filter(v => v !== undefined) as any;
+    }
+
+    if (typeof obj === 'object') {
+        const out: any = {};
+        for (const [k, v] of Object.entries(obj)) {
+            if (v === undefined) {
+                continue;
+            }
+             if (typeof v === "number" && !Number.isFinite(v)) {
+                continue; // Strip out NaN, Infinity, -Infinity
+            }
+            out[k] = deepSanitize(v);
+        }
+        return out;
+    }
+
+    return obj;
 }
 
 
