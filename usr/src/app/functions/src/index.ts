@@ -147,14 +147,13 @@ export const brewPotion = functions.https.onCall(async (data, context) => {
     );
   }
 
-  const { characterId, ingredients, heatLevel } = data;
+  const { characterId, ingredients } = data;
   const userId = context.auth.uid;
 
   if (
     !characterId ||
     !Array.isArray(ingredients) ||
-    ingredients.length === 0 ||
-    typeof heatLevel !== "number"
+    ingredients.length === 0
   ) {
     throw new HttpsError(
       "invalid-argument",
@@ -369,7 +368,7 @@ export const addAlchemyRecipe = functions.https.onCall(async (data, context) => 
       message: e?.message,
       details: e?.details,
       stack: e?.stack,
-      dataPreview: newRecipeData, 
+      dataPreview: newRecipeData,
     });
     if (typeof e?.code === "number") {
       const map: Record<number, string> = {
