@@ -21,15 +21,15 @@ export type MailMessageType = 'announcement' | 'personal';
 export interface AlchemyIngredient {
   id: string;
   name: string;
-  note?: string; // Changed from description to note
-  tags: string[]; // e.g., ['растение', 'магический']
+  note?: string; 
+  tags: string[]; 
   image?: string;
 }
 
 export interface Potion {
   id: string;
   name: string;
-  note?: string; // Changed from description to note
+  note?: string; 
   effects: { stat: 'hp' | 'mana' | 'luck'; value: number; durationSec?: number }[];
   tier: 'обычный' | 'редкий' | 'легендарный';
   image?: string;
@@ -458,4 +458,5 @@ export interface UserContextType {
   deleteMailMessage: (mailId: string) => Promise<void>;
   clearAllMailboxes: () => Promise<void>;
   withdrawFromShopTill: (shopId: string) => Promise<void>;
+  brewPotion: (characterId: string, ingredients: AlchemyRecipeComponent[], heatLevel: number) => Promise<User>;
 }
