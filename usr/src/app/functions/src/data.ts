@@ -1124,223 +1124,246 @@ const ALL_FAMILIAR_CARDS_RAW: Omit<FamiliarCard, "data-ai-hint">[] = [
   },
 ];
 
-export const EVENT_FAMILIARS_RAW: Omit<FamiliarCard, "data-ai-hint">[] = [
+export const EVENT_FAMILIARS: FamiliarCard[] = EVENT_FAMILIARS_RAW.map(addHint);
+
+
+export const FAMILIARS_BY_ID: Record<string, FamiliarCard> = [...ALL_FAMILIARS, ...EVENT_FAMILIARS].reduce((acc, card) => {
+    acc[card.id] = card;
+    return acc;
+}, {} as Record<string, FamiliarCard>);
+
+export const ALL_SHOPS: Shop[] = [
   {
-    id: "fam-e-anubis",
-    name: "Анубис",
-    rank: "ивентовый",
-    imageUrl:
-      "https://res.cloudinary.com/dxac8lq4f/image/upload/v1753197215/%D0%90%D0%BD%D1%83%D0%B1%D0%B8%D1%81_sqmdss.png",
+    id: 'potions-licorice',
+    title: 'Магазинчик зелий «Ликорис»',
+    description: "Уютная лавка, где воздух пропитан ароматами сушеных трав и магических эссенций. Здесь можно найти зелья на любой случай жизни.",
+    image: "https://i.postimg.cc/kgvP7Kxq/image.png",
+    aiHint: "potion shop"
   },
   {
-    id: "fam-e-zhut",
-    name: "Жуть",
-    rank: "ивентовый",
-    imageUrl:
-      "https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199419/%D0%96%D1%83%D1%82%D1%8C_hmausj.png",
+    id: 'tailor-pavlo',
+    title: 'Портной-башмачник «Павло»',
+    description: "Мастерская, где пахнет кожей и свежей тканью. Павло может сшить как прочную походную одежду, так и роскошный бальный наряд.",
+    image: "https://i.postimg.cc/4yqF1NV8/image.png",
+    aiHint: "tailor workshop"
   },
   {
-    id: "fam-e-blues",
-    name: "Колодезный дух Блюз",
-    rank: "ивентовый",
-    imageUrl:
-      "https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199422/%D0%9A%D0%BE%D0%BB%D0%BE%D0%B4%D0%B5%D0%B7%D0%BD%D1%8B%D0%B9_%D0%B4%D1%83%D1%85_%D0%91%D0%BB%D1%8E%D0%B7_c9d8nc.png",
+    id: 'bar-three-salamanders',
+    title: 'Бар «Три саламандры»',
+    description: "Полумрачное заведение с тихой музыкой и крепкими напитками. Идеальное место для тайных встреч и спокойных бесед.",
+    image: "https://i.postimg.cc/xj5mN4nz/image.png",
+    aiHint: "fantasy tavern"
   },
   {
-    id: "fam-e-bone-crow",
-    name: "Костяная ворона",
-    rank: "ивентовый",
-    imageUrl:
-      "https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199424/%D0%9A%D0%BE%D1%81%D1%82%D1%8F%D0%BD%D0%B0%D1%8F_%D0%92%D0%BE%D1%80%D0%BE%D0%BD%D0%B0_u9vlpc.png",
+    id: 'tavern-jolly-joker',
+    title: 'Трактир «Весёлый Джокер»',
+    description: "Шумное и веселое место, где всегда можно найти выпивку, еду и последние сплетни. Излюбленное место встреч авантюристов и местных жителей.",
+    image: "https://i.postimg.cc/DZ2Z27WY/image.png",
+    aiHint: "jolly inn"
   },
   {
-    id: "fam-e-bone-dog",
-    name: "Костяная собака",
-    rank: "ивентовый",
-    imageUrl:
-      "https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199424/%D0%9A%D0%BE%D1%81%D1%82%D1%8F%D0%BD%D0%B0%D1%8F_%D1%81%D0%BE%D0%B1%D0%B0%D0%BA%D0%B0_cmdjk6.png",
+    id: 'dumpling-house',
+    title: 'Пельменная Тесто и мясо',
+    description: "Простое, но очень популярное место. Аромат свежесваренных пельменей слышен за квартал и привлекает всех, от стражников до аристократов.",
+    image: "https://i.postimg.cc/MG779zc1/image.png",
+    aiHint: "dumpling house"
   },
   {
-    id: "fam-e-bone-cat",
-    name: "Костяной кот",
-    rank: "ивентовый",
-    imageUrl:
-      "https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199425/%D0%9A%D0%BE%D1%81%D1%82%D1%8F%D0%BD%D0%BE%D0%B9_%D0%BA%D0%BE%D1%82_hr2gmk.png",
+    id: 'jewelry-shop',
+    title: 'Ювелирная Лавка',
+    description: "Витрины этой лавки сверкают блеском драгоценных камней и благородных металлов. Здесь можно найти украшения на любой вкус и кошелек.",
+    image: "https://i.postimg.cc/SNQMcwbt/image.png",
+    aiHint: "jewelry store"
   },
   {
-    id: "fam-e-leviathan",
-    name: "Левиафан",
-    rank: "ивентовый",
-    imageUrl:
-      "https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199426/%D0%BB%D0%B5%D0%B2%D0%B8%D0%B0%D1%84%D0%B0%D0%BD_hr6tat.png",
+    id: 'real-estate-dragons-nest',
+    title: 'Агентство недвижимости «Гнездо Дракона»',
+    description: "Ищете уютный домик в лесу или роскошный особняк в центре города? Мы подберем идеальное жилье для вас и вашей семьи.",
+    image: "https://i.postimg.cc/nrDNgDF8/image.png",
+    aiHint: "real estate"
   },
   {
-    id: "fam-e-ariana",
-    name: "Леди Ариана",
-    rank: "ивентовый",
-    imageUrl:
-      "https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199427/%D0%9B%D0%B5%D0%B4%D0%B8_%D0%90%D1%80%D0%B8%D0%B0%D0%BD%D0%B0_w15swi.png",
+    id: 'transport-path-reins',
+    title: 'Транспортная лавка «Путь и Поводья»',
+    description: "От быстрых скакунов до надежных карет. Все, что нужно для комфортного и безопасного путешествия по землям Триады.",
+    image: "https://i.postimg.cc/05VQ1jhc/image.png",
+    aiHint: "carriage shop"
   },
   {
-    id: "fam-e-cerberus",
-    name: "Цербер",
-    rank: "ивентовый",
-    imageUrl:
-      "https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199467/%D0%A6%D0%B5%D1%80%D0%B1%D0%B5%D1%80_rznwpc.png",
+    id: 'ritual-bureau-last-feast',
+    title: 'Ритуальное бюро «Последний праздник»',
+    description: "Мы позаботимся о том, чтобы проводы в последний путь были достойными и запоминающимися. Все виды ритуальных услуг.",
+    image: "https://i.postimg.cc/FFDfFY5Y/image.png",
+    aiHint: "funeral home"
   },
   {
-    id: "fam-e-sherlas",
-    name: "Шерлас",
-    rank: "ивентовый",
-    imageUrl:
-      "https://res.cloudinary.com/dxac8lq4f/image/upload/v1753272049/2131541243_sci3mx.jpg",
+    id: 'entertainment-box-office',
+    title: 'Касса развлечений',
+    description: "Продажа билетов в парки аттракционов, зоопарки, аквапарки, на экскурсии и другие захватывающие мероприятия города.",
+    image: "https://i.postimg.cc/nrhspBRW/image.png",
+    aiHint: "ticket booth"
   },
   {
-    id: "fam-e-anhel",
-    name: "Анхель",
-    rank: "ивентовый",
-    imageUrl:
-      "https://res.cloudinary.com/dxac8lq4f/image/upload/v1753272049/123123_oljkkn.jpg",
+    id: 'souvenir-shop-surprise-madam',
+    title: 'Сувенирная лавка «Сюрприз-Мадам»',
+    description: "Удивительные и необычные сувениры со всего света! Найдите идеальный подарок для себя или своих близких.",
+    image: "https://i.postimg.cc/wBD8q4M9/image.png",
+    aiHint: "souvenir shop"
   },
   {
-    id: "fam-e-faust",
-    name: "Фауст",
-    rank: "ивентовый",
-    imageUrl:
-      "https://res.cloudinary.com/dxac8lq4f/image/upload/v1753272049/312312412341_kl5exi.jpg",
+    id: 'artifacts-sherlas-vihelmsky',
+    title: 'Лавка артефактов и зелий Шерласа Вихельмского',
+    description: "Редчайшие магические артефакты и мощные зелья от известного мастера. Качество гарантировано именем Шерласа.",
+    image: "https://i.postimg.cc/QxScPjq3/image.png",
+    aiHint: "artifact shop"
   },
   {
-    id: "fam-e-pumpkin-wife",
-    name: "Тыкво-жена",
-    rank: "ивентовый",
-    imageUrl:
-      "https://res.cloudinary.com/dxac8lq4f/image/upload/v1753276855/%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B8%D0%9A%D0%9A%D0%98_sqv5if.png",
+    id: 'weapon-shop-dead-man-in-armor',
+    title: 'Оружейная лавка «Покойник в Доспехах»',
+    description: "Лучшее оружие и доспехи для любого воина. Каждый клинок проверен в бою, каждый щит готов выдержать удар.",
+    image: "https://i.postimg.cc/0ymHDMsf/image.png",
+    aiHint: "weapon shop"
   },
   {
-    id: "fam-e-pumpkin-husband",
-    name: "Тыкво-муж",
-    rank: "ивентовый",
-    imageUrl:
-      "https://res.cloudinary.com/dxac8lq4f/image/upload/v1753286999/%D0%A2%D1%8B%D0%BA%D0%B2%D0%BE%D0%BC%D1%83%D0%B6_v9bpsg.png",
+    id: 'book-shop-scrolls',
+    title: 'Лавка «Книги и свитки»',
+    description: 'Тихое место для искателей знаний. От древних гримуаров до последних научных трактатов — каждый найдет что-то для себя.',
+    image: 'https://i.postimg.cc/tTPhmPBS/s-Vzx-Kp-Tno-FN12r-ILzk-BDHOokb-WE7-Qv-Rj-Qu-IUNv-Y-Hnf-PW0gl5-S2-I-b-A1g9d-IKFkoa32-V-EUCdz-H1enx-YJDWdx-RZ.png',
+    aiHint: 'bookstore fantasy',
+  },
+  {
+    id: 'grocery-yaterochka',
+    title: 'Продуктовый магазин «Ятёрочка»',
+    description: 'Ятёрочка — магазин, где всегда найдётся всё нужное: свежие продукты каждый день рядом с домом.',
+    image: 'https://i.postimg.cc/1tKXf5Pf/x7z01u-Sn-XXy-Rn-Yv8r-VJp-K3s-UWEJDyc-LFBz6-Z-v-Ysxl-YYl-DPM4ullr-Rs9-RMas-Q7-ONJPFK-W9-Sjmyhr-X1-Z8-LV3-PKG.jpg',
+    aiHint: 'grocery store',
+  },
+  {
+    id: 'rental-agency-cozy-corner',
+    title: 'Агентство аренды «Уютный уголок»',
+    description: 'Ищете временное жилье или хотите сдать свою недвижимость? Наше агентство поможет вам найти идеальный вариант аренды.',
+    image: 'https://i.postimg.cc/R0N2WPBf/6-MLFUIp-Zw-Su-XKQG-Z42-MCOAu-Fu-Cw-Lyx1-IPERvyat-KWy-CNlvu4w-Aob8-Ttqqe-W2-Unq-C-Ijy-N8-Us-Tomd-P2-N15c2l-No.jpg',
+    aiHint: 'rental property',
+  },
+  {
+    id: 'market-lost-souls',
+    title: 'Рынок Неприкаянных Душ',
+    description: 'Здесь души, не нашедшие покоя, ищут новый смысл или нового хозяина. Уникальные товары и услуги для тех, кто не боится заглянуть за грань.',
+    image: 'https://i.postimg.cc/wjLgMjbK/t-Gq6-Sm3q-La-QLAz-U4qrkw7k-L14o-Z7-Vzl-FWo-MIETTGUOJR7-S5e-Pd-Mt-C5-DT9-W6t-Gp60-YH5ba-Xz-J3-Tnk-Sk60-Wg93rk-E.png',
+    aiHint: 'fantasy market',
+  },
+  {
+    id: 'furniture-shop-carved-chest',
+    title: 'Мебельная лавка «Резной сундук»',
+    description: 'От изысканной мебели для аристократических особняков до простой и надежной обстановки для скромного жилища. Создайте интерьер своей мечты!',
+    image: 'https://i.postimg.cc/zGsY1YJd/jdq-H3-Hqec-MECX9j-Aq-O-IRr-Lc6-Rjxce-ZUm7j-SQ1-Say-P-arv0pqdp-ESHt3-Cb0w0-JRAJ6-I5x7-Demy-SSCPwb-Ihw-H6-Rra.png',
+    aiHint: 'furniture store',
+  },
+  {
+    id: 'food-market',
+    title: 'Рынок еды',
+    description: 'Самые свежие продукты со всего мира: от экзотических фруктов до редких специй. Идеальное место, чтобы пополнить запасы и насладиться атмосферой оживленной торговли.',
+    image: 'https://i.postimg.cc/jdKN8dR5/w-I-f-Ay-RAYrhs-M8m-DLWd-DSNr4-EGD8-JCt-Abu3-OIBZJGr2-JZuez-Amct-DOXJ7-F4-Xz5-L2-SG55-E6p-Huso15-T9-Hveksd-HI.jpg',
+    aiHint: 'food market'
+  },
+  {
+    id: 'flower-shop-fantasy',
+    title: 'Цветочная лавка «Цветочная феерия»',
+    description: 'Лавка, наполненная ароматами свежих цветов со всего мира. Здесь вы найдете букеты для любого случая, редкие растения и магические семена.',
+    image: 'https://i.postimg.cc/3JZZTXYz/PI8fb53ze8foyk-Pc-MA62o-B4-FPv-MQDf6-Pgglx-jh906cae-UVng-Tz2m-Ff-Qxw-S4ee-X3k-Fq-Mbx-C0j-Si-V2-UMZANe-GYD.png',
+    aiHint: 'flower shop'
+  },
+  {
+    id: 'services-general',
+    title: 'Услуги',
+    description: 'Здесь вы можете найти различные услуги, от ремонта до магических консультаций. Лучшие специалисты города к вашим услугам.',
+    image: 'https://i.postimg.cc/XvfSV8y4/1n-Sg-Yqj883-Fu-Ktf764-AQxk-Sxii3-P45-O8e7k93fs3-Z0-VIHGAW5u8-Jin-Bv-LVXe-N-JKXE8-Zw-GCsw-PRir9y-BRjqk-c-Wl.jpg',
+    aiHint: 'various services',
+  },
+  {
+    id: 'business-startup',
+    title: 'Своё дело',
+    description: 'Место, где можно начать свой путь предпринимателя. Откройте ремесленную лавку, мастерскую или любое другое дело, о котором вы мечтали.',
+    image: 'https://i.postimg.cc/8zNfT15Y/i06f-Hzu-N0kgh1-JQCG3-WQq-HGG1-YWRws-Gl-VGej-GJb0-Oc-Qpsht5x-R1b-A0vr1ro-WV5-Zo-Ve-UUwt15net-W35ed-KKl8-QQel.jpg',
+    aiHint: 'small business'
+  },
+  {
+    id: 'post-office',
+    title: 'Почта',
+    description: 'Надежная доставка писем и посылок в любую точку мира. Отправляйте весточки близким и получайте важные документы без задержек.',
+    image: 'https://i.postimg.cc/sgxyY80X/u-Er-AC4-PTOV-6-Gym-KV8m-Kgsa-DFv-Bxg-GSu876y5j-Cp-Oy-SN6q8v-XIlt-Ech2-H8v-AZHy-Hlibr-VG8o-Qt-Qb8va-Psmym43.png',
+    aiHint: 'post office'
+  },
+  {
+    id: 'sweet-shop-rouz',
+    title: 'Лавочка «Сладость Роуза»',
+    description: 'Рай для сладкоежек! Лучшие торты, пирожные и конфеты ручной работы от барона Роуз. Идеальное место для чаепития и покупки десертов.',
+    image: 'https://i.postimg.cc/rFpDDx5B/a-K3lcl-M3-Ujr-VAOa-Cou-DF7w3-Ingk-HC594i-Htx-L7i-GHt-Gogp-Oj-B-yv-Pa-GCd-6-Xd-Nyfx-Dca-Nh0ryrl-X-5-n7-Ig-Icuh.png',
+    aiHint: 'sweet shop'
+  },
+  {
+    id: 'pet-store',
+    title: 'Зоомагазин',
+    description: 'Все для ваших любимых питомцев: от кормов и игрушек до экзотических животных и фамильяров. Найдите себе верного друга!',
+    image: 'https://i.postimg.cc/NfPZc0ps/image.png',
+    aiHint: 'pet store'
+  },
+  {
+    id: 'gemstone-shop',
+    title: 'Документный двор',
+    description: 'Редкие и драгоценные камни со всех уголков Триады. Идеально для ювелиров, магов и коллекционеров.',
+    image: 'https://i.postimg.cc/TPbrssf6/6666f319-226a-4b80-ba35-b92858fa75f8.jpg',
+    aiHint: 'documents office'
+  },
+  {
+    id: 'brothel-dark-dreams',
+    title: 'Бордель «Тёмные грёзы»',
+    description: 'Место, где сбываются самые сокровенные желания. Конфиденциальность и высочайший уровень обслуживания гарантированы.',
+    image: 'https://i.postimg.cc/zX5TGw2p/g76z-R1-UXk-GHr-Spjl5-FUuy-ZFv-Ft-Uf-A3l-TBGz-WLC0-Iws-BWNK6-V-MC1-IP20m52-Trp-Xl-bl-Bcsq5kir-A4-Bl-Bz-Jk-QGyy-Z.jpg',
+    aiHint: 'fantasy brothel'
+  },
+  {
+    id: 'ingredient-shop',
+    title: 'Лавка ингредиентов',
+    description: 'Здесь вы найдете самые редкие и экзотические ингредиенты для алхимии, зельеварения и ритуалов. От корня мандрагоры до пыльцы фей — все, что нужно настоящему мастеру.',
+    image: 'https://i.postimg.cc/hv2b9nyc/Chat-GPT-Image-1-2025-22-59-24.png',
+    aiHint: 'alchemy ingredients'
   },
 ];
 
-const addHint = (
-  card: Omit<FamiliarCard, "data-ai-hint">
-): FamiliarCard => {
-  let hint = "";
-  const lowerCaseName = card.name.toLowerCase();
-  if (lowerCaseName.includes("анчутка")) hint = "imp demon";
-  else if (lowerCaseName.includes("артерианская гончая")) hint = "arterian hound";
-  else if (lowerCaseName.includes("альви")) hint = "elf girl";
-  else if (lowerCaseName.includes("альдуин")) hint = "dragon";
-  else if (lowerCaseName.includes("тыквенный")) hint = "pumpkin monster";
-  else if (lowerCaseName.includes("дух рождества")) hint = "christmas spirit";
-  else if (lowerCaseName.includes("анубис")) hint = "anubis god";
-  else if (lowerCaseName.includes("баргест")) hint = "barghest hound";
-  else if (lowerCaseName.includes("артерианский бреллопир"))
-    hint = "antlered beast";
-  else if (lowerCaseName.includes("браффа")) hint = "fluffy creature";
-  else if (lowerCaseName.includes("божья тварь")) hint = "divine beast";
-  else if (lowerCaseName.includes("вивер")) hint = "wyvern dragon";
-  else if (lowerCaseName.includes("грифон")) hint = "gryphon";
-  else if (lowerCaseName.includes("громовая птица")) hint = "thunderbird";
-  else if (lowerCaseName.includes("грубас")) hint = "fat beast";
-  else if (lowerCaseName.includes("грызмар")) hint = "grizzly monster";
-  else if (lowerCaseName.includes("единорог")) hint = "unicorn";
-  else if (lowerCaseName.includes("енот-некромант")) hint = "raccoon necromancer";
-  else if (lowerCaseName.includes("зеленоградская гончая")) hint = "green hound";
-  else if (lowerCaseName.includes("жуть")) hint = "terror beast";
-  else if (lowerCaseName.includes("златоуст")) hint = "golden dragon";
-  else if (lowerCaseName.includes("золотце")) hint = "golden creature";
-  else if (lowerCaseName.includes("зеленоградский бреллопир"))
-    hint = "green antlered";
-  else if (lowerCaseName.includes("келпи")) hint = "kelpie horse";
-  else if (lowerCaseName.includes("кирин")) hint = "qilin beast";
-  else if (lowerCaseName.includes("блюз")) hint = "well spirit";
-  else if (lowerCaseName.includes("комаину")) hint = "komainu lion";
-  else if (lowerCaseName.includes("костяная ворона")) hint = "bone crow";
-  else if (lowerCaseName.includes("костяная собака")) hint = "bone dog";
-  else if (lowerCaseName.includes("костяной кот")) hint = "bone cat";
-  else if (lowerCaseName.includes("кракен")) hint = "kraken monster";
-  else if (lowerCaseName.includes("левиафан")) hint = "leviathan sea monster";
-  else if (lowerCaseName.includes("леди ариана")) hint = "lady ariana";
-  else if (lowerCaseName.includes("лёдинова и огнова"))
-    hint = "ice fire wolves";
-  else if (lowerCaseName.includes("ледяная кобыла")) hint = "ice mare";
-  else if (lowerCaseName.includes("ледяная рысь")) hint = "ice lynx";
-  else if (lowerCaseName.includes("лисобелка")) hint = "fox squirrel";
-  else if (lowerCaseName.includes("майри кото")) hint = "mairi koto";
-  else if (lowerCaseName.includes("найтмар")) hint = "nightmare horse";
-  else if (lowerCaseName.includes("небесный кит")) hint = "sky whale";
-  else if (lowerCaseName.includes("огнекус")) hint = "fire biter";
-  else if (lowerCaseName.includes("огнемур")) hint = "fire lemur";
-  else if (lowerCaseName.includes("огнеславская гончая")) hint = "fire hound";
-  else if (lowerCaseName.includes("панцефлот")) hint = "armored fleet";
-  else if (lowerCaseName.includes("пегас")) hint = "pegasus";
-  else if (lowerCaseName.includes("пчелокот")) hint = "bee cat";
-  else if (lowerCaseName.includes("ремох")) hint = "remoh monster";
-  else if (lowerCaseName.includes("савокль")) hint = "owl creature";
-  else if (lowerCaseName.includes("серпопард")) hint = "sickle leopard";
-  else if (lowerCaseName.includes("софил")) hint = "sofil creature";
-  else if (lowerCaseName.includes("тыквоходка")) hint = "pumpkin walker";
-  else if (lowerCaseName.includes("файфи")) hint = "faifi creature";
-  else if (lowerCaseName.includes("цербер")) hint = "cerberus hound";
-  else if (lowerCaseName.includes("хрустальный аликорн"))
-    hint = "crystal alicorn";
-  else if (lowerCaseName.includes("чупакабра")) hint = "chupacabra";
-  else if (lowerCaseName.includes("швепсель")) hint = "shvepsel creature";
-  else if (lowerCaseName.includes("шорёк")) hint = "shorek creature";
-  else if (lowerCaseName.includes("эйктюрнир")) hint = "eikthyrnir deer";
-  else if (lowerCaseName.includes("элементаль тьмы")) hint = "dark elemental";
-  else if (lowerCaseName.includes("шерлас")) hint = "sherlas portrait";
-  else if (lowerCaseName.includes("анхель")) hint = "anhel portrait";
-  else if (lowerCaseName.includes("фауст")) hint = "faust portrait";
-  else if (lowerCaseName.includes("тыкво-жена")) hint = "pumpkin wife";
-  else if (lowerCaseName.includes("тыкво-муж")) hint = "pumpkin husband";
-  else if (lowerCaseName.includes("цветокот")) hint = "flower cat";
-  else if (lowerCaseName.includes("серисса")) hint = "serissa creature";
-  else if (lowerCaseName.includes("ночной сыч")) hint = "night owl";
-  else if (lowerCaseName.includes("быкозёбр")) hint = "bull zebra";
-  else if (lowerCaseName.includes("огненная лисица")) hint = "fire fox";
-  else if (lowerCaseName.includes("клоуарк")) hint = "clown shark";
-  else if (lowerCaseName.includes("глуборез")) hint = "deep cutter";
-  else if (lowerCaseName.includes("элефваль")) hint = "elephwal creature";
-  else if (lowerCaseName.includes("огнеящер")) hint = "fire lizard";
-  else if (lowerCaseName.includes("грифолень")) hint = "griffon deer";
-  else if (lowerCaseName.includes("совурат")) hint = "owl rat";
-  else if (lowerCaseName.includes("дракоскорпиус")) hint = "dragon scorpion";
-  else if (lowerCaseName.includes("меринаг")) hint = "merinag creature";
-  else if (lowerCaseName.includes("скоргус")) hint = "skorgus creature";
-  else if (lowerCaseName.includes("крокун")) hint = "krokun creature";
-  else if (lowerCaseName.includes("ленико")) hint = "leniko creature";
-  else if (lowerCaseName.includes("крылопотам")) hint = "winged hippo";
-  else if (lowerCaseName.includes("оркалень")) hint = "orca deer";
-  else if (lowerCaseName.includes("паукок")) hint = "peacock spider";
-  else if (lowerCaseName.includes("медопус")) hint = "honey octopus";
-  else if (lowerCaseName.includes("варассас")) hint = "varassas creature";
-  else if (lowerCaseName.includes("кирафа")) hint = "kirafa creature";
-  else if (lowerCaseName.includes("лунория")) hint = "lunoria creature";
-  else if (lowerCaseName.includes("фенортул")) hint = "fenortul creature";
-  else if (lowerCaseName.includes("кицуда")) hint = "kitsuda creature";
-  else if (lowerCaseName.includes("зеврогриф")) hint = "zebrogriff";
-  else if (lowerCaseName.includes("виоракси")) hint = "vioraxi";
-  else if (lowerCaseName.includes("огненногрив")) hint = "firemane";
-  else if (lowerCaseName.includes("ксантеаль")) hint = "xantheal";
-  else if (lowerCaseName.includes("лотль")) hint = "lotl";
-  else if (lowerCaseName.includes("олигр")) hint = "oligr";
-  else if (lowerCaseName.includes("пупурита")) hint = "pupurita";
-  return { ...card, "data-ai-hint": hint };
-};
+export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) => {
+    acc[shop.id] = shop;
+    return acc;
+}, {} as Record<string, Shop>);
 
-export const ALL_FAMILIARS: FamiliarCard[] = ALL_FAMILIAR_CARDS_RAW.map(addHint);
-export const EVENT_FAMILIARS: FamiliarCard[] =
-  EVENT_FAMILIARS_RAW.map(addHint);
+    
+export const ALL_ALCHEMY_INGREDIENTS: AlchemyIngredient[] = [];
+export const ALL_POTIONS: Potion[] = [];
+export const ALL_ALCHEMY_RECIPES: AlchemyRecipe[] = [];
 
-export const FAMILIARS_BY_ID: Record<string, FamiliarCard> = [
-  ...ALL_FAMILIARS,
-  ...EVENT_FAMILIARS,
-].reduce((acc, card) => {
-  acc[card.id] = card;
-  return acc;
-}, {} as Record<string, FamiliarCard>);
+    
+
+    
+
+
+
+
+
+
+    
+
+
+    
+
+
+
+
+
+
+
+
+
+
+    
+
+
