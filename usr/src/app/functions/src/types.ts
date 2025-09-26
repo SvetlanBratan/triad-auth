@@ -90,7 +90,7 @@ export interface AlchemyRecipeComponent {
 
 export interface AlchemyRecipe {
   id: string;
-  name: string;
+  name?: string;
   components: AlchemyRecipeComponent[];
   resultPotionId: string;
   outputQty: number;
@@ -631,7 +631,7 @@ export interface UserContextType {
     ingredients: AlchemyRecipeComponent[],
     heatLevel: number
   ) => Promise<User>;
-  addAlchemyRecipe: (recipe: Omit<AlchemyRecipe, "id">) => Promise<void>;
+  addAlchemyRecipe: (recipe: Omit<AlchemyRecipe, 'id'|'name'>) => Promise<void>;
   transferCurrency: (
     sourceUserId: string,
     sourceCharacterId: string,
@@ -641,3 +641,4 @@ export interface UserContextType {
   ) => Promise<void>;
   fetchAlchemyRecipes: () => Promise<AlchemyRecipe[]>;
 }
+

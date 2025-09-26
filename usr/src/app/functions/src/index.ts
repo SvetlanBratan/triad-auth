@@ -304,19 +304,17 @@ export const addAlchemyRecipe = functions.https.onCall(async (data, context) => 
   }
 
   const {
-    name,
     resultPotionId,
     components,
     outputQty,
     difficulty,
   } = data ?? {};
 
-  if (typeof name !== "string" || !name.trim()) {
-    throw new HttpsError("invalid-argument", "name обязателен и должен быть строкой.");
+  const resultPotion = ALL_POTIONS.find(p => p.id === resultPotionId);
+  if (!resultPotion) {
+    throw new HttpsError("invalid-argument", "resultPotionId не найден.");
   }
-  if (typeof resultPotionId !== "string" || !resultPotionId.trim()) {
-    throw new HttpsError("invalid-argument", "resultPotionId обязателен и должен быть строкой.");
-  }
+
   if (!Array.isArray(components) || components.length === 0) {
     throw new HttpsError("invalid-argument", "components должен быть непустым массивом.");
   }
@@ -350,7 +348,7 @@ export const addAlchemyRecipe = functions.https.onCall(async (data, context) => 
     .join("+");
 
   const newRecipeData = {
-    name: name.trim(),
+    name: resultPotion.name,
     resultPotionId: resultPotionId.trim(),
     components: normComponents,
     outputQty: outQty,

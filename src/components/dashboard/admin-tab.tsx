@@ -201,7 +201,6 @@ export default function AdminTab() {
   const [isProcessingPopularity, setIsProcessingPopularity] = useState(false);
   
   // Alchemy Recipe state
-  const [recipeName, setRecipeName] = useState('');
   const [recipeResultId, setRecipeResultId] = useState('');
   const [recipeComponents, setRecipeComponents] = useState<AlchemyRecipeComponent[]>([{ ingredientId: '', qty: 1 }]);
   const [isAddingRecipe, setIsAddingRecipe] = useState(false);
@@ -878,23 +877,22 @@ export default function AdminTab() {
   
   const handleAddRecipe = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!recipeName || !recipeResultId || recipeComponents.some(c => !c.ingredientId || c.qty <= 0)) {
+    const selectedPotion = potionOptions.find(p => p.value === recipeResultId);
+    if (!selectedPotion || recipeComponents.some(c => !c.ingredientId || c.qty <= 0)) {
         toast({ variant: 'destructive', title: 'Ошибка', description: 'Пожалуйста, заполните все поля рецепта корректно.' });
         return;
     }
     setIsAddingRecipe(true);
     try {
-        const newRecipe: Omit<AlchemyRecipe, 'id'> = {
-            name: recipeName,
+        const newRecipe: Omit<AlchemyRecipe, 'id' | 'name'> = {
             resultPotionId: recipeResultId,
             components: recipeComponents,
             outputQty: parseInt(String(recipeOutputQty), 10) || 1,
             difficulty: parseInt(String(recipeDifficulty), 10) || 1,
         };
         await addAlchemyRecipe(newRecipe);
-        toast({ title: 'Рецепт добавлен!', description: `Новый рецепт "${recipeName}" успешно сохранен.` });
+        toast({ title: 'Рецепт добавлен!', description: `Новый рецепт "${selectedPotion.label}" успешно сохранен.` });
         // Reset form
-        setRecipeName('');
         setRecipeResultId('');
         setRecipeComponents([{ ingredientId: '', qty: 1 }]);
         setRecipeOutputQty(1);
@@ -2308,11 +2306,7 @@ export default function AdminTab() {
             <CardContent>
                 <form onSubmit={handleAddRecipe} className="space-y-6">
                     <div>
-                        <Label htmlFor="recipe-name">Название рецепта</Label>
-                        <Input id="recipe-name" value={recipeName} onChange={e => setRecipeName(e.target.value)} placeholder="Напр., Малое зелье лечения" />
-                    </div>
-                    <div>
-                        <Label htmlFor="recipe-result">Итоговое зелье</Label>
+                        <Label htmlFor="recipe-result">Итоговое зелье (оно же название рецепта)</Label>
                         <SearchableSelect
                             options={potionOptions}
                             value={recipeResultId}
@@ -2438,6 +2432,7 @@ export default function AdminTab() {
     </Tabs>
   );
 }
+
 
 
 
