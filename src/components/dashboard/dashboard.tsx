@@ -9,7 +9,7 @@ import LeaderboardTab from "./leaderboard-tab";
 import RewardsTab from "./rewards-tab";
 import AdminTab from "./admin-tab";
 import RequestsTab from "./requests-tab";
-import { User, Trophy, Award, Shield, GitPullRequest, Landmark, Cat, Store, Mail, Hammer } from "lucide-react";
+import { User, Trophy, Award, Shield, GitPullRequest, Landmark, Cat, Store, Mail } from "lucide-react";
 import AuthPage from "../auth/auth-page";
 import { useAuth } from "../providers/user-provider";
 import CurrencyExchange from "./currency-exchange";
@@ -19,7 +19,6 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import MarketTab from "./market-tab";
 import MailTab from "./mail-tab";
 import React from "react";
-import CraftingTab from "./crafting-tab";
 
 export function Dashboard() {
   const { currentUser } = useUser();
@@ -57,7 +56,6 @@ export function Dashboard() {
     { value: 'leaderboard', label: 'Лидеры', icon: Trophy },
     { value: 'familiars', label: 'Фамильяры', icon: Cat, className: "shrink-0" },
     { value: 'rewards', label: 'Награды', icon: Award },
-    { value: 'crafting', label: 'Ремесло', icon: Hammer },
     { value: 'bank', label: 'Банк', icon: Landmark },
     { value: 'market', label: 'Рынок', icon: Store },
     ...(isAdmin ? [{ value: 'requests', label: 'Запросы', icon: GitPullRequest }] : []),
@@ -94,9 +92,6 @@ export function Dashboard() {
         </TabsContent>
         <TabsContent value="rewards" className="mt-4">
           <RewardsTab />
-        </TabsContent>
-        <TabsContent value="crafting" className="mt-4">
-          <CraftingTab />
         </TabsContent>
         <TabsContent value="bank" className="mt-4">
           <CurrencyExchange />

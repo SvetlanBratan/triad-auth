@@ -17,40 +17,6 @@ export type CitizenshipStatus = 'citizen' | 'non-citizen' | 'refugee';
 export type TaxpayerStatus = 'taxable' | 'exempt';
 export type MailMessageType = 'announcement' | 'personal';
 
-// --- ALCHEMY TYPES ---
-export interface AlchemyIngredient {
-  id: string;
-  name: string;
-  note?: string; 
-  tags: string[]; 
-  image?: string;
-}
-
-export interface Potion {
-  id: string;
-  name: string;
-  note?: string; 
-  effects: { stat: 'hp' | 'mana' | 'luck'; value: number; durationSec?: number }[];
-  tier: 'обычный' | 'редкий' | 'легендарный';
-  image?: string;
-}
-
-export interface AlchemyRecipeComponent {
-  ingredientId: string;
-  qty: number;
-}
-
-export interface AlchemyRecipe {
-  id: string;
-  name?: string;
-  components: AlchemyRecipeComponent[];
-  resultPotionId: string;
-  outputQty: number;
-  difficulty: number; // 1-10
-}
-// --- END ALCHEMY TYPES ---
-
-
 export interface MailMessage {
   id: string;
   senderUserId: string;
@@ -459,8 +425,4 @@ export interface UserContextType {
   updatePopularity: (updates: CharacterPopularityUpdate[]) => Promise<void>;
   clearAllPopularityHistories: () => Promise<void>;
   withdrawFromShopTill: (shopId: string) => Promise<void>;
-  brewPotion: (characterId: string, ingredients: AlchemyRecipeComponent[], heatLevel: number) => Promise<User>;
-  addAlchemyRecipe: (recipe: Omit<AlchemyRecipe, 'id' | 'name'>) => Promise<void>;
-  fetchAlchemyRecipes: () => Promise<AlchemyRecipe[]>;
 }
-

@@ -1,6 +1,6 @@
 
 
-import type { Reward, FamiliarCard, Achievement, GameSettings, WealthLevel, BankAccount, CapitalLevel, CrimeLevel, Shop, InventoryCategory, PopularityEvent, AlchemyIngredient, Potion, AlchemyRecipe } from './types';
+import type { Reward, FamiliarCard, Achievement, GameSettings, WealthLevel, BankAccount, CapitalLevel, CrimeLevel, Shop, InventoryCategory, PopularityEvent } from './types';
 import type { OptionType } from '@/components/ui/multi-select';
 
 // Game Date is now fetched from Firestore. See UserProvider.
@@ -314,7 +314,7 @@ const ALL_FAMILIAR_CARDS_RAW: Omit<FamiliarCard, 'data-ai-hint'>[] = [
     { id: 'fam-l-6', name: 'Грубас', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199173/%D0%93%D1%80%D1%83%D0%B1%D0%B0%D1%81_rjy1xw.png' },
     { id: 'fam-l-7', name: 'Единорог', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199418/%D0%95%D0%B4%D0%B8%D0%BD%D0%BE%D1%80%D0%BE%D0%B3_lfznrp.png'},
     { id: 'fam-l-8', name: 'Енот-некромант', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199419/%D0%95%D0%BD%D0%BE%D1%82-%D0%BD%D0%B5%D0%BA%D1%80%D0%BE%D0%BC%D0%B0%D0%BD%D1%82_rgq78b.png'},
-    { id: 'fam-l-9', name: 'Зеленоградский бреллопир', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199420/%D0%97%D0%B5%D0%BB%D0%B5%D0%BD%D0%BE%D0%B3%D1%80%D0%B0%D0%B4%D1%81%D0%BA%D0%B8%D0%B9_%D0%B1%D1%80%D0%B5%D0%BB%D0%BB%D0%BE%D0%B8%D1%80_zoclho.png'},
+    { id: 'fam-l-9', name: 'Зеленоградский бреллопир', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199420/%D0%97%D0%B5%D0%BB%D0%B5%D0%BD%D0%BE%D0%B3%D1%80%D0%B0%D0%B4%D1%81%D0%BA%D0%B8%D0%B9_%D0%B1%D1%80%D0%B5%D0%BB%D0%BB%D0%BE%D0%BF%D0%B8%D1%80_zoclho.png'},
     { id: 'fam-l-10', name: 'Келпи', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199421/%D0%9A%D0%B5%D0%BB%D0%BF%D0%B8_diw7xi.png'},
     { id: 'fam-l-11', name: 'Комаину', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199423/%D0%9A%D0%BE%D0%BC%D0%B0%D0%B8%D0%BD%D1%83_xamanx.png'},
     { id: 'fam-l-ognekus', name: 'Огнекус', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199456/%D0%9E%D0%B3%D0%BD%D0%B5%D0%BA%D1%83%D1%81_uwn6tt.png' },
@@ -674,53 +674,3 @@ export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) =>
     acc[shop.id] = shop;
     return acc;
 }, {} as Record<string, Shop>);
-
-    
-// These are now obsolete as the data is loaded dynamically from shops.
-// Kept empty to avoid breaking imports, but will be removed in a future step.
-export const ALL_ALCHEMY_INGREDIENTS: AlchemyIngredient[] = [];
-export const ALL_POTIONS: Potion[] = [];
-    
-export const ALL_ALCHEMY_RECIPES: AlchemyRecipe[] = [
-    {
-        id: 'rec-small-heal',
-        name: 'Малое зелье лечения',
-        resultPotionId: 'potion-small-heal',
-        components: [
-            { ingredientId: 'ing-herb-mountain', qty: 2 },
-            { ingredientId: 'ing-crystal-water', qty: 1 }
-        ],
-        outputQty: 1,
-        minHeat: 20,
-        maxHeat: 50,
-        difficulty: 2,
-    }
-];
-
-    
-
-    
-
-
-
-
-
-
-    
-
-
-    
-
-
-
-
-
-
-
-
-
-
-    
-
-
-
