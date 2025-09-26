@@ -80,19 +80,18 @@ export const ALL_ALCHEMY_INGREDIENTS: AlchemyIngredient[] = [
 
 export const ALL_ALCHEMY_RECIPES: AlchemyRecipe[] = [
   {
-    id: "rec-small-heal",
-    name: "Малое зелье лечения",
-    resultPotionId: "potion-small-heal",
+    id: 'rec-small-heal',
+    name: 'Малое зелье лечения',
+    resultPotionId: 'potion-small-heal',
     components: [
-      { ingredientId: "ing-herb-mountain", qty: 2 },
-      { ingredientId: "ing-crystal-water", qty: 1 },
+        { ingredientId: 'ing-herb-mountain', qty: 2 },
+        { ingredientId: 'ing-crystal-water', qty: 1 }
     ],
     outputQty: 1,
-    minHeat: 20,
-    maxHeat: 50,
     difficulty: 2,
-  },
+  }
 ];
+
 
 export const POPULARITY_LEVELS: { min: number; max: number; label: string }[] =
   [

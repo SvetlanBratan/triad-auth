@@ -73,6 +73,7 @@ const isFirestoreSpecial = (v: any): boolean => {
   return false;
 };
 
+
 function deepSanitize<T>(obj: T): T {
     if (obj === null || obj === undefined || isFirestoreSpecial(obj)) {
         return obj;
