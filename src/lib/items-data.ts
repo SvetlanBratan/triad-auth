@@ -17,7 +17,6 @@ export const POTIONS_LIST: Potion[] = [
         note: 'Более мощное зелье для серьезных ран.',
         image: 'https://i.postimg.cc/P5g1xG3G/image.png',
     },
-    // ... add other potions that might exist in the game
 ];
 
 export const INGREDIENTS_LIST: AlchemyIngredient[] = [
@@ -39,5 +38,4 @@ export const INGREDIENTS_LIST: AlchemyIngredient[] = [
         tags: ['растение', 'земля'],
         image: 'https://i.postimg.cc/y8YJpMWR/image.png',
     },
-    // ... add other ingredients
 ];

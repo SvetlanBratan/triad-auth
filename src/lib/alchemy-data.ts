@@ -8,12 +8,11 @@ export const ALCHEMY_POTIONS = POTIONS_LIST;
 export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
   {
     id: 'healing_potion_recipe',
-    name: 'Рецепт целебного зелья',
+    resultPotionId: 'potion-small-heal',
     components: [
       { ingredientId: 'ing-herb-mountain', qty: 2 },
       { ingredientId: 'ing-crystal-water', qty: 1 }
     ],
-    resultPotionId: 'potion-small-heal',
     outputQty: 1,
     difficulty: 1
   },
