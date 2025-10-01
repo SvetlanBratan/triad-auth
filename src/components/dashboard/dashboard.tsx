@@ -19,6 +19,7 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import MarketTab from "./market-tab";
 import MailTab from "./mail-tab";
 import React from "react";
+import AlchemyTab from "./alchemy-tab";
 
 export function Dashboard() {
   const { currentUser } = useUser();
@@ -55,6 +56,7 @@ export function Dashboard() {
     { value: 'mail', label: 'Почта', icon: Mail, notificationCount: unreadMailCount },
     { value: 'leaderboard', label: 'Лидеры', icon: Trophy },
     { value: 'familiars', label: 'Фамильяры', icon: Cat, className: "shrink-0" },
+    { value: 'alchemy', label: 'Алхимия', icon: FlaskConical },
     { value: 'rewards', label: 'Награды', icon: Award },
     { value: 'bank', label: 'Банк', icon: Landmark },
     { value: 'market', label: 'Рынок', icon: Store },
@@ -89,6 +91,9 @@ export function Dashboard() {
         </TabsContent>
         <TabsContent value="familiars" className="mt-4">
           <FamiliarsTab />
+        </TabsContent>
+        <TabsContent value="alchemy" className="mt-4">
+          <AlchemyTab />
         </TabsContent>
         <TabsContent value="rewards" className="mt-4">
           <RewardsTab />
