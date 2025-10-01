@@ -1,19 +1,5 @@
-import type { AlchemyRecipe } from './types';
+import type { Potion, AlchemyIngredient } from './types';
 import { POTIONS_LIST, INGREDIENTS_LIST } from './items-data';
 
-export const ALCHEMY_INGREDIENTS = INGREDIENTS_LIST;
-export const ALCHEMY_POTIONS = POTIONS_LIST;
-
-// Example recipes using items from items-data.ts
-export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
-  {
-    id: 'healing_potion_recipe',
-    resultPotionId: 'potion-small-heal',
-    components: [
-      { ingredientId: 'ing-herb-mountain', qty: 2 },
-      { ingredientId: 'ing-crystal-water', qty: 1 }
-    ],
-    outputQty: 1,
-    difficulty: 1
-  },
-];
+export const ALCHEMY_INGREDIENTS: AlchemyIngredient[] = INGREDIENTS_LIST;
+export const ALCHEMY_POTIONS: Potion[] = POTIONS_LIST;
