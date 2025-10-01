@@ -1,5 +1,4 @@
 
-
 import type { Reward, FamiliarCard, Achievement, GameSettings, WealthLevel, BankAccount, CapitalLevel, CrimeLevel, Shop, InventoryCategory, PopularityEvent, AlchemyIngredient, Potion, AlchemyRecipe } from './types';
 import type { OptionType } from '@/components/ui/multi-select';
 import { INGREDIENTS_LIST, POTIONS_LIST } from './items-data';
@@ -694,3 +693,4 @@ export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) =>
     return acc;
 }, {} as Record<string, Shop>);
 
+    
