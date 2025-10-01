@@ -1,7 +1,8 @@
 
 
-import type { Reward, FamiliarCard, Achievement, GameSettings, WealthLevel, BankAccount, CapitalLevel, CrimeLevel, Shop, InventoryCategory, PopularityEvent } from './types';
+import type { Reward, FamiliarCard, Achievement, GameSettings, WealthLevel, BankAccount, CapitalLevel, CrimeLevel, Shop, InventoryCategory, PopularityEvent, AlchemyIngredient, Potion, AlchemyRecipe } from './types';
 import type { OptionType } from '@/components/ui/multi-select';
+import { INGREDIENTS_LIST, POTIONS_LIST } from './items-data';
 
 // Game Date is now fetched from Firestore. See UserProvider.
 // This is a fallback/default value if nothing is in the database.
@@ -477,7 +478,16 @@ export const ALL_SHOPS: Shop[] = [
     title: 'Магазинчик зелий «Ликорис»',
     description: "Уютная лавка, где воздух пропитан ароматами сушеных трав и магических эссенций. Здесь можно найти зелья на любой случай жизни.",
     image: "https://i.postimg.cc/kgvP7Kxq/image.png",
-    aiHint: "potion shop"
+    aiHint: "potion shop",
+    items: POTIONS_LIST.map(p => ({
+        id: p.id,
+        name: p.name,
+        description: p.note,
+        image: p.image,
+        price: { gold: 10 }, // Placeholder price
+        inventoryTag: 'зелья',
+        quantity: 10,
+    }))
   },
   {
     id: 'tailor-pavlo',
@@ -666,7 +676,16 @@ export const ALL_SHOPS: Shop[] = [
     title: 'Лавка ингредиентов',
     description: 'Здесь вы найдете самые редкие и экзотические ингредиенты для алхимии, зельеварения и ритуалов. От корня мандрагоры до пыльцы фей — все, что нужно настоящему мастеру.',
     image: 'https://i.postimg.cc/hv2b9nyc/Chat-GPT-Image-1-2025-22-59-24.png',
-    aiHint: 'alchemy ingredients'
+    aiHint: 'alchemy ingredients',
+    items: INGREDIENTS_LIST.map(i => ({
+        id: i.id,
+        name: i.name,
+        description: i.note,
+        image: i.image,
+        price: { gold: 5 }, // Placeholder price
+        inventoryTag: 'ингредиенты',
+        quantity: 20
+    }))
   },
 ];
 
