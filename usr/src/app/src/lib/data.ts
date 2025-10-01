@@ -1,7 +1,7 @@
 
-
-import type { Reward, FamiliarCard, Achievement, GameSettings, WealthLevel, BankAccount, CapitalLevel, CrimeLevel, Shop, InventoryCategory, PopularityEvent, AlchemyIngredient, Potion, AlchemyRecipe } from './types';
+import type { Reward, FamiliarCard, Achievement, GameSettings, WealthLevel, BankAccount, CapitalLevel, CrimeLevel, Shop, InventoryCategory, PopularityEvent } from './types';
 import type { OptionType } from '@/components/ui/multi-select';
+import { POTIONS_LIST, INGREDIENTS_LIST } from './items-data';
 
 // Game Date is now fetched from Firestore. See UserProvider.
 // This is a fallback/default value if nothing is in the database.
@@ -342,7 +342,7 @@ const ALL_FAMILIAR_CARDS_RAW: Omit<FamiliarCard, 'data-ai-hint'>[] = [
 ];
 
 
-export const EVENT_FAMILIARS_RAW: Omit<FamiliarCard, 'data-ai-hint'>[] = [
+export const EVENT_FAMILIARS_RAW: Omit<FamiliarCard, "data-ai-hint">[] = [
     { id: 'fam-e-anubis', name: 'Анубис', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753197215/%D0%90%D0%BD%D1%83%D0%B1%D0%B8%D1%81_sqmdss.png' },
     { id: 'fam-e-zhut', name: 'Жуть', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199419/%D0%96%D1%83%D1%82%D1%8C_hmausj.png'},
     { id: 'fam-e-blues', name: 'Колодезный дух Блюз', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199422/%D0%9A%D0%BE%D0%BB%D0%BE%D0%B4%D0%B5%D0%B7%D0%BD%D1%8B%D0%B9_%D0%B4%D1%83%D1%85_%D0%91%D0%BB%D1%8E%D0%B7_c9d8nc.png'},
@@ -477,7 +477,16 @@ export const ALL_SHOPS: Shop[] = [
     title: 'Магазинчик зелий «Ликорис»',
     description: "Уютная лавка, где воздух пропитан ароматами сушеных трав и магических эссенций. Здесь можно найти зелья на любой случай жизни.",
     image: "https://i.postimg.cc/kgvP7Kxq/image.png",
-    aiHint: "potion shop"
+    aiHint: "potion shop",
+    items: POTIONS_LIST.map(p => ({
+        id: p.id,
+        name: p.name,
+        description: p.note,
+        image: p.image,
+        price: { gold: 10 }, // Placeholder price
+        inventoryTag: 'зелья',
+        quantity: 10,
+    }))
   },
   {
     id: 'tailor-pavlo',
@@ -666,7 +675,16 @@ export const ALL_SHOPS: Shop[] = [
     title: 'Лавка ингредиентов',
     description: 'Здесь вы найдете самые редкие и экзотические ингредиенты для алхимии, зельеварения и ритуалов. От корня мандрагоры до пыльцы фей — все, что нужно настоящему мастеру.',
     image: 'https://i.postimg.cc/hv2b9nyc/Chat-GPT-Image-1-2025-22-59-24.png',
-    aiHint: 'alchemy ingredients'
+    aiHint: 'alchemy ingredients',
+    items: INGREDIENTS_LIST.map(i => ({
+        id: i.id,
+        name: i.name,
+        description: i.note,
+        image: i.image,
+        price: { gold: 5 }, // Placeholder price
+        inventoryTag: 'ингредиенты',
+        quantity: 20
+    }))
   },
 ];
 
@@ -674,40 +692,3 @@ export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) =>
     acc[shop.id] = shop;
     return acc;
 }, {} as Record<string, Shop>);
-
-    
-// These are now obsolete as the data is loaded dynamically from shops.
-// Kept empty to avoid breaking imports, but will be removed in a future step.
-export const ALL_ALCHEMY_INGREDIENTS: AlchemyIngredient[] = [];
-export const ALL_POTIONS: Potion[] = [];
-    
-export const ALL_ALCHEMY_RECIPES: AlchemyRecipe[] = [];
-
-    
-
-    
-
-
-
-
-
-
-    
-
-
-    
-
-
-
-
-
-
-
-
-
-
-    
-
-
-
-

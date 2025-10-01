@@ -1,3 +1,4 @@
+
 import type {
   Reward,
   FamiliarCard,
@@ -10,9 +11,6 @@ import type {
   Shop,
   InventoryCategory,
   PopularityEvent,
-  Potion,
-  AlchemyIngredient,
-  AlchemyRecipe,
 } from "./types";
 
 // Game Date is now fetched from Firestore. See UserProvider.
@@ -37,61 +35,6 @@ export const COUNTRIES: string[] = [
   "Остров Отчуждения",
   "Кураж",
 ];
-
-export const ALL_POTIONS: Potion[] = [
-  {
-    id: "potion-small-heal",
-    name: "Малое зелье лечения",
-    tier: "обычный",
-    effects: [{ stat: "hp", value: 25 }],
-    note: "Простое зелье, восстанавливающее немного здоровья.",
-    image: "https://i.postimg.cc/P5g1xG3G/image.png",
-  },
-  {
-    id: "potion-medium-heal",
-    name: "Среднее зелье лечения",
-    tier: "редкий",
-    effects: [{ stat: "hp", value: 100 }],
-    note: "Более мощное зелье для серьезных ран.",
-    image: "https://i.postimg.cc/P5g1xG3G/image.png",
-  },
-];
-
-export const ALL_ALCHEMY_INGREDIENTS: AlchemyIngredient[] = [
-  {
-    id: "ing-flower-fire",
-    name: "Огненный цветок",
-    tags: ["растение", "огонь"],
-    image: "https://i.postimg.cc/PqGy27G8/image.png",
-  },
-  {
-    id: "ing-crystal-water",
-    name: "Водный кристалл",
-    tags: ["минерал", "вода"],
-    image: "https://i.postimg.cc/J0RYGNzB/image.png",
-  },
-  {
-    id: "ing-herb-mountain",
-    name: "Горная трава",
-    tags: ["растение", "земля"],
-    image: "https://i.postimg.cc/y8YJpMWR/image.png",
-  },
-];
-
-export const ALL_ALCHEMY_RECIPES: AlchemyRecipe[] = [
-  {
-    id: 'rec-small-heal',
-    name: 'Малое зелье лечения',
-    resultPotionId: 'potion-small-heal',
-    components: [
-        { ingredientId: 'ing-herb-mountain', qty: 2 },
-        { ingredientId: 'ing-crystal-water', qty: 1 }
-    ],
-    outputQty: 1,
-    difficulty: 2,
-  }
-];
-
 
 export const POPULARITY_LEVELS: { min: number; max: number; label: string }[] =
   [
@@ -1455,3 +1398,5 @@ export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) =>
     acc[shop.id] = shop;
     return acc;
 }, {} as Record<string, Shop>);
+
+```
