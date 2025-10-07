@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -70,12 +69,12 @@ export function Dashboard() {
           {tabs.map(({ value, label, icon: Icon, className, notificationCount, href }) => {
             if (href) {
               return (
-                <Link key={value} href={href} asChild>
-                  <TabsTrigger value={value} className="flex-row items-center justify-center p-1 sm:p-2 sm:gap-1.5 text-xs sm:text-sm relative">
+                <TabsTrigger key={value} value={value} asChild className="flex-row items-center justify-center p-1 sm:p-2 sm:gap-1.5 text-xs sm:text-sm relative">
+                   <Link href={href}>
                      <Icon className={cn("w-4 h-4", className)} />
                      <span className="hidden [@media(min-width:400px)]:sm:inline">{label}</span>
-                  </TabsTrigger>
-                </Link>
+                   </Link>
+                </TabsTrigger>
               );
             }
             return (
