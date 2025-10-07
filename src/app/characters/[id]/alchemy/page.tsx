@@ -46,10 +46,10 @@ export default function AlchemyPage() {
     }, []);
 
     const handleCraft = async (recipe: AlchemyRecipe) => {
-        if (!character) return;
+        if (!character || !currentUser) return;
         setIsCraftingId(recipe.id);
         try {
-            await brewPotion(character.id, recipe);
+            await brewPotion(currentUser.id, character.id, recipe.id);
             toast({
                 title: "Предмет создан!",
                 description: `Вы успешно создали предмет.`
