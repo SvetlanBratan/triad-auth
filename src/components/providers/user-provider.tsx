@@ -102,7 +102,7 @@ interface UserContextType extends Omit<User, 'id' | 'name' | 'email' | 'avatar' 
   updatePopularity: (updates: CharacterPopularityUpdate[]) => Promise<void>;
   clearAllPopularityHistories: () => Promise<void>;
   withdrawFromShopTill: (shopId: string) => Promise<void>;
-  brewPotion: (characterId: string, recipe: AlchemyRecipe) => Promise<void>;
+  brewPotion: (userId: string, characterId: string, recipeId: string) => Promise<void>;
   addAlchemyRecipe: (recipe: Omit<AlchemyRecipe, 'id'>) => Promise<void>;
   fetchAlchemyRecipes: () => Promise<AlchemyRecipe[]>;
 }
@@ -2559,7 +2559,7 @@ const withdrawFromShopTill = useCallback(async (shopId: string) => {
 }, [currentUser, fetchUserById]);
 
 const addAlchemyRecipe = useCallback(async (recipe: Omit<AlchemyRecipe, 'id'>) => {
-    const newRecipe: Omit<AlchemyRecipe, 'id' | 'createdAt'> = { ...recipe, createdAt: new Date().toISOString() };
+    const newRecipe = { ...recipe, createdAt: new Date().toISOString() };
     const recipesCollection = collection(db, "alchemy_recipes");
     await addDoc(recipesCollection, newRecipe);
 }, []);
@@ -2571,17 +2571,21 @@ const fetchAlchemyRecipes = useCallback(async (): Promise<AlchemyRecipe[]> => {
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AlchemyRecipe));
   }, []);
 
-const brewPotion = useCallback(async (characterId: string, recipe: AlchemyRecipe) => {
-    if (!currentUser) throw new Error("Пользователь не авторизован.");
+const brewPotion = useCallback(async (userId: string, characterId: string, recipeId: string) => {
+    if (!currentUser || currentUser.id !== userId) throw new Error("Unauthorized");
+    
+    const allRecipes = await fetchAlchemyRecipes();
+    const recipe = allRecipes.find(r => r.id === recipeId);
+    if (!recipe) throw new Error("Recipe not found.");
 
     await runTransaction(db, async (transaction) => {
-        const userRef = doc(db, "users", currentUser.id);
+        const userRef = doc(db, "users", userId);
         const userDoc = await transaction.get(userRef);
-        if (!userDoc.exists()) throw new Error("Пользователь не найден.");
+        if (!userDoc.exists()) throw new Error("User not found.");
 
         const userData = userDoc.data() as User;
         const charIndex = userData.characters.findIndex(c => c.id === characterId);
-        if (charIndex === -1) throw new Error("Персонаж не найден.");
+        if (charIndex === -1) throw new Error("Character not found.");
 
         const character = userData.characters[charIndex];
         const inventory = character.inventory || {};
@@ -2591,7 +2595,8 @@ const brewPotion = useCallback(async (characterId: string, recipe: AlchemyRecipe
         for (const component of recipe.components) {
             const playerIng = ingredientsInv.find(i => i.id === component.ingredientId);
             if (!playerIng || playerIng.quantity < component.qty) {
-                throw new Error(`Недостаточно ингредиента: ${component.ingredientId}`);
+                const requiredItem = ALL_SHOPS.flatMap(s => s.items || []).find(i => i.id === component.ingredientId);
+                throw new Error(`Недостаточно ингредиента: ${requiredItem?.name || 'неизвестный'}`);
             }
         }
         
@@ -2627,14 +2632,14 @@ const brewPotion = useCallback(async (characterId: string, recipe: AlchemyRecipe
         inventory.ингредиенты = ingredientsInv;
         inventory.зелья = potionsInv;
         character.inventory = inventory;
+        userData.characters[charIndex] = character;
 
         transaction.update(userRef, { characters: userData.characters });
     });
     
-    // Refetch user data to update UI
-    const updatedUser = await fetchUserById(currentUser.id);
+    const updatedUser = await fetchUserById(userId);
     if(updatedUser) setCurrentUser(updatedUser);
-}, [currentUser, fetchUserById]);
+}, [currentUser, fetchUserById, fetchAlchemyRecipes]);
 
   const signOutUser = useCallback(() => {
     signOut(auth);
@@ -2738,3 +2743,4 @@ const brewPotion = useCallback(async (characterId: string, recipe: AlchemyRecipe
     </AuthContext.Provider>
   );
 }
+

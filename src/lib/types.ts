@@ -419,6 +419,6 @@ export interface AlchemyRecipe {
   resultPotionId: string;
   outputQty: number;
   difficulty: number; // 1-10
-  createdAt?: string; // ISO string
+  createdAt: string; // ISO string
 }
 // --- END ALCHEMY TYPES ---
