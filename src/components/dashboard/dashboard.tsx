@@ -20,7 +20,6 @@ import MarketTab from "./market-tab";
 import MailTab from "./mail-tab";
 import React from "react";
 import Link from "next/link";
-import AlchemyPage from "@/app/alchemy/page";
 
 export function Dashboard() {
   const { currentUser } = useUser();
@@ -82,7 +81,7 @@ export function Dashboard() {
             );
 
             if(href) {
-                return <Link key={value} href={href} passHref legacyBehavior>{trigger}</Link>
+                return <Link key={value} href={href} passHref asChild>{trigger}</Link>
             }
             return trigger;
           })}
