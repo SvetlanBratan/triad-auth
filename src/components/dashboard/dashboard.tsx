@@ -68,7 +68,17 @@ export function Dashboard() {
       <Tabs defaultValue={defaultTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="flex flex-wrap h-auto min-h-12 justify-around sm:justify-center sm:gap-1">
           {tabs.map(({ value, label, icon: Icon, className, notificationCount, href }) => {
-            const trigger = (
+            if (href) {
+              return (
+                <Link key={value} href={href} passHref asChild>
+                  <TabsTrigger value={value} className="flex-row items-center justify-center p-1 sm:p-2 sm:gap-1.5 text-xs sm:text-sm relative">
+                     <Icon className={cn("w-4 h-4", className)} />
+                     <span className="hidden [@media(min-width:400px)]:sm:inline">{label}</span>
+                  </TabsTrigger>
+                </Link>
+              );
+            }
+            return (
               <TabsTrigger key={value} value={value} className="flex-row items-center justify-center p-1 sm:p-2 sm:gap-1.5 text-xs sm:text-sm relative">
                 <Icon className={cn("w-4 h-4", className)} />
                 <span className="hidden [@media(min-width:400px)]:sm:inline">{label}</span>
@@ -79,11 +89,6 @@ export function Dashboard() {
                 )}
               </TabsTrigger>
             );
-
-            if(href) {
-                return <Link key={value} href={href} passHref asChild>{trigger}</Link>
-            }
-            return trigger;
           })}
         </TabsList>
 
