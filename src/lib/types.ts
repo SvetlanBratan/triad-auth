@@ -1,4 +1,5 @@
 
+
 export type UserRole = "admin" | "user";
 export type UserStatus = "активный" | "неактивный" | "отпуск";
 export type RewardRequestStatus = "в ожидании" | "одобрено" | "отклонено";
@@ -343,6 +344,7 @@ export interface ShopItem {
   inventoryTag?: InventoryCategory;
   quantity?: number; // undefined or -1 for infinite
   purchaseCount?: number;
+  isHidden?: boolean;
 }
 
 export interface Shop {

@@ -14,6 +14,7 @@ import { Textarea } from '../ui/textarea';
 import { INVENTORY_CATEGORIES } from '@/lib/data';
 import { SearchableSelect } from '../ui/searchable-select';
 import ImageKitUploader from './imagekit-uploader';
+import { Switch } from '../ui/switch';
 
 interface ShopItemFormProps {
     shopId: string;
@@ -29,6 +30,7 @@ const initialFormData: Omit<ShopItem, 'id'> = {
     price: { platinum: 0, gold: 0, silver: 0, copper: 0 },
     inventoryTag: 'прочее',
     quantity: undefined, // undefined for infinite
+    isHidden: false,
 };
 
 export default function ShopItemForm({ shopId, item, closeDialog, defaultCategory }: ShopItemFormProps) {
@@ -51,6 +53,7 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
                 },
                 inventoryTag: item.inventoryTag || 'прочее',
                 quantity: item.quantity,
+                isHidden: item.isHidden || false,
             });
         } else {
             // For new items, use the default category passed from the parent
@@ -151,6 +154,15 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
                     <p className="text-xs text-muted-foreground mt-1">
                        Если оставить поле пустым, товар будет считаться бесконечным.
                     </p>
+                </div>
+                
+                 <div className="flex items-center space-x-2 pt-2">
+                    <Switch
+                        id="isHidden"
+                        checked={formData.isHidden}
+                        onCheckedChange={(checked) => setFormData(prev => ({...prev, isHidden: checked}))}
+                    />
+                    <Label htmlFor="isHidden">Скрыть товар от покупателей</Label>
                 </div>
             </div>
              <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t">

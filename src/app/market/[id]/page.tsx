@@ -8,12 +8,12 @@ import { useUser } from '@/hooks/use-user';
 import type { Shop, ShopItem, BankAccount, Character, InventoryCategory } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, UserCircle, PlusCircle, Edit, Trash2, ShoppingCart, Info, Package, Settings, RefreshCw, BadgeCheck, Save, Search, WalletCards } from 'lucide-react';
+import { ArrowLeft, UserCircle, PlusCircle, Edit, Trash2, ShoppingCart, Info, Package, Settings, RefreshCw, BadgeCheck, Save, Search, WalletCards, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import ShopItemForm from '@/components/dashboard/shop-item-form';
 import { useToast } from '@/hooks/use-toast';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -215,13 +215,20 @@ export default function ShopPage() {
 
     const filteredItems = React.useMemo(() => {
         if (!shop?.items) return [];
-        const sortedItems = [...shop.items].sort((a, b) => (b.purchaseCount || 0) - (a.purchaseCount || 0));
+        let items = [...shop.items];
+        
+        if (!isOwnerOrAdmin) {
+            items = items.filter(item => !item.isHidden);
+        }
+
+        const sortedItems = items.sort((a, b) => (b.purchaseCount || 0) - (a.purchaseCount || 0));
+        
         if (!searchQuery) return sortedItems;
 
         return sortedItems.filter(item =>
             item.name.toLowerCase().includes(searchQuery.toLowerCase())
         );
-    }, [shop?.items, searchQuery]);
+    }, [shop?.items, searchQuery, isOwnerOrAdmin]);
 
 
     if (isLoading) {
@@ -311,7 +318,7 @@ export default function ShopPage() {
                                 {filteredItems.map(item => {
                                     const isOutOfStock = item.quantity === 0;
                                     return (
-                                    <Card key={item.id} className="flex flex-col group overflow-hidden max-w-sm mx-auto">
+                                    <Card key={item.id} className={cn("flex flex-col group overflow-hidden max-w-sm mx-auto", item.isHidden && "opacity-60")}>
                                         {item.image && (
                                             <div className="relative w-full aspect-square bg-muted">
                                                  <Image
@@ -324,7 +331,10 @@ export default function ShopPage() {
                                         )}
                                         <CardHeader className="flex-grow">
                                             <div className="flex justify-between items-start">
-                                                <CardTitle className="text-lg">{item.name}</CardTitle>
+                                                <CardTitle className="text-lg flex items-center gap-2">
+                                                  {item.name}
+                                                  {item.isHidden && <Eye className="w-4 h-4 text-muted-foreground" />}
+                                                </CardTitle>
                                                 {isOwnerOrAdmin && (
                                                     <div className="flex gap-2">
                                                         <Button size="icon" variant="secondary" className="h-8 w-8" onClick={() => { setEditingItem(item); setIsFormOpen(true); }}><Edit className="h-4 w-4"/></Button>
