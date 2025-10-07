@@ -440,13 +440,6 @@ export default function CharacterPage() {
                     <div className="flex items-center gap-3 flex-wrap">
                         <h1 className="text-xl md:text-2xl font-bold font-headline text-primary">{character.name}</h1>
                         <div className="flex items-center gap-1.5">
-                            {isOwnerOrAdmin && (
-                                <Button asChild variant="outline" size="icon-sm">
-                                    <Link href={`/alchemy`}>
-                                        <FlaskConical className="w-4 h-4" />
-                                    </Link>
-                                </Button>
-                            )}
                             {isBlessed && (
                                 <Popover>
                                     <PopoverTrigger asChild><button><Sparkles className="h-5 w-5 text-yellow-500 cursor-pointer" /></button></PopoverTrigger>
@@ -990,7 +983,7 @@ export default function CharacterPage() {
                         <div className="grid md:grid-cols-2 gap-6 items-start">
                             {selectedItem.image && (
                                 <div className="relative w-full h-80 bg-muted rounded-md overflow-hidden">
-                                    <Image src={selectedItem.image} alt={selectedItem.name} fill style={{objectFit: "contain"}} />
+                                    <Image src={selectedItem.image} alt={selectedItem.name} fill style={{objectFit: "contain"}} data-ai-hint="inventory item" />
                                 </div>
                             )}
                             <div className={cn("flex flex-col h-full", !selectedItem.image && "md:col-span-2")}>

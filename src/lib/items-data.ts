@@ -1,4 +1,3 @@
-
 import type { Potion, AlchemyIngredient } from "./types";
 
 export const POTIONS_LIST: Potion[] = [
@@ -45,12 +44,12 @@ export const POTIONS_LIST: Potion[] = [
 ];
 
 export const INGREDIENTS_LIST: AlchemyIngredient[] = [
-    { id: 'ing-spring-water', name: 'Родниковая вода', note: 'Чистейшая вода из горного источника.', tags: ['вода', 'основа'], image: 'https://i.postimg.cc/L6s81xJ9/image.png', quantity: 0 },
-    { id: 'ing-mountain-flower', name: 'Горный цветок', note: 'Редкий цветок с лечебными свойствами.', tags: ['трава', 'лечение'], image: 'https://i.postimg.cc/Hxb4V1pX/image.png', quantity: 0 },
-    { id: 'ing-fire-salt', name: 'Огненная соль', note: 'Кристаллы соли, которые тлеют при контакте с воздухом.', tags: ['минерал', 'огонь'], image: 'https://i.postimg.cc/J0P7sF6C/image.png', quantity: 0 },
-    { id: 'ing-mandrake-root', name: 'Корень мандрагоры', note: 'Корень, издающий крик, когда его вырывают.', tags: ['корень', 'магия'], image: 'https://i.postimg.cc/3N1xW0pY/image.png', quantity: 0 },
-    { id: 'ing-glowing-mushroom', name: 'Светящийся гриб', note: 'Гриб, испускающий тусклый свет. Часто используется для зелий маны.', tags: ['гриб', 'магия'], image: 'https://i.postimg.cc/k5hF8L4S/image.png', quantity: 0 },
-    { id: 'ing-troll-blood', name: 'Кровь тролля', note: 'Обладает мощными регенеративными свойствами.', tags: ['животное', 'регенерация'], image: 'https://i.postimg.cc/B6qK7HwZ/image.png', quantity: 0 },
-    { id: 'ing-phoenix-feather', name: 'Перо феникса', note: 'Перо мифической птицы, наполненное жизненной силой.', tags: ['мифический', 'жизнь'], image: 'https://i.postimg.cc/3JjDq30J/image.png', quantity: 0 },
-    { id: 'ing-dragon-scale', name: 'Чешуя дракона', note: 'Невероятно прочная чешуя, используемая в защитных зельях.', tags: ['мифический', 'защита'], image: 'https://i.postimg.cc/brY4M0M1/image.png', quantity: 0 },
+    { id: 'ing-spring-water', name: 'Родниковая вода', note: 'Чистейшая вода из горного источника.', tags: ['вода', 'основа'], image: 'https://i.postimg.cc/L6s81xJ9/image.png' },
+    { id: 'ing-mountain-flower', name: 'Горный цветок', note: 'Редкий цветок с лечебными свойствами.', tags: ['трава', 'лечение'], image: 'https://i.postimg.cc/Hxb4V1pX/image.png' },
+    { id: 'ing-fire-salt', name: 'Огненная соль', note: 'Кристаллы соли, которые тлеют при контакте с воздухом.', tags: ['минерал', 'огонь'], image: 'https://i.postimg.cc/J0P7sF6C/image.png' },
+    { id: 'ing-mandrake-root', name: 'Корень мандрагоры', note: 'Корень, издающий крик, когда его вырывают.', tags: ['корень', 'магия'], image: 'https://i.postimg.cc/3N1xW0pY/image.png' },
+    { id: 'ing-glowing-mushroom', name: 'Светящийся гриб', note: 'Гриб, испускающий тусклый свет. Часто используется для зелий маны.', tags: ['гриб', 'магия'], image: 'https://i.postimg.cc/k5hF8L4S/image.png' },
+    { id: 'ing-troll-blood', name: 'Кровь тролля', note: 'Обладает мощными регенеративными свойствами.', tags: ['животное', 'регенерация'], image: 'https://i.postimg.cc/B6qK7HwZ/image.png' },
+    { id: 'ing-phoenix-feather', name: 'Перо феникса', note: 'Перо мифической птицы, наполненное жизненной силой.', tags: ['мифический', 'жизнь'], image: 'https://i.postimg.cc/3JjDq30J/image.png' },
+    { id: 'ing-dragon-scale', name: 'Чешуя дракона', note: 'Невероятно прочная чешуя, используемая в защитных зельях.', tags: ['мифический', 'защита'], image: 'https://i.postimg.cc/brY4M0M1/image.png' },
 ];

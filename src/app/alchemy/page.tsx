@@ -116,7 +116,7 @@ export default function AlchemyPage() {
                                     <CardHeader>
                                         {outputItem?.image && (
                                             <div className="relative w-full aspect-square bg-muted rounded-md mb-4">
-                                                <Image src={outputItem.image} alt={outputItem.name || 'Предмет'} fill style={{ objectFit: "contain" }} />
+                                                <Image src={outputItem.image} alt={outputItem.name || 'Предмет'} fill style={{ objectFit: "contain" }} data-ai-hint="alchemy potion" />
                                             </div>
                                         )}
                                         <CardTitle>{recipeTitle}</CardTitle>
@@ -136,7 +136,7 @@ export default function AlchemyPage() {
                                                                 <Tooltip>
                                                                     <TooltipTrigger asChild>
                                                                         <div className="relative w-8 h-8 bg-muted rounded-sm">
-                                                                            {ingredient?.image && <Image src={ingredient.image} alt={ingredient.name} fill style={{objectFit: "contain"}} />}
+                                                                            {ingredient?.image && <Image src={ingredient.image} alt={ingredient.name || 'Ингредиент'} fill style={{objectFit: "contain"}} data-ai-hint="alchemy ingredient"/>}
                                                                         </div>
                                                                     </TooltipTrigger>
                                                                     <TooltipContent>
@@ -174,3 +174,4 @@ export default function AlchemyPage() {
         </div>
     );
 }
+
