@@ -442,7 +442,7 @@ export default function CharacterPage() {
                         <div className="flex items-center gap-1.5">
                             {isOwnerOrAdmin && (
                                 <Button asChild variant="outline" size="icon-sm">
-                                    <Link href={`/characters/${character.id}/alchemy`}>
+                                    <Link href={`/alchemy`}>
                                         <FlaskConical className="w-4 h-4" />
                                     </Link>
                                 </Button>

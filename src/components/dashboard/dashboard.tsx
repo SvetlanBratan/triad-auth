@@ -19,6 +19,8 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import MarketTab from "./market-tab";
 import MailTab from "./mail-tab";
 import React from "react";
+import Link from "next/link";
+import AlchemyPage from "@/app/alchemy/page";
 
 export function Dashboard() {
   const { currentUser } = useUser();
@@ -55,7 +57,7 @@ export function Dashboard() {
     { value: 'mail', label: 'Почта', icon: Mail, notificationCount: unreadMailCount },
     { value: 'leaderboard', label: 'Лидеры', icon: Trophy },
     { value: 'familiars', label: 'Фамильяры', icon: Cat, className: "shrink-0" },
-    { value: 'alchemy', label: 'Алхимия', icon: FlaskConical },
+    { value: 'alchemy', label: 'Алхимия', icon: FlaskConical, href: '/alchemy' },
     { value: 'rewards', label: 'Награды', icon: Award },
     { value: 'bank', label: 'Банк', icon: Landmark },
     { value: 'market', label: 'Рынок', icon: Store },
@@ -66,17 +68,24 @@ export function Dashboard() {
   return (
       <Tabs defaultValue={defaultTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="flex flex-wrap h-auto min-h-12 justify-around sm:justify-center sm:gap-1">
-          {tabs.map(({ value, label, icon: Icon, className, notificationCount }) => (
-            <TabsTrigger key={value} value={value} className="flex-row items-center justify-center p-1 sm:p-2 sm:gap-1.5 text-xs sm:text-sm relative">
-              <Icon className={cn("w-4 h-4", className)} />
-              <span className="hidden [@media(min-width:400px)]:sm:inline">{label}</span>
-              {notificationCount && notificationCount > 0 && (
-                <span className="absolute top-0 right-0 -mt-1 -mr-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs">
-                  {notificationCount}
-                </span>
-              )}
-            </TabsTrigger>
-          ))}
+          {tabs.map(({ value, label, icon: Icon, className, notificationCount, href }) => {
+            const trigger = (
+              <TabsTrigger key={value} value={value} className="flex-row items-center justify-center p-1 sm:p-2 sm:gap-1.5 text-xs sm:text-sm relative">
+                <Icon className={cn("w-4 h-4", className)} />
+                <span className="hidden [@media(min-width:400px)]:sm:inline">{label}</span>
+                {notificationCount && notificationCount > 0 && (
+                  <span className="absolute top-0 right-0 -mt-1 -mr-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs">
+                    {notificationCount}
+                  </span>
+                )}
+              </TabsTrigger>
+            );
+
+            if(href) {
+                return <Link key={value} href={href} passHref legacyBehavior>{trigger}</Link>
+            }
+            return trigger;
+          })}
         </TabsList>
 
         <TabsContent value="profile" className="mt-4">
@@ -90,12 +99,6 @@ export function Dashboard() {
         </TabsContent>
         <TabsContent value="familiars" className="mt-4">
           <FamiliarsTab />
-        </TabsContent>
-        <TabsContent value="alchemy">
-            <div className="text-center p-8">
-              <h2 className="text-2xl font-bold">Страница алхимии</h2>
-              <p className="text-muted-foreground">Для начала крафта перейдите на страницу одного из ваших персонажей и нажмите на иконку колбы.</p>
-            </div>
         </TabsContent>
         <TabsContent value="rewards" className="mt-4">
           <RewardsTab />
