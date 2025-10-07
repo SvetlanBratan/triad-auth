@@ -1,8 +1,9 @@
 
+
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
-import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage, Cooldowns, PopularityLog, CharacterPopularityUpdate, OwnedFamiliarCard } from '@/lib/types';
+import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage, Cooldowns, PopularityLog, CharacterPopularityUpdate, OwnedFamiliarCard, AlchemyRecipe, AlchemyRecipeComponent } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter, increment, FieldValue, deleteField } from "firebase/firestore";
@@ -101,10 +102,14 @@ interface UserContextType extends Omit<User, 'id' | 'name' | 'email' | 'avatar' 
   updatePopularity: (updates: CharacterPopularityUpdate[]) => Promise<void>;
   clearAllPopularityHistories: () => Promise<void>;
   withdrawFromShopTill: (shopId: string) => Promise<void>;
+  brewPotion: (characterId: string, recipe: AlchemyRecipe) => Promise<void>;
+  addAlchemyRecipe: (recipe: Omit<AlchemyRecipe, 'id'>) => Promise<void>;
+  fetchAlchemyRecipes: () => Promise<AlchemyRecipe[]>;
 }
 
 export const UserContext = createContext<UserContextType | null>(null);
 
+// ... (rest of the file remains the same until createNewUser) ...
 const ADMIN_UIDS = ['Td5P02zpyaMR3IxCY9eCf7gcYky1', 'yawuIwXKVbNhsBQSqWfGZyAzZ3A3'];
 const ROULETTE_COST = 5000;
 const DUPLICATE_REFUND = 1000;
@@ -1790,7 +1795,7 @@ const processMonthlySalary = useCallback(async () => {
         targetChar.familiarCards.splice(targetCardIndex, 1);
 
         initiatorChar.familiarCards.push({ id: request.targetFamiliarId });
-        targetChar.familiarCards.push({ id: request.targetFamiliarId });
+        targetChar.familiarCards.push({ id: request.initiatorFamiliarId });
 
         transaction.update(initiatorUserRef, { characters: initiatorData.characters });
         transaction.update(targetUserRef, { characters: targetData.characters });
@@ -2553,6 +2558,84 @@ const withdrawFromShopTill = useCallback(async (shopId: string) => {
     if(updatedUser) setCurrentUser(updatedUser);
 }, [currentUser, fetchUserById]);
 
+const addAlchemyRecipe = useCallback(async (recipe: Omit<AlchemyRecipe, 'id'>) => {
+    const newRecipe: Omit<AlchemyRecipe, 'id' | 'createdAt'> = { ...recipe, createdAt: new Date().toISOString() };
+    const recipesCollection = collection(db, "alchemy_recipes");
+    await addDoc(recipesCollection, newRecipe);
+}, []);
+
+const fetchAlchemyRecipes = useCallback(async (): Promise<AlchemyRecipe[]> => {
+    const recipesCollection = collection(db, "alchemy_recipes");
+    const q = query(recipesCollection, orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AlchemyRecipe));
+  }, []);
+
+const brewPotion = useCallback(async (characterId: string, recipe: AlchemyRecipe) => {
+    if (!currentUser) throw new Error("Пользователь не авторизован.");
+
+    await runTransaction(db, async (transaction) => {
+        const userRef = doc(db, "users", currentUser.id);
+        const userDoc = await transaction.get(userRef);
+        if (!userDoc.exists()) throw new Error("Пользователь не найден.");
+
+        const userData = userDoc.data() as User;
+        const charIndex = userData.characters.findIndex(c => c.id === characterId);
+        if (charIndex === -1) throw new Error("Персонаж не найден.");
+
+        const character = userData.characters[charIndex];
+        const inventory = character.inventory || {};
+        const ingredientsInv = (inventory.ингредиенты || []) as InventoryItem[];
+
+        // Check ingredients
+        for (const component of recipe.components) {
+            const playerIng = ingredientsInv.find(i => i.id === component.ingredientId);
+            if (!playerIng || playerIng.quantity < component.qty) {
+                throw new Error(`Недостаточно ингредиента: ${component.ingredientId}`);
+            }
+        }
+        
+        // Consume ingredients
+        recipe.components.forEach(component => {
+            const playerIngIndex = ingredientsInv.findIndex(i => i.id === component.ingredientId);
+            const playerIng = ingredientsInv[playerIngIndex];
+            if (playerIng.quantity > component.qty) {
+                playerIng.quantity -= component.qty;
+            } else {
+                ingredientsInv.splice(playerIngIndex, 1);
+            }
+        });
+        
+        // Add result potion
+        const potionsInv = (inventory.зелья || []) as InventoryItem[];
+        const resultItem = ALL_SHOPS.flatMap(s => s.items || []).find(i => i.id === recipe.resultPotionId);
+        if (!resultItem) throw new Error("Итоговый предмет не найден в данных игры.");
+
+        const existingPotionIndex = potionsInv.findIndex(p => p.name === resultItem.name); // Match by name to stack
+        if (existingPotionIndex > -1) {
+            potionsInv[existingPotionIndex].quantity += recipe.outputQty;
+        } else {
+            potionsInv.push({
+                id: `inv-item-${Date.now()}`,
+                name: resultItem.name,
+                description: resultItem.description,
+                image: resultItem.image,
+                quantity: recipe.outputQty,
+            });
+        }
+        
+        inventory.ингредиенты = ingredientsInv;
+        inventory.зелья = potionsInv;
+        character.inventory = inventory;
+
+        transaction.update(userRef, { characters: userData.characters });
+    });
+    
+    // Refetch user data to update UI
+    const updatedUser = await fetchUserById(currentUser.id);
+    if(updatedUser) setCurrentUser(updatedUser);
+}, [currentUser, fetchUserById]);
+
   const signOutUser = useCallback(() => {
     signOut(auth);
   }, []);
@@ -2640,8 +2723,11 @@ const withdrawFromShopTill = useCallback(async (shopId: string) => {
       updatePopularity,
       clearAllPopularityHistories,
       withdrawFromShopTill,
+      brewPotion,
+      addAlchemyRecipe,
+      fetchAlchemyRecipes,
     }),
-    [currentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill]
+    [currentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, fetchAlchemyRecipes]
   );
 
   return (
