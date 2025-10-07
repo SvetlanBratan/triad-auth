@@ -103,7 +103,9 @@ interface UserContextType extends Omit<User, 'id' | 'name' | 'email' | 'avatar' 
   clearAllPopularityHistories: () => Promise<void>;
   withdrawFromShopTill: (shopId: string) => Promise<void>;
   brewPotion: (userId: string, characterId: string, recipeId: string) => Promise<void>;
-  addAlchemyRecipe: (recipe: Omit<AlchemyRecipe, 'id'>) => Promise<void>;
+  addAlchemyRecipe: (recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => Promise<void>;
+  updateAlchemyRecipe: (recipeId: string, recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => Promise<void>;
+  deleteAlchemyRecipe: (recipeId: string) => Promise<void>;
   fetchAlchemyRecipes: () => Promise<AlchemyRecipe[]>;
 }
 
@@ -2564,6 +2566,16 @@ const addAlchemyRecipe = useCallback(async (recipe: Omit<AlchemyRecipe, 'id' | '
     await addDoc(recipesCollection, newRecipe);
 }, []);
 
+const updateAlchemyRecipe = useCallback(async (recipeId: string, recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
+    const recipeRef = doc(db, "alchemy_recipes", recipeId);
+    await updateDoc(recipeRef, recipe);
+}, []);
+
+const deleteAlchemyRecipe = useCallback(async (recipeId: string) => {
+    const recipeRef = doc(db, "alchemy_recipes", recipeId);
+    await deleteDoc(recipeRef);
+}, []);
+
 const fetchAlchemyRecipes = useCallback(async (): Promise<AlchemyRecipe[]> => {
     const recipesCollection = collection(db, "alchemy_recipes");
     const q = query(recipesCollection, orderBy('createdAt', 'desc'));
@@ -2730,9 +2742,11 @@ const brewPotion = useCallback(async (userId: string, characterId: string, recip
       withdrawFromShopTill,
       brewPotion,
       addAlchemyRecipe,
+      updateAlchemyRecipe,
+      deleteAlchemyRecipe,
       fetchAlchemyRecipes,
     }),
-    [currentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, fetchAlchemyRecipes]
+    [currentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes]
   );
 
   return (
@@ -2743,5 +2757,6 @@ const brewPotion = useCallback(async (userId: string, characterId: string, recip
     </AuthContext.Provider>
   );
 }
+
 
 
