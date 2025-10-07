@@ -109,6 +109,7 @@ export default function AlchemyPage() {
                                 return playerIngredient && playerIngredient.quantity >= component.qty;
                             });
                             const outputItem = allItemsMap.get(recipe.resultPotionId);
+                            const recipeTitle = recipe.name || outputItem?.name;
 
                             return (
                                 <Card key={recipe.id} className="flex flex-col">
@@ -118,7 +119,7 @@ export default function AlchemyPage() {
                                                 <Image src={outputItem.image} alt={outputItem.name || 'Предмет'} fill style={{ objectFit: "contain" }} />
                                             </div>
                                         )}
-                                        <CardTitle>{outputItem?.name || recipe.name}</CardTitle>
+                                        <CardTitle>{recipeTitle}</CardTitle>
                                         <CardDescription>Сложность: {recipe.difficulty}</CardDescription>
                                     </CardHeader>
                                     <CardContent className="flex-grow space-y-3">
