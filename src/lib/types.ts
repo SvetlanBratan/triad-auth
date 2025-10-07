@@ -1,5 +1,6 @@
 
 
+
 export type UserRole = "admin" | "user";
 export type UserStatus = "активный" | "неактивный" | "отпуск";
 export type RewardRequestStatus = "в ожидании" | "одобрено" | "отклонено";
@@ -393,3 +394,31 @@ export interface CharacterPopularityUpdate {
   eventIds: string[];
   description?: string;
 }
+
+// --- ALCHEMY TYPES ---
+export interface AlchemyIngredient extends InventoryItem {
+    note?: string;
+    tags: string[];
+}
+
+export interface Potion extends InventoryItem {
+    note?: string;
+    effects: { stat: "hp" | "mana" | "luck"; value: number; durationSec?: number }[];
+    tier: "обычный" | "редкий" | "легендарный";
+}
+
+export interface AlchemyRecipeComponent {
+  ingredientId: string;
+  qty: number;
+}
+
+export interface AlchemyRecipe {
+  id: string;
+  name?: string;
+  components: AlchemyRecipeComponent[];
+  resultPotionId: string;
+  outputQty: number;
+  difficulty: number; // 1-10
+  createdAt?: string; // ISO string
+}
+// --- END ALCHEMY TYPES ---

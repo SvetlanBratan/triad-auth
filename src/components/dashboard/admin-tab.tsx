@@ -34,7 +34,6 @@ import { Switch } from '../ui/switch';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import ImageKitUploader from './imagekit-uploader';
 import { SearchableMultiSelect } from '../ui/searchable-multi-select';
-import { ALCHEMY_INGREDIENTS, ALCHEMY_POTIONS } from '@/lib/alchemy-data';
 
 const rankNames: Record<FamiliarRank, string> = {
     'мифический': 'Мифический',
@@ -1089,9 +1088,29 @@ export default function AdminTab() {
         label: `${event.label} (+${event.value})`,
     })), []);
     
-    const alchemyResultOptions = useMemo(() => ALCHEMY_POTIONS.map(p => ({ value: p.id, label: p.name })), []);
-    const alchemyIngredientOptions = useMemo(() => ALCHEMY_INGREDIENTS.map(i => ({ value: i.id, label: i.name })), []);
+    const alchemyResultOptions = useMemo(() => {
+        const uniqueItems = new Map<string, { value: string; label: string }>();
+        allShops.forEach(shop => {
+            (shop.items || []).forEach(item => {
+                if ((item.inventoryTag === 'зелья' || item.inventoryTag === 'артефакты') && !uniqueItems.has(item.name)) {
+                    uniqueItems.set(item.name, { value: item.id, label: item.name });
+                }
+            });
+        });
+        return Array.from(uniqueItems.values());
+    }, [allShops]);
 
+    const alchemyIngredientOptions = useMemo(() => {
+        const uniqueItems = new Map<string, { value: string; label: string }>();
+        allShops.forEach(shop => {
+            (shop.items || []).forEach(item => {
+                if (item.inventoryTag === 'ингредиенты' && !uniqueItems.has(item.name)) {
+                    uniqueItems.set(item.name, { value: item.id, label: item.name });
+                }
+            });
+        });
+        return Array.from(uniqueItems.values());
+    }, [allShops]);
 
   if (isUsersLoading || isShopsLoading) {
     return <div className="flex justify-center items-center h-64"><p>Загрузка данных...</p></div>
@@ -1581,10 +1600,6 @@ export default function AdminTab() {
             </CardHeader>
             <CardContent>
                 <form onSubmit={handleAddRecipe} className="space-y-4">
-                     <div>
-                        <Label htmlFor="recipe-name">Название рецепта (необязательно)</Label>
-                        <Input id="recipe-name" value={newRecipe.name} onChange={e => setNewRecipe(p => ({ ...p, name: e.target.value }))} placeholder="Напр., Простое зелье лечения"/>
-                    </div>
                      <div>
                         <Label htmlFor="result-potion">Итоговое зелье/артефакт</Label>
                         <SearchableSelect
