@@ -70,10 +70,12 @@ export function Dashboard() {
           {tabs.map(({ value, label, icon: Icon, className, notificationCount, href }) => {
             if (href) {
               return (
-                <Link key={value} href={href} passHref asChild>
-                  <TabsTrigger value={value} className="flex-row items-center justify-center p-1 sm:p-2 sm:gap-1.5 text-xs sm:text-sm relative">
+                <Link key={value} href={href} passHref legacyBehavior>
+                  <TabsTrigger asChild value={value} className="flex-row items-center justify-center p-1 sm:p-2 sm:gap-1.5 text-xs sm:text-sm relative">
+                    <a>
                      <Icon className={cn("w-4 h-4", className)} />
                      <span className="hidden [@media(min-width:400px)]:sm:inline">{label}</span>
+                    </a>
                   </TabsTrigger>
                 </Link>
               );
