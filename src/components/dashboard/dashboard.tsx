@@ -9,7 +9,7 @@ import LeaderboardTab from "./leaderboard-tab";
 import RewardsTab from "./rewards-tab";
 import AdminTab from "./admin-tab";
 import RequestsTab from "./requests-tab";
-import { User, Trophy, Award, Shield, GitPullRequest, Landmark, Cat, Store, Mail } from "lucide-react";
+import { User, Trophy, Award, Shield, GitPullRequest, Landmark, Cat, Store, Mail, FlaskConical } from "lucide-react";
 import AuthPage from "../auth/auth-page";
 import { useAuth } from "../providers/user-provider";
 import CurrencyExchange from "./currency-exchange";
@@ -55,6 +55,7 @@ export function Dashboard() {
     { value: 'mail', label: 'Почта', icon: Mail, notificationCount: unreadMailCount },
     { value: 'leaderboard', label: 'Лидеры', icon: Trophy },
     { value: 'familiars', label: 'Фамильяры', icon: Cat, className: "shrink-0" },
+    { value: 'alchemy', label: 'Алхимия', icon: FlaskConical },
     { value: 'rewards', label: 'Награды', icon: Award },
     { value: 'bank', label: 'Банк', icon: Landmark },
     { value: 'market', label: 'Рынок', icon: Store },
@@ -89,6 +90,12 @@ export function Dashboard() {
         </TabsContent>
         <TabsContent value="familiars" className="mt-4">
           <FamiliarsTab />
+        </TabsContent>
+        <TabsContent value="alchemy">
+            <div className="text-center p-8">
+              <h2 className="text-2xl font-bold">Страница алхимии</h2>
+              <p className="text-muted-foreground">Для начала крафта перейдите на страницу одного из ваших персонажей и нажмите на иконку колбы.</p>
+            </div>
         </TabsContent>
         <TabsContent value="rewards" className="mt-4">
           <RewardsTab />

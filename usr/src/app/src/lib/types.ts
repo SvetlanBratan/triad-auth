@@ -344,6 +344,7 @@ export interface ShopItem {
   inventoryTag?: InventoryCategory;
   quantity?: number; // undefined or -1 for infinite
   purchaseCount?: number;
+  isHidden?: boolean;
 }
 
 export interface Shop {
@@ -392,3 +393,37 @@ export interface CharacterPopularityUpdate {
   eventIds: string[];
   description?: string;
 }
+
+// --- ALCHEMY TYPES ---
+export interface AlchemyIngredient {
+  id: string;
+  name: string;
+  note?: string;
+  tags: string[];
+  image?: string;
+}
+
+export interface Potion {
+  id: string;
+  name: string;
+  note?: string;
+  effects: { stat: "hp" | "mana" | "luck"; value: number; durationSec?: number }[];
+  tier: "обычный" | "редкий" | "легендарный";
+  image?: string;
+}
+
+export interface AlchemyRecipeComponent {
+  ingredientId: string;
+  qty: number;
+}
+
+export interface AlchemyRecipe {
+  id: string;
+  name?: string;
+  components: AlchemyRecipeComponent[];
+  resultPotionId: string;
+  outputQty: number;
+  difficulty: number; // 1-10
+  createdAt?: string; // ISO string
+}
+// --- END ALCHEMY TYPES ---

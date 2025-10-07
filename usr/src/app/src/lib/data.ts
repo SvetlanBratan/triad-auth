@@ -1,7 +1,7 @@
 
-import type { Reward, FamiliarCard, Achievement, GameSettings, WealthLevel, BankAccount, CapitalLevel, CrimeLevel, Shop, InventoryCategory, PopularityEvent } from './types';
+import type { Reward, FamiliarCard, Achievement, GameSettings, WealthLevel, BankAccount, CapitalLevel, CrimeLevel, Shop, InventoryCategory, PopularityEvent, AlchemyIngredient, Potion } from './types';
 import type { OptionType } from '@/components/ui/multi-select';
-import { POTIONS_LIST, INGREDIENTS_LIST } from './items-data';
+import { INGREDIENTS_LIST, POTIONS_LIST } from './items-data';
 
 // Game Date is now fetched from Firestore. See UserProvider.
 // This is a fallback/default value if nothing is in the database.
