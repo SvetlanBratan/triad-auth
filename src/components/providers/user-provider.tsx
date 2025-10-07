@@ -2558,7 +2558,7 @@ const withdrawFromShopTill = useCallback(async (shopId: string) => {
     if(updatedUser) setCurrentUser(updatedUser);
 }, [currentUser, fetchUserById]);
 
-const addAlchemyRecipe = useCallback(async (recipe: Omit<AlchemyRecipe, 'id'>) => {
+const addAlchemyRecipe = useCallback(async (recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
     const newRecipe = { ...recipe, createdAt: new Date().toISOString() };
     const recipesCollection = collection(db, "alchemy_recipes");
     await addDoc(recipesCollection, newRecipe);
@@ -2743,4 +2743,5 @@ const brewPotion = useCallback(async (userId: string, characterId: string, recip
     </AuthContext.Provider>
   );
 }
+
 

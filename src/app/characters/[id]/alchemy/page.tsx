@@ -21,8 +21,18 @@ import {
 
 export default function AlchemyPage() {
     const { id: characterId } = useParams();
-    const { currentUser, fetchAlchemyRecipes, brewPotion } = useUser();
+    const { currentUser, fetchAlchemyRecipes, brewPotion, fetchCharacterById } = useUser();
     const { toast } = useToast();
+
+    const charId = Array.isArray(characterId) ? characterId[0] : characterId;
+
+    const { data: characterData, isLoading: isCharacterLoading } = useQuery({
+        queryKey: ['character', charId],
+        queryFn: () => charId ? fetchCharacterById(charId) : Promise.resolve(null),
+        enabled: !!charId,
+    });
+    
+    const character = characterData?.character;
 
     const { data: recipes = [], isLoading: isLoadingRecipes } = useQuery<AlchemyRecipe[]>({
         queryKey: ['alchemyRecipes'],
@@ -30,10 +40,6 @@ export default function AlchemyPage() {
     });
 
     const [isCraftingId, setIsCraftingId] = useState<string | null>(null);
-
-    const character = useMemo(() => {
-        return currentUser?.characters.find(c => c.id === characterId);
-    }, [currentUser, characterId]);
 
     const allItemsMap = useMemo(() => {
         const map = new Map();
@@ -62,6 +68,10 @@ export default function AlchemyPage() {
             setIsCraftingId(null);
         }
     };
+    
+    if (isCharacterLoading) {
+        return <p>Загрузка данных персонажа...</p>;
+    }
 
     if (!character) {
         return notFound();
