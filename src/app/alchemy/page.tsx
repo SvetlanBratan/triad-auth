@@ -7,7 +7,7 @@ import type { AlchemyRecipe, Character, Shop } from '@/lib/types';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, FlaskConical } from 'lucide-react';
+import { ArrowLeft, FlaskConical, BrainCircuit } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -140,9 +140,9 @@ export default function AlchemyPage() {
                                                             <TooltipProvider>
                                                                 <Tooltip>
                                                                     <TooltipTrigger asChild>
-                                                                        <div className="relative w-8 h-8 bg-muted rounded-sm">
-                                                                            {ingredient?.image && <Image src={ingredient.image} alt={ingredient.name || 'Ингредиент'} fill style={{objectFit: "contain"}} data-ai-hint="alchemy ingredient"/>}
-                                                                        </div>
+                                                                         <div className="flex items-center justify-center w-8 h-8 bg-muted text-muted-foreground rounded-sm">
+                                                                             <BrainCircuit className="w-5 h-5" />
+                                                                         </div>
                                                                     </TooltipTrigger>
                                                                     <TooltipContent>
                                                                         <p>{ingredient?.name || 'Неизвестный ингредиент'}</p>
