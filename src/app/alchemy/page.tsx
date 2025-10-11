@@ -109,7 +109,7 @@ export default function AlchemyPage() {
                                 return playerIngredient && playerIngredient.quantity >= component.qty;
                             });
                             const outputItem = allItemsMap.get(recipe.resultPotionId);
-                            const recipeTitle = recipe.name || outputItem?.name;
+                            const recipeTitle = recipe.name || outputItem?.name || 'Неизвестный рецепт';
 
                             return (
                                 <Card key={recipe.id} className="flex flex-col">
@@ -140,11 +140,11 @@ export default function AlchemyPage() {
                                                                         </div>
                                                                     </TooltipTrigger>
                                                                     <TooltipContent>
-                                                                        <p>{ingredient?.name}</p>
+                                                                        <p>{ingredient?.name || 'Неизвестный ингредиент'}</p>
                                                                     </TooltipContent>
                                                                 </Tooltip>
                                                             </TooltipProvider>
-                                                            <span>{ingredient?.name}</span>
+                                                            <span>{ingredient?.name || 'Неизвестный ингредиент'}</span>
                                                         </div>
                                                         <span className={hasEnough ? 'text-green-600' : 'text-destructive'}>
                                                             {playerQty} / {comp.qty}
