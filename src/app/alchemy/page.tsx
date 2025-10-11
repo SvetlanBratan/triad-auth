@@ -3,7 +3,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useUser } from '@/hooks/use-user';
-import type { AlchemyRecipe, Character, Shop } from '@/lib/types';
+import type { AlchemyRecipe, Character, Shop, ShopItem } from '@/lib/types';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -48,7 +48,7 @@ export default function AlchemyPage() {
     }, [currentUser, selectedCharacterId]);
 
     const allItemsMap = useMemo(() => {
-        const map = new Map();
+        const map = new Map<string, ShopItem>();
         if (isLoadingShops) return map;
         allShops.forEach(shop => {
             (shop.items || []).forEach(item => {
@@ -109,12 +109,15 @@ export default function AlchemyPage() {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {recipes.map(recipe => {
-                            const canCraft = recipe.components.every(component => {
-                                const playerIngredient = character.inventory.ингредиенты?.find(i => i.id === component.ingredientId);
-                                return playerIngredient && playerIngredient.quantity >= component.qty;
-                            });
                             const outputItem = allItemsMap.get(recipe.resultPotionId);
                             const recipeTitle = recipe.name || outputItem?.name || 'Неизвестный рецепт';
+                            
+                            const canCraft = recipe.components.every(component => {
+                                const requiredIngredient = allItemsMap.get(component.ingredientId);
+                                if (!requiredIngredient) return false;
+                                const playerIngredient = character.inventory.ингредиенты?.find(i => i.name === requiredIngredient.name);
+                                return playerIngredient && playerIngredient.quantity >= component.qty;
+                            });
 
                             return (
                                 <Card key={recipe.id} className="flex flex-col">
@@ -132,8 +135,11 @@ export default function AlchemyPage() {
                                         <ul className="space-y-2">
                                             {recipe.components.map(comp => {
                                                 const ingredient = allItemsMap.get(comp.ingredientId);
-                                                const playerQty = character.inventory.ингредиенты?.find(i => i.id === comp.ingredientId)?.quantity || 0;
+                                                if (!ingredient) return null;
+                                                const playerIngredient = character.inventory.ингредиенты?.find(i => i.name === ingredient.name);
+                                                const playerQty = playerIngredient?.quantity || 0;
                                                 const hasEnough = playerQty >= comp.qty;
+
                                                 return (
                                                     <li key={comp.ingredientId} className="flex items-center justify-between text-sm">
                                                         <div className="flex items-center gap-2">
@@ -149,7 +155,7 @@ export default function AlchemyPage() {
                                                                     </TooltipContent>
                                                                 </Tooltip>
                                                             </TooltipProvider>
-                                                            <span>{ingredient?.name || 'Неизвестный ингредиент'}</span>
+                                                            <span>{ingredient.name}</span>
                                                         </div>
                                                         <span className={hasEnough ? 'text-green-600' : 'text-destructive'}>
                                                             {playerQty} / {comp.qty}
@@ -179,3 +185,4 @@ export default function AlchemyPage() {
         </div>
     );
 }
+
