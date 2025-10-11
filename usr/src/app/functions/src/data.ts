@@ -1014,7 +1014,7 @@ const ALL_FAMILIAR_CARDS_RAW: Omit<FamiliarCard, "data-ai-hint">[] = [
     name: "Кракен",
     rank: "мифический",
     imageUrl:
-      "https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199426/%D0%9A%D1%80%D0%B0%D0%BA%D0%B5%D0%BD_yzn9xt.png",
+      "https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199426/%D0%9A%D0%B0%D1%80%D0%B0%D0%BA%D0%B5%D0%BD_yzn9xt.png",
   },
   {
     id: "fam-m-icemare",
@@ -1065,6 +1065,7 @@ const ALL_FAMILIAR_CARDS_RAW: Omit<FamiliarCard, "data-ai-hint">[] = [
     imageUrl:
       "https://res.cloudinary.com/dxac8lq4f/image/upload/v1753283962/29_kqkt58.jpg",
   },
+  { id: 'fam-m-moralia', name: 'Моралия', rank: 'мифический', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1760209631/%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B8%D0%9A%D0%9A%D0%98_inifn4.png' },
 ];
 
 export const EVENT_FAMILIARS_RAW: Omit<FamiliarCard, "data-ai-hint">[] = [
@@ -1183,6 +1184,7 @@ const addHint = (card: Omit<FamiliarCard, 'data-ai-hint'>): FamiliarCard => {
     else if (lowerCaseName.includes('лотль')) hint = 'lotl';
     else if (lowerCaseName.includes('олигр')) hint = 'oligr';
     else if (lowerCaseName.includes('пупурита')) hint = 'pupurita';
+    else if (lowerCaseName.includes('моралия')) hint = 'moralia beast';
     return { ...card, 'data-ai-hint': hint };
 };
 
@@ -1391,7 +1393,8 @@ export const ALL_SHOPS: Shop[] = [
     title: 'Лавка ингредиентов',
     description: 'Здесь вы найдете самые редкие и экзотические ингредиенты для алхимии, зельеварения и ритуалов. От корня мандрагоры до пыльцы фей — все, что нужно настоящему мастеру.',
     image: 'https://i.postimg.cc/hv2b9nyc/Chat-GPT-Image-1-2025-22-59-24.png',
-    aiHint: 'alchemy ingredients'
+    aiHint: 'alchemy ingredients',
+    items: []
   },
 ];
 

@@ -338,7 +338,7 @@ const ALL_FAMILIAR_CARDS_RAW: Omit<FamiliarCard, 'data-ai-hint'>[] = [
     { id: 'fam-m-flower-cat', name: 'Цветокот', rank: 'мифический', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753282462/1_xcq8ff.jpg' },
     { id: 'fam-m-paukok', name: 'Паукок', rank: 'мифический', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753283956/19_swxogi.jpg' },
     { id: 'fam-m-ksanteal', name: 'Ксантеаль', rank: 'мифический', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753283962/29_kqkt58.jpg' },
-
+    { id: 'fam-m-moralia', name: 'Моралия', rank: 'мифический', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1760209631/%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B8%D0%9A%D0%9A%D0%98_inifn4.png' },
 ];
 
 
@@ -458,6 +458,7 @@ const addHint = (card: Omit<FamiliarCard, 'data-ai-hint'>): FamiliarCard => {
     else if (lowerCaseName.includes('лотль')) hint = 'lotl';
     else if (lowerCaseName.includes('олигр')) hint = 'oligr';
     else if (lowerCaseName.includes('пупурита')) hint = 'pupurita';
+    else if (lowerCaseName.includes('моралия')) hint = 'moralia beast';
     return { ...card, 'data-ai-hint': hint };
 };
 
@@ -676,3 +677,4 @@ export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) =>
     acc[shop.id] = shop;
     return acc;
 }, {} as Record<string, Shop>);
+
