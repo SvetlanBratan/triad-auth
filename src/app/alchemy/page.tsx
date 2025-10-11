@@ -3,9 +3,8 @@
 
 import React, { useState, useMemo } from 'react';
 import { useUser } from '@/hooks/use-user';
-import type { AlchemyRecipe, Character } from '@/lib/types';
+import type { AlchemyRecipe, Character, Shop } from '@/lib/types';
 import { useQuery } from '@tanstack/react-query';
-import { ALL_SHOPS } from '@/lib/data';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, FlaskConical } from 'lucide-react';
@@ -21,13 +20,18 @@ import {
 import { SearchableSelect } from '@/components/ui/searchable-select';
 
 export default function AlchemyPage() {
-    const { currentUser, fetchAlchemyRecipes, brewPotion } = useUser();
+    const { currentUser, fetchAlchemyRecipes, brewPotion, fetchAllShops } = useUser();
     const { toast } = useToast();
     const [selectedCharacterId, setSelectedCharacterId] = useState<string>('');
 
     const { data: recipes = [], isLoading: isLoadingRecipes } = useQuery<AlchemyRecipe[]>({
         queryKey: ['alchemyRecipes'],
         queryFn: fetchAlchemyRecipes,
+    });
+    
+    const { data: allShops = [], isLoading: isLoadingShops } = useQuery<Shop[]>({
+        queryKey: ['allShops'],
+        queryFn: fetchAllShops,
     });
 
     const [isCraftingId, setIsCraftingId] = useState<string | null>(null);
@@ -45,13 +49,14 @@ export default function AlchemyPage() {
 
     const allItemsMap = useMemo(() => {
         const map = new Map();
-        ALL_SHOPS.forEach(shop => {
+        if (isLoadingShops) return map;
+        allShops.forEach(shop => {
             (shop.items || []).forEach(item => {
                 map.set(item.id, item);
             });
         });
         return map;
-    }, []);
+    }, [allShops, isLoadingShops]);
 
     const handleCraft = async (recipe: AlchemyRecipe) => {
         if (!character || !currentUser) return;
@@ -97,7 +102,7 @@ export default function AlchemyPage() {
             </div>
 
             {selectedCharacterId && character ? (
-                isLoadingRecipes ? (
+                isLoadingRecipes || isLoadingShops ? (
                     <p className="text-center">Загрузка рецептов...</p>
                 ) : recipes.length === 0 ? (
                     <p className="text-center text-muted-foreground">Администратор еще не добавил ни одного рецепта.</p>
@@ -174,4 +179,3 @@ export default function AlchemyPage() {
         </div>
     );
 }
-
