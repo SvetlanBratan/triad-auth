@@ -344,6 +344,7 @@ export interface ShopItem {
   inventoryTag?: InventoryCategory;
   quantity?: number; // undefined or -1 for infinite
   purchaseCount?: number;
+  isHidden?: boolean;
 }
 
 export interface Shop {

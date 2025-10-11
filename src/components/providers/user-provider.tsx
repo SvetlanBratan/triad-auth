@@ -231,6 +231,22 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const fetchAllShops = useCallback(async (): Promise<Shop[]> => {
+      const shopsCollection = collection(db, "shops");
+      const snapshot = await getDocs(shopsCollection);
+      const dbShops = new Map<string, Partial<Shop>>();
+      snapshot.forEach(doc => {
+          dbShops.set(doc.id, doc.data());
+      });
+
+      const allShopsWithData = ALL_SHOPS.map(baseShop => {
+          const dbData = dbShops.get(baseShop.id);
+          return { ...baseShop, ...(dbData || {}) };
+      });
+      
+      return allShopsWithData;
+  }, []);
+
   const processWeeklyBonus = useCallback(async () => {
     const settingsRef = doc(db, 'game_settings', 'main');
     const settingsDoc = await getDoc(settingsRef);
@@ -1815,22 +1831,6 @@ const processMonthlySalary = useCallback(async () => {
       await updateDoc(requestRef, { status });
   }, []);
 
-  const fetchAllShops = useCallback(async (): Promise<Shop[]> => {
-      const shopsCollection = collection(db, "shops");
-      const snapshot = await getDocs(shopsCollection);
-      const dbShops = new Map<string, Partial<Shop>>();
-      snapshot.forEach(doc => {
-          dbShops.set(doc.id, doc.data());
-      });
-
-      const allShopsWithData = ALL_SHOPS.map(baseShop => {
-          const dbData = dbShops.get(baseShop.id);
-          return { ...baseShop, ...(dbData || {}) };
-      });
-      
-      return allShopsWithData;
-  }, []);
-
   const fetchShopById = useCallback(async (shopId: string): Promise<Shop | null> => {
       const baseShop = SHOPS_BY_ID[shopId];
       if (!baseShop) return null;
@@ -2585,19 +2585,27 @@ const fetchAlchemyRecipes = useCallback(async (): Promise<AlchemyRecipe[]> => {
 
 const brewPotion = useCallback(async (userId: string, characterId: string, recipeId: string) => {
     if (!currentUser || currentUser.id !== userId) throw new Error("Unauthorized");
-    
+
     const allRecipes = await fetchAlchemyRecipes();
     const recipe = allRecipes.find(r => r.id === recipeId);
-    if (!recipe) throw new Error("Recipe not found.");
+    if (!recipe) throw new Error("Рецепт не найден.");
+
+    const allShopsData = await fetchAllShops();
+    const allItemsMap = new Map<string, ShopItem>();
+    allShopsData.forEach(shop => {
+        (shop.items || []).forEach(item => {
+            allItemsMap.set(item.id, item);
+        });
+    });
 
     await runTransaction(db, async (transaction) => {
         const userRef = doc(db, "users", userId);
         const userDoc = await transaction.get(userRef);
-        if (!userDoc.exists()) throw new Error("User not found.");
+        if (!userDoc.exists()) throw new Error("Пользователь не найден.");
 
         const userData = userDoc.data() as User;
         const charIndex = userData.characters.findIndex(c => c.id === characterId);
-        if (charIndex === -1) throw new Error("Character not found.");
+        if (charIndex === -1) throw new Error("Персонаж не найден.");
 
         const character = userData.characters[charIndex];
         const inventory = character.inventory || {};
@@ -2605,17 +2613,24 @@ const brewPotion = useCallback(async (userId: string, characterId: string, recip
 
         // Check ingredients
         for (const component of recipe.components) {
-            const playerIng = ingredientsInv.find(i => i.id === component.ingredientId);
+            const requiredIngredient = allItemsMap.get(component.ingredientId);
+            if (!requiredIngredient) {
+                 throw new Error(`Требуемый ингредиент с ID ${component.ingredientId} не найден в данных игры.`);
+            }
+            const playerIng = ingredientsInv.find(i => i.name === requiredIngredient.name);
             if (!playerIng || playerIng.quantity < component.qty) {
-                const requiredItem = ALL_SHOPS.flatMap(s => s.items || []).find(i => i.id === component.ingredientId);
-                throw new Error(`Недостаточно ингредиента: ${requiredItem?.name || 'неизвестный'}`);
+                throw new Error(`Недостаточно ингредиента: ${requiredIngredient.name || 'неизвестный'}`);
             }
         }
         
         // Consume ingredients
         recipe.components.forEach(component => {
-            const playerIngIndex = ingredientsInv.findIndex(i => i.id === component.ingredientId);
+            const requiredIngredient = allItemsMap.get(component.ingredientId);
+            if (!requiredIngredient) return; // Should not happen due to check above
+            
+            const playerIngIndex = ingredientsInv.findIndex(i => i.name === requiredIngredient.name);
             const playerIng = ingredientsInv[playerIngIndex];
+
             if (playerIng.quantity > component.qty) {
                 playerIng.quantity -= component.qty;
             } else {
@@ -2625,10 +2640,10 @@ const brewPotion = useCallback(async (userId: string, characterId: string, recip
         
         // Add result potion
         const potionsInv = (inventory.зелья || []) as InventoryItem[];
-        const resultItem = ALL_SHOPS.flatMap(s => s.items || []).find(i => i.id === recipe.resultPotionId);
+        const resultItem = allItemsMap.get(recipe.resultPotionId);
         if (!resultItem) throw new Error("Итоговый предмет не найден в данных игры.");
 
-        const existingPotionIndex = potionsInv.findIndex(p => p.name === resultItem.name); // Match by name to stack
+        const existingPotionIndex = potionsInv.findIndex(p => p.name === resultItem.name);
         if (existingPotionIndex > -1) {
             potionsInv[existingPotionIndex].quantity += recipe.outputQty;
         } else {
@@ -2651,7 +2666,7 @@ const brewPotion = useCallback(async (userId: string, characterId: string, recip
     
     const updatedUser = await fetchUserById(userId);
     if(updatedUser) setCurrentUser(updatedUser);
-}, [currentUser, fetchUserById, fetchAlchemyRecipes]);
+}, [currentUser, fetchUserById, fetchAlchemyRecipes, fetchAllShops]);
 
   const signOutUser = useCallback(() => {
     signOut(auth);
@@ -2746,7 +2761,7 @@ const brewPotion = useCallback(async (userId: string, characterId: string, recip
       deleteAlchemyRecipe,
       fetchAlchemyRecipes,
     }),
-    [currentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes]
+    [currentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes, fetchAllShops]
   );
 
   return (
@@ -2757,6 +2772,7 @@ const brewPotion = useCallback(async (userId: string, characterId: string, recip
     </AuthContext.Provider>
   );
 }
+
 
 
 

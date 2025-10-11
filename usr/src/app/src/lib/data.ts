@@ -2,7 +2,6 @@
 
 import type { Reward, FamiliarCard, Achievement, GameSettings, WealthLevel, BankAccount, CapitalLevel, CrimeLevel, Shop, InventoryCategory, PopularityEvent } from './types';
 import type { OptionType } from '@/components/ui/multi-select';
-import { INGREDIENTS_LIST, POTIONS_LIST } from './items-data';
 
 // Game Date is now fetched from Firestore. See UserProvider.
 // This is a fallback/default value if nothing is in the database.
@@ -339,7 +338,6 @@ const ALL_FAMILIAR_CARDS_RAW: Omit<FamiliarCard, 'data-ai-hint'>[] = [
     { id: 'fam-m-flower-cat', name: 'Цветокот', rank: 'мифический', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753282462/1_xcq8ff.jpg' },
     { id: 'fam-m-paukok', name: 'Паукок', rank: 'мифический', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753283956/19_swxogi.jpg' },
     { id: 'fam-m-ksanteal', name: 'Ксантеаль', rank: 'мифический', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753283962/29_kqkt58.jpg' },
-
 ];
 
 
@@ -478,7 +476,8 @@ export const ALL_SHOPS: Shop[] = [
     title: 'Магазинчик зелий «Ликорис»',
     description: "Уютная лавка, где воздух пропитан ароматами сушеных трав и магических эссенций. Здесь можно найти зелья на любой случай жизни.",
     image: "https://i.postimg.cc/kgvP7Kxq/image.png",
-    aiHint: "potion shop"
+    aiHint: "potion shop",
+    items: []
   },
   {
     id: 'tailor-pavlo',
@@ -667,8 +666,7 @@ export const ALL_SHOPS: Shop[] = [
     title: 'Лавка ингредиентов',
     description: 'Здесь вы найдете самые редкие и экзотические ингредиенты для алхимии, зельеварения и ритуалов. От корня мандрагоры до пыльцы фей — все, что нужно настоящему мастеру.',
     image: 'https://i.postimg.cc/hv2b9nyc/Chat-GPT-Image-1-2025-22-59-24.png',
-    aiHint: 'alchemy ingredients',
-    items: []
+    aiHint: 'alchemy ingredients'
   },
 ];
 
@@ -676,3 +674,4 @@ export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) =>
     acc[shop.id] = shop;
     return acc;
 }, {} as Record<string, Shop>);
+
