@@ -47,7 +47,7 @@ export const POTIONS_LIST: Potion[] = [
         note: 'Быстро излечивает от обычной простуды.',
         effects: [],
         tier: 'обычный',
-        image: 'https://i.postimg.cc/0j3SkK1R/image.png' // Placeholder image
+        image: 'https://i.postimg.cc/0j3SkK1R/image.png'
     },
 ];
 
@@ -60,8 +60,8 @@ export const INGREDIENTS_LIST: AlchemyIngredient[] = [
     { id: 'ing-troll-blood', name: 'Кровь тролля', note: 'Обладает мощными регенеративными свойствами.', tags: ['животное', 'регенерация'], image: 'https://i.postimg.cc/B6qK7HwZ/image.png' },
     { id: 'ing-phoenix-feather', name: 'Перо феникса', note: 'Перо мифической птицы, наполненное жизненной силой.', tags: ['мифический', 'жизнь'], image: 'https://i.postimg.cc/3JjDq30J/image.png' },
     { id: 'ing-dragon-scale', name: 'Чешуя дракона', note: 'Невероятно прочная чешуя, используемая в защитных зельях.', tags: ['мифический', 'защита'], image: 'https://i.postimg.cc/brY4M0M1/image.png' },
-    { id: 'ing-sage-leaves', name: 'Листья шалфея', note: 'Ароматные листья, часто используемые в очищающих зельях.', tags: ['трава', 'очищение'], image: 'https://i.postimg.cc/Hxb4V1pX/image.png' },
-    { id: 'ing-forest-mint', name: 'Мята лесная', note: 'Освежающая мята с легким магическим оттенком.', tags: ['трава', 'охлаждение'], image: 'https://i.postimg.cc/Hxb4V1pX/image.png' },
-    { id: 'ing-ginger-root', name: 'Корень имбиря', note: 'Жгучий корень, добавляющий зельям согревающий эффект.', tags: ['корень', 'огонь'], image: 'https://i.postimg.cc/3N1xW0pY/image.png' },
+    { id: 'ing-sage-leaves', name: 'Листья шалфея', note: 'Ароматные листья, часто используемые в очищающих зельях.', tags: ['трава', 'очищение'], image: 'https://i.postimg.cc/6p2sYwBY/sage-leaves.png' },
+    { id: 'ing-forest-mint', name: 'Мята лесная', note: 'Освежающая мята с легким магическим оттенком.', tags: ['трава', 'охлаждение'], image: 'https://i.postimg.cc/wMKD2R5P/forest-mint.png' },
+    { id: 'ing-ginger-root', name: 'Корень имбиря', note: 'Жгучий корень, добавляющий зельям согревающий эффект.', tags: ['корень', 'огонь'], image: 'https://i.postimg.cc/NfG4hM9W/ginger-root.png' },
     { id: 'ing-pure-spring-water', name: 'Вода из чистого источника', note: 'Основа для многих зелий.', tags: ['вода', 'основа'], image: 'https://i.postimg.cc/L6s81xJ9/image.png' },
 ];
