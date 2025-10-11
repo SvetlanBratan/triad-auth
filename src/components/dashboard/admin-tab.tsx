@@ -1130,27 +1130,31 @@ export default function AdminTab() {
     })), []);
     
     const alchemyResultOptions = useMemo(() => {
-        const uniqueItems = new Map<string, { value: string; label: string }>();
+        const items: { value: string, label: string }[] = [];
         allShops.forEach(shop => {
             (shop.items || []).forEach(item => {
-                if ((item.inventoryTag === 'зелья' || item.inventoryTag === 'артефакты') && !uniqueItems.has(item.name)) {
-                    uniqueItems.set(item.name, { value: item.id, label: item.name });
+                if(item.inventoryTag === 'зелья' || item.inventoryTag === 'артефакты') {
+                    if (!items.some(i => i.label === item.name)) {
+                        items.push({ value: item.id, label: item.name });
+                    }
                 }
             });
         });
-        return Array.from(uniqueItems.values());
+        return items;
     }, [allShops]);
 
     const alchemyIngredientOptions = useMemo(() => {
-        const uniqueItems = new Map<string, { value: string; label: string }>();
+        const ingredients: { value: string, label: string }[] = [];
         allShops.forEach(shop => {
             (shop.items || []).forEach(item => {
-                if (item.inventoryTag === 'ингредиенты' && !uniqueItems.has(item.name)) {
-                    uniqueItems.set(item.name, { value: item.id, label: item.name });
+                if(item.inventoryTag === 'ингредиенты') {
+                     if (!ingredients.some(i => i.label === item.name)) {
+                        ingredients.push({ value: item.id, label: item.name });
+                    }
                 }
             });
         });
-        return Array.from(uniqueItems.values());
+        return ingredients;
     }, [allShops]);
 
   if (isUsersLoading || isShopsLoading) {
@@ -2514,3 +2518,4 @@ export default function AdminTab() {
 }
 
     
+
