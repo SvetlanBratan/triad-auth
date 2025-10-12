@@ -149,15 +149,15 @@ const drawFamiliarCard = (allCardPool: FamiliarCard[], hasBlessing: boolean, una
     let rand = Math.random() * 100;
 
     const chances = {
-        мифический: 2, // 2%
-        легендарный: 10, // 8% (10-2)
-        редкий: 25, // 15% (25-10)
+        мифический: 2,
+        легендарный: 10,
+        редкий: 25,
     };
     
     if (hasBlessing) {
-        chances.мифический = 5; // 5%
-        chances.легендарный = 20; // 15% (20-5)
-        chances.редкий = 40; // 20% (40-20)
+        chances.мифический = 5;
+        chances.легендарный = 20;
+        chances.редкий = 40;
     }
     
     const availableCards = allCardPool;
@@ -1742,7 +1742,7 @@ const processMonthlySalary = useCallback(async () => {
     const ranksAreDifferent = initiatorFamiliar.rank !== targetFamiliar.rank;
     const isMythicEventTrade =
       (initiatorFamiliar.rank === 'мифический' && targetFamiliar.rank === 'ивентовый') ||
-      (initiatorFamiliar.rank === 'ивентовый' && initiatorFamiliar.rank === 'мифический');
+      (initiatorFamiliar.rank === 'ивентовый' && targetFamiliar.rank === 'мифический');
 
     if (ranksAreDifferent && !isMythicEventTrade) {
         throw new Error("Обмен возможен только между фамильярами одного ранга, или между мифическим и ивентовым.");
@@ -2837,3 +2837,6 @@ const brewPotion = useCallback(async (userId: string, characterId: string, recip
 
     
 
+
+
+    
