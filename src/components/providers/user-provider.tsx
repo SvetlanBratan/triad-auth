@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
@@ -6,7 +7,7 @@ import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, Re
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter, increment, FieldValue, deleteField } from "firebase/firestore";
-import { FAMILIARS_BY_ID, MOODLETS_DATA, DEFAULT_GAME_SETTINGS, WEALTH_LEVELS, ALL_SHOPS, SHOPS_BY_ID, POPULARITY_EVENTS, ALL_ACHIEVEMENTS, INVENTORY_CATEGORIES, ALL_STATIC_FAMILIARS, EVENT_FAMILIARS } from '@/lib/data';
+import { ALL_STATIC_FAMILIARS, EVENT_FAMILIARS, MOODLETS_DATA, DEFAULT_GAME_SETTINGS, WEALTH_LEVELS, ALL_SHOPS, SHOPS_BY_ID, POPULARITY_EVENTS, ALL_ACHIEVEMENTS, INVENTORY_CATEGORIES } from '@/lib/data';
 import { differenceInDays } from 'date-fns';
 
 interface AuthContextType {
@@ -223,7 +224,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [gameSettings, setGameSettings] = useState<GameSettings>(DEFAULT_GAME_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [allFamiliars, setAllFamiliars] = useState<FamiliarCard[]>([...ALL_STATIC_FAMILIARS, ...EVENT_FAMILIARS]);
-  const [familiarsById, setFamiliarsById] = useState<Record<string, FamiliarCard>>({ ...FAMILIARS_BY_ID });
+  const [familiarsById, setFamiliarsById] = useState<Record<string, FamiliarCard>>({});
 
   const fetchDbFamiliars = useCallback(async (): Promise<FamiliarCard[]> => {
     const familiarsCollection = collection(db, "familiars");
@@ -901,7 +902,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         for (const character of user.characters) {
             for (const card of (character.familiarCards || [])) {
                 const cardDetails = familiarsById[card.id];
-                if (cardDetails && (cardDetails.rank === 'мифический' || cardDetails.rank === 'ивентовый')) {
+                if (cardDetails && cardDetails.rank === 'мифический') {
                     claimedMythicIds.add(card.id);
                 }
             }
@@ -1836,7 +1837,7 @@ const processMonthlySalary = useCallback(async () => {
         targetChar.familiarCards.splice(targetCardIndex, 1);
 
         initiatorChar.familiarCards.push({ id: request.targetFamiliarId });
-        targetChar.familiarCards.push({ id: request.targetFamiliarId });
+        targetChar.familiarCards.push({ id: request.initiatorFamiliarId });
 
         transaction.update(initiatorUserRef, { characters: initiatorData.characters });
         transaction.update(targetUserRef, { characters: targetData.characters });
