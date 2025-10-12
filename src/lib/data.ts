@@ -1,5 +1,6 @@
 
 
+
 import type { Reward, FamiliarCard, Achievement, GameSettings, WealthLevel, BankAccount, CapitalLevel, CrimeLevel, Shop, InventoryCategory, PopularityEvent } from './types';
 import type { OptionType } from '@/components/ui/multi-select';
 
@@ -463,11 +464,11 @@ const addHint = (card: Omit<FamiliarCard, 'data-ai-hint'>): FamiliarCard => {
 };
 
 
-export const ALL_FAMILIARS: FamiliarCard[] = ALL_FAMILIAR_CARDS_RAW.map(addHint);
+export const ALL_STATIC_FAMILIARS: FamiliarCard[] = ALL_FAMILIAR_CARDS_RAW.map(addHint);
 export const EVENT_FAMILIARS: FamiliarCard[] = EVENT_FAMILIARS_RAW.map(addHint);
 
 
-export const FAMILIARS_BY_ID: Record<string, FamiliarCard> = [...ALL_FAMILIARS, ...EVENT_FAMILIARS].reduce((acc, card) => {
+export const FAMILIARS_BY_ID: Record<string, FamiliarCard> = [...ALL_STATIC_FAMILIARS, ...EVENT_FAMILIARS].reduce((acc, card) => {
     acc[card.id] = card;
     return acc;
 }, {} as Record<string, FamiliarCard>);
@@ -677,4 +678,5 @@ export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) =>
     acc[shop.id] = shop;
     return acc;
 }, {} as Record<string, Shop>);
+
 

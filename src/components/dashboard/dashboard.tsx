@@ -30,6 +30,10 @@ export function Dashboard() {
   const defaultTab = searchParams.get('tab') || 'profile';
 
   const handleTabChange = (value: string) => {
+    if (value === 'alchemy') {
+      router.push('/alchemy');
+      return;
+    }
     const newSearchParams = new URLSearchParams(searchParams.toString());
     newSearchParams.set('tab', value);
     router.replace(`${pathname}?${newSearchParams.toString()}`);
@@ -55,7 +59,7 @@ export function Dashboard() {
     { value: 'mail', label: 'Почта', icon: Mail, notificationCount: unreadMailCount },
     { value: 'leaderboard', label: 'Лидеры', icon: Trophy },
     { value: 'familiars', label: 'Фамильяры', icon: Cat, className: "shrink-0" },
-    { value: 'alchemy', label: 'Алхимия', icon: FlaskConical, href: '/alchemy' },
+    { value: 'alchemy', label: 'Алхимия', icon: FlaskConical },
     { value: 'rewards', label: 'Награды', icon: Award },
     { value: 'bank', label: 'Банк', icon: Landmark },
     { value: 'market', label: 'Рынок', icon: Store },
@@ -66,17 +70,7 @@ export function Dashboard() {
   return (
       <Tabs defaultValue={defaultTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="flex flex-wrap h-auto min-h-12 justify-around sm:justify-center sm:gap-1">
-          {tabs.map(({ value, label, icon: Icon, className, notificationCount, href }) => {
-            if (href) {
-              return (
-                <TabsTrigger key={value} value={value} asChild className="flex-row items-center justify-center p-1 sm:p-2 sm:gap-1.5 text-xs sm:text-sm relative">
-                   <Link href={href}>
-                     <Icon className={cn("w-4 h-4", className)} />
-                     <span className="hidden [@media(min-width:400px)]:sm:inline">{label}</span>
-                   </Link>
-                </TabsTrigger>
-              );
-            }
+          {tabs.map(({ value, label, icon: Icon, className, notificationCount }) => {
             return (
               <TabsTrigger key={value} value={value} className="flex-row items-center justify-center p-1 sm:p-2 sm:gap-1.5 text-xs sm:text-sm relative">
                 <Icon className={cn("w-4 h-4", className)} />

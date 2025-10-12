@@ -18,13 +18,10 @@ import type { FamiliarCard } from '@/lib/types';
 import FamiliarCardDisplay from './familiar-card';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
-import { ALL_FAMILIARS } from '@/lib/data';
 import { SearchableSelect } from '../ui/searchable-select';
 
 const ROULETTE_COST = 5000;
 const DUPLICATE_REFUND = 1000;
-
-const totalMythicCount = ALL_FAMILIARS.filter(f => f.rank === 'мифический').length;
 
 interface PullResult {
     newCard: FamiliarCard;
@@ -32,7 +29,7 @@ interface PullResult {
 }
 
 export default function RouletteTab() {
-  const { currentUser, pullGachaForCharacter, fetchAvailableMythicCardsCount, setCurrentUser } = useUser();
+  const { currentUser, pullGachaForCharacter, fetchAvailableMythicCardsCount, setCurrentUser, allFamiliars } = useUser();
   const { toast } = useToast();
   const [selectedCharacterId, setSelectedCharacterId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
@@ -40,6 +37,8 @@ export default function RouletteTab() {
   const [isFlipping, setIsFlipping] = useState(false);
   const [availableMythicCount, setAvailableMythicCount] = useState<number | null>(null);
   
+  const totalMythicCount = useMemo(() => allFamiliars.filter(f => f.rank === 'мифический').length, [allFamiliars]);
+
   useEffect(() => {
     fetchAvailableMythicCardsCount().then(setAvailableMythicCount);
   }, [fetchAvailableMythicCardsCount]);

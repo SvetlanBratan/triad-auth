@@ -1,5 +1,6 @@
 
 
+
 "use client";
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
@@ -13,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
 import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info, AlertTriangle, Bell, CheckCircle, Store, PackagePlus, Edit, BadgeCheck, FileText, Send, Gavel, Eye, UserMinus, FlaskConical } from 'lucide-react';
 import type { UserStatus, UserRole, User, FamiliarCard, BankAccount, WealthLevel, FamiliarRank, Shop, InventoryCategory, AdminGiveItemForm, InventoryItem, CitizenshipStatus, TaxpayerStatus, CharacterPopularityUpdate, AlchemyRecipe } from '@/lib/types';
-import { EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, FAMILIARS_BY_ID, WEALTH_LEVELS, ALL_FAMILIARS, STARTING_CAPITAL_LEVELS, ALL_SHOPS, INVENTORY_CATEGORIES, POPULARITY_EVENTS } from '@/lib/data';
+import { EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, WEALTH_LEVELS, ALL_STATIC_FAMILIARS, STARTING_CAPITAL_LEVELS, ALL_SHOPS, INVENTORY_CATEGORIES, POPULARITY_EVENTS, FAMILIARS_BY_ID } from '@/lib/data';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,6 +35,7 @@ import { Switch } from '../ui/switch';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import ImageKitUploader from './imagekit-uploader';
 import { SearchableMultiSelect } from '../ui/searchable-multi-select';
+import AdminFamiliarsTab from './admin-familiars-tab';
 
 const rankNames: Record<FamiliarRank, string> = {
     'мифический': 'Мифический',
@@ -91,7 +93,9 @@ export default function AdminTab() {
     addAlchemyRecipe,
     fetchAlchemyRecipes,
     updateAlchemyRecipe,
-    deleteAlchemyRecipe
+    deleteAlchemyRecipe,
+    familiarsById, // Use the new provider value
+    allFamiliars, // Use the new provider value
   } = useUser();
   const queryClient = useQueryClient();
 
@@ -474,7 +478,7 @@ export default function AdminTab() {
     await giveAnyFamiliarToCharacter(giveFamiliarUserId, giveFamiliarCharId, giveFamiliarId);
     await refetchUsers();
 
-    const familiarName = FAMILIARS_BY_ID[giveFamiliarId]?.name;
+    const familiarName = familiarsById[giveFamiliarId]?.name;
 
     toast({
       title: "Фамильяр выдан!",
@@ -583,7 +587,7 @@ export default function AdminTab() {
 
     try {
       await removeFamiliarFromCharacter(removeFamiliarUserId, removeFamiliarCharId, removeFamiliarCardId);
-      const cardName = FAMILIARS_BY_ID[removeFamiliarCardId]?.name || 'Карта';
+      const cardName = familiarsById[removeFamiliarCardId]?.name || 'Карта';
       toast({ title: 'Карта удалена!', description: `${cardName} была удалена у персонажа.` });
       await refetchUsers();
       
@@ -1038,7 +1042,7 @@ export default function AdminTab() {
     });
 
     const uniqueOwnedCards = Array.from(new Set(character.familiarCards.map(c => c.id)))
-        .map(id => FAMILIARS_BY_ID[id])
+        .map(id => familiarsById[id])
         .filter((card): card is FamiliarCard => !!card);
 
     return uniqueOwnedCards.map(cardDetails => {
@@ -1048,13 +1052,12 @@ export default function AdminTab() {
             : `${cardDetails.name} (${rankNames[cardDetails.rank]})`;
         return { value: cardDetails.id, label };
     });
-  }, [removeFamiliarUserId, removeFamiliarCharId, users]);
+  }, [removeFamiliarUserId, removeFamiliarCharId, users, familiarsById]);
 
   const allFamiliarsGroupedOptions = useMemo(() => {
-    const allCards = [...ALL_FAMILIARS, ...EVENT_FAMILIARS];
     const grouped: { [key in FamiliarRank]?: { value: string, label: string }[] } = {};
 
-    allCards.forEach(fam => {
+    allFamiliars.forEach(fam => {
       if (!grouped[fam.rank]) {
         grouped[fam.rank] = [];
       }
@@ -1067,20 +1070,19 @@ export default function AdminTab() {
             label: rankNames[rank],
             options: grouped[rank]!,
         }));
-  }, []);
+  }, [allFamiliars]);
 
   const familiarStats = useMemo(() => {
-    const allCards = [...ALL_FAMILIARS, ...EVENT_FAMILIARS];
     const stats = {
-      total: allCards.length,
-      мифический: allCards.filter(c => c.rank === 'мифический').length,
-      ивентовый: allCards.filter(c => c.rank === 'ивентовый').length,
-      легендарный: allCards.filter(c => c.rank === 'легендарный').length,
-      редкий: allCards.filter(c => c.rank === 'редкий').length,
-      обычный: allCards.filter(c => c.rank === 'обычный').length,
+      total: allFamiliars.length,
+      мифический: allFamiliars.filter(c => c.rank === 'мифический').length,
+      ивентовый: allFamiliars.filter(c => c.rank === 'ивентовый').length,
+      легендарный: allFamiliars.filter(c => c.rank === 'легендарный').length,
+      редкий: allFamiliars.filter(c => c.rank === 'редкий').length,
+      обычный: allFamiliars.filter(c => c.rank === 'обычный').length,
     };
     return stats;
-  }, []);
+  }, [allFamiliars]);
 
 
   const selectedCharacterForMoodlet = useMemo(() => {
@@ -1757,208 +1759,149 @@ export default function AdminTab() {
       </TabsContent>
 
       <TabsContent value="familiars" className="mt-4">
-        <div className="gap-6 column-1 md:column-2 lg:column-3">
-            <div className="break-inside-avoid mb-6">
-                 <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><PieChart /> Статистика Фамильяров</CardTitle>
-                         <CardDescription>Общее количество уникальных карт в игре.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-2 text-sm">
-                        <div className="flex justify-between font-bold text-base">
-                            <span>Всего карт:</span>
-                            <span>{familiarStats.total}</span>
-                        </div>
-                        <Separator />
-                        <div className="flex justify-between"><span>Мифические:</span> <span>{familiarStats.мифический}</span></div>
-                        <div className="flex justify-between"><span>Ивентовые:</span> <span>{familiarStats.ивентовый}</span></div>
-                        <div className="flex justify-between"><span>Легендарные:</span> <span>{familiarStats.легендарный}</span></div>
-                        <div className="flex justify-between"><span>Редкие:</span> <span>{familiarStats.редкий}</span></div>
-                        <div className="flex justify-between"><span>Обычные:</span> <span>{familiarStats.обычный}</span></div>
-                    </CardContent>
-                </Card>
-            </div>
-             <div className="break-inside-avoid mb-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Gift /> Выдать любого фамильяра</CardTitle>
-                        <CardDescription>Наградите персонажа любой картой из существующих.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <form onSubmit={handleGiveFamiliar} className="space-y-4">
-                        <div>
-                            <Label htmlFor="user-select-give">Пользователь</Label>
-                            <SearchableSelect
-                                options={userOnlyOptions}
-                                value={giveFamiliarUserId}
-                                onValueChange={uid => { setGiveFamiliarUserId(uid); setGiveFamiliarCharId(''); }}
-                                placeholder="Выберите пользователя"
-                            />
-                        </div>
-                        <div>
-                            <Label htmlFor="character-select-give">Персонаж</Label>
-                            <SearchableSelect
-                                options={charactersForGiveFamiliar}
-                                value={giveFamiliarCharId}
-                                onValueChange={setGiveFamiliarCharId}
-                                placeholder="Выберите персонажа"
-                                disabled={!giveFamiliarUserId}
-                            />
-                        </div>
-                        <div>
-                            <Label htmlFor="familiar-select-give">Фамильяр</Label>
-                            <SearchableSelect
-                                options={allFamiliarsGroupedOptions}
-                                value={giveFamiliarId}
-                                onValueChange={setGiveFamiliarId}
-                                placeholder="Выберите фамильяра..."
-                                disabled={!giveFamiliarCharId}
-                            />
-                        </div>
-                        <Button type="submit">Выдать фамильяра</Button>
-                        </form>
-                    </CardContent>
-                </Card>
-            </div>
-            <div className="break-inside-avoid mb-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><VenetianMask /> Управление Фамильярами</CardTitle>
-                    <CardDescription>Удалить карту фамильяра у персонажа.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-4">
-                        <div>
-                            <Label htmlFor="remove-fam-user">Пользователь</Label>
-                             <SearchableSelect
-                                options={userOnlyOptions}
-                                value={removeFamiliarUserId}
-                                onValueChange={uid => { setRemoveFamiliarUserId(uid); setRemoveFamiliarCharId(''); setRemoveFamiliarCardId(''); }}
-                                placeholder="Выберите пользователя"
-                            />
-                        </div>
-                        <div>
-                            <Label htmlFor="remove-fam-char">Персонаж</Label>
-                           <SearchableSelect
-                                options={charactersForFamiliarRemoval}
-                                value={removeFamiliarCharId}
-                                onValueChange={cid => { setRemoveFamiliarCharId(cid); setRemoveFamiliarCardId(''); }}
-                                placeholder="Выберите персонажа"
-                                disabled={!removeFamiliarUserId}
-                            />
-                        </div>
-                        <div>
-                            <Label htmlFor="remove-fam-card">Карта для удаления</Label>
-                            <SearchableSelect
-                                options={familiarsForSelectedCharacterOptions}
-                                value={removeFamiliarCardId}
-                                onValueChange={setRemoveFamiliarCardId}
-                                placeholder="Выберите карту..."
-                                disabled={!removeFamiliarCharId}
-                            />
-                        </div>
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                            <Button 
-                                variant="destructive" 
-                                disabled={!removeFamiliarCardId}
-                                >
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    Удалить карту
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                <AlertDialogTitle>Вы уверены?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    Это действие удалит карту 
-                                    <span className="font-bold"> {FAMILIARS_BY_ID[removeFamiliarCardId]?.name} </span> 
-                                    у персонажа. Если карта мифическая, она вернется в рулетку. Это действие необратимо.
-                                </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                <AlertDialogCancel>Отмена</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleRemoveFamiliar} className="bg-destructive hover:bg-destructive/90">
-                                    Да, удалить
-                                </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
+        <Tabs defaultValue="stats" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 max-w-sm mx-auto">
+                <TabsTrigger value="stats">Статистика</TabsTrigger>
+                <TabsTrigger value="manage">Управление</TabsTrigger>
+            </TabsList>
+            <TabsContent value="stats" className="mt-4">
+                <div className="gap-6 column-1 md:column-2 lg:column-3">
+                    <div className="break-inside-avoid mb-6">
+                         <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2"><PieChart /> Статистика Фамильяров</CardTitle>
+                                 <CardDescription>Общее количество уникальных карт в игре.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-2 text-sm">
+                                <div className="flex justify-between font-bold text-base">
+                                    <span>Всего карт:</span>
+                                    <span>{familiarStats.total}</span>
+                                </div>
+                                <Separator />
+                                <div className="flex justify-between"><span>Мифические:</span> <span>{familiarStats.мифический}</span></div>
+                                <div className="flex justify-between"><span>Ивентовые:</span> <span>{familiarStats.ивентовый}</span></div>
+                                <div className="flex justify-between"><span>Легендарные:</span> <span>{familiarStats.легендарный}</span></div>
+                                <div className="flex justify-between"><span>Редкие:</span> <span>{familiarStats.редкий}</span></div>
+                                <div className="flex justify-between"><span>Обычные:</span> <span>{familiarStats.обычный}</span></div>
+                            </CardContent>
+                        </Card>
                     </div>
-                </CardContent>
-            </Card>
-            </div>
-            <div className="break-inside-avoid mb-6">
-             <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><DatabaseZap /> Восстановление фамильяров</CardTitle>
-                    <CardDescription>Восстановить утерянных фамильяров для персонажа на основе истории баллов.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="space-y-2 p-3 border rounded-md">
-                        <h4 className="font-semibold text-sm">Восстановление для одного персонажа</h4>
-                        <div>
-                            <Label htmlFor="recovery-user">Пользователь</Label>
-                            <SearchableSelect
-                                options={userOnlyOptions}
-                                value={recoveryUserId}
-                                onValueChange={uid => { setRecoveryUserId(uid); setRecoveryCharId(''); }}
-                                placeholder="Выберите пользователя"
-                            />
-                        </div>
-                        <div>
-                            <Label htmlFor="recovery-char">Персонаж</Label>
-                             <SearchableSelect
-                                options={charactersForRecovery}
-                                value={recoveryCharId}
-                                onValueChange={setRecoveryCharId}
-                                placeholder="Выберите персонажа"
-                                disabled={!recoveryUserId}
-                            />
-                        </div>
-                        <div>
-                            <Label htmlFor="recovery-old-name">Старое имя персонажа (если менялось)</Label>
-                            <Input
-                                id="recovery-old-name"
-                                value={recoveryOldName}
-                                onChange={e => setRecoveryOldName(e.target.value)}
-                                placeholder="например, Милти Слоя"
-                                disabled={!recoveryCharId}
-                            />
-                        </div>
-                        <Button onClick={handleRecovery} disabled={!recoveryCharId || isRecovering}>
-                            {isRecovering ? 'Восстановление...' : <><History className="mr-2 h-4 w-4" />Начать восстановление</>}
-                        </Button>
+                     <div className="break-inside-avoid mb-6">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2"><Gift /> Выдать любого фамильяра</CardTitle>
+                                <CardDescription>Наградите персонажа любой картой из существующих.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <form onSubmit={handleGiveFamiliar} className="space-y-4">
+                                <div>
+                                    <Label htmlFor="user-select-give">Пользователь</Label>
+                                    <SearchableSelect
+                                        options={userOnlyOptions}
+                                        value={giveFamiliarUserId}
+                                        onValueChange={uid => { setGiveFamiliarUserId(uid); setGiveFamiliarCharId(''); }}
+                                        placeholder="Выберите пользователя"
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="character-select-give">Персонаж</Label>
+                                    <SearchableSelect
+                                        options={charactersForGiveFamiliar}
+                                        value={giveFamiliarCharId}
+                                        onValueChange={setGiveFamiliarCharId}
+                                        placeholder="Выберите персонажа"
+                                        disabled={!giveFamiliarUserId}
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="familiar-select-give">Фамильяр</Label>
+                                    <SearchableSelect
+                                        options={allFamiliarsGroupedOptions}
+                                        value={giveFamiliarId}
+                                        onValueChange={setGiveFamiliarId}
+                                        placeholder="Выберите фамильяра..."
+                                        disabled={!giveFamiliarCharId}
+                                    />
+                                </div>
+                                <Button type="submit">Выдать фамильяра</Button>
+                                </form>
+                            </CardContent>
+                        </Card>
                     </div>
-                     <div className="space-y-2 p-3 border border-destructive/50 rounded-md">
-                        <h4 className="font-semibold text-sm text-destructive">Массовое восстановление</h4>
-                        <p className="text-xs text-muted-foreground">Эта функция восстановит фамильяров для ВСЕХ персонажей у ВСЕХ игроков на основе их истории покупок в рулетке. Используйте в случае массовой потери данных.</p>
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="destructive" className="w-full" disabled={isRecoveringAll}>
-                                    {isRecoveringAll ? 'Восстановление...' : 'Восстановить у всех'}
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                <AlertDialogTitle>Вы абсолютно уверены?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    Это действие запустит процесс восстановления фамильяров для всех игроков. Это может занять некоторое время.
-                                </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                <AlertDialogCancel>Отмена</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleRecoverAll} className="bg-destructive hover:bg-destructive/90">
-                                    Да, запустить
-                                </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
+                    <div className="break-inside-avoid mb-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><VenetianMask /> Управление Фамильярами</CardTitle>
+                            <CardDescription>Удалить карту фамильяра у персонажа.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-4">
+                                <div>
+                                    <Label htmlFor="remove-fam-user">Пользователь</Label>
+                                     <SearchableSelect
+                                        options={userOnlyOptions}
+                                        value={removeFamiliarUserId}
+                                        onValueChange={uid => { setRemoveFamiliarUserId(uid); setRemoveFamiliarCharId(''); setRemoveFamiliarCardId(''); }}
+                                        placeholder="Выберите пользователя"
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="remove-fam-char">Персонаж</Label>
+                                   <SearchableSelect
+                                        options={charactersForFamiliarRemoval}
+                                        value={removeFamiliarCharId}
+                                        onValueChange={cid => { setRemoveFamiliarCharId(cid); setRemoveFamiliarCardId(''); }}
+                                        placeholder="Выберите персонажа"
+                                        disabled={!removeFamiliarUserId}
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="remove-fam-card">Карта для удаления</Label>
+                                    <SearchableSelect
+                                        options={familiarsForSelectedCharacterOptions}
+                                        value={removeFamiliarCardId}
+                                        onValueChange={setRemoveFamiliarCardId}
+                                        placeholder="Выберите карту..."
+                                        disabled={!removeFamiliarCharId}
+                                    />
+                                </div>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                    <Button 
+                                        variant="destructive" 
+                                        disabled={!removeFamiliarCardId}
+                                        >
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            Удалить карту
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                        <AlertDialogTitle>Вы уверены?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Это действие удалит карту 
+                                            <span className="font-bold"> {familiarsById[removeFamiliarCardId]?.name} </span> 
+                                            у персонажа. Если карта мифическая, она вернется в рулетку. Это действие необратимо.
+                                        </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                        <AlertDialogCancel>Отмена</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleRemoveFamiliar} className="bg-destructive hover:bg-destructive/90">
+                                            Да, удалить
+                                        </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </div>
+                        </CardContent>
+                    </Card>
                     </div>
-                </CardContent>
-            </Card>
-            </div>
-        </div>
+                </div>
+            </TabsContent>
+            <TabsContent value="manage" className="mt-4">
+                <AdminFamiliarsTab />
+            </TabsContent>
+        </Tabs>
       </TabsContent>
 
       <TabsContent value="economy" className="mt-4">
@@ -2518,4 +2461,5 @@ export default function AdminTab() {
 }
 
     
+
 
