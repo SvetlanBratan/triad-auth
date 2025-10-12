@@ -1,6 +1,4 @@
 
-
-
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
@@ -225,7 +223,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [gameSettings, setGameSettings] = useState<GameSettings>(DEFAULT_GAME_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [allFamiliars, setAllFamiliars] = useState<FamiliarCard[]>([...ALL_STATIC_FAMILIARS, ...EVENT_FAMILIARS]);
-  const [familiarsById, setFamiliarsById] = useState<Record<string, FamiliarCard>>(FAMILIARS_BY_ID);
+  const [familiarsById, setFamiliarsById] = useState<Record<string, FamiliarCard>>({ ...FAMILIARS_BY_ID });
 
   const fetchDbFamiliars = useCallback(async (): Promise<FamiliarCard[]> => {
     const familiarsCollection = collection(db, "familiars");
@@ -237,6 +235,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const dbFamiliars = await fetchDbFamiliars();
     const combined = [...ALL_STATIC_FAMILIARS, ...EVENT_FAMILIARS, ...dbFamiliars];
     setAllFamiliars(combined);
+    
     const byId = combined.reduce((acc, card) => {
         acc[card.id] = card;
         return acc;
@@ -902,7 +901,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         for (const character of user.characters) {
             for (const card of (character.familiarCards || [])) {
                 const cardDetails = familiarsById[card.id];
-                if (cardDetails && cardDetails.rank === 'мифический') {
+                if (cardDetails && (cardDetails.rank === 'мифический' || cardDetails.rank === 'ивентовый')) {
                     claimedMythicIds.add(card.id);
                 }
             }
@@ -940,7 +939,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             (u.characters || []).forEach(c => {
                 (c.familiarCards || []).forEach(cardRef => {
                     const cardDetails = familiarsById[cardRef.id];
-                    if (cardDetails && cardDetails.rank === 'мифический') {
+                    if (cardDetails && (cardDetails.rank === 'мифический' || cardDetails.rank === 'ивентовый')) {
                         claimedMythicIds.add(cardRef.id);
                     }
                 });
@@ -1740,7 +1739,7 @@ const processMonthlySalary = useCallback(async () => {
     const ranksAreDifferent = initiatorFamiliar.rank !== targetFamiliar.rank;
     const isMythicEventTrade =
       (initiatorFamiliar.rank === 'мифический' && targetFamiliar.rank === 'ивентовый') ||
-      (initiatorFamiliar.rank === 'ивентовый' && initiatorFamiliar.rank === 'мифический');
+      (initiatorFamiliar.rank === 'ивентовый' && targetFamiliar.rank === 'мифический');
 
     if (ranksAreDifferent && !isMythicEventTrade) {
         throw new Error("Обмен возможен только между фамильярами одного ранга, или между мифическим и ивентовым.");
@@ -2817,6 +2816,8 @@ const brewPotion = useCallback(async (userId: string, characterId: string, recip
     </AuthContext.Provider>
   );
 }
+
+
 
 
 
