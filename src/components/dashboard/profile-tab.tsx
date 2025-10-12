@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useUser } from '@/hooks/use-user';
@@ -31,7 +32,7 @@ import {
 import React, { useEffect, useState, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { cn, formatTimeLeft } from '@/lib/utils';
-import { ACHIEVEMENTS_BY_ID, FAMILIARS_BY_ID } from '@/lib/data';
+import { ACHIEVEMENTS_BY_ID } from '@/lib/data';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import * as LucideIcons from 'lucide-react';
@@ -63,12 +64,13 @@ const rankNames: Record<FamiliarRank, string> = {
 
 
 const CharacterDisplay = ({ character, onDelete }: { character: Character, onDelete: (characterId: string) => void }) => {
+    const { familiarsById } = useUser();
     const isBlessed = character.blessingExpires && new Date(character.blessingExpires) > new Date();
     const activeMoodlets = (character.moodlets || []).filter(m => new Date(m.expiresAt) > new Date());
     const familiarCards = character.familiarCards || [];
 
     const groupedFamiliars = familiarCards.reduce((acc, ownedCard, index) => {
-        const cardDetails = FAMILIARS_BY_ID[ownedCard.id];
+        const cardDetails = familiarsById[ownedCard.id];
         if (cardDetails) {
             const rank = cardDetails.rank;
             if (!acc[rank]) {
@@ -354,7 +356,7 @@ export default function ProfileTab() {
                     <Popover open={!canAddCharacter ? undefined : false}>
                         <PopoverTrigger asChild>
                             <Button variant="ghost" size="icon" onClick={handleAddClick}>
-                                <PlusCircle className="h-5 w-5" />
+                                <PlusCircle className="h-5 h-5" />
                                 <span className="sr-only">Добавить персонажа</span>
                             </Button>
                         </PopoverTrigger>

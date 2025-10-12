@@ -2,10 +2,11 @@ import React from 'react';
 import type { FamiliarCard } from '@/lib/types';
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '../ui/dialog';
-import { FAMILIARS_BY_ID } from '@/lib/data';
+import { useUser } from '@/hooks/use-user';
 
 const FamiliarCardDisplay = ({ cardId, isRevealed = false }: { cardId: string, isRevealed?: boolean }) => {
-    const card = FAMILIARS_BY_ID[cardId];
+    const { familiarsById } = useUser();
+    const card = familiarsById[cardId];
     if (!card) return null;
 
     if (isRevealed) {

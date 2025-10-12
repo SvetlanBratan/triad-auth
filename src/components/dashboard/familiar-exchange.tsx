@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -8,7 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { useToast } from '@/hooks/use-toast';
 import { ArrowRightLeft, Repeat, Check, X, Trash2, Send } from 'lucide-react';
 import type { Character, FamiliarCard, FamiliarTradeRequest, User, FamiliarRank } from '@/lib/types';
-import { FAMILIARS_BY_ID } from '@/lib/data';
 import Image from 'next/image';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -22,7 +22,8 @@ const rankNames: Record<FamiliarRank, string> = {
 };
 
 const MiniFamiliarCard = ({ cardId }: { cardId: string }) => {
-    const card = FAMILIARS_BY_ID[cardId];
+    const { familiarsById } = useUser();
+    const card = familiarsById[cardId];
     if (!card) return null;
     return (
         <div className="flex items-center gap-2 p-2 bg-muted rounded-md text-sm">
@@ -37,7 +38,7 @@ const MiniFamiliarCard = ({ cardId }: { cardId: string }) => {
 
 
 export default function FamiliarExchange() {
-  const { currentUser, fetchUsersForAdmin, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest } = useUser();
+  const { currentUser, fetchUsersForAdmin, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, familiarsById } = useUser();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -69,15 +70,15 @@ export default function FamiliarExchange() {
   const myFamiliarsOptions = useMemo(() => {
     if (!mySelectedChar) return [];
     return (mySelectedChar.familiarCards || [])
-        .map(owned => FAMILIARS_BY_ID[owned.id])
+        .map(owned => familiarsById[owned.id])
         .filter(Boolean)
         .map(fam => ({ value: fam.id, label: `${fam.name} (${rankNames[fam.rank]})` }));
-  }, [mySelectedChar]);
+  }, [mySelectedChar, familiarsById]);
 
   const selectedFamiliarRank = useMemo(() => {
     if (!initiatorFamiliarId) return null;
-    return FAMILIARS_BY_ID[initiatorFamiliarId]?.rank;
-  }, [initiatorFamiliarId]);
+    return familiarsById[initiatorFamiliarId]?.rank;
+  }, [initiatorFamiliarId, familiarsById]);
 
   const getTargetRanks = (rank: FamiliarRank | null): FamiliarRank[] => {
     if (!rank) return [];
@@ -95,11 +96,11 @@ export default function FamiliarExchange() {
 
     return allUsers.flatMap(u => u.characters.filter(c => 
         c.id !== initiatorCharId && (c.familiarCards || []).some(f => {
-            const card = FAMILIARS_BY_ID[f.id];
+            const card = familiarsById[f.id];
             return card && targetRanks.includes(card.rank);
         })
     )).map(c => ({ value: c.id, label: `${c.name} (${ownerMap.get(c.id)})` }));
-  }, [allUsers, initiatorCharId, targetRanks]);
+  }, [allUsers, initiatorCharId, targetRanks, familiarsById]);
   
   const targetSelectedChar = useMemo(() => {
       if(!targetCharId) return null;
@@ -113,10 +114,10 @@ export default function FamiliarExchange() {
   const targetFamiliarsOptions = useMemo(() => {
       if (!targetSelectedChar || targetRanks.length === 0) return [];
       return (targetSelectedChar.familiarCards || [])
-          .map(owned => FAMILIARS_BY_ID[owned.id])
+          .map(owned => familiarsById[owned.id])
           .filter((card): card is FamiliarCard => !!card && targetRanks.includes(card.rank))
           .map(fam => ({ value: fam.id, label: `${fam.name} (${rankNames[fam.rank]})` }));
-  }, [targetSelectedChar, targetRanks]);
+  }, [targetSelectedChar, targetRanks, familiarsById]);
 
 
   const handleSubmit = async () => {
