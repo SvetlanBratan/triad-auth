@@ -2,8 +2,8 @@
 
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-import { AlchemyRecipe, AlchemyRecipeComponent, User } from "./types";
-import { ALL_SHOPS } from "./data";
+import { AlchemyRecipe, AlchemyRecipeComponent, User } from "@/lib/types";
+import { ALL_SHOPS } from "@/lib/data";
 
 admin.initializeApp();
 const db = admin.firestore();
