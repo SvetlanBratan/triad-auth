@@ -77,7 +77,7 @@ export default function AlchemyPage() {
     };
     
     return (
-        <div className="min-h-screen bg-fixed dark:bg-[url('/Backgroundblack.png')] bg-[url('/Lightbackground.png')] dark:bg-[length:200px_200px] bg-[length:200px_200px]">
+        <div className="min-h-screen bg-fixed dark:bg-[url('/Backgroundblack.png')] bg-[url('/Lightbackground.png')] dark:bg-[length:800px_800px] bg-[length:800px_800px]">
             <div className="container mx-auto p-4 md:p-8 space-y-6 bg-background/80 backdrop-blur-sm min-h-screen">
                 <Link href={`/`} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4">
                     <ArrowLeft className="w-4 h-4" />
