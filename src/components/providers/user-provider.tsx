@@ -169,9 +169,9 @@ const drawFamiliarCard = (allCardPool: FamiliarCard[], hasBlessing: boolean, una
 
     if (rand < chances.мифический && availableMythic.length > 0) {
         chosenPool = availableMythic;
-    } else if (rand < chances.мифический + chances.легендарный && availableLegendary.length > 0) {
+    } else if (rand < (chances.мифический + chances.легендарный) && availableLegendary.length > 0) {
         chosenPool = availableLegendary;
-    } else if (rand < chances.мифический + chances.легендарный + chances.редкий && availableRare.length > 0) {
+    } else if (rand < (chances.мифический + chances.легендарный + chances.редкий) && availableRare.length > 0) {
         chosenPool = availableRare; 
     } else { 
         chosenPool = availableCommon;
@@ -940,7 +940,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             (u.characters || []).forEach(c => {
                 (c.familiarCards || []).forEach(cardRef => {
                     const cardDetails = familiarsById[cardRef.id];
-                    if (cardDetails && (cardDetails.rank === 'мифический' || cardDetails.rank === 'ивентовый')) {
+                    if (cardDetails && (cardDetails.rank === 'мифический')) {
                         claimedMythicIds.add(cardRef.id);
                     }
                 });
@@ -2817,5 +2817,7 @@ const brewPotion = useCallback(async (userId: string, characterId: string, recip
     </AuthContext.Provider>
   );
 }
+
+    
 
     
