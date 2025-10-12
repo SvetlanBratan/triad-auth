@@ -1,7 +1,6 @@
 
 
-
-"use client";
+'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useUser } from '@/hooks/use-user';
@@ -102,6 +101,8 @@ export default function AdminTab() {
   const { data: users = [], isLoading: isUsersLoading } = useQuery<User[]>({
     queryKey: ['adminUsers'],
     queryFn: fetchUsersForAdmin,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    cacheTime: 1000 * 60 * 10, // 10 minutes
   });
 
   const { data: allShops = [], isLoading: isShopsLoading } = useQuery<Shop[]>({
@@ -2461,5 +2462,6 @@ export default function AdminTab() {
 }
 
     
+
 
 

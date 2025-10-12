@@ -234,6 +234,7 @@ export default function RouletteTab() {
                            width={300}
                            height={420}
                            className="rounded-xl object-cover shadow-2xl"
+                           priority
                         />
                     </div>
                     {/* Card Front */}
