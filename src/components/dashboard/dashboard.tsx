@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -18,7 +17,7 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import MarketTab from "./market-tab";
 import MailTab from "./mail-tab";
 import React from "react";
-import Link from "next/link";
+import AlchemyTab from "./alchemy-tab";
 
 export function Dashboard() {
   const { currentUser } = useUser();
@@ -30,10 +29,6 @@ export function Dashboard() {
   const defaultTab = searchParams.get('tab') || 'profile';
 
   const handleTabChange = (value: string) => {
-    if (value === 'alchemy') {
-      router.push('/alchemy');
-      return;
-    }
     const newSearchParams = new URLSearchParams(searchParams.toString());
     newSearchParams.set('tab', value);
     router.replace(`${pathname}?${newSearchParams.toString()}`);
@@ -96,6 +91,9 @@ export function Dashboard() {
         </TabsContent>
         <TabsContent value="familiars" className="mt-4">
           <FamiliarsTab />
+        </TabsContent>
+         <TabsContent value="alchemy" className="mt-4">
+          <AlchemyTab />
         </TabsContent>
         <TabsContent value="rewards" className="mt-4">
           <RewardsTab />

@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/tooltip";
 import { SearchableSelect } from '@/components/ui/searchable-select';
 
-export default function AlchemyPage() {
+export default function AlchemyTab() {
     const { currentUser, fetchAlchemyRecipes, brewPotion, fetchAllShops } = useUser();
     const { toast } = useToast();
     const [selectedCharacterId, setSelectedCharacterId] = useState<string>('');
@@ -77,13 +77,8 @@ export default function AlchemyPage() {
     };
     
     return (
-        <div className="min-h-screen bg-fixed dark:bg-[url('/Backgroundblack.png')] bg-[url('/Lightbackground.png')] dark:bg-[length:800px_800px] bg-[length:800px_800px]">
+        <div className="min-h-screen bg-fixed dark:bg-[url('/Backgroundblack.png')] bg-[url('/Lightbackground.png')] dark:bg-[length:800px_800px] bg-[length:800px_800px] -m-4 md:-m-8 p-4 md:p-8">
             <div className="container mx-auto p-4 md:p-8 space-y-6 bg-background/80 backdrop-blur-sm min-h-screen">
-                <Link href={`/`} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4">
-                    <ArrowLeft className="w-4 h-4" />
-                    Вернуться в личный кабинет
-                </Link>
-
                 <header className="text-center">
                     <h1 className="text-3xl font-bold font-headline text-primary flex items-center justify-center gap-4">
                         <FlaskConical />
