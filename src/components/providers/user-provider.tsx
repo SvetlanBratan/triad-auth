@@ -1,5 +1,6 @@
 
 
+
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
@@ -122,6 +123,7 @@ const ROULETTE_COST = 5000;
 const DUPLICATE_REFUND = 1000;
 const FIRST_PULL_ACHIEVEMENT_ID = 'ach-first-gacha';
 const MYTHIC_PULL_ACHIEVEMENT_ID = 'ach-mythic-pull';
+const FIRST_BREW_ACHIEVEMENT_ID = 'ach-first-brew';
 const GENEROUS_ACHIEVEMENT_ID = 'ach-generous';
 const GENEROUS_THRESHOLD = 100000;
 const PUMPKIN_WIFE_REWARD_ID = 'r-pumpkin-wife';
@@ -1740,7 +1742,7 @@ const processMonthlySalary = useCallback(async () => {
     const ranksAreDifferent = initiatorFamiliar.rank !== targetFamiliar.rank;
     const isMythicEventTrade =
       (initiatorFamiliar.rank === 'мифический' && targetFamiliar.rank === 'ивентовый') ||
-      (initiatorFamiliar.rank === 'ивентовый' && targetFamiliar.rank === 'мифический');
+      (initiatorFamiliar.rank === 'ивентовый' && initiatorFamiliar.rank === 'мифический');
 
     if (ranksAreDifferent && !isMythicEventTrade) {
         throw new Error("Обмен возможен только между фамильярами одного ранга, или между мифическим и ивентовым.");
@@ -2679,7 +2681,8 @@ const brewPotion = useCallback(async (userId: string, characterId: string, recip
         });
         
         // Add result potion
-        const potionsInv = (inventory.зелья || []) as InventoryItem[];
+        const inventoryTag = allItemsMap.get(recipe.resultPotionId)?.inventoryTag || 'зелья';
+        const potionsInv = (inventory[inventoryTag] || []) as InventoryItem[];
         const resultItem = allItemsMap.get(recipe.resultPotionId);
         if (!resultItem) throw new Error("Итоговый предмет не найден в данных игры.");
 
@@ -2697,11 +2700,17 @@ const brewPotion = useCallback(async (userId: string, characterId: string, recip
         }
         
         inventory.ингредиенты = ingredientsInv;
-        inventory.зелья = potionsInv;
+        inventory[inventoryTag] = potionsInv;
         character.inventory = inventory;
+        
+        // Check for achievement
+        const hasBrewedBefore = (userData.achievementIds || []).includes(FIRST_BREW_ACHIEVEMENT_ID);
+        if(!hasBrewedBefore) {
+            userData.achievementIds = [...(userData.achievementIds || []), FIRST_BREW_ACHIEVEMENT_ID];
+        }
+        
         userData.characters[charIndex] = character;
-
-        transaction.update(userRef, { characters: userData.characters });
+        transaction.update(userRef, { characters: userData.characters, achievementIds: userData.achievementIds });
     });
     
     const updatedUser = await fetchUserById(userId);

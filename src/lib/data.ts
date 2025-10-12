@@ -179,6 +179,7 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
   { id: 'ach-landless', name: 'Безземельный', description: 'Он пятый брат вашего троюродного соседа. Беден, но горд!', iconName: 'Home' },
   { id: 'ach-beta-tester', name: 'Бета-тестер', description: 'За активное участие в бета-тестировании системы начисления баллов.', iconName: 'FlaskConical' },
   { id: 'ach-bug-hunter', name: 'Охотник за ошибками', description: 'За нахождение и своевременный репорт критической ошибки или бага в системе.', iconName: 'Bug' },
+  { id: 'ach-first-brew', name: 'Юный алхимик', description: 'Выдаётся за первое созданное зелье или артефакт.', iconName: 'Beaker' },
 ];
 
 export const ACHIEVEMENTS_BY_ID: Record<string, Achievement> = ALL_ACHIEVEMENTS.reduce((acc, ach) => {
@@ -678,5 +679,6 @@ export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) =>
     acc[shop.id] = shop;
     return acc;
 }, {} as Record<string, Shop>);
+
 
 
