@@ -1,6 +1,5 @@
 
 
-
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
@@ -124,6 +123,7 @@ const DUPLICATE_REFUND = 1000;
 const FIRST_PULL_ACHIEVEMENT_ID = 'ach-first-gacha';
 const MYTHIC_PULL_ACHIEVEMENT_ID = 'ach-mythic-pull';
 const FIRST_BREW_ACHIEVEMENT_ID = 'ach-first-brew';
+const FIRST_PURCHASE_ACHIEVEMENT_ID = 'ach-first-purchase';
 const GENEROUS_ACHIEVEMENT_ID = 'ach-generous';
 const GENEROUS_THRESHOLD = 100000;
 const PUMPKIN_WIFE_REWARD_ID = 'r-pumpkin-wife';
@@ -149,15 +149,15 @@ const drawFamiliarCard = (allCardPool: FamiliarCard[], hasBlessing: boolean, una
     let rand = Math.random() * 100;
 
     const chances = {
-        мифический: 2,
-        легендарный: 10,
-        редкий: 25,
+        мифический: 2, // 2%
+        легендарный: 10, // 8% (10-2)
+        редкий: 25, // 15% (25-10)
     };
     
     if (hasBlessing) {
-        chances.мифический = 5;
-        chances.легендарный = 20;
-        chances.редкий = 40;
+        chances.мифический = 5; // 5%
+        chances.легендарный = 20; // 15% (20-5)
+        chances.редкий = 40; // 20% (40-20)
     }
     
     const availableCards = allCardPool;
@@ -171,10 +171,10 @@ const drawFamiliarCard = (allCardPool: FamiliarCard[], hasBlessing: boolean, una
 
     if (rand < chances.мифический && availableMythic.length > 0) {
         chosenPool = availableMythic;
-    } else if (rand < (chances.мифический + chances.легендарный) && availableLegendary.length > 0) {
+    } else if (rand < chances.легендарный && availableLegendary.length > 0) {
         chosenPool = availableLegendary;
-    } else if (rand < (chances.мифический + chances.легендарный + chances.редкий) && availableRare.length > 0) {
-        chosenPool = availableRare; 
+    } else if (rand < chances.редкий && availableRare.length > 0) { 
+        chosenPool = availableRare;
     } else { 
         chosenPool = availableCommon;
     }
@@ -2044,9 +2044,15 @@ const processMonthlySalary = useCallback(async () => {
 
         const shopTx: BankTransaction = { id: `txn-sell-${Date.now()}`, date: new Date().toISOString(), reason: `Продажа: ${item.name} x${quantity}`, amount: totalPrice };
         shopBankAccount.history = [shopTx, ...(shopBankAccount.history || [])];
+        
+        // Grant first purchase achievement
+        const hasFirstPurchaseAchievement = (buyerUserData.achievementIds || []).includes(FIRST_PURCHASE_ACHIEVEMENT_ID);
+        if (!hasFirstPurchaseAchievement) {
+            buyerUserData.achievementIds = [...(buyerUserData.achievementIds || []), FIRST_PURCHASE_ACHIEVEMENT_ID];
+        }
 
         // 4. Update buyer's character data & shop data
-        transaction.update(buyerUserRef, { characters: buyerUserData.characters });
+        transaction.update(buyerUserRef, { characters: buyerUserData.characters, achievementIds: buyerUserData.achievementIds });
 
         // Decrease stock in shop and increment purchase count
         const updatedShopData: Partial<Shop> = { bankAccount: shopBankAccount };
@@ -2830,3 +2836,4 @@ const brewPotion = useCallback(async (userId: string, characterId: string, recip
     
 
     
+
