@@ -6,7 +6,7 @@ import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, Re
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter, increment, FieldValue, deleteField } from "firebase/firestore";
-import { MOODLETS_DATA, DEFAULT_GAME_SETTINGS, WEALTH_LEVELS, ALL_SHOPS, SHOPS_BY_ID, POPULARITY_EVENTS, ALL_ACHIEVEMENTS, INVENTORY_CATEGORIES, ALL_STATIC_FAMILIARS, EVENT_FAMILIARS, FAMILIARS_BY_ID } from '@/lib/data';
+import { FAMILIARS_BY_ID, MOODLETS_DATA, DEFAULT_GAME_SETTINGS, WEALTH_LEVELS, ALL_SHOPS, SHOPS_BY_ID, POPULARITY_EVENTS, ALL_ACHIEVEMENTS, INVENTORY_CATEGORIES, ALL_STATIC_FAMILIARS, EVENT_FAMILIARS } from '@/lib/data';
 import { differenceInDays } from 'date-fns';
 
 interface AuthContextType {
@@ -1836,7 +1836,7 @@ const processMonthlySalary = useCallback(async () => {
         targetChar.familiarCards.splice(targetCardIndex, 1);
 
         initiatorChar.familiarCards.push({ id: request.targetFamiliarId });
-        targetChar.familiarCards.push({ id: request.initiatorFamiliarId });
+        targetChar.familiarCards.push({ id: request.targetFamiliarId });
 
         transaction.update(initiatorUserRef, { characters: initiatorData.characters });
         transaction.update(targetUserRef, { characters: targetData.characters });
@@ -2817,9 +2817,4 @@ const brewPotion = useCallback(async (userId: string, characterId: string, recip
   );
 }
 
-
-
-
-
-
-
+    
