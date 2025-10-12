@@ -77,7 +77,7 @@ export default function AlchemyTab() {
     };
     
     return (
-        <div className="min-h-screen bg-fixed dark:bg-[url('/Backgroundblack.png')] bg-[url('/Lightbackground.png')] dark:bg-[length:800px_800px] bg-[length:800px_800px] p-4 md:p-8">
+        <div className="min-h-screen bg-fixed dark:bg-[url('/Backgroundblack.png')] bg-[url('/Lightbackground.png')] dark:bg-[length:400px_400px] bg-[length:400px_400px] p-4 md:p-8">
             <div className="container mx-auto p-4 md:p-8 space-y-6 bg-background/80 backdrop-blur-sm min-h-screen">
                 <header className="text-center">
                     <h1 className="text-3xl font-bold font-headline text-primary flex items-center justify-center gap-4">
