@@ -11,8 +11,7 @@ import { Anchor, KeyRound, Sparkles, Star, X } from 'lucide-react';
 import { cn, formatTimeLeft } from '@/lib/utils';
 import FamiliarCardDisplay from './familiar-card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
-import { ACHIEVEMENTS_BY_ID, FAMILIARS_BY_ID } from '@/lib/data';
-import * as LucideIcons from 'lucide-react';
+import { ACHIEVEMENTS_BY_ID } from '@/lib/data';
 import { ScrollArea } from '../ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Button } from '../ui/button';
@@ -20,12 +19,25 @@ import { useUser } from '@/hooks/use-user';
 import Link from 'next/link';
 
 const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
-    const IconComponent = (LucideIcons as any)[name] as React.ComponentType<{ className?: string }>;
-    
+    // If the name starts with 'ach-', assume it's a custom achievement icon
+    if (name.startsWith('ach-')) {
+        return (
+            <div
+                className={cn("w-5 h-5 icon-primary", className)}
+                style={{
+                maskImage: `url(/icons/${name}.svg)`,
+                maskSize: 'contain',
+                maskRepeat: 'no-repeat',
+                maskPosition: 'center',
+                }}
+            />
+        );
+    }
+    // Fallback to Lucide icons for other cases
+    const IconComponent = (import('lucide-react') as any)[name];
     if (!IconComponent) {
         return <Star className={className} />;
     }
-    
     return <IconComponent className={className} />;
 };
 
@@ -40,13 +52,14 @@ const rankNames: Record<FamiliarRank, string> = {
 };
 
 const CharacterDisplay = ({ character }: { character: Character }) => {
+    const { familiarsById } = useUser();
     const familiarCards = character.familiarCards || [];
     const isBlessed = character.blessingExpires && new Date(character.blessingExpires) > new Date();
     const activeMoodlets = (character.moodlets || []).filter(m => new Date(m.expiresAt) > new Date());
 
 
     const groupedFamiliars = familiarCards.reduce((acc, ownedCard) => {
-        const cardDetails = FAMILIARS_BY_ID[ownedCard.id];
+        const cardDetails = familiarsById[ownedCard.id];
         if (cardDetails) {
             const rank = cardDetails.rank;
             if (!acc[rank]) {
@@ -242,7 +255,7 @@ export default function UserProfileDialog({ user }: { user: User }) {
                       <Popover key={ach.id}>
                         <PopoverTrigger asChild>
                           <Button variant="outline" size="icon" className="w-10 h-10 p-2 bg-muted hover:bg-primary/10">
-                            <DynamicIcon name={ach.iconName} className="w-5 h-5 text-primary" />
+                            <DynamicIcon name={ach.id} />
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto max-w-xs">
@@ -318,5 +331,3 @@ export default function UserProfileDialog({ user }: { user: User }) {
     </div>
   );
 }
-
-    

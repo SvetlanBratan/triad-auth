@@ -35,7 +35,6 @@ import { cn, formatTimeLeft } from '@/lib/utils';
 import { ACHIEVEMENTS_BY_ID } from '@/lib/data';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-import * as LucideIcons from 'lucide-react';
 import CharacterForm, { type EditingState } from './character-form';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import FamiliarCardDisplay from './familiar-card';
@@ -43,20 +42,42 @@ import RewardRequestsHistory from './reward-requests-history';
 import AvatarUploader from './avatar-uploader';
 import Image from 'next/image';
 
-const CustomIcon = ({ src }: { src: string }) => (
-  <Image src={src} alt="" width={16} height={16} className="w-4 h-4" />
+const CustomIcon = ({ src, className }: { src: string, className?: string }) => (
+  <div
+    className={cn("w-4 h-4 icon-primary", className)}
+    style={{
+      maskImage: `url(${src})`,
+      maskSize: 'contain',
+      maskRepeat: 'no-repeat',
+      maskPosition: 'center',
+    }}
+  />
 );
 
 
 const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
-    const IconComponent = (LucideIcons as any)[name];
-
+    // If the name starts with 'ach-', assume it's a custom achievement icon
+    if (name.startsWith('ach-')) {
+        return (
+            <div
+                className={cn("w-5 h-5 icon-primary", className)}
+                style={{
+                maskImage: `url(/icons/${name}.svg)`,
+                maskSize: 'contain',
+                maskRepeat: 'no-repeat',
+                maskPosition: 'center',
+                }}
+            />
+        );
+    }
+    // Fallback to Lucide icons for other cases
+    const IconComponent = (import('lucide-react') as any)[name];
     if (!IconComponent) {
         return <Star className={className} />;
     }
-
     return <IconComponent className={className} />;
 };
+
 
 const rankOrder: FamiliarRank[] = ['мифический', 'ивентовый', 'легендарный', 'редкий', 'обычный'];
 const rankNames: Record<FamiliarRank, string> = {
@@ -334,7 +355,7 @@ export default function ProfileTab() {
                             <Popover key={ach.id}>
                                 <PopoverTrigger asChild>
                                     <Button variant="outline" size="icon" className="w-10 h-10 p-2 bg-muted hover:bg-primary/10">
-                                        <DynamicIcon name={ach.iconName} className="w-5 h-5 text-primary" />
+                                        <DynamicIcon name={ach.id} />
                                     </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto max-w-xs">
