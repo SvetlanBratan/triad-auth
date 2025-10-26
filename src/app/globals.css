@@ -120,4 +120,7 @@ body {
   .icon-black {
     background-color: #000;
   }
+  .dark .icon-black {
+    background-color: #fff;
+  }
 }

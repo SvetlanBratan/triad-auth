@@ -476,7 +476,7 @@ export default function CharacterPage() {
                                 <Popover>
                                     <PopoverTrigger asChild>
                                         <button>
-                                            <CustomIcon src="/icons/ach-mafiosi.svg" className="h-5 w-5 icon-black cursor-pointer" />
+                                            <CustomIcon src="/icons/ach-mafiosi.svg" className="h-6 w-6 icon-black cursor-pointer" />
                                         </button>
                                     </PopoverTrigger>
                                     <PopoverContent className="w-auto text-sm"><p>Связи в преступном мире</p></PopoverContent>

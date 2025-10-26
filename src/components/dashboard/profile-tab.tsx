@@ -116,7 +116,7 @@ const CharacterDisplay = ({ character, onDelete }: { character: Character, onDel
                                      <Anchor className="h-4 w-4 text-blue-500" />
                                  )}
                                  {character.hasCrimeConnections && (
-                                    <CustomIcon src="/icons/ach-mafiosi.svg" className="h-4 w-4 icon-black" />
+                                    <CustomIcon src="/icons/ach-mafiosi.svg" className="h-6 w-6 icon-black" />
                                  )}
                             </div>
                             <p className="text-sm text-muted-foreground text-left">{character.activity}</p>
@@ -465,6 +465,7 @@ export default function ProfileTab() {
     </div>
   );
 }
+
 
 
 
