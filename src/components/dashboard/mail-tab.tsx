@@ -7,7 +7,7 @@ import { useUser } from '@/hooks/use-user';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Mail, Trash2, MailOpen, Reply } from 'lucide-react';
+import { Trash2, MailOpen, Reply } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -24,6 +24,11 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { differenceInDays } from 'date-fns';
 import { Textarea } from '../ui/textarea';
 import { Label } from '../ui/label';
+import Image from 'next/image';
+
+const CustomIcon = ({ src }: { src: string }) => (
+  <Image src={src} alt="" width={20} height={20} className="w-5 h-5" />
+);
 
 export default function MailTab() {
   const { currentUser, markMailAsRead, deleteMailMessage, performRelationshipAction } = useUser();
@@ -113,7 +118,7 @@ export default function MailTab() {
     <>
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Mail /> Почта</CardTitle>
+          <CardTitle className="flex items-center gap-2"><CustomIcon src="/icons/mail.svg" /> Почта</CardTitle>
           <CardDescription>Здесь вы можете прочитать личные письма и массовые рассылки.</CardDescription>
         </CardHeader>
         <CardContent>
