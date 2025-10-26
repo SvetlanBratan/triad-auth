@@ -41,6 +41,11 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '..
 import FamiliarCardDisplay from './familiar-card';
 import RewardRequestsHistory from './reward-requests-history';
 import AvatarUploader from './avatar-uploader';
+import Image from 'next/image';
+
+const CustomIcon = ({ src }: { src: string }) => (
+  <Image src={src} alt="" width={16} height={16} className="w-4 h-4" />
+);
 
 
 const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
@@ -308,7 +313,7 @@ export default function ProfileTab() {
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Баллы</span>
               <span className="font-bold text-lg text-primary flex items-center gap-1">
-                <Star className="w-4 h-4" /> {currentUser.points.toLocaleString()}
+                <CustomIcon src="/icons/points.svg" /> {currentUser.points.toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between items-center">

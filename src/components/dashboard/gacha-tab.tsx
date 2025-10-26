@@ -28,6 +28,11 @@ interface PullResult {
     isDuplicate: boolean;
 }
 
+const CustomIcon = ({ src, className }: { src: string, className?: string }) => (
+  <Image src={src} alt="" width={16} height={16} className={cn("w-4 h-4", className)} />
+);
+
+
 export default function RouletteTab() {
   const { currentUser, pullGachaForCharacter, fetchAvailableMythicCardsCount, setCurrentUser, allFamiliars } = useUser();
   const { toast } = useToast();
@@ -160,7 +165,7 @@ export default function RouletteTab() {
                     "font-bold text-lg text-primary flex items-center gap-1",
                     isFirstSpinForChar && "text-green-600"
                 )}>
-                  {isFirstSpinForChar ? <Gift className="w-4 h-4" /> : <Star className="w-4 h-4" />}
+                  {isFirstSpinForChar ? <Gift className="w-4 h-4" /> : <CustomIcon src="/icons/points.svg" className="w-4 h-4" />}
                   {isFirstSpinForChar ? 'Бесплатно' : `${ROULETTE_COST.toLocaleString()}`}
                 </span>
               </div>

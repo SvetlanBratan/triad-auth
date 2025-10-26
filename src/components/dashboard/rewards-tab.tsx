@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useUser } from '@/hooks/use-user';
@@ -18,6 +19,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { SearchableSelect } from '../ui/searchable-select';
+import Image from 'next/image';
+
+const CustomIcon = ({ src }: { src: string }) => (
+  <Image src={src} alt="" width={20} height={20} className="w-5 h-5" />
+);
+
 
 const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
     const IconComponent = (LucideIcons as any)[name] as React.ComponentType<{ className?: string }>;
@@ -116,7 +123,7 @@ export default function RewardsTab() {
     <div>
         <Card className="mb-6 bg-primary/10 border-primary/20">
             <CardHeader className="flex flex-row items-center gap-4">
-                <Star className="w-8 h-8 text-primary"/>
+                <CustomIcon src="/icons/points.svg" />
                 <div>
                     <CardTitle>Ваши баллы</CardTitle>
                     <CardDescription className="text-primary/80">У вас есть <span className="font-bold text-xl text-primary">{currentUser?.points.toLocaleString()}</span> баллов для траты.</CardDescription>
@@ -141,7 +148,7 @@ export default function RewardsTab() {
             </CardContent>
             <CardFooter className="flex justify-between items-center bg-muted/50 p-4 mt-auto">
               <p className="font-bold text-lg text-primary flex items-center gap-1.5">
-                <Star className="w-5 h-5" /> {reward.cost.toLocaleString()}
+                <CustomIcon src="/icons/points.svg" /> {reward.cost.toLocaleString()}
               </p>
               <Button size="sm" onClick={() => handleRedeemClick(reward)} disabled={(currentUser?.points ?? 0) < reward.cost || isLoading || currentUser?.characters.length === 0}>
                 {isLoading ? 'Обработка...' : 'Запросить'}
