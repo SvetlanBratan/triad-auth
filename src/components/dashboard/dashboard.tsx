@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -18,6 +19,12 @@ import MarketTab from "./market-tab";
 import MailTab from "./mail-tab";
 import React from "react";
 import AlchemyTab from "./alchemy-tab";
+import Image from 'next/image';
+
+const CustomIcon = ({ src }: { src: string }) => (
+  <Image src={src} alt="" width={16} height={16} className="w-4 h-4" />
+);
+
 
 export function Dashboard() {
   const { currentUser } = useUser();
@@ -50,16 +57,16 @@ export function Dashboard() {
   const unreadMailCount = (currentUser.mail || []).filter(m => !m.isRead).length;
   
   const tabs = [
-    { value: 'profile', label: 'Профиль', icon: User },
-    { value: 'mail', label: 'Почта', icon: Mail, notificationCount: unreadMailCount },
-    { value: 'leaderboard', label: 'Лидеры', icon: Trophy },
-    { value: 'familiars', label: 'Фамильяры', icon: Cat, className: "shrink-0" },
-    { value: 'alchemy', label: 'Алхимия', icon: FlaskConical },
-    { value: 'rewards', label: 'Награды', icon: Award },
-    { value: 'bank', label: 'Банк', icon: Landmark },
-    { value: 'market', label: 'Рынок', icon: Store },
-    ...(isAdmin ? [{ value: 'requests', label: 'Запросы', icon: GitPullRequest }] : []),
-    ...(isAdmin ? [{ value: 'admin', label: 'Админ', icon: Shield }] : []),
+    { value: 'profile', label: 'Профиль', icon: () => <CustomIcon src="/icons/profile.svg" /> },
+    { value: 'mail', label: 'Почта', icon: () => <CustomIcon src="/icons/mail.svg" />, notificationCount: unreadMailCount },
+    { value: 'leaderboard', label: 'Лидеры', icon: () => <CustomIcon src="/icons/leaderboard.svg" /> },
+    { value: 'familiars', label: 'Фамильяры', icon: () => <CustomIcon src="/icons/familiars.svg" />, className: "shrink-0" },
+    { value: 'alchemy', label: 'Алхимия', icon: () => <CustomIcon src="/icons/alchemy.svg" /> },
+    { value: 'rewards', label: 'Награды', icon: () => <CustomIcon src="/icons/rewards.svg" /> },
+    { value: 'bank', label: 'Банк', icon: () => <CustomIcon src="/icons/bank.svg" /> },
+    { value: 'market', label: 'Рынок', icon: () => <CustomIcon src="/icons/market.svg" /> },
+    ...(isAdmin ? [{ value: 'requests', label: 'Запросы', icon: () => <CustomIcon src="/icons/requests.svg" /> }] : []),
+    ...(isAdmin ? [{ value: 'admin', label: 'Админ', icon: () => <CustomIcon src="/icons/admin.svg" /> }] : []),
   ];
   
   return (
@@ -68,7 +75,7 @@ export function Dashboard() {
           {tabs.map(({ value, label, icon: Icon, className, notificationCount }) => {
             return (
               <TabsTrigger key={value} value={value} className="flex-row items-center justify-center p-1 sm:p-2 sm:gap-1.5 text-xs sm:text-sm relative">
-                <Icon className={cn("w-4 h-4", className)} />
+                <Icon />
                 <span className="hidden [@media(min-width:400px)]:sm:inline">{label}</span>
                 {notificationCount && notificationCount > 0 && (
                   <span className="absolute top-0 right-0 -mt-1 -mr-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs">
