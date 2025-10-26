@@ -12,6 +12,18 @@ import type { Shop } from '@/lib/types';
 import { useQuery } from '@tanstack/react-query';
 import { Input } from '../ui/input';
 
+const CustomIcon = ({ src }: { src: string }) => (
+    <div
+      className="w-8 h-8 icon-primary"
+      style={{
+        maskImage: `url(${src})`,
+        maskSize: 'contain',
+        maskRepeat: 'no-repeat',
+        maskPosition: 'center',
+      }}
+    />
+);
+
 
 export default function MarketTab() {
   const { fetchAllShops } = useUser();
@@ -43,7 +55,7 @@ export default function MarketTab() {
   return (
     <div className="space-y-6">
       <div className="text-center space-y-4">
-        <h1 className="text-3xl font-bold font-headline text-primary flex items-center justify-center gap-4"><Store />Рынок</h1>
+        <h1 className="text-3xl font-bold font-headline text-primary flex items-center justify-center gap-4"><CustomIcon src="/icons/market.svg" />Рынок</h1>
         <p className="text-muted-foreground">Добро пожаловать! Здесь вы найдете лучшие магазины и таверны города.</p>
         <div className="relative max-w-lg mx-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

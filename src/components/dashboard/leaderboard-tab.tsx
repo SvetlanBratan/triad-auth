@@ -13,6 +13,19 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
+import Image from 'next/image';
+
+const CustomIcon = ({ src }: { src: string }) => (
+    <div
+      className="w-5 h-5 icon-primary"
+      style={{
+        maskImage: `url(${src})`,
+        maskSize: 'contain',
+        maskRepeat: 'no-repeat',
+        maskPosition: 'center',
+      }}
+    />
+);
 
 
 export default function LeaderboardTab() {
@@ -71,7 +84,7 @@ export default function LeaderboardTab() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Trophy className="text-yellow-500" /> Таблица лидеров
+          <CustomIcon src="/icons/leaderboard.svg" /> Таблица лидеров
         </CardTitle>
         <CardDescription>
             Список <s>Forbes</s> Тыквенного Переполоха. Нажмите на пользователя, чтобы просмотреть детали.
