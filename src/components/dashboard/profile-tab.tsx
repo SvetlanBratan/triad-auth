@@ -44,7 +44,7 @@ import Image from 'next/image';
 
 const CustomIcon = ({ src, className }: { src: string, className?: string }) => (
   <div
-    className={cn("w-full h-full icon-primary", className)}
+    className={cn("w-full h-full", className)}
     style={{
       maskImage: `url(${src})`,
       maskSize: 'contain',
@@ -59,15 +59,7 @@ const DynamicIcon = ({ name, className }: { name: string; className?: string }) 
     // If the name starts with 'ach-', assume it's a custom achievement icon
     if (name.startsWith('ach-')) {
         return (
-            <div
-                className={cn("w-full h-full icon-primary", className)}
-                style={{
-                maskImage: `url(/icons/${name}.svg)`,
-                maskSize: 'contain',
-                maskRepeat: 'no-repeat',
-                maskPosition: 'center',
-                }}
-            />
+            <CustomIcon src={`/icons/${name}.svg`} className={cn("icon-primary", className)} />
         );
     }
     // Fallback to Lucide icons for other cases
@@ -124,7 +116,7 @@ const CharacterDisplay = ({ character, onDelete }: { character: Character, onDel
                                      <Anchor className="h-4 w-4 text-blue-500" />
                                  )}
                                  {character.hasCrimeConnections && (
-                                    <KeyRound className="h-4 w-4 text-gray-500" />
+                                    <CustomIcon src="/icons/ach-mafiosi.svg" className="h-4 w-4 icon-black" />
                                  )}
                             </div>
                             <p className="text-sm text-muted-foreground text-left">{character.activity}</p>
@@ -334,7 +326,7 @@ export default function ProfileTab() {
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Баллы</span>
               <span className="font-bold text-lg text-primary flex items-center gap-1">
-                <CustomIcon src="/icons/points.svg" /> {currentUser.points.toLocaleString()}
+                <CustomIcon src="/icons/points.svg" className="icon-primary" /> {currentUser.points.toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between items-center">
@@ -473,5 +465,6 @@ export default function ProfileTab() {
     </div>
   );
 }
+
 
 

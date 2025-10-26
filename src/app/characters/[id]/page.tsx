@@ -29,7 +29,26 @@ import { useQuery } from '@tanstack/react-query';
 import FormattedTextRenderer from '@/components/dashboard/formatted-text-renderer';
 
 
+const CustomIcon = ({ src, className }: { src: string, className?: string }) => (
+  <div
+    className={cn("w-full h-full", className)}
+    style={{
+      maskImage: `url(${src})`,
+      maskSize: 'contain',
+      maskRepeat: 'no-repeat',
+      maskPosition: 'center',
+    }}
+  />
+);
+
+
 const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
+    // If the name starts with 'ach-', assume it's a custom achievement icon
+    if (name.startsWith('ach-')) {
+        return (
+            <CustomIcon src={`/icons/${name}.svg`} className={cn("icon-primary", className)} />
+        );
+    }
     const IconComponent = (LucideIcons as any)[name] as React.ComponentType<{ className?: string }>;
     
     if (!IconComponent) {
@@ -143,10 +162,11 @@ const inventoryLayout: {
 ];
 
 const FamiliarsSection = ({ character }: { character: Character }) => {
+    const { familiarsById } = useUser();
     const familiarCards = character.familiarCards || [];
 
     const groupedFamiliars = familiarCards.reduce((acc, ownedCard, index) => {
-        const cardDetails = FAMILIARS_BY_ID[ownedCard.id];
+        const cardDetails = familiarsById[ownedCard.id];
         if (cardDetails) {
             const rank = cardDetails.rank;
             if (!acc[rank]) {
@@ -454,7 +474,11 @@ export default function CharacterPage() {
                             )}
                             {character.hasCrimeConnections && (
                                 <Popover>
-                                    <PopoverTrigger asChild><button><KeyRound className="h-5 w-5 text-gray-500 cursor-pointer" /></button></PopoverTrigger>
+                                    <PopoverTrigger asChild>
+                                        <button>
+                                            <CustomIcon src="/icons/ach-mafiosi.svg" className="h-5 w-5 icon-black cursor-pointer" />
+                                        </button>
+                                    </PopoverTrigger>
                                     <PopoverContent className="w-auto text-sm"><p>Связи в преступном мире</p></PopoverContent>
                                 </Popover>
                             )}

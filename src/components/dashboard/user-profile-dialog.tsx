@@ -19,19 +19,23 @@ import { Button } from '../ui/button';
 import { useUser } from '@/hooks/use-user';
 import Link from 'next/link';
 
+const CustomIcon = ({ src, className }: { src: string, className?: string }) => (
+  <div
+    className={cn("w-full h-full", className)}
+    style={{
+      maskImage: `url(${src})`,
+      maskSize: 'contain',
+      maskRepeat: 'no-repeat',
+      maskPosition: 'center',
+    }}
+  />
+);
+
 const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
     // If the name starts with 'ach-', assume it's a custom achievement icon
     if (name.startsWith('ach-')) {
         return (
-            <div
-                className={cn("w-full h-full icon-primary", className)}
-                style={{
-                maskImage: `url(/icons/${name}.svg)`,
-                maskSize: 'contain',
-                maskRepeat: 'no-repeat',
-                maskPosition: 'center',
-                }}
-            />
+            <CustomIcon src={`/icons/${name}.svg`} className={cn("icon-primary", className)} />
         );
     }
     // Fallback to Lucide icons for other cases
@@ -100,7 +104,11 @@ const CharacterDisplay = ({ character }: { character: Character }) => {
                     )}
                     {character.hasCrimeConnections && (
                         <Popover>
-                            <PopoverTrigger asChild><button><KeyRound className="h-4 w-4 text-gray-500 cursor-pointer" /></button></PopoverTrigger>
+                            <PopoverTrigger asChild>
+                                <button>
+                                    <CustomIcon src="/icons/ach-mafiosi.svg" className="h-4 w-4 icon-black cursor-pointer" />
+                                </button>
+                            </PopoverTrigger>
                             <PopoverContent className="w-auto text-sm"><p>Связи в преступном мире</p></PopoverContent>
                         </Popover>
                     )}

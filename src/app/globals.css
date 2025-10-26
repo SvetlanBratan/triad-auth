@@ -117,4 +117,7 @@ body {
   .icon-primary {
     background-color: hsl(var(--primary));
   }
+  .icon-black {
+    background-color: #000;
+  }
 }
