@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useMemo } from 'react';
@@ -23,7 +24,7 @@ const DynamicIcon = ({ name, className }: { name: string; className?: string }) 
     if (name.startsWith('ach-')) {
         return (
             <div
-                className={cn("w-5 h-5 icon-primary", className)}
+                className={cn("w-full h-full icon-primary", className)}
                 style={{
                 maskImage: `url(/icons/${name}.svg)`,
                 maskSize: 'contain',
@@ -254,7 +255,7 @@ export default function UserProfileDialog({ user }: { user: User }) {
                     {userAchievements.map(ach => (
                       <Popover key={ach.id}>
                         <PopoverTrigger asChild>
-                          <Button variant="outline" size="icon" className="w-10 h-10 p-2 bg-muted hover:bg-primary/10">
+                          <Button variant="outline" size="icon" className="w-10 h-10 bg-muted hover:bg-primary/10">
                             <DynamicIcon name={ach.id} />
                           </Button>
                         </PopoverTrigger>
