@@ -255,7 +255,7 @@ export default function UserProfileDialog({ user }: { user: User }) {
                     {userAchievements.map(ach => (
                       <Popover key={ach.id}>
                         <PopoverTrigger asChild>
-                          <Button variant="outline" size="icon" className="w-10 h-10 bg-muted hover:bg-primary/10">
+                          <Button variant="outline" size="icon" className="w-8 h-8 bg-muted hover:bg-primary/10">
                             <DynamicIcon name={ach.id} />
                           </Button>
                         </PopoverTrigger>

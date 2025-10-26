@@ -44,7 +44,7 @@ import Image from 'next/image';
 
 const CustomIcon = ({ src, className }: { src: string, className?: string }) => (
   <div
-    className={cn("w-4 h-4 icon-primary", className)}
+    className={cn("w-full h-full icon-primary", className)}
     style={{
       maskImage: `url(${src})`,
       maskSize: 'contain',
@@ -354,7 +354,7 @@ export default function ProfileTab() {
                         {userAchievements.map(ach => (
                             <Popover key={ach.id}>
                                 <PopoverTrigger asChild>
-                                    <Button variant="outline" size="icon" className="w-10 h-10 bg-muted hover:bg-primary/10">
+                                    <Button variant="outline" size="icon" className="w-8 h-8 bg-muted hover:bg-primary/10">
                                         <DynamicIcon name={ach.id} />
                                     </Button>
                                 </PopoverTrigger>
@@ -473,4 +473,5 @@ export default function ProfileTab() {
     </div>
   );
 }
+
 
