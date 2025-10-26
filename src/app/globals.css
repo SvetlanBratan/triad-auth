@@ -114,4 +114,7 @@ body {
   .animate-glow {
     animation: glow 3s ease-in-out infinite;
   }
+  .icon-primary {
+    background-color: hsl(var(--primary));
+  }
 }

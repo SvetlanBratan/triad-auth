@@ -9,7 +9,6 @@ import LeaderboardTab from "./leaderboard-tab";
 import RewardsTab from "./rewards-tab";
 import AdminTab from "./admin-tab";
 import RequestsTab from "./requests-tab";
-import { User, Trophy, Award, Shield, GitPullRequest, Landmark, Cat, Store, Mail, FlaskConical } from "lucide-react";
 import AuthPage from "../auth/auth-page";
 import { useAuth } from "../providers/user-provider";
 import CurrencyExchange from "./currency-exchange";
@@ -23,7 +22,15 @@ import AlchemyTab from "./alchemy-tab";
 import Image from 'next/image';
 
 const CustomIcon = ({ src }: { src: string }) => (
-  <Image src={src} alt="" width={16} height={16} className="w-4 h-4" />
+  <div
+    className="w-4 h-4 icon-primary"
+    style={{
+      maskImage: `url(${src})`,
+      maskSize: 'contain',
+      maskRepeat: 'no-repeat',
+      maskPosition: 'center',
+    }}
+  />
 );
 
 
