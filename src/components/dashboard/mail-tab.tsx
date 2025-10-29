@@ -27,7 +27,15 @@ import { Label } from '../ui/label';
 import Image from 'next/image';
 
 const CustomIcon = ({ src }: { src: string }) => (
-  <Image src={src} alt="" width={20} height={20} className="w-5 h-5" />
+    <div
+      className="w-5 h-5 icon-primary"
+      style={{
+        maskImage: `url(${src})`,
+        maskSize: 'contain',
+        maskRepeat: 'no-repeat',
+        maskPosition: 'center',
+      }}
+    />
 );
 
 export default function MailTab() {

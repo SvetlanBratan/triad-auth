@@ -22,15 +22,15 @@ import AlchemyTab from "./alchemy-tab";
 import Image from 'next/image';
 
 const CustomIcon = ({ src }: { src: string }) => (
-  <div
-    className="w-4 h-4 icon-primary"
-    style={{
-      maskImage: `url(${src})`,
-      maskSize: 'contain',
-      maskRepeat: 'no-repeat',
-      maskPosition: 'center',
-    }}
-  />
+    <div
+      className="w-4 h-4 icon-primary"
+      style={{
+        maskImage: `url(${src})`,
+        maskSize: 'contain',
+        maskRepeat: 'no-repeat',
+        maskPosition: 'center',
+      }}
+    />
 );
 
 

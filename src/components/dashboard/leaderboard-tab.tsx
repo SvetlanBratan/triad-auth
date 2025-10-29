@@ -67,7 +67,7 @@ export default function LeaderboardTab() {
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                <Trophy className="text-yellow-500" /> Таблица лидеров
+                <CustomIcon src="/icons/leaderboard.svg" /> Таблица лидеров
                 </CardTitle>
                 <CardDescription>
                     Загрузка данных...
