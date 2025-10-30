@@ -52,6 +52,18 @@ const citizenshipStatusOptions: { value: CitizenshipStatus, label: string }[] = 
     { value: 'refugee', label: 'Беженец' },
 ];
 
+const CustomIcon = ({ src, className }: { src: string, className?: string }) => (
+  <div
+    className={cn("w-full h-full", className)}
+    style={{
+      maskImage: `url(${src})`,
+      maskSize: 'contain',
+      maskRepeat: 'no-repeat',
+      maskPosition: 'center',
+    }}
+  />
+);
+
 
 export default function AdminTab() {
   const { 
@@ -2081,7 +2093,7 @@ export default function AdminTab() {
              <div className="break-inside-avoid mb-6">
                 <Card>
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><CustomIcon src="/icons/points.svg" className="w-5 h-5" /> Стартовый капитал</CardTitle>
+                        <CardTitle className="flex items-center gap-2"><CustomIcon src="/icons/points.svg" className="w-5 h-5 icon-primary" /> Стартовый капитал</CardTitle>
                         <CardDescription>Начислить персонажу стартовый капитал.</CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -2462,6 +2474,7 @@ export default function AdminTab() {
 }
 
     
+
 
 
 
