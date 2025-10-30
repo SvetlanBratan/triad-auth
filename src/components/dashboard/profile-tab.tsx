@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Star, Trash2, Pencil, UserSquare, Sparkles, Anchor, KeyRound, ChevronDown } from 'lucide-react';
+import { PlusCircle, Trash2, Pencil, UserSquare, Sparkles, Anchor, KeyRound, ChevronDown } from 'lucide-react';
 import type { PointLog, UserStatus, Character, User, FamiliarCard, FamiliarRank } from '@/lib/types';
 import Link from 'next/link';
 import {
@@ -65,7 +65,7 @@ const DynamicIcon = ({ name, className }: { name: string; className?: string }) 
     // Fallback to Lucide icons for other cases
     const IconComponent = (import('lucide-react') as any)[name];
     if (!IconComponent) {
-        return <Star className={className} />;
+        return <CustomIcon src="/icons/points.svg" className={className} />;
     }
     return <IconComponent className={className} />;
 };
@@ -465,6 +465,7 @@ export default function ProfileTab() {
     </div>
   );
 }
+
 
 
 

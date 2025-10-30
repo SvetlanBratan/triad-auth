@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Anchor, KeyRound, Sparkles, Star, X } from 'lucide-react';
+import { Anchor, KeyRound, Sparkles, X } from 'lucide-react';
 import { cn, formatTimeLeft } from '@/lib/utils';
 import FamiliarCardDisplay from './familiar-card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
@@ -41,7 +41,7 @@ const DynamicIcon = ({ name, className }: { name: string; className?: string }) 
     // Fallback to Lucide icons for other cases
     const IconComponent = (import('lucide-react') as any)[name];
     if (!IconComponent) {
-        return <Star className={className} />;
+        return <CustomIcon src="/icons/points.svg" className={className} />;
     }
     return <IconComponent className={className} />;
 };
@@ -241,7 +241,7 @@ export default function UserProfileDialog({ user }: { user: User }) {
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Баллы</span>
                 <span className="font-bold text-lg text-primary flex items-center gap-1">
-                  <Star className="w-4 h-4" /> {user.points.toLocaleString()}
+                  <CustomIcon src="/icons/points.svg" className="w-4 h-4 icon-primary" /> {user.points.toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between items-center">
