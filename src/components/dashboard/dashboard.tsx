@@ -19,6 +19,7 @@ import MarketTab from "./market-tab";
 import MailTab from "./mail-tab";
 import React from "react";
 import Image from 'next/image';
+import AlchemyTab from "./alchemy-tab";
 
 const CustomIcon = ({ src }: { src: string }) => (
     <div
@@ -131,3 +132,4 @@ export function Dashboard() {
       </Tabs>
   );
 }
+
