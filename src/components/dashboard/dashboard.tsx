@@ -18,7 +18,6 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import MarketTab from "./market-tab";
 import MailTab from "./mail-tab";
 import React from "react";
-import AlchemyTab from "./alchemy-tab";
 import Image from 'next/image';
 
 const CustomIcon = ({ src }: { src: string }) => (
