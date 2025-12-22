@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog"
 import { SearchableSelect } from '../ui/searchable-select';
 import Image from 'next/image';
+import { cn } from '@/lib/utils';
 
 const CustomIcon = ({ src, className }: { src: string, className?: string }) => (
     <div
