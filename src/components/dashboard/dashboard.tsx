@@ -23,7 +23,7 @@ import AlchemyTab from "./alchemy-tab";
 
 const CustomIcon = ({ src }: { src: string }) => (
     <div
-      className="w-4 h-4 icon-primary"
+      className="w-5 h-5 icon-primary"
       style={{
         maskImage: `url(${src})`,
         maskSize: 'contain',
@@ -132,4 +132,5 @@ export function Dashboard() {
       </Tabs>
   );
 }
+
 
