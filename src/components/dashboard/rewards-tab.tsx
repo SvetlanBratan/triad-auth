@@ -156,9 +156,9 @@ export default function RewardsTab() {
               {reward.type === 'temporary' && <p className="text-xs text-accent font-semibold uppercase tracking-wider">Временная</p>}
             </CardContent>
             <CardFooter className="flex justify-between items-center bg-muted/50 p-4 mt-auto">
-              <p className="font-bold text-lg text-primary flex items-center gap-1.5">
+              <div className="font-bold text-lg text-primary flex items-center gap-1.5">
                 <CustomIcon src="/icons/points.svg" className="w-5 h-5 icon-primary" /> {reward.cost.toLocaleString()}
-              </p>
+              </div>
               <Button size="sm" onClick={() => handleRedeemClick(reward)} disabled={(currentUser?.points ?? 0) < reward.cost || isLoading || currentUser?.characters.length === 0}>
                 {isLoading ? 'Обработка...' : 'Запросить'}
               </Button>
