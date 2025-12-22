@@ -326,7 +326,7 @@ export default function ProfileTab() {
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Баллы</span>
               <span className="font-bold text-lg text-primary flex items-center gap-1">
-                <img src="/icons/points.svg" alt="points icon" className="w-4 h-4" /> {currentUser.points.toLocaleString()}
+                <CustomIcon src="/icons/points.svg" className="w-4 h-4 icon-primary" /> {currentUser.points.toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between items-center">
@@ -465,6 +465,7 @@ export default function ProfileTab() {
     </div>
   );
 }
+
 
 
 
