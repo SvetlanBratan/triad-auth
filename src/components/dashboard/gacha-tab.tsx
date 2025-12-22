@@ -29,7 +29,15 @@ interface PullResult {
 }
 
 const CustomIcon = ({ src, className }: { src: string, className?: string }) => (
-  <Image src={src} alt="" width={16} height={16} className={cn("w-4 h-4", className)} />
+    <div
+      className={cn("w-full h-full", className)}
+      style={{
+        maskImage: `url(${src})`,
+        maskSize: 'contain',
+        maskRepeat: 'no-repeat',
+        maskPosition: 'center',
+      }}
+    />
 );
 
 
@@ -165,14 +173,14 @@ export default function RouletteTab() {
                     "font-bold text-lg text-primary flex items-center gap-1",
                     isFirstSpinForChar && "text-green-600"
                 )}>
-                  {isFirstSpinForChar ? <Gift className="w-4 h-4" /> : <CustomIcon src="/icons/points.svg" className="w-4 h-4" />}
+                  {isFirstSpinForChar ? <Gift className="w-5 h-5" /> : <CustomIcon src="/icons/points.svg" className="w-5 h-5 icon-primary" />}
                   {isFirstSpinForChar ? 'Бесплатно' : `${ROULETTE_COST.toLocaleString()}`}
                 </span>
               </div>
                <div className="flex justify-between items-center p-3 rounded-lg bg-muted/50">
                 <span className="font-semibold">Ваш баланс:</span>
                 <span className="font-bold text-lg text-foreground/80 flex items-center gap-1">
-                  <Wallet className="w-4 h-4" />
+                  <Wallet className="w-5 h-5" />
                   {currentUser?.points.toLocaleString()}
                 </span>
               </div>
