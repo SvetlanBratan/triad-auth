@@ -19,6 +19,7 @@ import FamiliarCardDisplay from './familiar-card';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { SearchableSelect } from '../ui/searchable-select';
+import { CustomIcon } from '../ui/custom-icon';
 
 const ROULETTE_COST = 5000;
 const DUPLICATE_REFUND = 1000;
@@ -27,18 +28,6 @@ interface PullResult {
     newCard: FamiliarCard;
     isDuplicate: boolean;
 }
-
-const CustomIcon = ({ src, className }: { src: string, className?: string }) => (
-    <div
-      className={cn("w-full h-full", className)}
-      style={{
-        maskImage: `url(${src})`,
-        maskSize: 'contain',
-        maskRepeat: 'no-repeat',
-        maskPosition: 'center',
-      }}
-    />
-);
 
 
 export default function RouletteTab() {

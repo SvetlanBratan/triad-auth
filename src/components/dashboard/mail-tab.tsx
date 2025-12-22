@@ -25,18 +25,8 @@ import { differenceInDays } from 'date-fns';
 import { Textarea } from '../ui/textarea';
 import { Label } from '../ui/label';
 import Image from 'next/image';
+import { CustomIcon } from '../ui/custom-icon';
 
-const CustomIcon = ({ src }: { src: string }) => (
-    <div
-      className="w-5 h-5 icon-primary"
-      style={{
-        maskImage: `url(${src})`,
-        maskSize: 'contain',
-        maskRepeat: 'no-repeat',
-        maskPosition: 'center',
-      }}
-    />
-);
 
 export default function MailTab() {
   const { currentUser, markMailAsRead, deleteMailMessage, performRelationshipAction } = useUser();
@@ -126,7 +116,7 @@ export default function MailTab() {
     <>
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><CustomIcon src="/icons/mail.svg" /> Почта</CardTitle>
+          <CardTitle className="flex items-center gap-2"><CustomIcon src="/icons/mail.svg" className="w-5 h-5 icon-primary" /> Почта</CardTitle>
           <CardDescription>Здесь вы можете прочитать личные письма и массовые рассылки.</CardDescription>
         </CardHeader>
         <CardContent>

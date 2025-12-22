@@ -20,18 +20,7 @@ import MailTab from "./mail-tab";
 import React from "react";
 import Image from 'next/image';
 import AlchemyTab from "./alchemy-tab";
-
-const CustomIcon = ({ src }: { src: string }) => (
-    <div
-      className="w-5 h-5 icon-primary"
-      style={{
-        maskImage: `url(${src})`,
-        maskSize: 'contain',
-        maskRepeat: 'no-repeat',
-        maskPosition: 'center',
-      }}
-    />
-);
+import { CustomIcon } from "../ui/custom-icon";
 
 
 export function Dashboard() {
@@ -65,16 +54,16 @@ export function Dashboard() {
   const unreadMailCount = (currentUser.mail || []).filter(m => !m.isRead).length;
   
   const tabs = [
-    { value: 'profile', label: 'Профиль', icon: () => <CustomIcon src="/icons/profile.svg" /> },
-    { value: 'mail', label: 'Почта', icon: () => <CustomIcon src="/icons/mail.svg" />, notificationCount: unreadMailCount },
-    { value: 'leaderboard', label: 'Лидеры', icon: () => <CustomIcon src="/icons/leaderboard.svg" /> },
-    { value: 'familiars', label: 'Фамильяры', icon: () => <CustomIcon src="/icons/familiars.svg" />, className: "shrink-0" },
-    { value: 'alchemy', label: 'Алхимия', icon: () => <CustomIcon src="/icons/alchemy.svg" /> },
-    { value: 'rewards', label: 'Награды', icon: () => <CustomIcon src="/icons/rewards.svg" /> },
-    { value: 'bank', label: 'Банк', icon: () => <CustomIcon src="/icons/bank.svg" /> },
-    { value: 'market', label: 'Рынок', icon: () => <CustomIcon src="/icons/market.svg" /> },
-    ...(isAdmin ? [{ value: 'requests', label: 'Запросы', icon: () => <CustomIcon src="/icons/requests.svg" /> }] : []),
-    ...(isAdmin ? [{ value: 'admin', label: 'Админ', icon: () => <CustomIcon src="/icons/admin.svg" /> }] : []),
+    { value: 'profile', label: 'Профиль', icon: () => <CustomIcon src="/icons/profile.svg" className="w-5 h-5 icon-primary" /> },
+    { value: 'mail', label: 'Почта', icon: () => <CustomIcon src="/icons/mail.svg" className="w-5 h-5 icon-primary" />, notificationCount: unreadMailCount },
+    { value: 'leaderboard', label: 'Лидеры', icon: () => <CustomIcon src="/icons/leaderboard.svg" className="w-5 h-5 icon-primary" /> },
+    { value: 'familiars', label: 'Фамильяры', icon: () => <CustomIcon src="/icons/familiars.svg" className="w-5 h-5 icon-primary" />, className: "shrink-0" },
+    { value: 'alchemy', label: 'Алхимия', icon: () => <CustomIcon src="/icons/alchemy.svg" className="w-5 h-5 icon-primary" /> },
+    { value: 'rewards', label: 'Награды', icon: () => <CustomIcon src="/icons/rewards.svg" className="w-5 h-5 icon-primary" /> },
+    { value: 'bank', label: 'Банк', icon: () => <CustomIcon src="/icons/bank.svg" className="w-5 h-5 icon-primary" /> },
+    { value: 'market', label: 'Рынок', icon: () => <CustomIcon src="/icons/market.svg" className="w-5 h-5 icon-primary" /> },
+    ...(isAdmin ? [{ value: 'requests', label: 'Запросы', icon: () => <CustomIcon src="/icons/requests.svg" className="w-5 h-5 icon-primary" /> }] : []),
+    ...(isAdmin ? [{ value: 'admin', label: 'Админ', icon: () => <CustomIcon src="/icons/admin.svg" className="w-5 h-5 icon-primary" /> }] : []),
   ];
   
   return (
@@ -132,5 +121,6 @@ export function Dashboard() {
       </Tabs>
   );
 }
+
 
 

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -19,18 +20,7 @@ import {
 } from "@/components/ui/tooltip";
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
-const CustomIcon = ({ src }: { src: string }) => (
-    <div
-      className="w-8 h-8 icon-primary"
-      style={{
-        maskImage: `url(${src})`,
-        maskSize: 'contain',
-        maskRepeat: 'no-repeat',
-        maskPosition: 'center',
-      }}
-    />
-);
+import { CustomIcon } from '../ui/custom-icon';
 
 
 const RecipeGrid = ({ recipes, character, allItemsMap, isCraftingId, handleCraft }: { recipes: AlchemyRecipe[], character: Character, allItemsMap: Map<string, ShopItem>, isCraftingId: string | null, handleCraft: (recipe: AlchemyRecipe) => void }) => {
@@ -190,7 +180,7 @@ export default function AlchemyTab() {
             <div className="container mx-auto p-4 md:p-8 space-y-6 bg-background/80 backdrop-blur-sm min-h-screen">
                 <header className="text-center">
                     <h1 className="text-3xl font-bold font-headline text-primary flex items-center justify-center gap-4">
-                        <CustomIcon src="/icons/alchemy.svg" />
+                        <CustomIcon src="/icons/alchemy.svg" className="w-8 h-8 icon-primary" />
                         Алхимия
                     </h1>
                     <p className="text-muted-foreground">Создавайте мощные зелья и артефакты из собранных ингредиентов.</p>

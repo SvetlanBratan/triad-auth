@@ -20,19 +20,8 @@ import {
 } from "@/components/ui/dialog"
 import { SearchableSelect } from '../ui/searchable-select';
 import Image from 'next/image';
+import { CustomIcon } from '../ui/custom-icon';
 import { cn } from '@/lib/utils';
-
-const CustomIcon = ({ src, className }: { src: string, className?: string }) => (
-    <div
-      className={cn("w-full h-full", className)}
-      style={{
-        maskImage: `url(${src})`,
-        maskSize: 'contain',
-        maskRepeat: 'no-repeat',
-        maskPosition: 'center',
-      }}
-    />
-);
 
 
 const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {

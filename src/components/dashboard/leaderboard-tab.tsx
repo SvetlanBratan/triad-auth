@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React from 'react';
@@ -14,18 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import Image from 'next/image';
-
-const CustomIcon = ({ src }: { src: string }) => (
-    <div
-      className="w-5 h-5 icon-primary"
-      style={{
-        maskImage: `url(${src})`,
-        maskSize: 'contain',
-        maskRepeat: 'no-repeat',
-        maskPosition: 'center',
-      }}
-    />
-);
+import { CustomIcon } from '../ui/custom-icon';
 
 
 export default function LeaderboardTab() {
@@ -67,7 +57,7 @@ export default function LeaderboardTab() {
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                <CustomIcon src="/icons/leaderboard.svg" /> Таблица лидеров
+                <CustomIcon src="/icons/leaderboard.svg" className="w-5 h-5 icon-primary" /> Таблица лидеров
                 </CardTitle>
                 <CardDescription>
                     Загрузка данных...
@@ -84,7 +74,7 @@ export default function LeaderboardTab() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <CustomIcon src="/icons/leaderboard.svg" /> Таблица лидеров
+          <CustomIcon src="/icons/leaderboard.svg" className="w-5 h-5 icon-primary" /> Таблица лидеров
         </CardTitle>
         <CardDescription>
             Список <s>Forbes</s> Тыквенного Переполоха. Нажмите на пользователя, чтобы просмотреть детали.

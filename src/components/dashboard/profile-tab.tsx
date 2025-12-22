@@ -41,18 +41,7 @@ import FamiliarCardDisplay from './familiar-card';
 import RewardRequestsHistory from './reward-requests-history';
 import AvatarUploader from './avatar-uploader';
 import Image from 'next/image';
-
-const CustomIcon = ({ src, className }: { src: string, className?: string }) => (
-  <div
-    className={cn("w-full h-full", className)}
-    style={{
-      maskImage: `url(${src})`,
-      maskSize: 'contain',
-      maskRepeat: 'no-repeat',
-      maskPosition: 'center',
-    }}
-  />
-);
+import { CustomIcon } from '../ui/custom-icon';
 
 
 const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
@@ -326,7 +315,7 @@ export default function ProfileTab() {
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Баллы</span>
               <span className="font-bold text-lg text-primary flex items-center gap-1">
-                <CustomIcon src="/icons/points.svg" className="w-4 h-4 icon-primary" /> {currentUser.points.toLocaleString()}
+                <CustomIcon src="/icons/points.svg" className="w-5 h-5 icon-primary" /> {currentUser.points.toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between items-center">
@@ -465,6 +454,7 @@ export default function ProfileTab() {
     </div>
   );
 }
+
 
 
 

@@ -18,18 +18,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Button } from '../ui/button';
 import { useUser } from '@/hooks/use-user';
 import Link from 'next/link';
-
-const CustomIcon = ({ src, className }: { src: string, className?: string }) => (
-  <div
-    className={cn("w-full h-full", className)}
-    style={{
-      maskImage: `url(${src})`,
-      maskSize: 'contain',
-      maskRepeat: 'no-repeat',
-      maskPosition: 'center',
-    }}
-  />
-);
+import { CustomIcon } from '../ui/custom-icon';
 
 const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
     // If the name starts with 'ach-', assume it's a custom achievement icon
@@ -241,7 +230,7 @@ export default function UserProfileDialog({ user }: { user: User }) {
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Баллы</span>
                 <span className="font-bold text-lg text-primary flex items-center gap-1">
-                  <CustomIcon src="/icons/points.svg" className="w-4 h-4 icon-primary" /> {user.points.toLocaleString()}
+                  <CustomIcon src="/icons/points.svg" className="w-5 h-5 icon-primary" /> {user.points.toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between items-center">
