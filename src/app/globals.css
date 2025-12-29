@@ -123,4 +123,7 @@ body {
   .dark .icon-black {
     background-color: #fff;
   }
+  .icon-achievement {
+    background: linear-gradient(145deg, #ffd700, #f0c400);
+  }
 }

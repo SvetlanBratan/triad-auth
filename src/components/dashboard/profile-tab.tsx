@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Trash2, Pencil, UserSquare, Sparkles, Anchor, KeyRound, ChevronDown } from 'lucide-react';
+import { PlusCircle, Trash2, Pencil, UserSquare, Sparkles, Anchor, KeyRound } from 'lucide-react';
 import type { PointLog, UserStatus, Character, User, FamiliarCard, FamiliarRank } from '@/lib/types';
 import Link from 'next/link';
 import {
@@ -34,21 +34,18 @@ import { useToast } from '@/hooks/use-toast';
 import { cn, formatTimeLeft } from '@/lib/utils';
 import { ACHIEVEMENTS_BY_ID } from '@/lib/data';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import CharacterForm, { type EditingState } from './character-form';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import FamiliarCardDisplay from './familiar-card';
 import RewardRequestsHistory from './reward-requests-history';
 import AvatarUploader from './avatar-uploader';
-import Image from 'next/image';
 import { CustomIcon } from '../ui/custom-icon';
-
 
 const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
     // If the name starts with 'ach-', assume it's a custom achievement icon
     if (name.startsWith('ach-')) {
         return (
-            <CustomIcon src={`/icons/${name}.svg`} className={cn("icon-primary", className)} />
+            <CustomIcon src={`/icons/${name}.svg`} className={cn("icon-achievement", className)} />
         );
     }
     // Fallback to Lucide icons for other cases
@@ -314,9 +311,9 @@ export default function ProfileTab() {
           <CardContent className="space-y-2">
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Баллы</span>
-              <span className="font-bold text-lg text-primary flex items-center gap-1">
+              <div className="font-bold text-lg text-primary flex items-center gap-1">
                 <CustomIcon src="/icons/points.svg" className="w-5 h-5 icon-primary" /> {currentUser.points.toLocaleString()}
-              </span>
+              </div>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Статус</span>
@@ -359,19 +356,17 @@ export default function ProfileTab() {
                         ({currentUser.characters.length} / {totalSlots})
                     </CardDescription>
                 </div>
-                <TooltipProvider>
-                    <Popover open={!canAddCharacter ? undefined : false}>
-                        <PopoverTrigger asChild>
-                            <Button variant="ghost" size="icon" onClick={handleAddClick}>
-                                <PlusCircle className="h-5 h-5" />
-                                <span className="sr-only">Добавить персонажа</span>
-                            </Button>
-                        </PopoverTrigger>
-                         <PopoverContent className="w-auto max-w-xs text-sm" side="top">
-                             Чтобы добавить больше персонажей, приобретите награду 'Дополнительный персонаж' в магазине.
-                         </PopoverContent>
-                    </Popover>
-                </TooltipProvider>
+                <Popover open={!canAddCharacter ? undefined : false}>
+                    <PopoverTrigger asChild>
+                        <Button variant="ghost" size="icon" onClick={handleAddClick}>
+                            <PlusCircle className="h-5 h-5" />
+                            <span className="sr-only">Добавить персонажа</span>
+                        </Button>
+                    </PopoverTrigger>
+                     <PopoverContent className="w-auto max-w-xs text-sm" side="top">
+                         Чтобы добавить больше персонажей, приобретите награду 'Дополнительный персонаж' в магазине.
+                     </PopoverContent>
+                </Popover>
             </div>
           </CardHeader>
           <CardContent>
@@ -454,11 +449,3 @@ export default function ProfileTab() {
     </div>
   );
 }
-
-
-
-
-
-
-
-

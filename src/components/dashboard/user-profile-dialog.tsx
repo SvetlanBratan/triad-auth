@@ -8,12 +8,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Anchor, KeyRound, Sparkles, X } from 'lucide-react';
+import { Anchor, KeyRound, Sparkles } from 'lucide-react';
 import { cn, formatTimeLeft } from '@/lib/utils';
 import FamiliarCardDisplay from './familiar-card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { ACHIEVEMENTS_BY_ID } from '@/lib/data';
-import { ScrollArea } from '../ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Button } from '../ui/button';
 import { useUser } from '@/hooks/use-user';
@@ -24,7 +23,7 @@ const DynamicIcon = ({ name, className }: { name: string; className?: string }) 
     // If the name starts with 'ach-', assume it's a custom achievement icon
     if (name.startsWith('ach-')) {
         return (
-            <CustomIcon src={`/icons/${name}.svg`} className={cn("icon-primary", className)} />
+            <CustomIcon src={`/icons/${name}.svg`} className={cn("icon-achievement", className)} />
         );
     }
     // Fallback to Lucide icons for other cases
@@ -229,9 +228,9 @@ export default function UserProfileDialog({ user }: { user: User }) {
             <CardContent className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Баллы</span>
-                <span className="font-bold text-lg text-primary flex items-center gap-1">
+                <div className="font-bold text-lg text-primary flex items-center gap-1">
                   <CustomIcon src="/icons/points.svg" className="w-5 h-5 icon-primary" /> {user.points.toLocaleString()}
-                </span>
+                </div>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Статус</span>
