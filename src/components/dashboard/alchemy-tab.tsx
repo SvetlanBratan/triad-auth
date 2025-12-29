@@ -21,85 +21,77 @@ import {
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CustomIcon } from '../ui/custom-icon';
+import { ScrollArea } from '../ui/scroll-area';
+import { cn } from '@/lib/utils';
 
 
-const RecipeGrid = ({ recipes, character, allItemsMap, isCraftingId, handleCraft }: { recipes: AlchemyRecipe[], character: Character, allItemsMap: Map<string, ShopItem>, isCraftingId: string | null, handleCraft: (recipe: AlchemyRecipe) => void }) => {
-    if (recipes.length === 0) {
-        return <p className="text-center text-muted-foreground col-span-full py-8">Нет доступных рецептов в этой категории.</p>;
-    }
-    
+const RecipeCard = ({ recipe, character, allItemsMap, isCraftingId, handleCraft }: { recipe: AlchemyRecipe, character: Character, allItemsMap: Map<string, ShopItem>, isCraftingId: string | null, handleCraft: (recipe: AlchemyRecipe) => void }) => {
+    const outputItem = allItemsMap.get(recipe.resultPotionId);
+    const recipeTitle = recipe.name || outputItem?.name || 'Неизвестный рецепт';
+
+    const canCraft = recipe.components.every(component => {
+        const requiredIngredient = allItemsMap.get(component.ingredientId);
+        if (!requiredIngredient) return false;
+        const playerIngredient = character.inventory.ингредиенты?.find(i => i.name === requiredIngredient.name);
+        return playerIngredient && playerIngredient.quantity >= component.qty;
+    });
+
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {recipes.map(recipe => {
-                const outputItem = allItemsMap.get(recipe.resultPotionId);
-                const recipeTitle = recipe.name || outputItem?.name || 'Неизвестный рецепт';
-                
-                const canCraft = recipe.components.every(component => {
-                    const requiredIngredient = allItemsMap.get(component.ingredientId);
-                    if (!requiredIngredient) return false;
-                    const playerIngredient = character.inventory.ингредиенты?.find(i => i.name === requiredIngredient.name);
-                    return playerIngredient && playerIngredient.quantity >= component.qty;
-                });
+        <Card className="flex flex-col">
+            <CardHeader>
+                {outputItem?.image && (
+                    <div className="relative w-full aspect-square bg-muted rounded-md mb-4">
+                        <Image src={outputItem.image} alt={outputItem.name || 'Предмет'} fill style={{ objectFit: "contain" }} data-ai-hint="alchemy potion" />
+                    </div>
+                )}
+                <CardTitle>{recipeTitle}</CardTitle>
+                <CardDescription>Сложность: {recipe.difficulty}</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-grow space-y-3">
+                <h4 className="text-sm font-semibold text-muted-foreground">Ингредиенты:</h4>
+                <ul className="space-y-2">
+                    {recipe.components.map(comp => {
+                        const ingredient = allItemsMap.get(comp.ingredientId);
+                        if (!ingredient) return null;
+                        const playerIngredient = character.inventory.ингредиенты?.find(i => i.name === ingredient.name);
+                        const playerQty = playerIngredient?.quantity || 0;
+                        const hasEnough = playerQty >= comp.qty;
 
-                return (
-                    <Card key={recipe.id} className="flex flex-col">
-                        <CardHeader>
-                            {outputItem?.image && (
-                                <div className="relative w-full aspect-square bg-muted rounded-md mb-4">
-                                    <Image src={outputItem.image} alt={outputItem.name || 'Предмет'} fill style={{ objectFit: "contain" }} data-ai-hint="alchemy potion" />
+                        return (
+                            <li key={comp.ingredientId} className="flex items-center justify-between text-sm">
+                                <div className="flex items-center gap-2">
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <div className="relative w-8 h-8">
+                                                    <Image src="/Ingredient.png" alt="Ingredient" fill style={{ objectFit: "contain" }} />
+                                                </div>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>{ingredient?.name || 'Неизвестный ингредиент'}</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                    <span>{ingredient.name}</span>
                                 </div>
-                            )}
-                            <CardTitle>{recipeTitle}</CardTitle>
-                            <CardDescription>Сложность: {recipe.difficulty}</CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex-grow space-y-3">
-                            <h4 className="text-sm font-semibold text-muted-foreground">Ингредиенты:</h4>
-                            <ul className="space-y-2">
-                                {recipe.components.map(comp => {
-                                    const ingredient = allItemsMap.get(comp.ingredientId);
-                                    if (!ingredient) return null;
-                                    const playerIngredient = character.inventory.ингредиенты?.find(i => i.name === ingredient.name);
-                                    const playerQty = playerIngredient?.quantity || 0;
-                                    const hasEnough = playerQty >= comp.qty;
-
-                                    return (
-                                        <li key={comp.ingredientId} className="flex items-center justify-between text-sm">
-                                            <div className="flex items-center gap-2">
-                                                <TooltipProvider>
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <div className="relative w-8 h-8">
-                                                                <Image src="/Ingredient.png" alt="Ingredient" fill style={{ objectFit: "contain" }} />
-                                                            </div>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>
-                                                            <p>{ingredient?.name || 'Неизвестный ингредиент'}</p>
-                                                        </TooltipContent>
-                                                    </Tooltip>
-                                                </TooltipProvider>
-                                                <span>{ingredient.name}</span>
-                                            </div>
-                                            <span className={hasEnough ? 'text-green-600' : 'text-destructive'}>
-                                                {playerQty} / {comp.qty}
-                                            </span>
-                                        </li>
-                                    )
-                                })}
-                            </ul>
-                        </CardContent>
-                        <CardFooter>
-                            <Button 
-                                className="w-full" 
-                                disabled={!canCraft || isCraftingId === recipe.id}
-                                onClick={() => handleCraft(recipe)}
-                            >
-                                {isCraftingId === recipe.id ? "Создание..." : "Создать"}
-                            </Button>
-                        </CardFooter>
-                    </Card>
-                )
-            })}
-        </div>
+                                <span className={hasEnough ? 'text-green-600' : 'text-destructive'}>
+                                    {playerQty} / {comp.qty}
+                                </span>
+                            </li>
+                        )
+                    })}
+                </ul>
+            </CardContent>
+            <CardFooter>
+                <Button 
+                    className="w-full" 
+                    disabled={!canCraft || isCraftingId === recipe.id}
+                    onClick={() => handleCraft(recipe)}
+                >
+                    {isCraftingId === recipe.id ? "Создание..." : "Создать"}
+                </Button>
+            </CardFooter>
+        </Card>
     );
 };
 
@@ -108,6 +100,7 @@ export default function AlchemyTab() {
     const { currentUser, fetchAlchemyRecipes, brewPotion, fetchAllShops } = useUser();
     const { toast } = useToast();
     const [selectedCharacterId, setSelectedCharacterId] = useState<string>('');
+    const [selectedRecipeId, setSelectedRecipeId] = useState<string | null>(null);
 
     const { data: recipes = [], isLoading: isLoadingRecipes } = useQuery<AlchemyRecipe[]>({
         queryKey: ['alchemyRecipes'],
@@ -154,7 +147,10 @@ export default function AlchemyTab() {
                 potions.push(recipe);
             }
         });
-        return { potionRecipes: potions, artifactRecipes: artifacts };
+        return { 
+            potionRecipes: potions.sort((a,b) => (a.name || '').localeCompare(b.name || '')), 
+            artifactRecipes: artifacts.sort((a,b) => (a.name || '').localeCompare(b.name || ''))
+        };
     }, [recipes, allItemsMap]);
 
     const handleCraft = async (recipe: AlchemyRecipe) => {
@@ -166,7 +162,6 @@ export default function AlchemyTab() {
                 title: "Предмет создан!",
                 description: `Вы успешно создали предмет.`
             });
-            // User context will be updated automatically by the provider, re-render will happen
         } catch (error) {
             const message = error instanceof Error ? error.message : "Произошла неизвестная ошибка";
             toast({ variant: 'destructive', title: "Ошибка крафта", description: message });
@@ -174,10 +169,43 @@ export default function AlchemyTab() {
             setIsCraftingId(null);
         }
     };
+
+    const selectedRecipe = useMemo(() => {
+        if (!selectedRecipeId) return null;
+        return recipes.find(r => r.id === selectedRecipeId) || null;
+    }, [selectedRecipeId, recipes]);
     
+    const RecipeList = ({ recipes, title }: { recipes: AlchemyRecipe[], title: string }) => {
+        if (recipes.length === 0) return null;
+        return (
+            <div>
+                <h3 className="font-semibold text-muted-foreground px-3 mb-2">{title}</h3>
+                <div className="flex flex-col gap-1">
+                    {recipes.map(recipe => {
+                        const outputItem = allItemsMap.get(recipe.resultPotionId);
+                        const recipeTitle = recipe.name || outputItem?.name || 'Неизвестный рецепт';
+                        return (
+                             <Button
+                                key={recipe.id}
+                                variant="ghost"
+                                className={cn(
+                                    "w-full justify-start",
+                                    selectedRecipeId === recipe.id && "bg-muted font-bold"
+                                )}
+                                onClick={() => setSelectedRecipeId(recipe.id)}
+                            >
+                                {recipeTitle}
+                            </Button>
+                        )
+                    })}
+                </div>
+            </div>
+        )
+    };
+
     return (
         <div className="min-h-screen bg-fixed dark:bg-[url('/Backgroundblack.png')] bg-[url('/Lightbackground.png')] dark:bg-[length:400px_400px] bg-[length:400px_400px] p-4 md:p-8">
-            <div className="container mx-auto p-4 md:p-8 space-y-6 bg-background/80 backdrop-blur-sm min-h-screen">
+            <div className="container mx-auto space-y-6 bg-background/80 backdrop-blur-sm min-h-screen rounded-lg border p-4 md:p-8">
                 <header className="text-center">
                     <h1 className="text-3xl font-bold font-headline text-primary flex items-center justify-center gap-4">
                         <CustomIcon src="/icons/alchemy.svg" className="w-8 h-8 icon-primary" />
@@ -191,7 +219,10 @@ export default function AlchemyTab() {
                     <SearchableSelect
                         options={characterOptions}
                         value={selectedCharacterId}
-                        onValueChange={setSelectedCharacterId}
+                        onValueChange={(val) => {
+                            setSelectedCharacterId(val);
+                            setSelectedRecipeId(null); // Reset selection when character changes
+                        }}
                         placeholder="Выберите персонажа..."
                     />
                 </div>
@@ -200,30 +231,41 @@ export default function AlchemyTab() {
                     isLoadingRecipes || isLoadingShops ? (
                         <p className="text-center">Загрузка рецептов...</p>
                     ) : (
-                         <Tabs defaultValue="potions" className="w-full">
-                            <TabsList className="grid w-full grid-cols-2 max-w-sm mx-auto">
-                                <TabsTrigger value="potions"><Beaker className="w-4 h-4 mr-2" />Зелья</TabsTrigger>
-                                <TabsTrigger value="artifacts"><Gem className="w-4 h-4 mr-2" />Артефакты</TabsTrigger>
-                            </TabsList>
-                            <TabsContent value="potions" className="mt-6">
-                               <RecipeGrid 
-                                  recipes={potionRecipes}
-                                  character={character}
-                                  allItemsMap={allItemsMap}
-                                  isCraftingId={isCraftingId}
-                                  handleCraft={handleCraft}
-                               />
-                            </TabsContent>
-                            <TabsContent value="artifacts" className="mt-6">
-                                <RecipeGrid 
-                                  recipes={artifactRecipes}
-                                  character={character}
-                                  allItemsMap={allItemsMap}
-                                  isCraftingId={isCraftingId}
-                                  handleCraft={handleCraft}
-                               />
-                            </TabsContent>
-                        </Tabs>
+                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+                            <div className="md:col-span-1">
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Рецепты</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <ScrollArea className="h-[60vh] pr-4">
+                                           <div className="space-y-4">
+                                                <RecipeList recipes={potionRecipes} title="Зелья" />
+                                                <RecipeList recipes={artifactRecipes} title="Артефакты" />
+                                                {(potionRecipes.length === 0 && artifactRecipes.length === 0) && (
+                                                    <p className="text-center text-muted-foreground pt-8">Нет доступных рецептов.</p>
+                                                )}
+                                           </div>
+                                        </ScrollArea>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                            <div className="md:col-span-2">
+                               {selectedRecipe ? (
+                                    <RecipeCard
+                                        recipe={selectedRecipe}
+                                        character={character}
+                                        allItemsMap={allItemsMap}
+                                        isCraftingId={isCraftingId}
+                                        handleCraft={handleCraft}
+                                    />
+                               ) : (
+                                    <div className="flex items-center justify-center h-96 border-2 border-dashed rounded-lg">
+                                        <p className="text-muted-foreground">Выберите рецепт из списка слева</p>
+                                    </div>
+                               )}
+                            </div>
+                         </div>
                     )
                 ) : (
                     <p className="text-center text-muted-foreground pt-8">Выберите персонажа, чтобы увидеть доступные рецепты.</p>
