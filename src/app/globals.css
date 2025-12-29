@@ -18,7 +18,7 @@ body {
     --primary-foreground: 270 50% 98%;
     --secondary: 300 29% 90%;
     --secondary-foreground: 300 10% 20%;
-    --muted: 270 50% 95%; /* Changed from 300 29% 90% */
+    --muted: 300 50% 90%; /* Changed from 300 50% 95% */
     --muted-foreground: 300 10% 45%;
     --accent: 345 61% 56%;
     --accent-foreground: 300 50% 98%;
@@ -27,7 +27,6 @@ body {
     --border: 270 50% 45%;
     --input: 300 20% 88%;
     --ring: 270 50% 45%;
-    --radius: 0.5rem;
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
     --chart-3: 197 37% 24%;
