@@ -18,7 +18,7 @@ body {
     --primary-foreground: 270 50% 98%;
     --secondary: 300 29% 90%;
     --secondary-foreground: 300 10% 20%;
-    --muted: 300 50% 90%; /* Changed from 300 50% 95% */
+    --muted: 300 25% 90%; /* Changed from 300 50% 85% */
     --muted-foreground: 300 10% 45%;
     --accent: 345 61% 56%;
     --accent-foreground: 300 50% 98%;
