@@ -116,6 +116,6 @@ body {
     background-color: #b8860b; /* darkgoldenrod */
   }
   .dark .icon-achievement {
-    background-color: hsl(var(--primary));
+    background-color: #FFD700; /* gold */
   }
 }
