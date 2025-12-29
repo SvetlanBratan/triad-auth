@@ -8,8 +8,7 @@ import type { AlchemyRecipe, Character, Shop, ShopItem } from '@/lib/types';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, FlaskConical, Beaker, Gem } from 'lucide-react';
-import Link from 'next/link';
+import { FlaskConical } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -19,7 +18,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { SearchableSelect } from '@/components/ui/searchable-select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CustomIcon } from '../ui/custom-icon';
 import { ScrollArea } from '../ui/scroll-area';
 import { cn } from '@/lib/utils';
