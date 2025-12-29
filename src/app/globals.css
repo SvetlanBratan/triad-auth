@@ -103,17 +103,6 @@ body {
     animation: flip 0.6s ease-in-out forwards;
   }
 
-  @keyframes glow {
-    0%, 100% {
-      box-shadow: 0 0 5px theme('colors.yellow.300'), 0 0 10px theme('colors.yellow.300'), 0 0 15px theme('colors.yellow.400');
-    }
-    50% {
-      box-shadow: 0 0 10px theme('colors.yellow.400'), 0 0 20px theme('colors.yellow.500'), 0 0 30px theme('colors.yellow.500');
-    }
-  }
-  .animate-glow {
-    animation: glow 3s ease-in-out infinite;
-  }
   .icon-primary {
     background-color: hsl(var(--primary));
   }
@@ -124,6 +113,9 @@ body {
     background-color: #fff;
   }
   .icon-achievement {
-    background: linear-gradient(145deg, #ffd700, #f0c400);
+    background-color: #b8860b; /* darkgoldenrod */
+  }
+  .dark .icon-achievement {
+    background-color: hsl(var(--primary));
   }
 }
