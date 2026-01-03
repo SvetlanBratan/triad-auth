@@ -522,141 +522,174 @@ export default function CharacterPage() {
     );
 
     const renderAnketa = () => (
-         <Accordion type="multiple" className="w-full space-y-6">
-            <AccordionItem value="appearance" className="border-b-0 rounded-lg bg-card shadow-sm">
-                <SectionTrigger title="Внешность" icon={<PersonStanding />} section="appearance" />
-                <AccordionContent className="p-6 pt-0">
-                    <div className={cn("grid grid-cols-1 gap-6", character.appearanceImage && "md:grid-cols-3")}>
-                        {character.appearanceImage && (
-                            <div className="md:col-span-1">
-                                <div className="relative aspect-[2/3] w-full">
-                                    <Image
-                                        src={character.appearanceImage}
-                                        alt={`Внешность ${character.name}`}
-                                        fill
-                                        style={{objectFit: "contain"}}
-                                        className="rounded-lg"
-                                        data-ai-hint="character portrait"
-                                    />
+         <div className="space-y-6">
+            <Accordion type="multiple" className="w-full space-y-6">
+                <AccordionItem value="appearance" className="border-b-0 rounded-lg bg-card shadow-sm">
+                    <SectionTrigger title="Внешность" icon={<PersonStanding />} section="appearance" />
+                    <AccordionContent className="p-6 pt-0">
+                        <div className={cn("grid grid-cols-1 gap-6", character.appearanceImage && "md:grid-cols-3")}>
+                            {character.appearanceImage && (
+                                <div className="md:col-span-1">
+                                    <div className="relative aspect-[2/3] w-full">
+                                        <Image
+                                            src={character.appearanceImage}
+                                            alt={`Внешность ${character.name}`}
+                                            fill
+                                            style={{objectFit: "contain"}}
+                                            className="rounded-lg"
+                                            data-ai-hint="character portrait"
+                                        />
+                                    </div>
                                 </div>
+                            )}
+                            <div className={cn(character.appearanceImage ? "md:col-span-2" : "md:col-span-3")}>
+                                <ScrollArea className="h-96 w-full">
+                                    <div className="pr-4"><FormattedTextRenderer text={character.appearance || 'Описание отсутствует.'} /></div>
+                                </ScrollArea>
+                            </div>
+                        </div>
+                    </AccordionContent>
+                </AccordionItem>
+                    <AccordionItem value="personality" className="border-b-0 rounded-lg bg-card shadow-sm">
+                    <SectionTrigger title="Характер" icon={<Heart />} section="personality" />
+                    <AccordionContent className="p-6 pt-0">
+                        <ScrollArea className="h-40 w-full">
+                            <div className="pr-4"><FormattedTextRenderer text={character.personality || 'Описание отсутствует.'} /></div>
+                        </ScrollArea>
+                    </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="biography" className="border-b-0 rounded-lg bg-card shadow-sm">
+                    <SectionTrigger title="Биография" icon={<BookOpen />} section="biography" />
+                    <AccordionContent className="p-6 pt-0">
+                        {isBiographyVisible ? (
+                            <ScrollArea className="h-64 w-full">
+                                <div className="pr-4"><FormattedTextRenderer text={character.biography || 'Описание отсутствует.'} /></div>
+                            </ScrollArea>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center h-32 text-center text-muted-foreground bg-muted/50 rounded-md">
+                                <Lock className="w-8 h-8 mb-2" />
+                                <p className="font-semibold">Биография скрыта</p>
                             </div>
                         )}
-                        <div className={cn(character.appearanceImage ? "md:col-span-2" : "md:col-span-3")}>
-                            <ScrollArea className="h-96 w-full">
-                                <div className="pr-4"><FormattedTextRenderer text={character.appearance || 'Описание отсутствует.'} /></div>
-                            </ScrollArea>
-                        </div>
-                    </div>
-                </AccordionContent>
-            </AccordionItem>
-                <AccordionItem value="personality" className="border-b-0 rounded-lg bg-card shadow-sm">
-                <SectionTrigger title="Характер" icon={<Heart />} section="personality" />
-                <AccordionContent className="p-6 pt-0">
-                    <ScrollArea className="h-40 w-full">
-                        <div className="pr-4"><FormattedTextRenderer text={character.personality || 'Описание отсутствует.'} /></div>
-                    </ScrollArea>
-                </AccordionContent>
-            </AccordionItem>
+                    </AccordionContent>
+                </AccordionItem>
 
-            <AccordionItem value="biography" className="border-b-0 rounded-lg bg-card shadow-sm">
-                <SectionTrigger title="Биография" icon={<BookOpen />} section="biography" />
-                <AccordionContent className="p-6 pt-0">
-                    {isBiographyVisible ? (
-                        <ScrollArea className="h-64 w-full">
-                            <div className="pr-4"><FormattedTextRenderer text={character.biography || 'Описание отсутствует.'} /></div>
-                        </ScrollArea>
-                    ) : (
-                        <div className="flex flex-col items-center justify-center h-32 text-center text-muted-foreground bg-muted/50 rounded-md">
-                            <Lock className="w-8 h-8 mb-2" />
-                            <p className="font-semibold">Биография скрыта</p>
+                {(character.abilities || isOwnerOrAdmin) && (
+                    <AccordionItem value="abilities" className="border-b-0 rounded-lg bg-card shadow-sm">
+                            <div className="flex justify-between items-center w-full p-4">
+                            <AccordionTrigger className="flex-1 hover:no-underline p-0">
+                                <CardTitle className="flex items-center gap-2 text-lg"><Zap /> Способности</CardTitle>
+                            </AccordionTrigger>
+                            {isOwnerOrAdmin && (
+                                <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setEditingState({type: 'section', section: "abilities"})}} className="shrink-0 h-8 w-8 ml-2">
+                                    {character.abilities ? <Edit className="w-4 h-4" /> : <PlusCircle className="h-4 w-4" />}
+                                </Button>
+                            )}
                         </div>
-                    )}
-                </AccordionContent>
-            </AccordionItem>
+                        {character.abilities && (
+                            <AccordionContent className="p-6 pt-0">
+                                <ScrollArea className="h-40 w-full">
+                                    <div className="pr-4"><FormattedTextRenderer text={character.abilities} /></div>
+                                </ScrollArea>
+                            </AccordionContent>
+                        )}
+                    </AccordionItem>
+                )}
 
-            {(character.abilities || isOwnerOrAdmin) && (
-                <AccordionItem value="abilities" className="border-b-0 rounded-lg bg-card shadow-sm">
+                    {(character.weaknesses || isOwnerOrAdmin) && (
+                    <AccordionItem value="weaknesses" className="border-b-0 rounded-lg bg-card shadow-sm">
                         <div className="flex justify-between items-center w-full p-4">
-                        <AccordionTrigger className="flex-1 hover:no-underline p-0">
-                            <CardTitle className="flex items-center gap-2 text-lg"><Zap /> Способности</CardTitle>
-                        </AccordionTrigger>
-                        {isOwnerOrAdmin && (
-                            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setEditingState({type: 'section', section: "abilities"})}} className="shrink-0 h-8 w-8 ml-2">
-                                {character.abilities ? <Edit className="w-4 h-4" /> : <PlusCircle className="h-4 w-4" />}
-                            </Button>
+                            <AccordionTrigger className="flex-1 hover:no-underline p-0">
+                                <CardTitle className="flex items-center gap-2 text-lg"><ShieldOff /> Слабости</CardTitle>
+                            </AccordionTrigger>
+                            {isOwnerOrAdmin && (
+                                <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setEditingState({ type: 'section', section: "weaknesses"})}} className="shrink-0 h-8 w-8 ml-2">
+                                    {character.weaknesses ? <Edit className="w-4 h-4" /> : <PlusCircle className="h-4 w-4" />}
+                                </Button>
+                            )}
+                        </div>
+                        {character.weaknesses && (
+                            <AccordionContent className="p-6 pt-0">
+                                <ScrollArea className="h-40 w-full">
+                                    <div className="pr-4"><FormattedTextRenderer text={character.weaknesses} /></div>
+                                </ScrollArea>
+                            </AccordionContent>
                         )}
-                    </div>
-                    {character.abilities && (
-                        <AccordionContent className="p-6 pt-0">
-                            <ScrollArea className="h-40 w-full">
-                                <div className="pr-4"><FormattedTextRenderer text={character.abilities} /></div>
-                            </ScrollArea>
-                        </AccordionContent>
-                    )}
+                    </AccordionItem>
+                )}
+                <AccordionItem value="additional" className="border-b-0 rounded-lg bg-card shadow-sm">
+                    <AccordionTrigger className="w-full p-4 hover:no-underline">
+                        <CardTitle className="flex items-center gap-2 text-lg"><BookUser /> Дополнительно</CardTitle>
+                    </AccordionTrigger>
+                    <AccordionContent className="p-6 pt-0 divide-y">
+                        <SubSection 
+                            title="Обучение"
+                            section="training"
+                            isVisible={true}
+                            isEmpty={!character.training || character.training.length === 0}
+                            content={
+                                <ul className="list-disc pl-5 space-y-1 text-sm pt-2">
+                                    {trainingLabels.map((label, index) => <li key={`${label}-${index}`}>{label}</li>)}
+                                </ul>
+                            }
+                        />
+                        <SubSection 
+                            title="Жизненная цель"
+                            section="lifeGoal"
+                            isVisible={!!character.lifeGoal || isOwnerOrAdmin}
+                            isEmpty={!character.lifeGoal}
+                            content={<p className="whitespace-pre-wrap text-sm pt-2">{character.lifeGoal}</p>}
+                        />
+                        <SubSection 
+                            title="Судимости"
+                            section="criminalRecords"
+                            isVisible={!!character.criminalRecords || isOwnerOrAdmin}
+                            isEmpty={!character.criminalRecords}
+                            content={<p className="whitespace-pre-wrap text-sm pt-2">{character.criminalRecords}</p>}
+                        />
+                        <SubSection 
+                            title="Личный дневник"
+                            section="diary"
+                            isVisible={!!character.diary}
+                            isEmpty={!character.diary}
+                            content={<p className="whitespace-pre-wrap text-sm pt-2">{character.diary}</p>}
+                        />
+                    </AccordionContent>
                 </AccordionItem>
-            )}
+            </Accordion>
 
-                {(character.weaknesses || isOwnerOrAdmin) && (
-                <AccordionItem value="weaknesses" className="border-b-0 rounded-lg bg-card shadow-sm">
-                    <div className="flex justify-between items-center w-full p-4">
-                        <AccordionTrigger className="flex-1 hover:no-underline p-0">
-                            <CardTitle className="flex items-center gap-2 text-lg"><ShieldOff /> Слабости</CardTitle>
-                        </AccordionTrigger>
-                        {isOwnerOrAdmin && (
-                            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setEditingState({ type: 'section', section: "weaknesses"})}} className="shrink-0 h-8 w-8 ml-2">
-                                {character.weaknesses ? <Edit className="w-4 h-4" /> : <PlusCircle className="h-4 w-4" />}
+            {combinedGallery.length > 0 && (
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <CardTitle className="flex items-center gap-2"><Camera /> Колдоснимки</CardTitle>
+                        {currentUser?.role === 'admin' && (
+                            <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'section', section: 'gallery' })} className="shrink-0 h-8 w-8 self-center">
+                                <PlusCircle className="w-4 h-4" />
                             </Button>
                         )}
-                    </div>
-                    {character.weaknesses && (
-                        <AccordionContent className="p-6 pt-0">
-                            <ScrollArea className="h-40 w-full">
-                                <div className="pr-4"><FormattedTextRenderer text={character.weaknesses} /></div>
-                            </ScrollArea>
-                        </AccordionContent>
-                    )}
-                </AccordionItem>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            {combinedGallery.map((img, index) => {
+                                if (!img || !img.url) return null;
+                                return (
+                                    <button key={img.id || index} className="relative aspect-square" onClick={() => setSelectedGalleryImage(img.url)}>
+                                        <Image
+                                            src={img.url}
+                                            alt={`Gallery image ${img.id}`}
+                                            fill
+                                            style={{ objectFit: 'cover' }}
+                                            className="rounded-lg"
+                                        />
+                                    </button>
+                                )
+                            })}
+                        </div>
+                    </CardContent>
+                </Card>
             )}
-             <AccordionItem value="additional" className="border-b-0 rounded-lg bg-card shadow-sm">
-                <AccordionTrigger className="w-full p-4 hover:no-underline">
-                    <CardTitle className="flex items-center gap-2 text-lg"><BookUser /> Дополнительно</CardTitle>
-                </AccordionTrigger>
-                <AccordionContent className="p-6 pt-0 divide-y">
-                    <SubSection 
-                        title="Обучение"
-                        section="training"
-                        isVisible={true}
-                        isEmpty={!character.training || character.training.length === 0}
-                        content={
-                            <ul className="list-disc pl-5 space-y-1 text-sm pt-2">
-                                {trainingLabels.map((label, index) => <li key={`${label}-${index}`}>{label}</li>)}
-                            </ul>
-                        }
-                    />
-                    <SubSection 
-                        title="Жизненная цель"
-                        section="lifeGoal"
-                        isVisible={!!character.lifeGoal || isOwnerOrAdmin}
-                        isEmpty={!character.lifeGoal}
-                        content={<p className="whitespace-pre-wrap text-sm pt-2">{character.lifeGoal}</p>}
-                    />
-                    <SubSection 
-                        title="Судимости"
-                        section="criminalRecords"
-                        isVisible={!!character.criminalRecords || isOwnerOrAdmin}
-                        isEmpty={!character.criminalRecords}
-                        content={<p className="whitespace-pre-wrap text-sm pt-2">{character.criminalRecords}</p>}
-                    />
-                    <SubSection 
-                        title="Личный дневник"
-                        section="diary"
-                        isVisible={!!character.diary}
-                        isEmpty={!character.diary}
-                        content={<p className="whitespace-pre-wrap text-sm pt-2">{character.diary}</p>}
-                    />
-                </AccordionContent>
-            </AccordionItem>
-        </Accordion>
+        </div>
     );
 
     const renderRelationships = () => (
@@ -1058,37 +1091,6 @@ export default function CharacterPage() {
                                     </ScrollArea>
                                 </CardContent>
                             </Card>
-
-                            {combinedGallery.length > 0 && (
-                                <Card>
-                                    <CardHeader className="flex flex-row items-center justify-between">
-                                        <CardTitle className="flex items-center gap-2"><Camera /> Колдоснимки</CardTitle>
-                                        {currentUser?.role === 'admin' && (
-                                            <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'section', section: 'gallery' })} className="shrink-0 h-8 w-8 self-center">
-                                                <PlusCircle className="w-4 h-4" />
-                                            </Button>
-                                        )}
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                            {combinedGallery.map((img, index) => {
-                                                if (!img || !img.url) return null;
-                                                return (
-                                                    <button key={img.id || index} className="relative aspect-square" onClick={() => setSelectedGalleryImage(img.url)}>
-                                                        <Image
-                                                            src={img.url}
-                                                            alt={`Gallery image ${img.id}`}
-                                                            fill
-                                                            style={{ objectFit: 'cover' }}
-                                                            className="rounded-lg"
-                                                        />
-                                                    </button>
-                                                )
-                                            })}
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            )}
                         </div>
                         {/* Sidebar Column (Right on Large Screens) */}
                         <div className="w-full lg:w-1/3 flex flex-col space-y-6 order-1 lg:order-2">
