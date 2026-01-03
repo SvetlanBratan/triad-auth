@@ -146,8 +146,8 @@ export default function AlchemyTab() {
             }
         });
         return { 
-            potionRecipes: potions.sort((a,b) => (a.name || '').localeCompare(b.name || '')), 
-            artifactRecipes: artifacts.sort((a,b) => (a.name || '').localeCompare(b.name || ''))
+            potionRecipes: potions.sort((a,b) => (a.name || allItemsMap.get(a.resultPotionId)?.name || '').localeCompare(b.name || allItemsMap.get(b.resultPotionId)?.name || '')), 
+            artifactRecipes: artifacts.sort((a,b) => (a.name || allItemsMap.get(a.resultPotionId)?.name || '').localeCompare(b.name || allItemsMap.get(b.resultPotionId)?.name || ''))
         };
     }, [recipes, allItemsMap]);
 

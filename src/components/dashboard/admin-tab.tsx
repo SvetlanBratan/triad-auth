@@ -226,8 +226,8 @@ export default function AdminTab() {
   // Alchemy State
   const [editingRecipeId, setEditingRecipeId] = useState<string | null>(null);
   const [newRecipe, setNewRecipe] = useState<Omit<AlchemyRecipe, 'id' | 'createdAt'>>({ name: '', components: [], resultPotionId: '', outputQty: 1, difficulty: 1 });
-  const [isAddingRecipe, setIsAddingRecipe] = useState(false);
   const [isSavingRecipe, setIsSavingRecipe] = useState(false);
+
 
   useEffect(() => {
     const newUpdates: Record<string, { events: string[] }> = {};
@@ -898,23 +898,30 @@ export default function AdminTab() {
         setNewRecipe(prev => ({ ...prev, components }));
     };
 
-    const handleAddRecipe = async (e: React.FormEvent) => {
+    const handleRecipeSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newRecipe.resultPotionId || newRecipe.components.length === 0) {
             toast({ variant: 'destructive', title: 'Ошибка', description: 'Выберите итоговое зелье и хотя бы один ингредиент.' });
             return;
         }
-        setIsAddingRecipe(true);
+
+        setIsSavingRecipe(true);
         try {
-            await addAlchemyRecipe(newRecipe);
-            toast({ title: 'Рецепт добавлен!' });
+            if (editingRecipeId) {
+                await updateAlchemyRecipe(editingRecipeId, newRecipe);
+                toast({ title: 'Рецепт обновлен!' });
+            } else {
+                await addAlchemyRecipe(newRecipe);
+                toast({ title: 'Рецепт добавлен!' });
+            }
             setNewRecipe({ name: '', components: [], resultPotionId: '', outputQty: 1, difficulty: 1 });
-            queryClient.invalidateQueries({ queryKey: ['alchemyRecipes'] });
+            setEditingRecipeId(null);
+            refetchRecipes();
         } catch (error) {
             const message = error instanceof Error ? error.message : "Произошла неизвестная ошибка";
-            toast({ variant: 'destructive', title: 'Ошибка', description: message });
+            toast({ variant: 'destructive', title: 'Ошибка сохранения', description: message });
         } finally {
-            setIsAddingRecipe(false);
+            setIsSavingRecipe(false);
         }
     };
     
@@ -934,6 +941,10 @@ export default function AdminTab() {
             await deleteAlchemyRecipe(recipeId);
             toast({ title: 'Рецепт удален' });
             refetchRecipes();
+            if (editingRecipeId === recipeId) {
+                setEditingRecipeId(null);
+                setNewRecipe({ name: '', components: [], resultPotionId: '', outputQty: 1, difficulty: 1 });
+            }
         } catch (error) {
             const message = error instanceof Error ? error.message : "Произошла неизвестная ошибка";
             toast({ variant: 'destructive', title: 'Ошибка удаления', description: message });
@@ -1649,11 +1660,15 @@ export default function AdminTab() {
                 <CardHeader>
                     <div className="flex justify-between items-start">
                         <div>
-                            <CardTitle className="flex items-center gap-2">Создание рецептов</CardTitle>
-                            <CardDescription>Создайте новый алхимический рецепт, который станет доступен игрокам.</CardDescription>
+                            <CardTitle className="flex items-center gap-2">
+                                {editingRecipeId ? "Редактировать рецепт" : "Создание рецептов"}
+                            </CardTitle>
+                            <CardDescription>
+                                {editingRecipeId ? "Измените существующий рецепт." : "Создайте новый алхимический рецепт, который станет доступен игрокам."}
+                            </CardDescription>
                         </div>
                         {editingRecipeId && (
-                            <Button variant="outline" size="sm" onClick={() => setEditingRecipeId(null)}>
+                            <Button variant="outline" size="sm" onClick={() => { setEditingRecipeId(null); setNewRecipe({ name: '', components: [], resultPotionId: '', outputQty: 1, difficulty: 1 }); }}>
                                 <PlusCircle className="mr-2 h-4 w-4" />
                                 Создать новый
                             </Button>
@@ -1661,15 +1676,19 @@ export default function AdminTab() {
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <form onSubmit={handleAddRecipe} className="space-y-4">
+                    <form onSubmit={handleRecipeSubmit} className="space-y-4">
                         <div>
                             <Label htmlFor="result-potion">Итоговое зелье/артефакт</Label>
                             <SearchableSelect
                                 options={alchemyResultOptions}
                                 value={newRecipe.resultPotionId}
                                 onValueChange={val => setNewRecipe(p => ({...p, resultPotionId: val}))}
-                                placeholder="Выберите зелье..."
+                                placeholder="Выберите зелье или артефакт..."
                             />
+                        </div>
+                        <div>
+                             <Label htmlFor="recipe-name">Название рецепта (необязательно)</Label>
+                            <Input id="recipe-name" value={newRecipe.name} onChange={e => setNewRecipe(p => ({ ...p, name: e.target.value }))} placeholder="Если не указано, используется название предмета"/>
                         </div>
                         <div>
                             <Label htmlFor="output-qty">Количество на выходе</Label>
@@ -1709,8 +1728,8 @@ export default function AdminTab() {
                             </Button>
                         </div>
 
-                        <Button type="submit" className="w-full" disabled={isAddingRecipe}>
-                            {isAddingRecipe ? 'Добавление...' : 'Добавить рецепт'}
+                        <Button type="submit" className="w-full" disabled={isSavingRecipe}>
+                            {isSavingRecipe ? 'Сохранение...' : (editingRecipeId ? 'Сохранить изменения' : 'Добавить рецепт')}
                         </Button>
                     </form>
                 </CardContent>
@@ -2462,6 +2481,7 @@ export default function AdminTab() {
 }
 
     
+
 
 
 
