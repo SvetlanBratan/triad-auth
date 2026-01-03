@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -501,7 +499,7 @@ export default function CharacterPage() {
                         data-ai-hint="character banner"
                     />
                      {isOwnerOrAdmin && (
-                        <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'section', section: 'banner' })} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/50 hover:bg-background/80">
+                        <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'section', section: 'gallery' })} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/50 hover:bg-background/80">
                             <Edit className="w-4 h-4" />
                         </Button>
                     )}
@@ -717,30 +715,35 @@ export default function CharacterPage() {
                             </CardContent>
                         </Card>
 
-                        <Accordion type="multiple" className="w-full space-y-6">
-                            <AccordionItem value="gallery" className="border-b-0 rounded-lg bg-card shadow-sm">
-                                <SectionTrigger title="Галерея" icon={<Camera />} section="gallery" />
-                                <AccordionContent className="p-6 pt-0">
-                                    {character.galleryImages && character.galleryImages.length > 0 ? (
-                                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                            {character.galleryImages.map((imgUrl, index) => (
-                                                <div key={index} className="relative aspect-square">
-                                                    <Image
-                                                        src={imgUrl}
-                                                        alt={`Gallery image ${index + 1}`}
-                                                        fill
-                                                        style={{ objectFit: 'cover' }}
-                                                        className="rounded-lg"
-                                                    />
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <p className="text-sm text-muted-foreground italic">В галерее пока нет изображений.</p>
-                                    )}
-                                </AccordionContent>
-                            </AccordionItem>
-                        </Accordion>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between">
+                                <CardTitle className="flex items-center gap-2"><Camera /> Галерея</CardTitle>
+                                {isOwnerOrAdmin && (
+                                    <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'section', section: 'gallery' })} className="shrink-0 h-8 w-8 self-center">
+                                        <Edit className="w-4 h-4" />
+                                    </Button>
+                                )}
+                            </CardHeader>
+                            <CardContent>
+                                {character.galleryImages && character.galleryImages.length > 0 ? (
+                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                        {character.galleryImages.map((imgUrl, index) => (
+                                            <div key={index} className="relative aspect-square">
+                                                <Image
+                                                    src={imgUrl}
+                                                    alt={`Gallery image ${index + 1}`}
+                                                    fill
+                                                    style={{ objectFit: 'cover' }}
+                                                    className="rounded-lg"
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground italic">В галерее пока нет изображений.</p>
+                                )}
+                            </CardContent>
+                        </Card>
                     </div>
                     {/* Sidebar Column (Right on Large Screens) */}
                     <div className="w-full lg:w-1/3 flex flex-col space-y-6 order-1 lg:order-2">
