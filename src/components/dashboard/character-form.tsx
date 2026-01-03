@@ -532,7 +532,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                         <div className="space-y-3 rounded-md border p-3 relative">
                             {editingState.mode === 'edit' && (
                                 <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={handleRemoveItem}>
-                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                    <Trash2 className="h-4 h-4 text-destructive" />
                                 </Button>
                             )}
                              <div>
@@ -566,7 +566,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                         <div className="space-y-3 rounded-md border p-3 relative">
                             {editingState.mode === 'edit' && (
                                 <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={handleRemoveItem}>
-                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                    <Trash2 className="h-4 h-4 text-destructive" />
                                 </Button>
                             )}
                             <div>
