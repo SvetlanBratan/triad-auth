@@ -553,7 +553,7 @@ export default function CharacterPage() {
                                             <CardTitle className="flex items-center gap-2 text-lg"><Zap /> Способности</CardTitle>
                                         </AccordionTrigger>
                                         {isOwnerOrAdmin && (
-                                            <Button variant={character.abilities ? "ghost" : "outline-dashed"} size="icon" onClick={() => setEditingState({type: 'section', section: "abilities"})} className="shrink-0 h-8 w-8 ml-2">
+                                            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setEditingState({type: 'section', section: "abilities"})}} className="shrink-0 h-8 w-8 ml-2">
                                                 {character.abilities ? <Edit className="w-4 h-4" /> : <PlusCircle className="h-4 w-4" />}
                                             </Button>
                                         )}
@@ -575,7 +575,7 @@ export default function CharacterPage() {
                                             <CardTitle className="flex items-center gap-2 text-lg"><ShieldOff /> Слабости</CardTitle>
                                         </AccordionTrigger>
                                         {isOwnerOrAdmin && (
-                                            <Button variant={character.weaknesses ? "ghost" : "outline-dashed"} size="icon" onClick={() => setEditingState({ type: 'section', section: "weaknesses"})} className="shrink-0 h-8 w-8 ml-2">
+                                            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setEditingState({ type: 'section', section: "weaknesses"})}} className="shrink-0 h-8 w-8 ml-2">
                                                 {character.weaknesses ? <Edit className="w-4 h-4" /> : <PlusCircle className="h-4 w-4" />}
                                             </Button>
                                         )}
@@ -589,112 +589,115 @@ export default function CharacterPage() {
                                     )}
                                 </AccordionItem>
                             )}
+
+                            <AccordionItem value="relationships" className="border-b-0 rounded-lg bg-card shadow-sm">
+                                <div className="flex justify-between items-center w-full p-4">
+                                    <AccordionTrigger className="flex-1 hover:no-underline p-0">
+                                        <CardTitle className="flex items-center gap-2 text-lg"><HeartHandshake /> Отношения</CardTitle>
+                                    </AccordionTrigger>
+                                    {isOwnerOrAdmin && (
+                                        <Button variant="outline-dashed" size="sm" onClick={(e) => { e.stopPropagation(); setEditingState({ type: 'relationship', mode: 'add' })}} className="shrink-0 self-center ml-2">
+                                            <PlusCircle className="mr-2 h-4 w-4" /> Добавить
+                                        </Button>
+                                    )}
+                                </div>
+                                <AccordionContent className="p-6 pt-0">
+                                    {(character.relationships && character.relationships.length > 0) ? (
+                                        <div className="space-y-4">
+                                            {character.relationships.map((rel, index) => {
+                                                const { level, progressToNextLevel, maxPointsForCurrentLevel } = calculateRelationshipLevel(rel.points);
+                                                const pointsInCurrentLevel = rel.points - (level * 100);
+                                                return (
+                                                <div key={rel.id || `${rel.targetCharacterId}-${rel.type}-${index}`} className="relative group">
+                                                    {isOwnerOrAdmin && (
+                                                        <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'relationship', mode: 'edit', relationship: rel })} className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <Edit className="w-4 h-4" />
+                                                        </Button>
+                                                    )}
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <Link href={`/characters/${rel.targetCharacterId}`} className="font-semibold hover:underline">{rel.targetCharacterName}</Link>
+                                                        <Badge variant="secondary" className={cn('capitalize', relationshipColors[rel.type], 'text-white')}>{relationshipLabels[rel.type]}</Badge>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                        <span>{pointsInCurrentLevel}/{maxPointsForCurrentLevel}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <Progress value={progressToNextLevel} className={cn("w-full h-2")} indicatorClassName={relationshipColors[rel.type]}/>
+                                                        <span className="text-xs font-bold w-8 text-right">{level}/10</span>
+                                                    </div>
+                                                </div>
+                                            )})}
+                                        </div>
+                                    ) : (
+                                        <p className="text-muted-foreground text-sm">Отношений пока нет.</p>
+                                    )}
+                                </AccordionContent>
+                            </AccordionItem>
+
+                            <AccordionItem value="additional" className="border-b-0 rounded-lg bg-card shadow-sm">
+                                <AccordionTrigger className="w-full p-4 hover:no-underline">
+                                    <CardTitle className="flex items-center gap-2 text-lg"><BookUser /> Дополнительно</CardTitle>
+                                </AccordionTrigger>
+                                <AccordionContent className="p-6 pt-0 divide-y">
+                                    <SubSection 
+                                        title="Обучение"
+                                        section="training"
+                                        isVisible={true}
+                                        isEmpty={!character.training || character.training.length === 0}
+                                        content={
+                                            <ul className="list-disc pl-5 space-y-1 text-sm pt-2">
+                                                {trainingLabels.map((label, index) => <li key={`${label}-${index}`}>{label}</li>)}
+                                            </ul>
+                                        }
+                                    />
+                                    <SubSection 
+                                        title="Жизненная цель"
+                                        section="lifeGoal"
+                                        isVisible={!!character.lifeGoal || isOwnerOrAdmin}
+                                        isEmpty={!character.lifeGoal}
+                                        content={<p className="whitespace-pre-wrap text-sm pt-2">{character.lifeGoal}</p>}
+                                    />
+                                    <SubSection 
+                                        title="Судимости"
+                                        section="criminalRecords"
+                                        isVisible={!!character.criminalRecords || isOwnerOrAdmin}
+                                        isEmpty={!character.criminalRecords}
+                                        content={<p className="whitespace-pre-wrap text-sm pt-2">{character.criminalRecords}</p>}
+                                    />
+                                    <SubSection 
+                                        title="Личный дневник"
+                                        section="diary"
+                                        isVisible={!!character.diary}
+                                        isEmpty={!character.diary}
+                                        content={<p className="whitespace-pre-wrap text-sm pt-2">{character.diary}</p>}
+                                    />
+                                </AccordionContent>
+                            </AccordionItem>
                         </Accordion>
                         
                         <Card>
-                            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                                <CardTitle className="flex items-center gap-2"><HeartHandshake /> Отношения</CardTitle>
-                                {isOwnerOrAdmin && (
-                                    <Button variant="outline-dashed" size="sm" onClick={() => setEditingState({ type: 'relationship', mode: 'add' })} className="shrink-0 self-start sm:self-auto">
-                                        <PlusCircle className="mr-2 h-4 w-4" /> Добавить отношение
-                                    </Button>
-                                )}
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2"><History /> История популярности</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                {(character.relationships && character.relationships.length > 0) ? (
-                                    <div className="space-y-4">
-                                        {character.relationships.map((rel, index) => {
-                                            const { level, progressToNextLevel, maxPointsForCurrentLevel } = calculateRelationshipLevel(rel.points);
-                                            const pointsInCurrentLevel = rel.points - (level * 100);
-                                            return (
-                                            <div key={rel.id || `${rel.targetCharacterId}-${rel.type}-${index}`} className="relative group">
-                                                {isOwnerOrAdmin && (
-                                                    <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'relationship', mode: 'edit', relationship: rel })} className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <Edit className="w-4 h-4" />
-                                                    </Button>
-                                                )}
-                                                <div className="flex justify-between items-center mb-1">
-                                                    <Link href={`/characters/${rel.targetCharacterId}`} className="font-semibold hover:underline">{rel.targetCharacterName}</Link>
-                                                    <Badge variant="secondary" className={cn('capitalize', relationshipColors[rel.type], 'text-white')}>{relationshipLabels[rel.type]}</Badge>
-                                                </div>
-                                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                                    <span>{pointsInCurrentLevel}/{maxPointsForCurrentLevel}</span>
-                                                </div>
-                                                <div className="flex items-center gap-2 mt-1">
-                                                    <Progress value={progressToNextLevel} className={cn("w-full h-2")} indicatorClassName={relationshipColors[rel.type]}/>
-                                                    <span className="text-xs font-bold w-8 text-right">{level}/10</span>
-                                                </div>
+                                <ScrollArea className="h-48 pr-3">
+                                    <div className="space-y-3">
+                                    {sortedPopularityHistory.map((log: PopularityLog) => (
+                                        <div key={log.id} className="text-xs p-2 bg-muted/50 rounded-md">
+                                            <div className="flex justify-between items-start">
+                                                <p className="font-semibold flex-1 pr-2">{log.reason}</p>
+                                                <p className={cn("font-mono font-semibold", log.amount > 0 ? 'text-green-600' : 'text-destructive')}>
+                                                    {log.amount > 0 ? '+' : ''}{log.amount.toLocaleString()}
+                                                </p>
                                             </div>
-                                        )})}
-                                    </div>
-                                ) : (
-                                    <p className="text-muted-foreground text-sm">Отношений пока нет.</p>
-                                )}
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><BookUser /> Дополнительно</CardTitle>
-                            </CardHeader>
-                            <CardContent className="divide-y">
-                                <SubSection 
-                                    title="Обучение"
-                                    section="training"
-                                    isVisible={true}
-                                    isEmpty={!character.training || character.training.length === 0}
-                                    content={
-                                        <ul className="list-disc pl-5 space-y-1 text-sm pt-2">
-                                            {trainingLabels.map((label, index) => <li key={`${label}-${index}`}>{label}</li>)}
-                                        </ul>
-                                    }
-                                />
-                                <SubSection 
-                                    title="Жизненная цель"
-                                    section="lifeGoal"
-                                    isVisible={!!character.lifeGoal || isOwnerOrAdmin}
-                                    isEmpty={!character.lifeGoal}
-                                    content={<p className="whitespace-pre-wrap text-sm pt-2">{character.lifeGoal}</p>}
-                                />
-                                <SubSection 
-                                    title="Судимости"
-                                    section="criminalRecords"
-                                    isVisible={!!character.criminalRecords || isOwnerOrAdmin}
-                                    isEmpty={!character.criminalRecords}
-                                    content={<p className="whitespace-pre-wrap text-sm pt-2">{character.criminalRecords}</p>}
-                                />
-                                <SubSection 
-                                    title="Личный дневник"
-                                    section="diary"
-                                    isVisible={!!character.diary}
-                                    isEmpty={!character.diary}
-                                    content={<p className="whitespace-pre-wrap text-sm pt-2">{character.diary}</p>}
-                                />
-                            </CardContent>
-                        </Card>
-                         <Card>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2"><History /> История популярности</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <ScrollArea className="h-48 pr-3">
-                                        <div className="space-y-3">
-                                        {sortedPopularityHistory.map((log: PopularityLog) => (
-                                            <div key={log.id} className="text-xs p-2 bg-muted/50 rounded-md">
-                                                <div className="flex justify-between items-start">
-                                                    <p className="font-semibold flex-1 pr-2">{log.reason}</p>
-                                                    <p className={cn("font-mono font-semibold", log.amount > 0 ? 'text-green-600' : 'text-destructive')}>
-                                                        {log.amount > 0 ? '+' : ''}{log.amount.toLocaleString()}
-                                                    </p>
-                                                </div>
-                                                <p className="text-muted-foreground">{new Date(log.date).toLocaleString()}</p>
-                                            </div>
-                                        ))}
-                                         {sortedPopularityHistory.length === 0 && <p className="text-sm text-muted-foreground text-center">Истории пока нет.</p>}
+                                            <p className="text-muted-foreground">{new Date(log.date).toLocaleString()}</p>
                                         </div>
-                                    </ScrollArea>
-                                </CardContent>
-                            </Card>
+                                    ))}
+                                        {sortedPopularityHistory.length === 0 && <p className="text-sm text-muted-foreground text-center">Истории пока нет.</p>}
+                                    </div>
+                                </ScrollArea>
+                            </CardContent>
+                        </Card>
                     </div>
                     {/* Sidebar Column (Right on Large Screens) */}
                     <div className="w-full lg:w-1/3 flex flex-col space-y-6 order-1 lg:order-2">
