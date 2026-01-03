@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
-import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info, AlertTriangle, Bell, CheckCircle, Store, PackagePlus, Edit, BadgeCheck, FileText, Send, Gavel, Eye, UserMinus } from 'lucide-react';
+import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info, AlertTriangle, Bell, CheckCircle, Store, PackagePlus, Edit, BadgeCheck, FileText, Send, Gavel, Eye, UserMinus, FlaskConical } from 'lucide-react';
 import type { UserStatus, UserRole, User, FamiliarCard, BankAccount, WealthLevel, FamiliarRank, Shop, InventoryCategory, AdminGiveItemForm, InventoryItem, CitizenshipStatus, TaxpayerStatus, CharacterPopularityUpdate, AlchemyRecipe } from '@/lib/types';
 import { EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, WEALTH_LEVELS, ALL_STATIC_FAMILIARS, STARTING_CAPITAL_LEVELS, ALL_SHOPS, INVENTORY_CATEGORIES, POPULARITY_EVENTS } from '@/lib/data';
 import {
@@ -225,7 +225,8 @@ export default function AdminTab() {
   
   // Alchemy State
   const [editingRecipeId, setEditingRecipeId] = useState<string | null>(null);
-  const [recipeData, setRecipeData] = useState<Omit<AlchemyRecipe, 'id' | 'createdAt'>>({ name: '', components: [], resultPotionId: '', outputQty: 1, difficulty: 1 });
+  const [newRecipe, setNewRecipe] = useState<Omit<AlchemyRecipe, 'id' | 'createdAt'>>({ name: '', components: [], resultPotionId: '', outputQty: 1, difficulty: 1 });
+  const [isAddingRecipe, setIsAddingRecipe] = useState(false);
   const [isSavingRecipe, setIsSavingRecipe] = useState(false);
 
   useEffect(() => {
@@ -919,7 +920,7 @@ export default function AdminTab() {
     
     const handleEditRecipe = (recipe: AlchemyRecipe) => {
         setEditingRecipeId(recipe.id);
-        setRecipeData({
+        setNewRecipe({
             name: recipe.name,
             components: recipe.components,
             resultPotionId: recipe.resultPotionId,
@@ -2461,6 +2462,7 @@ export default function AdminTab() {
 }
 
     
+
 
 
 
