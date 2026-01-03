@@ -387,7 +387,7 @@ export default function CharacterPage() {
                 <CardTitle className="flex items-center gap-2 text-lg">{icon} {title}</CardTitle>
             </AccordionTrigger>
             {isOwnerOrAdmin && (
-                <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'section', section })} className="shrink-0 h-8 w-8 ml-2">
+                <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setEditingState({ type: 'section', section })}} className="shrink-0 h-8 w-8 ml-2">
                     <Edit className="w-4 h-4" />
                 </Button>
             )}
@@ -494,7 +494,7 @@ export default function CharacterPage() {
                 <div className="flex flex-col lg:flex-row gap-6">
                     {/* Main Content Column (Left on Large Screens) */}
                     <div className="w-full lg:w-2/3 space-y-6 order-2 lg:order-1">
-                         <Accordion type="multiple" className="w-full space-y-6" collapsible>
+                         <Accordion type="multiple" className="w-full space-y-6">
                             <AccordionItem value="appearance" className="border-b-0 rounded-lg bg-card shadow-sm">
                                 <SectionTrigger title="Внешность" icon={<PersonStanding />} section="appearance" />
                                 <AccordionContent className="p-6 pt-0">
