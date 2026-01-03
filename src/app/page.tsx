@@ -20,9 +20,9 @@ export default function Home() {
                 style={{ objectFit: 'cover' }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-            <header className="absolute inset-0 w-full p-4 md:p-6 flex flex-col md:flex-row justify-end md:justify-between items-end md:items-start gap-4">
+            <header className="absolute inset-0 w-full p-4 md:p-6 flex flex-col justify-end md:justify-between md:flex-row md:items-start gap-4">
                 <div className="md:bg-background/60 md:backdrop-blur-sm p-3 rounded-md">
-                    <Link href="https://pumpkin-pandemonium.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-xl md:text-2xl font-bold font-headline text-primary hover:underline bg-background/60 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none p-3 rounded-md md:p-0">
+                    <Link href="https://pumpkin-pandemonium.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-lg md:text-2xl font-bold font-headline text-primary hover:underline bg-background/60 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none p-3 rounded-md md:p-0">
                         Тыквенный Переполох
                     </Link>
                 </div>
