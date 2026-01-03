@@ -767,35 +767,39 @@ export default function CharacterPage() {
                                 <InfoRow label="Фракции/гильдии" value={character.factions} field="factions" section="mainInfo" isVisible={!!character.factions || isOwnerOrAdmin} icon={<Group className="w-4 h-4" />} />
                             </CardContent>
                         </Card>
-                        <Card>
-                            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                                <CardTitle className="flex items-center gap-2"><Award /> Достижения</CardTitle>
-                                {isOwnerOrAdmin && (
-                                    <Button variant="outline-dashed" size="sm" onClick={() => setEditingState({ type: 'accomplishment', mode: 'add' })} className="shrink-0 self-start sm:self-auto">
-                                        <PlusCircle className="mr-2 h-4 w-4" /> Добавить
-                                    </Button>
-                                )}
-                            </CardHeader>
-                            <CardContent>
-                                {accomplishments.length > 0 ? (
-                                    <div className="space-y-2">
-                                        {accomplishments.map(acc => (
-                                            <div key={acc.id} className="text-sm p-2 bg-muted/50 rounded-md group relative">
-                                                {isOwnerOrAdmin && (
-                                                    <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'accomplishment', mode: 'edit', accomplishment: acc })} className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7">
-                                                        <Edit className="w-4 h-4" />
-                                                    </Button>
-                                                )}
-                                                <p><span className="font-semibold">{acc.fameLevel}</span> <span className="text-primary font-semibold">{acc.skillLevel}</span></p>
-                                                <p className="text-muted-foreground">{acc.description}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <p className="text-muted-foreground text-sm">Достижений пока нет.</p>
-                                )}
-                            </CardContent>
-                        </Card>
+                        <Accordion type="multiple" className="w-full space-y-6">
+                            <AccordionItem value="achievements" className="border-b-0 rounded-lg bg-card shadow-sm">
+                                <div className="flex justify-between items-center w-full p-4">
+                                    <AccordionTrigger className="flex-1 hover:no-underline p-0">
+                                         <CardTitle className="flex items-center gap-2 text-lg"><Award /> Достижения</CardTitle>
+                                    </AccordionTrigger>
+                                    {isOwnerOrAdmin && (
+                                        <Button variant="outline-dashed" size="sm" onClick={(e) => { e.stopPropagation(); setEditingState({ type: 'accomplishment', mode: 'add' })}} className="shrink-0 self-center ml-2">
+                                            <PlusCircle className="mr-2 h-4 w-4" /> Добавить
+                                        </Button>
+                                    )}
+                                </div>
+                                <AccordionContent className="p-6 pt-0">
+                                    {accomplishments.length > 0 ? (
+                                        <div className="space-y-2">
+                                            {accomplishments.map(acc => (
+                                                <div key={acc.id} className="text-sm p-2 bg-muted/50 rounded-md group relative">
+                                                    {isOwnerOrAdmin && (
+                                                        <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'accomplishment', mode: 'edit', accomplishment: acc })} className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7">
+                                                            <Edit className="w-4 h-4" />
+                                                        </Button>
+                                                    )}
+                                                    <p><span className="font-semibold">{acc.fameLevel}</span> <span className="text-primary font-semibold">{acc.skillLevel}</span></p>
+                                                    <p className="text-muted-foreground">{acc.description}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-muted-foreground text-sm">Достижений пока нет.</p>
+                                    )}
+                                </AccordionContent>
+                            </AccordionItem>
+                        </Accordion>
                         {isOwnerOrAdmin && (
                             <Card>
                                 <CardHeader className="flex flex-row items-center justify-between">
