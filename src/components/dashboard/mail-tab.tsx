@@ -39,12 +39,7 @@ export default function MailTab() {
 
   const sortedMail = useMemo(() => {
     if (!currentUser?.mail) return [];
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
-    return [...currentUser.mail]
-      .filter(mail => new Date(mail.sentAt) >= thirtyDaysAgo)
-      .sort((a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime());
+    return [...currentUser.mail].sort((a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime());
   }, [currentUser?.mail]);
 
   const handleSelectMail = (mail: MailMessage) => {
