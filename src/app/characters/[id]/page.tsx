@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FAMILIARS_BY_ID, MOODLETS_DATA, TRAINING_OPTIONS, CRIME_LEVELS, INVENTORY_CATEGORIES, POPULARITY_LEVELS } from '@/lib/data';
 import FamiliarCardDisplay from '@/components/dashboard/familiar-card';
-import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users, HeartHandshake, Wallet, Coins, Award, Zap, ShieldOff, History, Info, PlusCircle, BookUser, Gavel, Group, Building, Package, LandPlot, ShieldCheck, FileQuestion, BadgeCheck, BadgeAlert, Landmark, Eye, Lock, Cat, Handshake, FileText } from 'lucide-react';
+import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users, HeartHandshake, Wallet, Coins, Award, Zap, ShieldOff, History, Info, PlusCircle, BookUser, Gavel, Group, Building, Package, LandPlot, ShieldCheck, FileQuestion, BadgeCheck, BadgeAlert, Landmark, Eye, Lock, Cat, Handshake, FileText, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -381,15 +381,20 @@ export default function CharacterPage() {
     const backLink = currentUser?.id === owner.id ? '/' : `/users/${owner.id}`;
     const backLinkText = currentUser?.id === owner.id ? 'Вернуться в профиль' : 'Вернуться в профиль игрока';
 
-    const SectionHeader = ({ title, icon, section }: { title: string; icon: React.ReactNode; section: EditableSection }) => (
-        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <CardTitle className="flex items-center gap-2">{icon} {title}</CardTitle>
-            {isOwnerOrAdmin && (
-                <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'section', section })} className="shrink-0 self-start sm:self-center">
-                    <Edit className="w-4 h-4" />
-                </Button>
-            )}
-        </CardHeader>
+    const SectionTrigger = ({ title, icon, section }: { title: string; icon: React.ReactNode; section: EditableSection }) => (
+        <AccordionTrigger className="w-full hover:no-underline p-4">
+            <div className="flex justify-between items-center w-full">
+                <CardTitle className="flex items-center gap-2 text-lg">{icon} {title}</CardTitle>
+                <div className="flex items-center">
+                    {isOwnerOrAdmin && (
+                        <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setEditingState({ type: 'section', section }) }} className="shrink-0 h-8 w-8">
+                            <Edit className="w-4 h-4" />
+                        </Button>
+                    )}
+                    <ChevronDown className="h-5 w-5 shrink-0 transition-transform duration-200 ml-2 group-data-[state=open]:rotate-180" />
+                </div>
+            </div>
+        </AccordionTrigger>
     );
 
     const SubSection = ({ title, content, section, isVisible, isEmpty }: { title: string; content: React.ReactNode; section: EditableSection; isVisible: boolean; isEmpty: boolean; }) => {
@@ -492,95 +497,108 @@ export default function CharacterPage() {
                 <div className="flex flex-col lg:flex-row gap-6">
                     {/* Main Content Column (Left on Large Screens) */}
                     <div className="w-full lg:w-2/3 space-y-6 order-2 lg:order-1">
-                        <Card>
-                            <SectionHeader title="Внешность" icon={<PersonStanding />} section="appearance" />
-                            <CardContent>
-                                <div className={cn("grid grid-cols-1 gap-6", character.appearanceImage && "md:grid-cols-3")}>
-                                    {character.appearanceImage && (
-                                        <div className="md:col-span-1">
-                                            <div className="relative aspect-[2/3] w-full">
-                                                <Image
-                                                    src={character.appearanceImage}
-                                                    alt={`Внешность ${character.name}`}
-                                                    fill
-                                                    style={{objectFit: "contain"}}
-                                                    className="rounded-lg"
-                                                    data-ai-hint="character portrait"
-                                                />
+                         <Accordion type="multiple" className="w-full space-y-6">
+                            <AccordionItem value="appearance" className="border-b-0 rounded-lg bg-card shadow-sm">
+                                <SectionTrigger title="Внешность" icon={<PersonStanding />} section="appearance" />
+                                <AccordionContent className="p-6 pt-0">
+                                    <div className={cn("grid grid-cols-1 gap-6", character.appearanceImage && "md:grid-cols-3")}>
+                                        {character.appearanceImage && (
+                                            <div className="md:col-span-1">
+                                                <div className="relative aspect-[2/3] w-full">
+                                                    <Image
+                                                        src={character.appearanceImage}
+                                                        alt={`Внешность ${character.name}`}
+                                                        fill
+                                                        style={{objectFit: "contain"}}
+                                                        className="rounded-lg"
+                                                        data-ai-hint="character portrait"
+                                                    />
+                                                </div>
                                             </div>
+                                        )}
+                                        <div className={cn(character.appearanceImage ? "md:col-span-2" : "md:col-span-3")}>
+                                            <ScrollArea className="h-96 w-full">
+                                                <div className="pr-4"><FormattedTextRenderer text={character.appearance || 'Описание отсутствует.'} /></div>
+                                            </ScrollArea>
+                                        </div>
+                                    </div>
+                                </AccordionContent>
+                            </AccordionItem>
+                             <AccordionItem value="personality" className="border-b-0 rounded-lg bg-card shadow-sm">
+                                <SectionTrigger title="Характер" icon={<Heart />} section="personality" />
+                                <AccordionContent className="p-6 pt-0">
+                                    <ScrollArea className="h-40 w-full">
+                                        <div className="pr-4"><FormattedTextRenderer text={character.personality || 'Описание отсутствует.'} /></div>
+                                    </ScrollArea>
+                                </AccordionContent>
+                            </AccordionItem>
+
+                            <AccordionItem value="biography" className="border-b-0 rounded-lg bg-card shadow-sm">
+                                <SectionTrigger title="Биография" icon={<BookOpen />} section="biography" />
+                                <AccordionContent className="p-6 pt-0">
+                                    {isBiographyVisible ? (
+                                        <ScrollArea className="h-64 w-full">
+                                            <div className="pr-4"><FormattedTextRenderer text={character.biography || 'Описание отсутствует.'} /></div>
+                                        </ScrollArea>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center h-32 text-center text-muted-foreground bg-muted/50 rounded-md">
+                                            <Lock className="w-8 h-8 mb-2" />
+                                            <p className="font-semibold">Биография скрыта</p>
                                         </div>
                                     )}
-                                    <div className={cn(character.appearanceImage ? "md:col-span-2" : "md:col-span-3")}>
-                                        <ScrollArea className="h-96 w-full">
-                                            <div className="pr-4"><FormattedTextRenderer text={character.appearance || 'Описание отсутствует.'} /></div>
-                                        </ScrollArea>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <SectionHeader title="Характер" icon={<Heart />} section="personality" />
-                            <CardContent>
-                                <ScrollArea className="h-40 w-full">
-                                    <div className="pr-4"><FormattedTextRenderer text={character.personality || 'Описание отсутствует.'} /></div>
-                                </ScrollArea>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <SectionHeader title="Биография" icon={<BookOpen />} section="biography" />
-                            <CardContent>
-                                {isBiographyVisible ? (
-                                    <ScrollArea className="h-64 w-full">
-                                        <div className="pr-4"><FormattedTextRenderer text={character.biography || 'Описание отсутствует.'} /></div>
-                                    </ScrollArea>
-                                ) : (
-                                    <div className="flex flex-col items-center justify-center h-32 text-center text-muted-foreground bg-muted/50 rounded-md">
-                                        <Lock className="w-8 h-8 mb-2" />
-                                        <p className="font-semibold">Биография скрыта</p>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                        
-                        {(character.abilities || isOwnerOrAdmin) && (
-                            <Card>
-                                <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                    <CardTitle className="flex items-center gap-2"><Zap /> Способности</CardTitle>
-                                    {isOwnerOrAdmin && (
-                                        <Button variant={character.abilities ? "ghost" : "outline-dashed"} size={character.abilities ? "icon" : "sm"} onClick={() => setEditingState({type: 'section', section: "abilities"})} className="shrink-0 self-start sm:self-auto">
-                                            {character.abilities ? <Edit className="w-4 h-4" /> : <><PlusCircle className="mr-2 h-4 w-4" /> Добавить</>}
-                                        </Button>
+                                </AccordionContent>
+                            </AccordionItem>
+
+                            {(character.abilities || isOwnerOrAdmin) && (
+                                <AccordionItem value="abilities" className="border-b-0 rounded-lg bg-card shadow-sm">
+                                     <AccordionTrigger className="w-full hover:no-underline p-4">
+                                        <div className="flex justify-between items-center w-full">
+                                            <CardTitle className="flex items-center gap-2 text-lg"><Zap /> Способности</CardTitle>
+                                            <div className="flex items-center">
+                                                {isOwnerOrAdmin && (
+                                                     <Button variant={character.abilities ? "ghost" : "outline-dashed"} size={character.abilities ? "icon" : "sm"} onClick={(e) => { e.stopPropagation(); setEditingState({type: 'section', section: "abilities"})}} className="shrink-0 h-8 w-8">
+                                                        {character.abilities ? <Edit className="w-4 h-4" /> : <><PlusCircle className="mr-2 h-4 w-4" /> Добавить</>}
+                                                    </Button>
+                                                )}
+                                                <ChevronDown className="h-5 w-5 shrink-0 transition-transform duration-200 ml-2 group-data-[state=open]:rotate-180" />
+                                            </div>
+                                        </div>
+                                    </AccordionTrigger>
+                                    {character.abilities && (
+                                        <AccordionContent className="p-6 pt-0">
+                                            <ScrollArea className="h-40 w-full">
+                                                <div className="pr-4"><FormattedTextRenderer text={character.abilities} /></div>
+                                            </ScrollArea>
+                                        </AccordionContent>
                                     )}
-                                </CardHeader>
-                                {character.abilities && (
-                                    <CardContent>
-                                        <ScrollArea className="h-40 w-full">
-                                            <div className="pr-4"><FormattedTextRenderer text={character.abilities} /></div>
-                                        </ScrollArea>
-                                    </CardContent>
-                                )}
-                            </Card>
-                        )}
-                        
-                        {(character.weaknesses || isOwnerOrAdmin) && (
-                            <Card>
-                                <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                    <CardTitle className="flex items-center gap-2"><ShieldOff /> Слабости</CardTitle>
-                                    {isOwnerOrAdmin && (
-                                        <Button variant={character.weaknesses ? "ghost" : "outline-dashed"} size={character.weaknesses ? "icon" : "sm"} onClick={() => setEditingState({ type: 'section', section: "weaknesses"})} className="shrink-0 self-start sm:self-auto">
-                                            {character.weaknesses ? <Edit className="w-4 h-4" /> : <><PlusCircle className="mr-2 h-4 w-4" /> Добавить</>}
-                                        </Button>
+                                </AccordionItem>
+                            )}
+
+                             {(character.weaknesses || isOwnerOrAdmin) && (
+                                <AccordionItem value="weaknesses" className="border-b-0 rounded-lg bg-card shadow-sm">
+                                    <AccordionTrigger className="w-full hover:no-underline p-4">
+                                        <div className="flex justify-between items-center w-full">
+                                            <CardTitle className="flex items-center gap-2 text-lg"><ShieldOff /> Слабости</CardTitle>
+                                            <div className="flex items-center">
+                                                {isOwnerOrAdmin && (
+                                                    <Button variant={character.weaknesses ? "ghost" : "outline-dashed"} size={character.weaknesses ? "icon" : "sm"} onClick={(e) => { e.stopPropagation(); setEditingState({ type: 'section', section: "weaknesses"})}} className="shrink-0 h-8 w-8">
+                                                        {character.weaknesses ? <Edit className="w-4 h-4" /> : <><PlusCircle className="mr-2 h-4 w-4" /> Добавить</>}
+                                                    </Button>
+                                                )}
+                                                <ChevronDown className="h-5 w-5 shrink-0 transition-transform duration-200 ml-2 group-data-[state=open]:rotate-180" />
+                                            </div>
+                                        </div>
+                                    </AccordionTrigger>
+                                    {character.weaknesses && (
+                                        <AccordionContent className="p-6 pt-0">
+                                            <ScrollArea className="h-40 w-full">
+                                                <div className="pr-4"><FormattedTextRenderer text={character.weaknesses} /></div>
+                                            </ScrollArea>
+                                        </AccordionContent>
                                     )}
-                                </CardHeader>
-                                {character.weaknesses && (
-                                    <CardContent>
-                                        <ScrollArea className="h-40 w-full">
-                                            <div className="pr-4"><FormattedTextRenderer text={character.weaknesses} /></div>
-                                        </ScrollArea>
-                                    </CardContent>
-                                )}
-                            </Card>
-                        )}
+                                </AccordionItem>
+                            )}
+                        </Accordion>
                         
                         <Card>
                             <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -863,7 +881,14 @@ export default function CharacterPage() {
                         {currentUser && currentUser.id !== owner.id && <RelationshipActions targetCharacter={character} />}
 
                         <Card>
-                            <SectionHeader title="Семейное положение" icon={<Users />} section="marriage" />
+                            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                <CardTitle className="flex items-center gap-2"><Users /> Семейное положение</CardTitle>
+                                {isOwnerOrAdmin && (
+                                     <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'section', section: 'marriage' })} className="shrink-0 h-8 w-8 self-start sm:self-center">
+                                        <Edit className="w-4 h-4" />
+                                    </Button>
+                                )}
+                            </CardHeader>
                             <CardContent>
                                 <div className="space-y-1">
                                     <span className="text-sm">В браке с:</span>
