@@ -1139,8 +1139,8 @@ export default function CharacterPage() {
                 )}
             </Dialog>
             
-             <Dialog open={!!selectedGalleryImage} onOpenChange={() => setSelectedGalleryImage(null)}>
-                <DialogContent className="p-0 bg-transparent border-none shadow-none max-w-4xl">
+            <Dialog open={!!selectedGalleryImage} onOpenChange={() => setSelectedGalleryImage(null)}>
+                <DialogContent className="p-0 bg-transparent border-none w-[90vw] sm:w-auto max-w-sm shadow-none">
                      <DialogTitle className="sr-only">Увеличенное изображение</DialogTitle>
                      {selectedGalleryImage && (
                         <div className="relative aspect-video">
