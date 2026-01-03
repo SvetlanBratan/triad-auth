@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -1104,14 +1105,14 @@ export default function CharacterPage() {
             
             <Dialog open={!!selectedItem} onOpenChange={(isOpen) => !isOpen && setSelectedItem(null)}>
                 {selectedItem && (
-                    <DialogContent className="max-w-xl">
+                    <DialogContent className="max-w-xl p-0 sm:p-6">
                         <div className="grid md:grid-cols-2 gap-6 items-start">
                             {selectedItem.image && (
-                                <div className="relative w-full h-80 bg-muted rounded-md overflow-hidden">
+                                <div className="relative w-full h-80 bg-muted rounded-t-lg sm:rounded-md overflow-hidden">
                                     <Image src={selectedItem.image} alt={selectedItem.name} fill style={{objectFit: "contain"}} data-ai-hint="inventory item" />
                                 </div>
                             )}
-                            <div className={cn("flex flex-col h-full", !selectedItem.image && "md:col-span-2")}>
+                            <div className={cn("flex flex-col h-full p-6", !selectedItem.image && "md:col-span-2")}>
                                 <DialogHeader className="flex-grow">
                                     <DialogTitle>{selectedItem.name}</DialogTitle>
                                     <ScrollArea className="max-h-64 pr-4 mt-2">
