@@ -1,5 +1,6 @@
 
 
+
 export type UserRole = "admin" | "user";
 export type UserStatus = "активный" | "неактивный" | "отпуск";
 export type RewardRequestStatus = "в ожидании" | "одобрено" | "отклонено";
@@ -247,6 +248,12 @@ export interface PopularityLog {
   amount: number;
 }
 
+export interface GalleryImage {
+  id: string;
+  url: string;
+  taggedCharacterIds?: string[];
+}
+
 export interface Character {
   id: string;
   name: string;
@@ -284,7 +291,7 @@ export interface Character {
   criminalRecords?: string;
   popularity: number;
   popularityHistory: PopularityLog[];
-  galleryImages?: string[];
+  galleryImages?: GalleryImage[];
   bannerImage?: string;
   // Deprecated fields, kept for migration
   skillLevels?: CharacterLevel[];

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -730,11 +731,11 @@ export default function CharacterPage() {
                             <CardContent>
                                 {character.galleryImages && character.galleryImages.length > 0 ? (
                                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                        {character.galleryImages.map((imgUrl, index) => (
-                                            <button key={index} className="relative aspect-square" onClick={() => setSelectedGalleryImage(imgUrl)}>
+                                        {character.galleryImages.map((img) => (
+                                            <button key={img.id} className="relative aspect-square" onClick={() => setSelectedGalleryImage(img.url)}>
                                                 <Image
-                                                    src={imgUrl}
-                                                    alt={`Gallery image ${index + 1}`}
+                                                    src={img.url}
+                                                    alt={`Gallery image ${img.id}`}
                                                     fill
                                                     style={{ objectFit: 'cover' }}
                                                     className="rounded-lg"
@@ -1129,4 +1130,5 @@ export default function CharacterPage() {
         </div>
     );
 }
+
 

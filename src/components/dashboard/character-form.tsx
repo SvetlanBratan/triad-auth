@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import type { Character, User, Accomplishment, Relationship, RelationshipType, CrimeLevel, CitizenshipStatus, Inventory } from '@/lib/types';
+import type { Character, User, Accomplishment, Relationship, RelationshipType, CrimeLevel, CitizenshipStatus, Inventory, GalleryImage } from '@/lib/types';
 import { SKILL_LEVELS, FAME_LEVELS, TRAINING_OPTIONS, CRIME_LEVELS, COUNTRIES } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { DialogClose, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '../ui/textarea';
 import { ScrollArea } from '../ui/scroll-area';
-import { Trash2 } from 'lucide-react';
+import { Trash2, PlusCircle } from 'lucide-react';
 import { SearchableSelect } from '../ui/searchable-select';
 import ImageUploader from './image-uploader';
 import { SearchableMultiSelect } from '../ui/searchable-multi-select';
@@ -199,7 +199,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                     relationships: (Array.isArray(character.relationships) ? character.relationships : []).map(r => ({...r, id: r.id || `rel-${Math.random()}`})),
                     bankAccount: character.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] },
                     wealthLevel: character.wealthLevel || 'Бедный',
-                    galleryImages: character.galleryImages || [],
+                    galleryImages: (character.galleryImages || []).map(img => ({...img, id: img.id || `img-${Math.random()}`})),
                 };
                 setFormData(initializedCharacter);
             }
@@ -221,34 +221,50 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
 
     const characterOptions = React.useMemo(() => {
         if (!allUsers) return [];
-        const currentRelationshipIds = new Set<string>((formData.relationships || []).map(r => r.targetCharacterId));
+        const existingTargetIds = new Set<string>();
 
-        if (editingState?.type === 'relationship' && editingState.mode === 'edit') {
-            currentRelationshipIds.delete(editingState.relationship.targetCharacterId);
+        if (editingState?.type === 'relationship') {
+            // Get all relationships except the one being currently edited
+            (formData.relationships || []).forEach(r => {
+                if (editingState.mode === 'add' || (editingState.mode === 'edit' && r.id !== editingState.relationship.id)) {
+                    existingTargetIds.add(r.targetCharacterId);
+                }
+            });
         }
 
         return allUsers.flatMap(user =>
             user.characters
-                .filter(c => c.id !== formData.id && !currentRelationshipIds.has(c.id)) // Cannot have relationship with self or existing ones
+                .filter(c => c.id !== formData.id && !existingTargetIds.has(c.id))
                 .map(c => ({
                     value: c.id,
                     label: `${c.name} (${user.name})`
                 }))
         );
     }, [allUsers, formData.id, formData.relationships, editingState]);
+    
+    const allCharacterOptionsForGallery = React.useMemo(() => {
+        return allUsers.flatMap(user =>
+            user.characters.map(c => ({
+                value: c.id,
+                label: `${c.name} (${user.name})`
+            }))
+        );
+    }, [allUsers]);
+
 
     const handleFieldChange = (field: keyof Character, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
     
-    const handleGalleryImageChange = (index: number, value: string) => {
+    const handleGalleryImageChange = (index: number, field: keyof GalleryImage, value: any) => {
         const newImages = [...(formData.galleryImages || [])];
-        newImages[index] = value;
+        (newImages[index] as any)[field] = value;
         handleFieldChange('galleryImages', newImages);
     };
 
     const addGalleryImageField = () => {
-        handleFieldChange('galleryImages', [...(formData.galleryImages || []), '']);
+        const newImage: GalleryImage = { id: `img-${Date.now()}`, url: '', taggedCharacterIds: [] };
+        handleFieldChange('galleryImages', [...(formData.galleryImages || []), newImage]);
     };
 
     const removeGalleryImageField = (index: number) => {
@@ -455,20 +471,31 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                     case 'gallery': return (
                         <div className="space-y-6">
                             <div>
-                                <Label htmlFor="bannerImage">URL Баннера (1200x200)</Label>
-                                <Input id="bannerImage" value={formData.bannerImage ?? ''} onChange={(e) => handleFieldChange('bannerImage', e.target.value)} placeholder="https://..."/>
+                                <Label>URL Баннера</Label>
+                                <Input value={formData.bannerImage ?? ''} onChange={(e) => handleFieldChange('bannerImage', e.target.value)} placeholder="https://..."/>
                             </div>
                             <div className="space-y-4">
-                                <Label>URL изображений для галереи</Label>
-                                {(formData.galleryImages || []).map((url, index) => (
-                                    <div key={index} className="flex items-center gap-2">
-                                        <Input value={url} onChange={(e) => handleGalleryImageChange(index, e.target.value)} placeholder="https://..."/>
-                                        <Button type="button" variant="ghost" size="icon" onClick={() => removeGalleryImageField(index)}>
-                                            <Trash2 className="w-4 h-4 text-destructive"/>
-                                        </Button>
+                                <Label>Изображения для галереи</Label>
+                                {(formData.galleryImages || []).map((image, index) => (
+                                    <div key={image.id} className="flex flex-col gap-2 p-3 border rounded-md">
+                                        <div className="flex items-center gap-2">
+                                            <Input value={image.url} onChange={(e) => handleGalleryImageChange(index, 'url', e.target.value)} placeholder="URL изображения..."/>
+                                            <Button type="button" variant="ghost" size="icon" onClick={() => removeGalleryImageField(index)}>
+                                                <Trash2 className="w-4 h-4 text-destructive"/>
+                                            </Button>
+                                        </div>
+                                         <div>
+                                            <Label className="text-xs text-muted-foreground">Отмеченные персонажи</Label>
+                                            <SearchableMultiSelect
+                                                placeholder="Выберите персонажей..."
+                                                options={allCharacterOptionsForGallery}
+                                                selected={image.taggedCharacterIds || []}
+                                                onChange={(v) => handleGalleryImageChange(index, 'taggedCharacterIds', v)}
+                                            />
+                                        </div>
                                     </div>
                                 ))}
-                                <Button type="button" variant="outline" size="sm" onClick={addGalleryImageField}>Добавить URL</Button>
+                                <Button type="button" variant="outline" size="sm" onClick={addGalleryImageField}>Добавить изображение</Button>
                             </div>
                         </div>
                     );
