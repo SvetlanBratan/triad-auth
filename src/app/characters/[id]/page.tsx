@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -1142,7 +1140,7 @@ export default function CharacterPage() {
             
              <Dialog open={!!selectedGalleryImage} onOpenChange={() => setSelectedGalleryImage(null)}>
                 {selectedGalleryImage && (
-                    <DialogContent className="max-w-4xl p-2">
+                    <DialogContent className="max-w-4xl p-0">
                          <DialogTitle className="sr-only">Увеличенное изображение</DialogTitle>
                         <div className="relative aspect-video">
                             <Image 
