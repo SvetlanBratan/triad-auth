@@ -427,7 +427,7 @@ export default function CharacterPage() {
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                            onClick={()={() => setEditingState({ type: 'field', section, field })}
+                            onClick={() => setEditingState({ type: 'field', section, field })}
                         >
                             {isEmpty ? <PlusCircle className="w-4 h-4 text-muted-foreground" /> : <Edit className="w-4 h-4" />}
                         </Button>
@@ -657,7 +657,7 @@ export default function CharacterPage() {
                 </AccordionItem>
             </Accordion>
             
-            {combinedGallery.length > 0 && (
+            {(isMobile || combinedGallery.length > 0) && (
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
                         <CardTitle className="flex items-center gap-2"><Camera /> Колдоснимки</CardTitle>
@@ -668,22 +668,26 @@ export default function CharacterPage() {
                         )}
                     </CardHeader>
                     <CardContent>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                            {combinedGallery.map((img, index) => {
-                                if (!img || !img.url) return null;
-                                return (
-                                    <button key={img.id || index} className="relative aspect-square" onClick={() => setSelectedGalleryImage(img.url)}>
-                                        <Image
-                                            src={img.url}
-                                            alt={`Gallery image ${img.id}`}
-                                            fill
-                                            style={{ objectFit: 'cover' }}
-                                            className="rounded-lg"
-                                        />
-                                    </button>
-                                )
-                            })}
-                        </div>
+                         {combinedGallery.length > 0 ? (
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                {combinedGallery.map((img, index) => {
+                                    if (!img || !img.url) return null;
+                                    return (
+                                        <button key={img.id || index} className="relative aspect-square" onClick={() => setSelectedGalleryImage(img.url)}>
+                                            <Image
+                                                src={img.url}
+                                                alt={`Gallery image ${img.id}`}
+                                                fill
+                                                style={{ objectFit: 'cover' }}
+                                                className="rounded-lg"
+                                            />
+                                        </button>
+                                    )
+                                })}
+                            </div>
+                        ) : (
+                             <p className="text-sm text-muted-foreground text-center py-4">В галерее пока нет изображений.</p>
+                        )}
                     </CardContent>
                 </Card>
             )}
