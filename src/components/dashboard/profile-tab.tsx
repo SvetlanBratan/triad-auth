@@ -91,7 +91,7 @@ const CharacterDisplay = ({ character, onDelete }: { character: Character, onDel
              <div className="flex justify-between items-center w-full">
                  <AccordionTrigger className="flex-1 py-3 hover:no-underline group">
                    <div className="flex items-center gap-3">
-                        <UserSquare className="w-8 h-8 text-primary" />
+                        <CustomIcon src="/icons/character.svg" className="w-8 h-8 icon-primary" />
                         <div>
                             <div className="flex items-center gap-2 flex-wrap">
                                 <Link href={`/characters/${character.id}`} className="font-bold text-base hover:underline" onClick={e => e.stopPropagation()}>{character.name}</Link>
