@@ -553,8 +553,8 @@ export default function CharacterPage() {
                                             <CardTitle className="flex items-center gap-2 text-lg"><Zap /> Способности</CardTitle>
                                         </AccordionTrigger>
                                         {isOwnerOrAdmin && (
-                                            <Button variant={character.abilities ? "ghost" : "outline-dashed"} size={character.abilities ? "icon" : "sm"} onClick={() => setEditingState({type: 'section', section: "abilities"})} className="shrink-0 h-8 w-8 ml-2">
-                                                {character.abilities ? <Edit className="w-4 h-4" /> : <><PlusCircle className="mr-2 h-4 w-4" /> Добавить</>}
+                                            <Button variant={character.abilities ? "ghost" : "outline-dashed"} size="icon" onClick={() => setEditingState({type: 'section', section: "abilities"})} className="shrink-0 h-8 w-8 ml-2">
+                                                {character.abilities ? <Edit className="w-4 h-4" /> : <PlusCircle className="h-4 w-4" />}
                                             </Button>
                                         )}
                                     </div>
@@ -575,8 +575,8 @@ export default function CharacterPage() {
                                             <CardTitle className="flex items-center gap-2 text-lg"><ShieldOff /> Слабости</CardTitle>
                                         </AccordionTrigger>
                                         {isOwnerOrAdmin && (
-                                            <Button variant={character.weaknesses ? "ghost" : "outline-dashed"} size={character.weaknesses ? "icon" : "sm"} onClick={() => setEditingState({ type: 'section', section: "weaknesses"})} className="shrink-0 h-8 w-8 ml-2">
-                                                {character.weaknesses ? <Edit className="w-4 h-4" /> : <><PlusCircle className="mr-2 h-4 w-4" /> Добавить</>}
+                                            <Button variant={character.weaknesses ? "ghost" : "outline-dashed"} size="icon" onClick={() => setEditingState({ type: 'section', section: "weaknesses"})} className="shrink-0 h-8 w-8 ml-2">
+                                                {character.weaknesses ? <Edit className="w-4 h-4" /> : <PlusCircle className="h-4 w-4" />}
                                             </Button>
                                         )}
                                     </div>
