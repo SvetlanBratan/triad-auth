@@ -526,7 +526,7 @@ export default function CharacterPage() {
                             src={character.bannerImage}
                             alt={`${character.name} banner`}
                             fill
-                            style={{ objectFit: 'contain' }}
+                            style={{ objectFit: 'cover' }}
                             className="bg-muted/30"
                             data-ai-hint="character banner"
                         />
@@ -541,7 +541,7 @@ export default function CharacterPage() {
                 <div className="flex flex-col lg:flex-row gap-6">
                     {/* Main Content Column (Left on Large Screens) */}
                     <div className="w-full lg:w-2/3 space-y-6 order-2 lg:order-1">
-                         <Accordion type="multiple" className="w-full space-y-6" defaultValue={["appearance", "personality", "biography", "relationships", "additional"]}>
+                         <Accordion type="multiple" className="w-full space-y-6">
                             <AccordionItem value="appearance" className="border-b-0 rounded-lg bg-card shadow-sm">
                                 <SectionTrigger title="Внешность" icon={<PersonStanding />} section="appearance" />
                                 <AccordionContent className="p-6 pt-0">
@@ -1143,7 +1143,7 @@ export default function CharacterPage() {
              <Dialog open={!!selectedGalleryImage} onOpenChange={() => setSelectedGalleryImage(null)}>
                 {selectedGalleryImage && (
                     <DialogContent className="max-w-4xl p-2">
-                        <DialogTitle className="sr-only">Увеличенное изображение</DialogTitle>
+                         <DialogTitle className="sr-only">Увеличенное изображение</DialogTitle>
                         <div className="relative aspect-video">
                             <Image 
                                 src={selectedGalleryImage} 
