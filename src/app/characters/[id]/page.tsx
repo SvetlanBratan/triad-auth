@@ -373,7 +373,7 @@ export default function CharacterPage() {
     });
     
     const isBlessed = character.blessingExpires && new Date(character.blessingExpires) > new Date();
-    const activeMoodlets = (character.moodlets || []).filter(m => new Date(m.expiresAt) > a new Date());
+    const activeMoodlets = (character.moodlets || []).filter(m => new Date(m.expiresAt) > new Date());
     const age = gameDate ? calculateAge(character.birthDate, gameDate) : null;
     const canViewHistory = isOwnerOrAdmin;
     const accomplishments = character.accomplishments || [];
