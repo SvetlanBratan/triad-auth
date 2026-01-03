@@ -21,7 +21,8 @@ import { Switch } from '../ui/switch';
 export type EditableSection = 
     | 'appearance' | 'personality' 
     | 'biography' | 'abilities' | 'weaknesses' | 'marriage' 
-    | 'training' | 'lifeGoal' | 'diary' | 'criminalRecords' | 'mainInfo';
+    | 'training' | 'lifeGoal' | 'diary' | 'criminalRecords' | 'mainInfo'
+    | 'banner' | 'gallery';
 
 export type EditingState = {
     type: 'section',
@@ -113,6 +114,8 @@ const initialFormData: Omit<Character, 'id'> = {
     popularity: 0,
     popularityHistory: [],
     pets: '',
+    galleryImages: [],
+    bannerImage: '',
 };
 
 const fameLevelOptions = FAME_LEVELS.map(level => ({ value: level, label: level }));
@@ -137,6 +140,8 @@ const SectionTitles: Record<EditableSection, string> = {
     lifeGoal: 'Жизненная цель',
     diary: 'Личный дневник',
     criminalRecords: 'Судимости',
+    banner: 'Баннер',
+    gallery: 'Галерея',
 };
 
 const FieldLabels: Partial<Record<keyof Character, string>> = {
@@ -197,6 +202,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                     relationships: (Array.isArray(character.relationships) ? character.relationships : []).map(r => ({...r, id: r.id || `rel-${Math.random()}`})),
                     bankAccount: character.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] },
                     wealthLevel: character.wealthLevel || 'Бедный',
+                    galleryImages: character.galleryImages || [],
                 };
                 setFormData(initializedCharacter);
             }
@@ -237,6 +243,21 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
     const handleFieldChange = (field: keyof Character, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
+    
+    const handleGalleryImageChange = (index: number, value: string) => {
+        const newImages = [...(formData.galleryImages || [])];
+        newImages[index] = value;
+        handleFieldChange('galleryImages', newImages);
+    };
+
+    const addGalleryImageField = () => {
+        handleFieldChange('galleryImages', [...(formData.galleryImages || []), '']);
+    };
+
+    const removeGalleryImageField = (index: number) => {
+        handleFieldChange('galleryImages', (formData.galleryImages || []).filter((_, i) => i !== index));
+    };
+
 
     const handleMultiSelectChange = (id: 'marriedTo' | 'training', values: string[]) => {
         setFormData(prev => ({ ...prev, [id]: values }));
@@ -434,6 +455,22 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                     case 'lifeGoal': return <div><Label htmlFor="lifeGoal">Жизненная цель</Label><Textarea id="lifeGoal" value={formData.lifeGoal ?? ''} onChange={(e) => handleFieldChange('lifeGoal', e.target.value)} rows={4} placeholder="Какова главная цель или мечта вашего персонажа?"/></div>;
                     case 'criminalRecords': return <div><Label htmlFor="criminalRecords">Судимости</Label><Textarea id="criminalRecords" value={formData.criminalRecords ?? ''} onChange={(e) => handleFieldChange('criminalRecords', e.target.value)} rows={4} placeholder="Опишите судимости персонажа."/></div>;
                     case 'diary': return <div><Label htmlFor="diary">Личный дневник</Label><Textarea id="diary" value={formData.diary ?? ''} onChange={(e) => handleFieldChange('diary', e.target.value)} rows={8} placeholder="Здесь можно вести записи от лица персонажа. Этот раздел виден только вам и администраторам."/></div>;
+                    case 'banner': return <div><Label htmlFor="bannerImage">URL Баннера</Label><Input id="bannerImage" value={formData.bannerImage ?? ''} onChange={(e) => handleFieldChange('bannerImage', e.target.value)} placeholder="https://..."/></div>;
+                    case 'gallery': return (
+                        <div className="space-y-4">
+                            <Label>URL изображений для галереи</Label>
+                            {(formData.galleryImages || []).map((url, index) => (
+                                <div key={index} className="flex items-center gap-2">
+                                    <Input value={url} onChange={(e) => handleGalleryImageChange(index, e.target.value)} placeholder="https://..."/>
+                                    <Button type="button" variant="ghost" size="icon" onClick={() => removeGalleryImageField(index)}>
+                                        <Trash2 className="w-4 h-4 text-destructive"/>
+                                    </Button>
+                                </div>
+                            ))}
+                             <Button type="button" variant="outline" size="sm" onClick={addGalleryImageField}>Добавить URL</Button>
+                        </div>
+                    );
+
                     default: return <p>Неизвестная секция для редактирования.</p>;
                 }
 
