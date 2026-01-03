@@ -120,6 +120,9 @@ body {
   :root .icon-primary {
     background-color: hsl(270 50% 20%);
   }
+  .dark .icon-primary {
+    background-color: hsl(270 30% 75%);
+  }
   .icon-black {
     background-color: #000;
   }
