@@ -512,7 +512,7 @@ export default function CharacterPage() {
                 <div className="flex flex-col lg:flex-row gap-6">
                     {/* Main Content Column (Left on Large Screens) */}
                     <div className="w-full lg:w-2/3 space-y-6 order-2 lg:order-1">
-                         <Accordion type="multiple" className="w-full space-y-6" collapsible>
+                         <Accordion type="multiple" className="w-full space-y-6">
                             <AccordionItem value="appearance" className="border-b-0 rounded-lg bg-card shadow-sm">
                                 <SectionTrigger title="Внешность" icon={<PersonStanding />} section="appearance" />
                                 <AccordionContent className="p-6 pt-0">
@@ -717,7 +717,7 @@ export default function CharacterPage() {
                             </CardContent>
                         </Card>
 
-                        <Accordion type="multiple" className="w-full space-y-6" collapsible>
+                        <Accordion type="multiple" className="w-full space-y-6">
                             <AccordionItem value="gallery" className="border-b-0 rounded-lg bg-card shadow-sm">
                                 <SectionTrigger title="Галерея" icon={<Camera />} section="gallery" />
                                 <AccordionContent className="p-6 pt-0">
