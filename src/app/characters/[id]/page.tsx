@@ -642,8 +642,8 @@ export default function CharacterPage() {
                                         <CardTitle className="flex items-center gap-2 text-lg"><HeartHandshake /> Отношения</CardTitle>
                                     </AccordionTrigger>
                                     {isOwnerOrAdmin && (
-                                        <Button variant="outline-dashed" size="sm" onClick={(e) => { e.stopPropagation(); setEditingState({ type: 'relationship', mode: 'add' })}} className="shrink-0 self-center ml-2">
-                                            <PlusCircle className="mr-2 h-4 w-4" /> Добавить
+                                        <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setEditingState({ type: 'relationship', mode: 'add' })}} className="shrink-0 self-center ml-2 h-8 w-8">
+                                            <PlusCircle className="h-4 w-4" />
                                         </Button>
                                     )}
                                 </div>
@@ -853,8 +853,8 @@ export default function CharacterPage() {
                                          <CardTitle className="flex items-center gap-2 text-lg"><Award /> Достижения</CardTitle>
                                     </AccordionTrigger>
                                     {isOwnerOrAdmin && (
-                                        <Button variant="outline-dashed" size="sm" onClick={(e) => { e.stopPropagation(); setEditingState({ type: 'accomplishment', mode: 'add' })}} className="shrink-0 self-center ml-2">
-                                            <PlusCircle className="mr-2 h-4 w-4" /> Добавить
+                                        <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setEditingState({ type: 'accomplishment', mode: 'add' })}} className="shrink-0 self-center ml-2 h-8 w-8">
+                                            <PlusCircle className="h-4 w-4" />
                                         </Button>
                                     )}
                                 </div>
