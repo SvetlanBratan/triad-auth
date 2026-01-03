@@ -373,7 +373,7 @@ export default function CharacterPage() {
     });
     
     const isBlessed = character.blessingExpires && new Date(character.blessingExpires) > new Date();
-    const activeMoodlets = (character.moodlets || []).filter(m => new Date(m.expiresAt) > new Date());
+    const activeMoodlets = (character.moodlets || []).filter(m => new Date(m.expiresAt) > a new Date());
     const age = gameDate ? calculateAge(character.birthDate, gameDate) : null;
     const canViewHistory = isOwnerOrAdmin;
     const accomplishments = character.accomplishments || [];
@@ -731,8 +731,8 @@ export default function CharacterPage() {
                             <CardContent>
                                 {character.galleryImages && character.galleryImages.length > 0 ? (
                                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                        {character.galleryImages.map((img) => (
-                                            <button key={img.id} className="relative aspect-square" onClick={() => setSelectedGalleryImage(img.url)}>
+                                        {character.galleryImages.map((img, index) => (
+                                            <button key={img.id || index} className="relative aspect-square" onClick={() => setSelectedGalleryImage(img.url)}>
                                                 <Image
                                                     src={img.url}
                                                     alt={`Gallery image ${img.id}`}
@@ -1132,3 +1132,5 @@ export default function CharacterPage() {
 }
 
 
+
+    
