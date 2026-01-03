@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -695,7 +696,7 @@ export default function CharacterPage() {
     );
 
     const renderRelationships = () => (
-         <Accordion type="multiple" className="w-full space-y-6" defaultValue={['relationships']}>
+         <Accordion type="multiple" className="w-full space-y-6">
                 <AccordionItem value="relationships" className="border-b-0 rounded-lg bg-card shadow-sm">
                 <div className="flex justify-between items-center w-full p-4">
                     <AccordionTrigger className="flex-1 hover:no-underline p-0">
@@ -1307,5 +1308,7 @@ export default function CharacterPage() {
         </div>
     );
 }
+
+    
 
     
