@@ -1,26 +1,27 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
+    dangerouslyAllowSVG: true,
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'res.cloudinary.com',
+        hostname: '**.cloudinary.com',
       },
       {
         protocol: 'https',
-        hostname: 'placehold.co',
+        hostname: '**.placehold.co',
       },
       {
         protocol: 'https',
-        hostname: 'i.postimg.cc',
+        hostname: '**.postimg.cc',
       },
       {
         protocol: 'https',
-        hostname: 'framerusercontent.com',
+        hostname: '**.framerusercontent.com',
       },
       {
         protocol: 'https',
-        hostname: 'ik.imagekit.io',
+        hostname: '**.imagekit.io',
       },
     ],
   },
