@@ -1140,9 +1140,9 @@ export default function CharacterPage() {
             </Dialog>
             
              <Dialog open={!!selectedGalleryImage} onOpenChange={() => setSelectedGalleryImage(null)}>
-                {selectedGalleryImage && (
-                    <DialogContent className="p-0 bg-transparent border-none shadow-none">
-                         <DialogTitle className="sr-only">Увеличенное изображение</DialogTitle>
+                <DialogContent className="p-0 bg-transparent border-none shadow-none max-w-4xl">
+                     <DialogTitle className="sr-only">Увеличенное изображение</DialogTitle>
+                     {selectedGalleryImage && (
                         <div className="relative aspect-video">
                             <Image 
                                 src={selectedGalleryImage} 
@@ -1151,8 +1151,8 @@ export default function CharacterPage() {
                                 style={{objectFit: 'contain'}} 
                             />
                         </div>
-                    </DialogContent>
-                )}
+                     )}
+                </DialogContent>
             </Dialog>
 
 
