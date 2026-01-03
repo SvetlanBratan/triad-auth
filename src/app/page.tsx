@@ -20,13 +20,13 @@ export default function Home() {
                 style={{ objectFit: 'cover' }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-            <header className="absolute inset-0 w-full p-4 md:p-6 flex justify-between items-start">
-                <div className="absolute bottom-4 left-4 md:relative md:bottom-auto md:left-auto bg-background/60 backdrop-blur-sm p-3 rounded-md">
-                    <Link href="https://pumpkin-pandemonium.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-xl md:text-2xl font-bold font-headline text-primary hover:underline">
+            <header className="absolute inset-0 w-full p-4 md:p-6 flex flex-col md:flex-row justify-end md:justify-between items-end md:items-start gap-4">
+                <div className="md:bg-background/60 md:backdrop-blur-sm p-3 rounded-md">
+                    <Link href="https://pumpkin-pandemonium.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-xl md:text-2xl font-bold font-headline text-primary hover:underline bg-background/60 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none p-3 rounded-md md:p-0">
                         Тыквенный Переполох
                     </Link>
                 </div>
-                <div className="absolute top-4 right-4 md:relative md:top-auto md:right-auto flex items-center gap-2 bg-background/60 backdrop-blur-sm p-2 rounded-md">
+                <div className="flex items-center gap-2 bg-background/60 backdrop-blur-sm p-2 rounded-md">
                     <UserSwitcher />
                     <ThemeToggle />
                 </div>
