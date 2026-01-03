@@ -24,7 +24,7 @@ export default function Home() {
       <div className="w-full max-w-7xl space-y-6">
         <div className="relative w-full h-40 md:h-56 rounded-lg overflow-hidden">
             <Image
-                src="/banner.png"
+                src="https://framerusercontent.com/images/3O9y1S1n63sAsH3VnZe2tGfO4.jpg"
                 alt="Кабинет игрока"
                 fill
                 priority
