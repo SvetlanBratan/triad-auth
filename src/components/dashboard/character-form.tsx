@@ -199,7 +199,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                     relationships: (Array.isArray(character.relationships) ? character.relationships : []).map(r => ({...r, id: r.id || `rel-${Math.random()}`})),
                     bankAccount: character.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] },
                     wealthLevel: character.wealthLevel || 'Бедный',
-                    galleryImages: (character.galleryImages || []).map(img => ({...img, id: img.id || `img-${Math.random()}`})),
+                    galleryImages: (character.galleryImages || []).map(img => ({...img, id: img.id || `img-${Date.now()}-${Math.random()}`})),
                 };
                 setFormData(initializedCharacter);
             }
@@ -263,7 +263,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
     };
 
     const addGalleryImageField = () => {
-        const newImage: GalleryImage = { id: `img-${Date.now()}`, url: '', taggedCharacterIds: [] };
+        const newImage: GalleryImage = { id: `img-${Date.now()}-${Math.random()}`, url: '', taggedCharacterIds: [] };
         handleFieldChange('galleryImages', [...(formData.galleryImages || []), newImage]);
     };
 
@@ -647,3 +647,5 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
 };
 
 export default CharacterForm;
+
+    
