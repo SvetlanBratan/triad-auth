@@ -20,13 +20,13 @@ export default function Home() {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
             <header className="absolute inset-0 w-full p-4 md:p-6 flex justify-between items-start">
-                <div className="bg-background/80 backdrop-blur-sm p-3 rounded-md">
+                <div className="bg-background/60 backdrop-blur-sm p-3 rounded-md">
                     <h1 className="text-xl md:text-2xl font-bold font-headline text-primary">
                         Личный кабинет
                     </h1>
                     <p className="text-muted-foreground text-sm">Получайте баллы и обменивайте их на награды</p>
                 </div>
-                <div className="flex items-center gap-2 bg-background/80 backdrop-blur-sm p-2 rounded-md">
+                <div className="flex items-center gap-2 bg-background/60 backdrop-blur-sm p-2 rounded-md">
                     <UserSwitcher />
                     <ThemeToggle />
                 </div>
