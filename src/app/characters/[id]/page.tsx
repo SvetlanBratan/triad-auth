@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -1109,20 +1110,23 @@ export default function CharacterPage() {
             </Dialog>
             
              <Dialog open={!!selectedGalleryImage} onOpenChange={() => setSelectedGalleryImage(null)}>
-                <DialogContent className="max-w-4xl p-2">
-                    <DialogTitle className="sr-only">Увеличенное изображение</DialogTitle>
-                    <div className="relative aspect-video">
-                        <Image 
-                            src={selectedGalleryImage || ''} 
-                            alt="Увеличенное изображение из галереи" 
-                            fill 
-                            style={{objectFit: 'contain'}} 
-                        />
-                    </div>
-                </DialogContent>
+                {selectedGalleryImage && (
+                    <DialogContent className="max-w-4xl p-2">
+                        <DialogTitle className="sr-only">Увеличенное изображение</DialogTitle>
+                        <div className="relative aspect-video">
+                            <Image 
+                                src={selectedGalleryImage} 
+                                alt="Увеличенное изображение из галереи" 
+                                fill 
+                                style={{objectFit: 'contain'}} 
+                            />
+                        </div>
+                    </DialogContent>
+                )}
             </Dialog>
 
 
         </div>
     );
 }
+
