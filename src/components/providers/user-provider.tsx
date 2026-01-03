@@ -261,19 +261,88 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     await deleteDoc(familiarRef);
     await fetchAndCombineFamiliars();
   }, [fetchAndCombineFamiliars]);
+  
+  const initialFormData: Omit<Character, 'id'> = useMemo(() => ({
+    name: '',
+    activity: '',
+    race: '',
+    birthDate: '',
+    accomplishments: [],
+    workLocation: '',
+    factions: '',
+    appearance: '',
+    personality: '',
+    biography: '',
+    biographyIsHidden: false,
+    diary: '',
+    training: [],
+    relationships: [],
+    marriedTo: [],
+    abilities: '',
+    weaknesses: '',
+    lifeGoal: '',
+    criminalRecords: '',
+    familiarCards: [],
+    moodlets: [],
+    inventory: defaultInventory,
+    bankAccount: { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] },
+    wealthLevel: 'Бедный',
+    crimeLevel: 5,
+    countryOfResidence: '',
+    residenceLocation: '',
+    citizenshipStatus: 'non-citizen',
+    taxpayerStatus: 'taxable',
+    popularity: 0,
+    popularityHistory: [],
+  }), []);
 
+  const processUserDoc = useCallback((userDoc: User) => {
+    const userData = { ...userDoc };
+    userData.characters = userData.characters?.map(char => {
+         const processedChar = {
+             ...initialFormData,
+             ...char,
+             inventory: { ...defaultInventory, ...(char.inventory || {}) },
+             familiarCards: char.familiarCards || [],
+             crimeLevel: char.crimeLevel ?? 5, 
+             bankAccount:
+               typeof char.bankAccount !== 'object' || char.bankAccount === null
+                 ? { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] }
+                 : {
+                     platinum: char.bankAccount.platinum ?? 0,
+                     gold: char.bankAccount.gold ?? 0,
+                     silver: char.bankAccount.silver ?? 0,
+                     copper: char.bankAccount.copper ?? 0,
+                     history: Array.isArray(char.bankAccount.history) ? char.bankAccount.history : []
+                   },
+             accomplishments: char.accomplishments || [],
+             training: Array.isArray(char.training) ? char.training : [],
+             marriedTo: Array.isArray(char.marriedTo) ? char.marriedTo : [],
+             relationships: (Array.isArray(char.relationships) ? char.relationships : []).map(r => ({ ...r, id: r.id || `rel-${Math.random()}` })),
+             moodlets: char.moodlets || [],
+             popularity: char.popularity ?? 0,
+             popularityHistory: char.popularityHistory || [],
+         };
+
+         return processedChar;
+     }) || [];
+    userData.achievementIds = userData.achievementIds || [];
+    userData.extraCharacterSlots = userData.extraCharacterSlots || 0;
+    userData.pointHistory = userData.pointHistory || [];
+    userData.mail = userData.mail || [];
+    return userData;
+  }, [initialFormData]);
 
   const fetchUsersForAdmin = useCallback(async (): Promise<User[]> => {
     try {
         const usersCollection = collection(db, "users");
         const userSnapshot = await getDocs(query(usersCollection, orderBy("points", "desc")));
-        const users = await Promise.all(userSnapshot.docs.map(doc => fetchUserById(doc.id)));
-        return users.filter((user): user is User => user !== null);
+        return userSnapshot.docs.map(doc => processUserDoc(doc.data() as User));
     } catch(error) {
         console.error("Error fetching users for admin.", error);
         throw error;
     }
-  }, []);
+  }, [processUserDoc]);
 
   const processWeeklyBonus = useCallback(async () => {
     const settingsRef = doc(db, 'game_settings', 'main');
@@ -362,81 +431,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     await fetchGameSettings();
   }, [fetchGameSettings]);
 
-  const initialFormData: Omit<Character, 'id'> = useMemo(() => ({
-    name: '',
-    activity: '',
-    race: '',
-    birthDate: '',
-    accomplishments: [],
-    workLocation: '',
-    factions: '',
-    appearance: '',
-    personality: '',
-    biography: '',
-    biographyIsHidden: false,
-    diary: '',
-    training: [],
-    relationships: [],
-    marriedTo: [],
-    abilities: '',
-    weaknesses: '',
-    lifeGoal: '',
-    criminalRecords: '',
-    familiarCards: [],
-    moodlets: [],
-    inventory: defaultInventory,
-    bankAccount: { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] },
-    wealthLevel: 'Бедный',
-    crimeLevel: 5,
-    countryOfResidence: '',
-    residenceLocation: '',
-    citizenshipStatus: 'non-citizen',
-    taxpayerStatus: 'taxable',
-    popularity: 0,
-    popularityHistory: [],
-  }), []);
-
   const fetchUserById = useCallback(async (userId: string): Promise<User | null> => {
       const userRef = doc(db, "users", userId);
       const docSnap = await getDoc(userRef);
       if (docSnap.exists()) {
-          const userData = docSnap.data() as User;
-           userData.characters = userData.characters?.map(char => {
-                const processedChar = {
-                    ...initialFormData,
-                    ...char,
-                    inventory: { ...defaultInventory, ...(char.inventory || {}) },
-                    familiarCards: char.familiarCards || [],
-                    crimeLevel: char.crimeLevel ?? 5, 
-                    bankAccount:
-                      typeof char.bankAccount !== 'object' || char.bankAccount === null
-                        ? { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] }
-                        : {
-                            platinum: char.bankAccount.platinum ?? 0,
-                            gold: char.bankAccount.gold ?? 0,
-                            silver: char.bankAccount.silver ?? 0,
-                            copper: char.bankAccount.copper ?? 0,
-                            history: Array.isArray(char.bankAccount.history) ? char.bankAccount.history : []
-                          },
-                    accomplishments: char.accomplishments || [],
-                    training: Array.isArray(char.training) ? char.training : [],
-                    marriedTo: Array.isArray(char.marriedTo) ? char.marriedTo : [],
-                    relationships: (Array.isArray(char.relationships) ? char.relationships : []).map(r => ({ ...r, id: r.id || `rel-${Math.random()}` })),
-                    moodlets: char.moodlets || [],
-                    popularity: char.popularity ?? 0,
-                    popularityHistory: char.popularityHistory || [],
-                };
-
-                return processedChar;
-            }) || [];
-           userData.achievementIds = userData.achievementIds || [];
-           userData.extraCharacterSlots = userData.extraCharacterSlots || 0;
-           userData.pointHistory = userData.pointHistory || [];
-           userData.mail = userData.mail || [];
-          return userData;
+          return processUserDoc(docSnap.data() as User);
       }
       return null;
-  }, [initialFormData]);
+  }, [processUserDoc]);
   
   const fetchCharacterById = useCallback(async (characterId: string): Promise<{ character: Character; owner: User } | null> => {
     try {
@@ -444,7 +446,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const usersSnapshot = await getDocs(usersCollection);
 
         for (const userDoc of usersSnapshot.docs) {
-            const user = await fetchUserById(userDoc.id); // Use fetchUserById to get fully processed user data
+            const user = processUserDoc(userDoc.data() as User);
             if (user && user.characters) {
                 const character = user.characters.find(c => c.id === characterId);
                 if (character) {
@@ -457,7 +459,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         console.error("Error fetching character by ID:", error);
         return null;
     }
-  }, [fetchUserById]);
+  }, [processUserDoc]);
 
   const createNewUser = useCallback(async (uid: string, nickname: string): Promise<User> => {
     const newUser: User = {
@@ -1742,7 +1744,7 @@ const processMonthlySalary = useCallback(async () => {
     const ranksAreDifferent = initiatorFamiliar.rank !== targetFamiliar.rank;
     const isMythicEventTrade =
       (initiatorFamiliar.rank === 'мифический' && targetFamiliar.rank === 'ивентовый') ||
-      (initiatorFamiliar.rank === 'ивентовый' && targetFamiliar.rank === 'мифический');
+      (initiatorFamiliar.rank === 'ивентовый' && initiatorFamiliar.rank === 'мифический');
 
     if (ranksAreDifferent && !isMythicEventTrade) {
         throw new Error("Обмен возможен только между фамильярами одного ранга, или между мифическим и ивентовым.");
