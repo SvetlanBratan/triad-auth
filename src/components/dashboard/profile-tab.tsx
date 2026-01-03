@@ -381,9 +381,8 @@ export default function ProfileTab() {
             )}
           </CardContent>
         </Card>
-        <RewardRequestsHistory />
       </div>
-      <div className="lg:col-span-2">
+      <div className="lg:col-span-2 space-y-6">
         <Card>
           <CardHeader>
             <CardTitle>История баллов</CardTitle>
@@ -421,6 +420,7 @@ export default function ProfileTab() {
             </Table>
           </CardContent>
         </Card>
+        <RewardRequestsHistory />
       </div>
 
        <Dialog open={!!editingState} onOpenChange={(isOpen) => !isOpen && setEditingState(null)}>
