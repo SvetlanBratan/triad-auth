@@ -1105,7 +1105,7 @@ export default function CharacterPage() {
             
             <Dialog open={!!selectedItem} onOpenChange={(isOpen) => !isOpen && setSelectedItem(null)}>
                 {selectedItem && (
-                    <DialogContent className="max-w-xl p-0 sm:p-6">
+                    <DialogContent className="max-w-md p-0">
                         <div className="grid md:grid-cols-2 gap-6 items-start">
                             {selectedItem.image && (
                                 <div className="relative w-full h-80 bg-muted rounded-t-lg sm:rounded-md overflow-hidden">
@@ -1139,19 +1139,18 @@ export default function CharacterPage() {
                 )}
             </Dialog>
             
-            <Dialog open={!!selectedGalleryImage} onOpenChange={() => setSelectedGalleryImage(null)}>
+             <Dialog open={!!selectedGalleryImage} onOpenChange={() => setSelectedGalleryImage(null)}>
                 <DialogContent className="p-0 bg-transparent border-none w-[90vw] sm:w-auto max-w-sm shadow-none">
-                     <DialogTitle className="sr-only">Увеличенное изображение</DialogTitle>
-                     {selectedGalleryImage && (
-                        <div className="relative aspect-video">
-                            <Image 
-                                src={selectedGalleryImage} 
-                                alt="Увеличенное изображение из галереи" 
-                                fill 
-                                style={{objectFit: 'contain'}} 
-                            />
-                        </div>
-                     )}
+                    <DialogTitle className="sr-only">Увеличенное изображение</DialogTitle>
+                    {selectedGalleryImage && (
+                        <Image 
+                            src={selectedGalleryImage} 
+                            alt="Увеличенное изображение из галереи" 
+                            width={500}
+                            height={700}
+                            className="rounded-lg w-full h-auto object-contain"
+                        />
+                    )}
                 </DialogContent>
             </Dialog>
 
@@ -1161,5 +1160,7 @@ export default function CharacterPage() {
 }
 
 
+
+    
 
     
