@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -429,7 +427,7 @@ export default function CharacterPage() {
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                            onClick={() => setEditingState({ type: 'field', section, field })}
+                            onClick={()={() => setEditingState({ type: 'field', section, field })}
                         >
                             {isEmpty ? <PlusCircle className="w-4 h-4 text-muted-foreground" /> : <Edit className="w-4 h-4" />}
                         </Button>
@@ -658,7 +656,7 @@ export default function CharacterPage() {
                     </AccordionContent>
                 </AccordionItem>
             </Accordion>
-
+            
             {combinedGallery.length > 0 && (
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
@@ -1094,7 +1092,143 @@ export default function CharacterPage() {
                         </div>
                         {/* Sidebar Column (Right on Large Screens) */}
                         <div className="w-full lg:w-1/3 flex flex-col space-y-6 order-1 lg:order-2">
-                           {renderMainInfo()}
+                            {renderMainInfo()}
+                            <Accordion type="single" collapsible className="w-full">
+                                <AccordionItem value="achievements" className="border-b-0 rounded-lg bg-card shadow-sm">
+                                    <div className="flex justify-between items-center w-full p-4">
+                                        <AccordionTrigger className="flex-1 hover:no-underline p-0">
+                                            <CardTitle className="flex items-center gap-2 text-lg"><Award /> Достижения</CardTitle>
+                                        </AccordionTrigger>
+                                        {isOwnerOrAdmin && (
+                                            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setEditingState({ type: 'accomplishment', mode: 'add' })}} className="shrink-0 self-center ml-2 h-8 w-8">
+                                                <PlusCircle className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                    <AccordionContent className="p-6 pt-0">
+                                        {accomplishments.length > 0 ? (
+                                            <div className="space-y-2">
+                                                {accomplishments.map(acc => (
+                                                    <div key={acc.id} className="text-sm p-2 bg-muted/50 rounded-md group relative">
+                                                        {isOwnerOrAdmin && (
+                                                            <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'accomplishment', mode: 'edit', accomplishment: acc })} className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7">
+                                                                <Edit className="w-4 h-4" />
+                                                            </Button>
+                                                        )}
+                                                        <p><span className="font-semibold">{acc.fameLevel}</span> <span className="text-primary font-semibold">{acc.skillLevel}</span></p>
+                                                        <p className="text-muted-foreground">{acc.description}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="text-muted-foreground text-sm">Достижений пока нет.</p>
+                                        )}
+                                    </AccordionContent>
+                                </AccordionItem>
+                            </Accordion>
+                             {isOwnerOrAdmin && (
+                                <Card>
+                                    <CardHeader className="flex flex-row items-center justify-between">
+                                        <CardTitle className="flex items-center gap-2"><Wallet /> Финансы</CardTitle>
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild><TaxpayerIcon className="w-5 h-5 text-muted-foreground" /></TooltipTrigger>
+                                                <TooltipContent><p>{taxpayerLabels[taxpayerStatus]}</p></TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    </CardHeader>
+                                    <CardContent className="space-y-2 text-sm">
+                                        <div className="flex justify-between items-center">
+                                            <span>Уровень достатка:</span>
+                                            <Badge variant="outline">{character.wealthLevel || 'Бедный'}</Badge>
+                                        </div>
+                                        <div className="flex justify-between items-start pt-2">
+                                            <span>Счет в банке:</span>
+                                            <div className="text-right font-medium text-primary">
+                                                {formattedCurrency.length > 0 ? (
+                                                    formattedCurrency.map(([amount, name]) => (
+                                                        <div key={name} className="flex justify-end items-baseline gap-1.5">
+                                                            <span>{amount}</span>
+                                                            <span className="text-xs text-muted-foreground font-normal">{name}</span>
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <span>0 тыквин</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        {canViewHistory && sortedBankHistory.length > 0 && (
+                                            <Accordion type="single" collapsible className="w-full pt-2">
+                                                <AccordionItem value="history">
+                                                    <AccordionTrigger className="text-xs text-muted-foreground hover:no-underline">
+                                                    <div className="flex items-center gap-2">
+                                                            <History className="w-4 h-4" />
+                                                            <span>История счёта</span>
+                                                    </div>
+                                                    </AccordionTrigger>
+                                                    <AccordionContent>
+                                                        <ScrollArea className="h-48 pr-3">
+                                                            <div className="space-y-3">
+                                                            {sortedBankHistory.map(tx => {
+                                                                if (!tx.amount) return null;
+                                                                const amounts = Object.entries(tx.amount).filter(([, val]) => val !== 0);
+                                                                const isCredit = Object.values(tx.amount).some(v => v > 0);
+                                                                const isDebit = Object.values(tx.amount).some(v => v < 0);
+                                                                let colorClass = '';
+                                                                if(isCredit && !isDebit) colorClass = 'text-green-600';
+                                                                if(isDebit && !isCredit) colorClass = 'text-destructive';
+
+                                                                return (
+                                                                    <div key={tx.id} className="text-xs p-2 bg-muted/50 rounded-md">
+                                                                        <p className="font-semibold">{tx.reason}</p>
+                                                                        <p className="text-muted-foreground">{new Date(tx.date).toLocaleString()}</p>
+                                                                        <div className={cn("font-mono font-semibold", colorClass)}>
+                                                                            {amounts.map(([currency, value]) => (
+                                                                                <div key={currency}>
+                                                                                    {value > 0 ? '+' : ''}{value.toLocaleString()} {currencyNames[currency] || currency}
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                )
+                                                            })}
+                                                            </div>
+                                                        </ScrollArea>
+                                                    </AccordionContent>
+                                                </AccordionItem>
+                                            </Accordion>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            )}
+                             {activeMoodlets.length > 0 && (
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Активные эффекты</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-2">
+                                        {activeMoodlets.map(moodlet => (
+                                            <Popover key={moodlet.id}>
+                                                <PopoverTrigger asChild>
+                                                    <div className="flex items-center justify-between w-full cursor-pointer text-sm p-2 rounded-md hover:bg-muted">
+                                                        <div className="flex items-center gap-2">
+                                                            <DynamicIcon name={moodlet.iconName} className="w-4 h-4" />
+                                                            <span>{moodlet.name}</span>
+                                                        </div>
+                                                        <span className="text-xs text-muted-foreground">{formatTimeLeft(moodlet.expiresAt)}</span>
+                                                    </div>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-auto max-w-xs text-sm">
+                                                    <p className="font-bold">{moodlet.name}</p>
+                                                    <p className="text-xs mb-2">{moodlet.description}</p>
+                                                    {moodlet.source && <p className="text-xs mb-2">Источник: <span className="font-semibold">{moodlet.source}</span></p>}
+                                                    <p className="text-xs text-muted-foreground">{formatTimeLeft(moodlet.expiresAt)}</p>
+                                                </PopoverContent>
+                                            </Popover>
+                                        ))}
+                                    </CardContent>
+                                </Card>
+                            )}
                            {renderRelationships()}
                            {renderInventory()}
                         </div>
@@ -1169,3 +1303,5 @@ export default function CharacterPage() {
         </div>
     );
 }
+
+    
