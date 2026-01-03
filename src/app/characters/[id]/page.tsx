@@ -5,7 +5,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, notFound } from 'next/navigation';
 import { useUser } from '@/hooks/use-user';
-import { User, Character, FamiliarCard, FamiliarRank, Moodlet, Relationship, RelationshipType, WealthLevel, BankAccount, Accomplishment, BankTransaction, OwnedFamiliarCard, InventoryCategory, InventoryItem, CitizenshipStatus, TaxpayerStatus, PopularityLog } from '@/lib/types';
+import { User, Character, FamiliarCard, FamiliarRank, Moodlet, Relationship, RelationshipType, WealthLevel, BankAccount, Accomplishment, BankTransaction, OwnedFamiliarCard, InventoryCategory, InventoryItem, CitizenshipStatus, TaxpayerStatus, PopularityLog, GalleryImage } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -325,6 +325,33 @@ export default function CharacterPage() {
         if (!character || !character.popularityHistory) return [];
         return [...character.popularityHistory].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }, [character]);
+    
+    const combinedGallery = useMemo(() => {
+        if (!character) return [];
+
+        const ownImages = character.galleryImages || [];
+        const taggedImages: GalleryImage[] = [];
+
+        allUsers.forEach(user => {
+            user.characters.forEach(otherChar => {
+                // Don't re-add own images
+                if (otherChar.id === character.id) return;
+
+                (otherChar.galleryImages || []).forEach(img => {
+                    if ((img.taggedCharacterIds || []).includes(character.id)) {
+                        taggedImages.push(img);
+                    }
+                });
+            });
+        });
+        
+        // Combine and deduplicate
+        const allImages = [...ownImages, ...taggedImages];
+        const uniqueImages = Array.from(new Map(allImages.map(item => [item.id, item])).values());
+        
+        return uniqueImages;
+    }, [character, allUsers]);
+
 
 
     if (isCharacterLoading || areUsersLoading) {
@@ -493,8 +520,8 @@ export default function CharacterPage() {
             </header>
             
             <div className="max-w-5xl mx-auto">
-                {character.bannerImage && (
-                    <div className="relative w-full h-48 sm:h-56 md:h-64 rounded-lg overflow-hidden group">
+                 {character.bannerImage && (
+                    <div className="relative w-full h-48 sm:h-56 md:h-64 rounded-lg overflow-hidden group mb-6">
                         <Image
                             src={character.bannerImage}
                             alt={`${character.name} banner`}
@@ -729,9 +756,9 @@ export default function CharacterPage() {
                                 )}
                             </CardHeader>
                             <CardContent>
-                                {character.galleryImages && character.galleryImages.length > 0 ? (
+                                {combinedGallery && combinedGallery.length > 0 ? (
                                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                        {character.galleryImages.map((img, index) => {
+                                        {combinedGallery.map((img, index) => {
                                             if (!img || !img.url) return null;
                                             return (
                                                 <button key={img.id || index} className="relative aspect-square" onClick={() => setSelectedGalleryImage(img.url)}>
