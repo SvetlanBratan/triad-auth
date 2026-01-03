@@ -224,6 +224,7 @@ export default function CharacterPage() {
     const [editingState, setEditingState] = useState<EditingState | null>(null);
     const [selectedItem, setSelectedItem] = useState<(InventoryItem & { category: InventoryCategory }) | null>(null);
     const [isConsuming, setIsConsuming] = useState(false);
+    const [selectedGalleryImage, setSelectedGalleryImage] = useState<string | null>(null);
 
     const { toast } = useToast();
 
@@ -491,12 +492,13 @@ export default function CharacterPage() {
             
             <div className="max-w-5xl mx-auto">
                 {character.bannerImage && (
-                    <div className="relative w-full h-48 sm:h-56 md:h-64 rounded-lg overflow-hidden mb-6 group">
+                    <div className="relative w-full h-48 sm:h-56 md:h-64 rounded-lg overflow-hidden group">
                         <Image
                             src={character.bannerImage}
                             alt={`${character.name} banner`}
                             fill
-                            style={{ objectFit: 'cover' }}
+                            style={{ objectFit: 'contain' }}
+                            className="bg-muted/30"
                             data-ai-hint="character banner"
                         />
                          {isOwnerOrAdmin && (
@@ -606,7 +608,7 @@ export default function CharacterPage() {
                                 </AccordionItem>
                             )}
 
-                            <AccordionItem value="relationships" className="border-b-0 rounded-lg bg-card shadow-sm">
+                             <AccordionItem value="relationships" className="border-b-0 rounded-lg bg-card shadow-sm">
                                 <div className="flex justify-between items-center w-full p-4">
                                     <AccordionTrigger className="flex-1 hover:no-underline p-0">
                                         <CardTitle className="flex items-center gap-2 text-lg"><HeartHandshake /> Отношения</CardTitle>
@@ -728,7 +730,7 @@ export default function CharacterPage() {
                                 {character.galleryImages && character.galleryImages.length > 0 ? (
                                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                         {character.galleryImages.map((imgUrl, index) => (
-                                            <div key={index} className="relative aspect-square">
+                                            <button key={index} className="relative aspect-square" onClick={() => setSelectedGalleryImage(imgUrl)}>
                                                 <Image
                                                     src={imgUrl}
                                                     alt={`Gallery image ${index + 1}`}
@@ -736,7 +738,7 @@ export default function CharacterPage() {
                                                     style={{ objectFit: 'cover' }}
                                                     className="rounded-lg"
                                                 />
-                                            </div>
+                                            </button>
                                         ))}
                                     </div>
                                 ) : (
@@ -813,7 +815,7 @@ export default function CharacterPage() {
                                 <InfoRow label="Фракции/гильдии" value={character.factions} field="factions" section="mainInfo" isVisible={!!character.factions || isOwnerOrAdmin} icon={<Group className="w-4 h-4" />} />
                             </CardContent>
                         </Card>
-                        <Accordion type="multiple" className="w-full space-y-6">
+                        <Accordion type="single" collapsible className="w-full">
                             <AccordionItem value="achievements" className="border-b-0 rounded-lg bg-card shadow-sm">
                                 <div className="flex justify-between items-center w-full p-4">
                                     <AccordionTrigger className="flex-1 hover:no-underline p-0">
@@ -1104,6 +1106,19 @@ export default function CharacterPage() {
                         </div>
                     </DialogContent>
                 )}
+            </Dialog>
+            
+            <Dialog open={!!selectedGalleryImage} onOpenChange={() => setSelectedGalleryImage(null)}>
+                <DialogContent className="max-w-4xl p-2">
+                    <div className="relative aspect-video">
+                        <Image 
+                            src={selectedGalleryImage || ''} 
+                            alt="Увеличенное изображение из галереи" 
+                            fill 
+                            style={{objectFit: 'contain'}} 
+                        />
+                    </div>
+                </DialogContent>
             </Dialog>
 
 
