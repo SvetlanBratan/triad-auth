@@ -1,8 +1,10 @@
 
+
 import { Suspense } from 'react';
 import { UserSwitcher } from "@/components/auth/user-switcher";
 import { Dashboard } from "@/components/dashboard/dashboard";
 import { ThemeToggle } from "@/components/theme-toggle";
+import Image from 'next/image';
 
 export default function Home() {
   return (
@@ -19,7 +21,16 @@ export default function Home() {
            <ThemeToggle />
         </div>
       </header>
-      <div className="w-full max-w-7xl">
+      <div className="w-full max-w-7xl space-y-6">
+        <div className="relative w-full h-40 md:h-56 rounded-lg overflow-hidden">
+            <Image
+                src="/banner.png"
+                alt="Кабинет игрока"
+                fill
+                priority
+                style={{ objectFit: 'cover' }}
+            />
+        </div>
         <Suspense fallback={<div>Загрузка...</div>}>
           <Dashboard />
         </Suspense>
