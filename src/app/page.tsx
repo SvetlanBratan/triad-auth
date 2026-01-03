@@ -20,17 +20,30 @@ export default function Home() {
                 style={{ objectFit: 'cover' }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-            <header className="absolute top-4 right-4 md:top-6 md:left-6 md:right-auto flex flex-col items-end md:items-start md:flex-row md:justify-start gap-4">
-                <div className="flex flex-col items-end md:items-start gap-2">
-                    <div className="bg-background/60 backdrop-blur-sm p-3 rounded-md">
-                        <Link href="https://pumpkin-pandemonium.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-lg md:text-2xl font-bold font-headline text-primary hover:underline whitespace-nowrap">
-                            Тыквенный Переполох
-                        </Link>
-                    </div>
-                    <div className="flex items-center gap-2 bg-background/60 backdrop-blur-sm p-2 rounded-md">
-                        <UserSwitcher />
-                        <ThemeToggle />
-                    </div>
+            
+            {/* Desktop Header */}
+            <header className="absolute top-4 left-6 right-6 hidden md:flex justify-between items-start">
+                <div className="bg-background/60 backdrop-blur-sm p-3 rounded-md">
+                    <Link href="https://pumpkin-pandemonium.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-2xl font-bold font-headline text-primary hover:underline whitespace-nowrap">
+                        Тыквенный Переполох
+                    </Link>
+                </div>
+                <div className="flex items-center gap-2 bg-background/60 backdrop-blur-sm p-2 rounded-md">
+                    <UserSwitcher />
+                    <ThemeToggle />
+                </div>
+            </header>
+
+            {/* Mobile Header */}
+            <header className="absolute top-4 right-4 flex md:hidden flex-col items-end gap-2">
+                 <div className="bg-background/60 backdrop-blur-sm p-2 rounded-md">
+                    <Link href="https://pumpkin-pandemonium.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-lg font-bold font-headline text-primary whitespace-nowrap">
+                        Тыквенный Переполох
+                    </Link>
+                </div>
+                <div className="flex items-center gap-2 bg-background/60 backdrop-blur-sm p-2 rounded-md">
+                    <UserSwitcher />
+                    <ThemeToggle />
                 </div>
             </header>
         </div>
