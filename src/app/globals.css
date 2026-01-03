@@ -20,8 +20,8 @@ body {
     --secondary-foreground: 300 10% 20%;
     --muted: 300 25% 90%; /* Changed from 300 50% 85% */
     --muted-foreground: 300 10% 35%;
-    --accent: 345 61% 56%;
-    --accent-foreground: 300 50% 98%;
+    --accent: 210 100% 95%; /* Pale Blue */
+    --accent-foreground: 210 40% 40%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 270 50% 45%;
