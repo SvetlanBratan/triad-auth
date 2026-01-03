@@ -514,7 +514,7 @@ export default function CharacterPage() {
                 <div className="flex flex-col lg:flex-row gap-6">
                     {/* Main Content Column (Left on Large Screens) */}
                     <div className="w-full lg:w-2/3 space-y-6 order-2 lg:order-1">
-                         <Accordion type="multiple" className="w-full space-y-6">
+                         <Accordion type="multiple" className="w-full space-y-6" defaultValue={["appearance", "personality", "biography", "relationships", "additional"]}>
                             <AccordionItem value="appearance" className="border-b-0 rounded-lg bg-card shadow-sm">
                                 <SectionTrigger title="Внешность" icon={<PersonStanding />} section="appearance" />
                                 <AccordionContent className="p-6 pt-0">
@@ -731,17 +731,20 @@ export default function CharacterPage() {
                             <CardContent>
                                 {character.galleryImages && character.galleryImages.length > 0 ? (
                                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                        {character.galleryImages.map((img, index) => (
-                                            <button key={img.id || index} className="relative aspect-square" onClick={() => setSelectedGalleryImage(img.url)}>
-                                                <Image
-                                                    src={img.url}
-                                                    alt={`Gallery image ${img.id}`}
-                                                    fill
-                                                    style={{ objectFit: 'cover' }}
-                                                    className="rounded-lg"
-                                                />
-                                            </button>
-                                        ))}
+                                        {character.galleryImages.map((img, index) => {
+                                            if (!img || !img.url) return null;
+                                            return (
+                                                <button key={img.id || index} className="relative aspect-square" onClick={() => setSelectedGalleryImage(img.url)}>
+                                                    <Image
+                                                        src={img.url}
+                                                        alt={`Gallery image ${img.id}`}
+                                                        fill
+                                                        style={{ objectFit: 'cover' }}
+                                                        className="rounded-lg"
+                                                    />
+                                                </button>
+                                            )
+                                        })}
                                     </div>
                                 ) : (
                                     <p className="text-sm text-muted-foreground italic">В галерее пока нет изображений.</p>
