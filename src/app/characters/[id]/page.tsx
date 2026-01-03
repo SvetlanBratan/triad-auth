@@ -488,25 +488,25 @@ export default function CharacterPage() {
                     <p className="text-sm text-muted-foreground">Владелец: {owner.name}</p>
                 </div>
             </header>
-
-            {character.bannerImage && (
-                <div className="relative w-full h-48 sm:h-56 md:h-64 rounded-lg overflow-hidden my-6 group">
-                    <Image
-                        src={character.bannerImage}
-                        alt={`${character.name} banner`}
-                        fill
-                        style={{ objectFit: 'cover' }}
-                        data-ai-hint="character banner"
-                    />
-                     {isOwnerOrAdmin && (
-                        <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'section', section: 'gallery' })} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/50 hover:bg-background/80">
-                            <Edit className="w-4 h-4" />
-                        </Button>
-                    )}
-                </div>
-            )}
-
+            
             <div className="max-w-5xl mx-auto">
+                {character.bannerImage && (
+                    <div className="relative w-full h-48 sm:h-56 md:h-64 rounded-lg overflow-hidden mb-6 group">
+                        <Image
+                            src={character.bannerImage}
+                            alt={`${character.name} banner`}
+                            fill
+                            style={{ objectFit: 'cover' }}
+                            data-ai-hint="character banner"
+                        />
+                         {isOwnerOrAdmin && (
+                            <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'section', section: 'gallery' })} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/50 hover:bg-background/80">
+                                <Edit className="w-4 h-4" />
+                            </Button>
+                        )}
+                    </div>
+                )}
+                
                 <div className="flex flex-col lg:flex-row gap-6">
                     {/* Main Content Column (Left on Large Screens) */}
                     <div className="w-full lg:w-2/3 space-y-6 order-2 lg:order-1">
