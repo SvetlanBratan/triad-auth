@@ -129,4 +129,10 @@ body {
   .dark .icon-achievement {
     background-color: #b8860b; /* darkgoldenrod */
   }
+  .theme-icon {
+    color: hsl(var(--foreground));
+  }
+  .dark .theme-icon {
+    color: hsl(var(--foreground));
+  }
 }
