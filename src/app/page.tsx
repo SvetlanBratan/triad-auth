@@ -17,16 +17,16 @@ export default function Home() {
                 alt="Кабинет игрока"
                 fill
                 priority
-                style={{ objectFit: 'cover' }}
+                style={{ objectFit: 'contain' }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
             <header className="absolute inset-0 w-full p-4 md:p-6 flex flex-col justify-end md:justify-between md:flex-row md:items-start gap-4">
-                <div className="md:bg-background/60 md:backdrop-blur-sm p-3 rounded-md">
-                    <Link href="https://pumpkin-pandemonium.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-lg md:text-2xl font-bold font-headline text-primary hover:underline bg-background/60 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none p-3 rounded-md md:p-0">
+                <div className="self-end text-right md:self-auto md:text-left md:bg-background/60 md:backdrop-blur-sm p-3 rounded-md">
+                    <Link href="https://pumpkin-pandemonium.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-base md:text-2xl font-bold font-headline text-primary hover:underline bg-background/60 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none p-3 rounded-md md:p-0">
                         Тыквенный Переполох
                     </Link>
                 </div>
-                <div className="flex items-center gap-2 bg-background/60 backdrop-blur-sm p-2 rounded-md">
+                <div className="flex items-center gap-2 bg-background/60 backdrop-blur-sm p-2 rounded-md self-end md:self-start">
                     <UserSwitcher />
                     <ThemeToggle />
                 </div>
