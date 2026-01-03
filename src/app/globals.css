@@ -118,7 +118,7 @@ body {
     background-color: hsl(var(--primary));
   }
   :root .icon-primary {
-    background-color: hsl(270 50% 35%);
+    background-color: hsl(270 50% 20%);
   }
   .icon-black {
     background-color: #000;
