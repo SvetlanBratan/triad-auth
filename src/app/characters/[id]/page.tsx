@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FAMILIARS_BY_ID, MOODLETS_DATA, TRAINING_OPTIONS, CRIME_LEVELS, INVENTORY_CATEGORIES, POPULARITY_LEVELS } from '@/lib/data';
 import FamiliarCardDisplay from '@/components/dashboard/familiar-card';
-import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users, HeartHandshake, Wallet, Coins, Award, Zap, ShieldOff, History, Info, PlusCircle, BookUser, Gavel, Group, Building, Package, LandPlot, ShieldCheck, FileQuestion, BadgeCheck, BadgeAlert, Landmark, Eye, Lock, Cat, Handshake, FileText, ChevronDown } from 'lucide-react';
+import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users, HeartHandshake, Wallet, Coins, Award, Zap, ShieldOff, History, Info, PlusCircle, BookUser, Gavel, Group, Building, Package, LandPlot, ShieldCheck, FileQuestion, BadgeCheck, BadgeAlert, Landmark, Eye, Lock, Cat, Handshake, FileText, ChevronDown, Camera } from 'lucide-react';
 import Link from 'next/link';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -490,11 +490,29 @@ export default function CharacterPage() {
                     <p className="text-sm text-muted-foreground">Владелец: {owner.name}</p>
                 </div>
             </header>
+
+            {character.bannerImage && (
+                <div className="relative w-full h-48 sm:h-56 md:h-64 rounded-lg overflow-hidden my-6 group">
+                    <Image
+                        src={character.bannerImage}
+                        alt={`${character.name} banner`}
+                        fill
+                        style={{ objectFit: 'cover' }}
+                        data-ai-hint="character banner"
+                    />
+                     {isOwnerOrAdmin && (
+                        <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'section', section: 'banner' })} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/50 hover:bg-background/80">
+                            <Edit className="w-4 h-4" />
+                        </Button>
+                    )}
+                </div>
+            )}
+
             <div className="max-w-5xl mx-auto">
                 <div className="flex flex-col lg:flex-row gap-6">
                     {/* Main Content Column (Left on Large Screens) */}
                     <div className="w-full lg:w-2/3 space-y-6 order-2 lg:order-1">
-                         <Accordion type="multiple" className="w-full space-y-6">
+                         <Accordion type="multiple" className="w-full space-y-6" collapsible>
                             <AccordionItem value="appearance" className="border-b-0 rounded-lg bg-card shadow-sm">
                                 <SectionTrigger title="Внешность" icon={<PersonStanding />} section="appearance" />
                                 <AccordionContent className="p-6 pt-0">
@@ -698,6 +716,31 @@ export default function CharacterPage() {
                                 </ScrollArea>
                             </CardContent>
                         </Card>
+
+                        <Accordion type="multiple" className="w-full space-y-6" collapsible>
+                            <AccordionItem value="gallery" className="border-b-0 rounded-lg bg-card shadow-sm">
+                                <SectionTrigger title="Галерея" icon={<Camera />} section="gallery" />
+                                <AccordionContent className="p-6 pt-0">
+                                    {character.galleryImages && character.galleryImages.length > 0 ? (
+                                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                            {character.galleryImages.map((imgUrl, index) => (
+                                                <div key={index} className="relative aspect-square">
+                                                    <Image
+                                                        src={imgUrl}
+                                                        alt={`Gallery image ${index + 1}`}
+                                                        fill
+                                                        style={{ objectFit: 'cover' }}
+                                                        className="rounded-lg"
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground italic">В галерее пока нет изображений.</p>
+                                    )}
+                                </AccordionContent>
+                            </AccordionItem>
+                        </Accordion>
                     </div>
                     {/* Sidebar Column (Right on Large Screens) */}
                     <div className="w-full lg:w-1/3 flex flex-col space-y-6 order-1 lg:order-2">
