@@ -382,19 +382,16 @@ export default function CharacterPage() {
     const backLinkText = currentUser?.id === owner.id ? 'Вернуться в профиль' : 'Вернуться в профиль игрока';
 
     const SectionTrigger = ({ title, icon, section }: { title: string; icon: React.ReactNode; section: EditableSection }) => (
-        <AccordionTrigger className="w-full hover:no-underline p-4">
-            <div className="flex justify-between items-center w-full">
+        <div className="flex justify-between items-center w-full p-4">
+            <AccordionTrigger className="flex-1 hover:no-underline p-0">
                 <CardTitle className="flex items-center gap-2 text-lg">{icon} {title}</CardTitle>
-                <div className="flex items-center">
-                    {isOwnerOrAdmin && (
-                        <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setEditingState({ type: 'section', section }) }} className="shrink-0 h-8 w-8">
-                            <Edit className="w-4 h-4" />
-                        </Button>
-                    )}
-                    <ChevronDown className="h-5 w-5 shrink-0 transition-transform duration-200 ml-2 group-data-[state=open]:rotate-180" />
-                </div>
-            </div>
-        </AccordionTrigger>
+            </AccordionTrigger>
+            {isOwnerOrAdmin && (
+                <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'section', section })} className="shrink-0 h-8 w-8 ml-2">
+                    <Edit className="w-4 h-4" />
+                </Button>
+            )}
+        </div>
     );
 
     const SubSection = ({ title, content, section, isVisible, isEmpty }: { title: string; content: React.ReactNode; section: EditableSection; isVisible: boolean; isEmpty: boolean; }) => {
@@ -497,7 +494,7 @@ export default function CharacterPage() {
                 <div className="flex flex-col lg:flex-row gap-6">
                     {/* Main Content Column (Left on Large Screens) */}
                     <div className="w-full lg:w-2/3 space-y-6 order-2 lg:order-1">
-                         <Accordion type="multiple" className="w-full space-y-6">
+                         <Accordion type="multiple" className="w-full space-y-6" collapsible>
                             <AccordionItem value="appearance" className="border-b-0 rounded-lg bg-card shadow-sm">
                                 <SectionTrigger title="Внешность" icon={<PersonStanding />} section="appearance" />
                                 <AccordionContent className="p-6 pt-0">
@@ -551,19 +548,16 @@ export default function CharacterPage() {
 
                             {(character.abilities || isOwnerOrAdmin) && (
                                 <AccordionItem value="abilities" className="border-b-0 rounded-lg bg-card shadow-sm">
-                                     <AccordionTrigger className="w-full hover:no-underline p-4">
-                                        <div className="flex justify-between items-center w-full">
+                                     <div className="flex justify-between items-center w-full p-4">
+                                        <AccordionTrigger className="flex-1 hover:no-underline p-0">
                                             <CardTitle className="flex items-center gap-2 text-lg"><Zap /> Способности</CardTitle>
-                                            <div className="flex items-center">
-                                                {isOwnerOrAdmin && (
-                                                     <Button variant={character.abilities ? "ghost" : "outline-dashed"} size={character.abilities ? "icon" : "sm"} onClick={(e) => { e.stopPropagation(); setEditingState({type: 'section', section: "abilities"})}} className="shrink-0 h-8 w-8">
-                                                        {character.abilities ? <Edit className="w-4 h-4" /> : <><PlusCircle className="mr-2 h-4 w-4" /> Добавить</>}
-                                                    </Button>
-                                                )}
-                                                <ChevronDown className="h-5 w-5 shrink-0 transition-transform duration-200 ml-2 group-data-[state=open]:rotate-180" />
-                                            </div>
-                                        </div>
-                                    </AccordionTrigger>
+                                        </AccordionTrigger>
+                                        {isOwnerOrAdmin && (
+                                            <Button variant={character.abilities ? "ghost" : "outline-dashed"} size={character.abilities ? "icon" : "sm"} onClick={() => setEditingState({type: 'section', section: "abilities"})} className="shrink-0 h-8 w-8 ml-2">
+                                                {character.abilities ? <Edit className="w-4 h-4" /> : <><PlusCircle className="mr-2 h-4 w-4" /> Добавить</>}
+                                            </Button>
+                                        )}
+                                    </div>
                                     {character.abilities && (
                                         <AccordionContent className="p-6 pt-0">
                                             <ScrollArea className="h-40 w-full">
@@ -576,19 +570,16 @@ export default function CharacterPage() {
 
                              {(character.weaknesses || isOwnerOrAdmin) && (
                                 <AccordionItem value="weaknesses" className="border-b-0 rounded-lg bg-card shadow-sm">
-                                    <AccordionTrigger className="w-full hover:no-underline p-4">
-                                        <div className="flex justify-between items-center w-full">
+                                    <div className="flex justify-between items-center w-full p-4">
+                                        <AccordionTrigger className="flex-1 hover:no-underline p-0">
                                             <CardTitle className="flex items-center gap-2 text-lg"><ShieldOff /> Слабости</CardTitle>
-                                            <div className="flex items-center">
-                                                {isOwnerOrAdmin && (
-                                                    <Button variant={character.weaknesses ? "ghost" : "outline-dashed"} size={character.weaknesses ? "icon" : "sm"} onClick={(e) => { e.stopPropagation(); setEditingState({ type: 'section', section: "weaknesses"})}} className="shrink-0 h-8 w-8">
-                                                        {character.weaknesses ? <Edit className="w-4 h-4" /> : <><PlusCircle className="mr-2 h-4 w-4" /> Добавить</>}
-                                                    </Button>
-                                                )}
-                                                <ChevronDown className="h-5 w-5 shrink-0 transition-transform duration-200 ml-2 group-data-[state=open]:rotate-180" />
-                                            </div>
-                                        </div>
-                                    </AccordionTrigger>
+                                        </AccordionTrigger>
+                                        {isOwnerOrAdmin && (
+                                            <Button variant={character.weaknesses ? "ghost" : "outline-dashed"} size={character.weaknesses ? "icon" : "sm"} onClick={() => setEditingState({ type: 'section', section: "weaknesses"})} className="shrink-0 h-8 w-8 ml-2">
+                                                {character.weaknesses ? <Edit className="w-4 h-4" /> : <><PlusCircle className="mr-2 h-4 w-4" /> Добавить</>}
+                                            </Button>
+                                        )}
+                                    </div>
                                     {character.weaknesses && (
                                         <AccordionContent className="p-6 pt-0">
                                             <ScrollArea className="h-40 w-full">
