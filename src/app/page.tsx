@@ -20,15 +20,17 @@ export default function Home() {
                 style={{ objectFit: 'cover' }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-            <header className="absolute inset-0 w-full p-4 md:p-6 flex flex-col justify-end md:flex-row md:items-start md:justify-start gap-4">
-                <div className="md:bg-background/60 md:backdrop-blur-sm p-3 rounded-md md:ml-0">
-                    <Link href="https://pumpkin-pandemonium.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-xl md:text-2xl font-bold font-headline text-primary hover:underline bg-background/60 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none p-3 rounded-md md:p-0">
-                        Тыквенный Переполох
-                    </Link>
-                </div>
-                <div className="flex items-center gap-2 bg-background/60 backdrop-blur-sm p-2 rounded-md self-end md:self-start md:ml-auto">
-                    <UserSwitcher />
-                    <ThemeToggle />
+            <header className="absolute top-4 right-4 md:top-6 md:left-6 md:right-auto flex flex-col items-end md:items-start md:flex-row md:justify-start gap-4">
+                <div className="flex flex-col items-end md:items-start gap-2">
+                    <div className="bg-background/60 backdrop-blur-sm p-3 rounded-md">
+                        <Link href="https://pumpkin-pandemonium.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-lg md:text-2xl font-bold font-headline text-primary hover:underline whitespace-nowrap">
+                            Тыквенный Переполох
+                        </Link>
+                    </div>
+                    <div className="flex items-center gap-2 bg-background/60 backdrop-blur-sm p-2 rounded-md">
+                        <UserSwitcher />
+                        <ThemeToggle />
+                    </div>
                 </div>
             </header>
         </div>
