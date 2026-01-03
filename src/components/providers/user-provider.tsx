@@ -1744,7 +1744,7 @@ const processMonthlySalary = useCallback(async () => {
     const ranksAreDifferent = initiatorFamiliar.rank !== targetFamiliar.rank;
     const isMythicEventTrade =
       (initiatorFamiliar.rank === 'мифический' && targetFamiliar.rank === 'ивентовый') ||
-      (initiatorFamiliar.rank === 'ивентовый' && initiatorFamiliar.rank === 'мифический');
+      (initiatorFamiliar.rank === 'ивентовый' && targetFamiliar.rank === 'мифический');
 
     if (ranksAreDifferent && !isMythicEventTrade) {
         throw new Error("Обмен возможен только между фамильярами одного ранга, или между мифическим и ивентовым.");
@@ -2610,13 +2610,22 @@ const withdrawFromShopTill = useCallback(async (shopId: string) => {
     if(updatedUser) setCurrentUser(updatedUser);
 }, [currentUser, fetchUserById]);
 
-const addAlchemyRecipe = useCallback(async (recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
-    const newRecipe = { ...recipe, createdAt: new Date().toISOString() };
+const fetchAlchemyRecipes = useCallback(async (): Promise<AlchemyRecipe[]> => {
     const recipesCollection = collection(db, "alchemy_recipes");
-    await addDoc(recipesCollection, newRecipe);
-}, []);
+    const q = query(recipesCollection, orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AlchemyRecipe));
+  }, []);
 
-const updateAlchemyRecipe = useCallback(async (recipeId: string, recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
+  const addAlchemyRecipe = useCallback(async (recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
+    const recipesCollection = collection(db, "alchemy_recipes");
+    await addDoc(recipesCollection, {
+        ...recipe,
+        createdAt: new Date().toISOString()
+    });
+  }, []);
+
+  const updateAlchemyRecipe = useCallback(async (recipeId: string, recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
     const recipeRef = doc(db, "alchemy_recipes", recipeId);
     await updateDoc(recipeRef, recipe);
 }, []);
@@ -2625,13 +2634,6 @@ const deleteAlchemyRecipe = useCallback(async (recipeId: string) => {
     const recipeRef = doc(db, "alchemy_recipes", recipeId);
     await deleteDoc(recipeRef);
 }, []);
-
-const fetchAlchemyRecipes = useCallback(async (): Promise<AlchemyRecipe[]> => {
-    const recipesCollection = collection(db, "alchemy_recipes");
-    const q = query(recipesCollection, orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AlchemyRecipe));
-  }, []);
 
 const brewPotion = useCallback(async (userId: string, characterId: string, recipeId: string) => {
     if (!currentUser || currentUser.id !== userId) throw new Error("Unauthorized");
@@ -2842,3 +2844,5 @@ const brewPotion = useCallback(async (userId: string, characterId: string, recip
 
 
     
+
+
