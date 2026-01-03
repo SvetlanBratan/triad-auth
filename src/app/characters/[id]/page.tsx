@@ -529,7 +529,7 @@ export default function CharacterPage() {
                             className="bg-muted/30"
                             data-ai-hint="character banner"
                         />
-                         {isOwnerOrAdmin && (
+                         {currentUser?.role === 'admin' && (
                             <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'section', section: 'gallery' })} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/50 hover:bg-background/80">
                                 <Edit className="w-4 h-4" />
                             </Button>
@@ -745,17 +745,17 @@ export default function CharacterPage() {
                             </CardContent>
                         </Card>
 
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between">
-                                <CardTitle className="flex items-center gap-2"><Camera /> Галерея</CardTitle>
-                                {isOwnerOrAdmin && (
-                                    <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'section', section: 'gallery' })} className="shrink-0 h-8 w-8 self-center">
-                                        <Edit className="w-4 h-4" />
-                                    </Button>
-                                )}
-                            </CardHeader>
-                            <CardContent>
-                                {combinedGallery && combinedGallery.length > 0 ? (
+                        {combinedGallery.length > 0 && (
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between">
+                                    <CardTitle className="flex items-center gap-2"><Camera /> Колдоснимки</CardTitle>
+                                    {currentUser?.role === 'admin' && (
+                                        <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'section', section: 'gallery' })} className="shrink-0 h-8 w-8 self-center">
+                                            <PlusCircle className="w-4 h-4" />
+                                        </Button>
+                                    )}
+                                </CardHeader>
+                                <CardContent>
                                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                         {combinedGallery.map((img, index) => {
                                             if (!img || !img.url) return null;
@@ -772,11 +772,9 @@ export default function CharacterPage() {
                                             )
                                         })}
                                     </div>
-                                ) : (
-                                    <p className="text-sm text-muted-foreground italic">В галерее пока нет изображений.</p>
-                                )}
-                            </CardContent>
-                        </Card>
+                                </CardContent>
+                            </Card>
+                        )}
                     </div>
                     {/* Sidebar Column (Right on Large Screens) */}
                     <div className="w-full lg:w-1/3 flex flex-col space-y-6 order-1 lg:order-2">
@@ -1164,3 +1162,4 @@ export default function CharacterPage() {
     
 
     
+
