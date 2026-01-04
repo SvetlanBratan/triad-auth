@@ -2398,7 +2398,9 @@ const sendMassMail = useCallback(async (subject: string, content: string, sender
         for (const character of user.characters) {
             if (!recipientsSet || recipientsSet.has(character.id)) {
                 mailSentToThisUser = true;
-                recipientCharacterNames.push(character.name);
+                if (recipientsSet) {
+                    recipientCharacterNames.push(character.name);
+                }
             }
         }
 
@@ -2409,7 +2411,7 @@ const sendMassMail = useCallback(async (subject: string, content: string, sender
                 senderCharacterName: senderName,
                 recipientUserId: user.id,
                 recipientCharacterId: '', // Represents all relevant characters
-                recipientCharacterName: recipientsSet ? recipientCharacterNames.join(', ') : 'Всем вашим персонажам',
+                recipientCharacterName: recipientsSet ? recipientCharacterNames.join(', ') : undefined,
                 subject,
                 content,
                 sentAt: nowISO,
@@ -2418,8 +2420,8 @@ const sendMassMail = useCallback(async (subject: string, content: string, sender
             };
             
             const userRef = doc(db, "users", user.id);
-            const mailUpdate = { mail: admin.firestore.FieldValue.arrayUnion(newMail) };
-            batch.update(userRef, mailUpdate);
+            const userMail = [...(user.mail || []), newMail];
+            batch.update(userRef, { mail: userMail });
         }
     }
     
