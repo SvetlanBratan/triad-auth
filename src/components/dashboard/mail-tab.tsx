@@ -43,7 +43,7 @@ const RecipientDisplay = ({ name }: { name?: string }) => {
             <span>Для: {displayedNames}</span>
             <Popover>
                 <PopoverTrigger asChild>
-                    <button className="text-muted-foreground hover:text-foreground">...</button>
+                    <span role="button" className="text-muted-foreground hover:text-foreground cursor-pointer">...</span>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto max-w-xs p-2 text-sm">
                     <p className="font-semibold mb-1">Все получатели:</p>
@@ -215,9 +215,7 @@ export default function MailTab() {
                   <DialogHeader>
                     <DialogTitle>{selectedMail.subject}</DialogTitle>
                     <DialogDescription className="text-[11px]">
-                      От: {selectedMail.senderCharacterName} | Для: {(selectedMail.type === 'announcement' && selectedMail.recipientCharacterName) 
-                      ? selectedMail.recipientCharacterName
-                      : (selectedMail.type === 'announcement' ? 'всех' : selectedMail.recipientCharacterName)} | {new Date(selectedMail.sentAt).toLocaleString()}
+                      От: {selectedMail.senderCharacterName} | Для: {(selectedMail.type === 'announcement' && !selectedMail.recipientCharacterName) ? 'всех' : selectedMail.recipientCharacterName} | {new Date(selectedMail.sentAt).toLocaleString()}
                     </DialogDescription>
                   </DialogHeader>
                   <ScrollArea className="max-h-96 pr-4 my-4">
