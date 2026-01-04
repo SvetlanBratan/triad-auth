@@ -2394,12 +2394,16 @@ const sendMassMail = useCallback(async (subject: string, content: string, sender
     for (const user of allUsers) {
         let mailSentToThisUser = false;
         let recipientCharacterNames: string[] = [];
+        let recipientCharacterId = '';
 
         if (recipientsSet) {
              const userCharactersInRecipients = user.characters.filter(c => recipientsSet.has(c.id));
              if (userCharactersInRecipients.length > 0) {
                  mailSentToThisUser = true;
                  recipientCharacterNames = userCharactersInRecipients.map(c => c.name);
+                 if (userCharactersInRecipients.length === 1) {
+                    recipientCharacterId = userCharactersInRecipients[0].id;
+                 }
              }
         } else {
              mailSentToThisUser = true;
@@ -2411,8 +2415,8 @@ const sendMassMail = useCallback(async (subject: string, content: string, sender
                 senderUserId: 'admin',
                 senderCharacterName: senderName,
                 recipientUserId: user.id,
-                recipientCharacterId: '', // Represents all relevant characters
-                recipientCharacterName: recipientsSet ? recipientCharacterNames.join(', ') : undefined,
+                recipientCharacterId: recipientCharacterId,
+                ...(recipientCharacterNames.length > 0 && { recipientCharacterName: recipientCharacterNames.join(', ') }),
                 subject,
                 content,
                 sentAt: nowISO,
@@ -2842,3 +2846,4 @@ const brewPotion = useCallback(async (userId: string, characterId: string, recip
     </AuthContext.Provider>
   );
 }
+
