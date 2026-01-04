@@ -21,11 +21,40 @@ import { MailMessage } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
-import { differenceInDays } from 'date-fns';
 import { Textarea } from '../ui/textarea';
 import { Label } from '../ui/label';
-import Image from 'next/image';
 import { CustomIcon } from '../ui/custom-icon';
+import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover';
+
+const RecipientDisplay = ({ name }: { name?: string }) => {
+    if (!name) return null;
+
+    const names = name.split(', ');
+    const isExpandable = names.length > 2;
+
+    if (!isExpandable) {
+        return <span>Для: {name}</span>;
+    }
+
+    const displayedNames = names.slice(0, 2).join(', ');
+
+    return (
+        <div className="flex items-center gap-1">
+            <span>Для: {displayedNames}</span>
+            <Popover>
+                <PopoverTrigger asChild>
+                    <button className="text-muted-foreground hover:text-foreground">...</button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto max-w-xs p-2 text-sm">
+                    <p className="font-semibold mb-1">Все получатели:</p>
+                    <ul className="list-disc list-inside">
+                        {names.map((n, i) => <li key={i}>{n}</li>)}
+                    </ul>
+                </PopoverContent>
+            </Popover>
+        </div>
+    );
+};
 
 
 export default function MailTab() {
@@ -119,7 +148,7 @@ export default function MailTab() {
             <div className="space-y-2">
               {sortedMail.length > 0 ? (
                 sortedMail.map(mail => {
-                  const recipientDisplay = mail.type === 'announcement' && !mail.recipientCharacterId
+                   const recipientDisplay = mail.type === 'announcement' && !mail.recipientCharacterId
                       ? 'для всех'
                       : mail.recipientCharacterName;
 
@@ -140,7 +169,7 @@ export default function MailTab() {
                         </div>
                         <div className="text-[11px] text-muted-foreground flex justify-between">
                             <span>От: {mail.senderCharacterName}</span>
-                            {recipientDisplay && <span>Для: {recipientDisplay}</span>}
+                            <RecipientDisplay name={recipientDisplay} />
                         </div>
                       </button>
                     )
