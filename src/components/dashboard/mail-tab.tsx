@@ -131,9 +131,9 @@ export default function MailTab() {
                       <p className={cn("font-semibold", !mail.isRead && "text-primary")}>
                         {mail.subject}
                       </p>
-                      <p className="text-xs text-muted-foreground">{new Date(mail.sentAt).toLocaleString()}</p>
+                      <p className="text-[11px] text-muted-foreground whitespace-nowrap pl-2">{new Date(mail.sentAt).toLocaleString()}</p>
                     </div>
-                    <div className="text-xs text-muted-foreground flex justify-between">
+                    <div className="text-[11px] text-muted-foreground flex justify-between">
                         <span>От: {mail.senderCharacterName}</span>
                         {mail.recipientCharacterName && <span>Для: {mail.recipientCharacterName}</span>}
                     </div>
@@ -179,7 +179,7 @@ export default function MailTab() {
                 <>
                   <DialogHeader>
                     <DialogTitle>{selectedMail.subject}</DialogTitle>
-                    <DialogDescription className="text-xs">
+                    <DialogDescription className="text-[11px]">
                       От: {selectedMail.senderCharacterName} | Для: {selectedMail.recipientCharacterName} | {new Date(selectedMail.sentAt).toLocaleString()}
                     </DialogDescription>
                   </DialogHeader>
