@@ -311,6 +311,38 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       return null;
   }, [processUserDoc]);
 
+  const fetchUsersForAdmin = useCallback(async (): Promise<User[]> => {
+    try {
+        const usersCollection = collection(db, "users");
+        const userSnapshot = await getDocs(query(usersCollection, orderBy("points", "desc")));
+        return userSnapshot.docs.map(doc => processUserDoc(doc.data() as User));
+    } catch(error) {
+        console.error("Error fetching users for admin.", error);
+        throw error;
+    }
+  }, [processUserDoc]);
+  
+  const fetchCharacterById = useCallback(async (characterId: string): Promise<{ character: Character; owner: User } | null> => {
+    try {
+        const usersCollection = collection(db, "users");
+        const usersSnapshot = await getDocs(usersCollection);
+
+        for (const userDoc of usersSnapshot.docs) {
+            const user = await fetchUserById(userDoc.id); // Use fetchUserById to get fully processed user data
+            if (user && user.characters) {
+                const character = user.characters.find(c => c.id === characterId);
+                if (character) {
+                    return { character, owner: user };
+                }
+            }
+        }
+        return null; // Not found
+    } catch (error) {
+        console.error("Error fetching character by ID:", error);
+        return null;
+    }
+  }, [fetchUserById]);
+
   const brewPotion = useCallback(async (userId: string, characterId: string, recipeId: string) => {
     await runTransaction(db, async (transaction) => {
         const userRef = doc(db, 'users', userId);
@@ -419,17 +451,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     await deleteDoc(familiarRef);
     await fetchAndCombineFamiliars();
   }, [fetchAndCombineFamiliars]);
-
-  const fetchUsersForAdmin = useCallback(async (): Promise<User[]> => {
-    try {
-        const usersCollection = collection(db, "users");
-        const userSnapshot = await getDocs(query(usersCollection, orderBy("points", "desc")));
-        return userSnapshot.docs.map(doc => processUserDoc(doc.data() as User));
-    } catch(error) {
-        console.error("Error fetching users for admin.", error);
-        throw error;
-    }
-  }, [processUserDoc]);
 
   const processWeeklyBonus = useCallback(async () => {
     const settingsRef = doc(db, 'game_settings', 'main');
@@ -954,27 +975,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
     return {...request, status: newStatus};
 }, [fetchUserById, currentUser?.id]);
-
-  const fetchCharacterById = useCallback(async (characterId: string): Promise<{ character: Character; owner: User } | null> => {
-    try {
-        const usersCollection = collection(db, "users");
-        const usersSnapshot = await getDocs(usersCollection);
-
-        for (const userDoc of usersSnapshot.docs) {
-            const user = await fetchUserById(userDoc.id); // Use fetchUserById to get fully processed user data
-            if (user && user.characters) {
-                const character = user.characters.find(c => c.id === characterId);
-                if (character) {
-                    return { character, owner: user };
-                }
-            }
-        }
-        return null; // Not found
-    } catch (error) {
-        console.error("Error fetching character by ID:", error);
-        return null;
-    }
-  }, [fetchUserById]);
   
   const fetchAvailableMythicCardsCount = useCallback(async (): Promise<number> => {
     const allUsers = await fetchUsersForAdmin();
@@ -2493,7 +2493,8 @@ const sendMassMail = useCallback(async (subject: string, content: string, sender
             };
             
             const sanitizedMail = sanitizeObjectForFirestore(newMail);
-            batch.update(userRef, { mail: FieldValue.arrayUnion(sanitizedMail) });
+            const updatedMail = [...(user.mail || []), sanitizedMail];
+            batch.update(userRef, { mail: updatedMail });
         }
     }
     
@@ -2819,7 +2820,5 @@ const deleteAlchemyRecipe = useCallback(async (recipeId: string) => {
     </AuthContext.Provider>
   );
 }
-
-
 
     
