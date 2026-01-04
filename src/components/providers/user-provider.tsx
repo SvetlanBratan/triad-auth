@@ -1744,7 +1744,7 @@ const processMonthlySalary = useCallback(async () => {
     const ranksAreDifferent = initiatorFamiliar.rank !== targetFamiliar.rank;
     const isMythicEventTrade =
       (initiatorFamiliar.rank === 'мифический' && targetFamiliar.rank === 'ивентовый') ||
-      (initiatorFamiliar.rank === 'ивентовый' && targetFamiliar.rank === 'мифический');
+      (initiatorFamiliar.rank === 'ивентовый' && initiatorFamiliar.rank === 'мифический');
 
     if (ranksAreDifferent && !isMythicEventTrade) {
         throw new Error("Обмен возможен только между фамильярами одного ранга, или между мифическим и ивентовым.");
@@ -2385,45 +2385,47 @@ const sendMassMail = useCallback(async (subject: string, content: string, sender
     const allUsers = await fetchUsersForAdmin();
     const batch = writeBatch(db);
     const timestamp = Date.now();
-  
+    const nowISO = new Date(timestamp).toISOString();
+
     const recipientsSet = recipientCharacterIds && recipientCharacterIds.length > 0 
       ? new Set(recipientCharacterIds) 
       : null;
-      
-    const usersToUpdate = new Map<string, User>();
-    
+
     for (const user of allUsers) {
-        const userCharacters = recipientsSet
-            ? user.characters.filter(c => recipientsSet.has(c.id))
-            : user.characters;
-            
-        if (userCharacters.length > 0) {
-            const recipientCharacterNames = userCharacters.map(c => c.name).join(', ');
-            const newMail: MailMessage = {
-                id: `mail-mass-${timestamp}-${user.id}`, // Unique ID per user
-                senderUserId: 'admin', // Or a dedicated admin ID
+        let mailSentToThisUser = false;
+        const recipientCharacterNames: string[] = [];
+
+        for (const character of user.characters) {
+            if (!recipientsSet || recipientsSet.has(character.id)) {
+                mailSentToThisUser = true;
+                recipientCharacterNames.push(character.name);
+            }
+        }
+
+        if (mailSentToThisUser) {
+             const newMail: MailMessage = {
+                id: `mail-mass-${timestamp}-${user.id}`,
+                senderUserId: 'admin',
                 senderCharacterName: senderName,
                 recipientUserId: user.id,
-                recipientCharacterId: '', // Not applicable for multi-character mail
-                recipientCharacterName: recipientCharacterNames,
+                recipientCharacterId: '', // Represents all relevant characters
+                recipientCharacterName: recipientsSet ? recipientCharacterNames.join(', ') : 'Всем вашим персонажам',
                 subject,
                 content,
-                sentAt: new Date(timestamp).toISOString(),
+                sentAt: nowISO,
                 isRead: false,
                 type: 'announcement',
             };
-            const updatedUser = { ...user, mail: [...(user.mail || []), newMail] };
-            usersToUpdate.set(user.id, updatedUser);
+            
+            const userRef = doc(db, "users", user.id);
+            const mailUpdate = { mail: admin.firestore.FieldValue.arrayUnion(newMail) };
+            batch.update(userRef, mailUpdate);
         }
     }
     
-    usersToUpdate.forEach((user, userId) => {
-        const userRef = doc(db, "users", userId);
-        batch.update(userRef, { mail: user.mail });
-    });
-    
     await batch.commit();
 }, [fetchUsersForAdmin]);
+
 
 const markMailAsRead = useCallback(async (mailId: string) => {
     if (!currentUser) return;
@@ -2617,15 +2619,16 @@ const fetchAlchemyRecipes = useCallback(async (): Promise<AlchemyRecipe[]> => {
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AlchemyRecipe));
   }, []);
 
-  const addAlchemyRecipe = useCallback(async (recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
+const addAlchemyRecipe = useCallback(async (recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
     const recipesCollection = collection(db, "alchemy_recipes");
-    await addDoc(recipesCollection, {
+    const newRecipe = {
         ...recipe,
         createdAt: new Date().toISOString()
-    });
-  }, []);
+    };
+    await addDoc(recipesCollection, newRecipe);
+}, []);
 
-  const updateAlchemyRecipe = useCallback(async (recipeId: string, recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
+const updateAlchemyRecipe = useCallback(async (recipeId: string, recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
     const recipeRef = doc(db, "alchemy_recipes", recipeId);
     await updateDoc(recipeRef, recipe);
 }, []);
@@ -2691,16 +2694,16 @@ const brewPotion = useCallback(async (userId: string, characterId: string, recip
         });
         
         // Add result potion
-        const inventoryTag = allItemsMap.get(recipe.resultPotionId)?.inventoryTag || 'зелья';
-        const potionsInv = (inventory[inventoryTag] || []) as InventoryItem[];
         const resultItem = allItemsMap.get(recipe.resultPotionId);
         if (!resultItem) throw new Error("Итоговый предмет не найден в данных игры.");
-
-        const existingPotionIndex = potionsInv.findIndex(p => p.name === resultItem.name);
+        const inventoryTag = resultItem.inventoryTag || 'зелья';
+        const targetInventoryList = (inventory[inventoryTag] || []) as InventoryItem[];
+        
+        const existingPotionIndex = targetInventoryList.findIndex(p => p.name === resultItem.name);
         if (existingPotionIndex > -1) {
-            potionsInv[existingPotionIndex].quantity += recipe.outputQty;
+            targetInventoryList[existingPotionIndex].quantity += recipe.outputQty;
         } else {
-            potionsInv.push({
+            targetInventoryList.push({
                 id: `inv-item-${Date.now()}`,
                 name: resultItem.name,
                 description: resultItem.description,
@@ -2710,7 +2713,7 @@ const brewPotion = useCallback(async (userId: string, characterId: string, recip
         }
         
         inventory.ингредиенты = ingredientsInv;
-        inventory[inventoryTag] = potionsInv;
+        inventory[inventoryTag] = targetInventoryList;
         character.inventory = inventory;
         
         // Check for achievement
@@ -2836,13 +2839,3 @@ const brewPotion = useCallback(async (userId: string, characterId: string, recip
     </AuthContext.Provider>
   );
 }
-
-    
-
-    
-
-
-
-    
-
-
