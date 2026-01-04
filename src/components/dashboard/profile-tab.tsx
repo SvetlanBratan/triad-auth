@@ -91,7 +91,7 @@ const CharacterDisplay = ({ character, onDelete }: { character: Character, onDel
              <div className="flex justify-between items-center w-full">
                  <AccordionTrigger className="flex-1 py-3 hover:no-underline group">
                    <div className="flex items-center gap-3">
-                        <CustomIcon src="/icons/character.svg" className="w-10 h-10 icon-primary" />
+                        <CustomIcon src="/icons/character.svg" className="w-12 h-12 icon-primary shrink-0" />
                         <div>
                             <div className="flex items-center gap-2 flex-wrap">
                                 <Link href={`/characters/${character.id}`} className="font-bold text-base hover:underline" onClick={e => e.stopPropagation()}>{character.name}</Link>
@@ -381,6 +381,7 @@ export default function ProfileTab() {
             )}
           </CardContent>
         </Card>
+        <RewardRequestsHistory />
       </div>
       <div className="lg:col-span-2 space-y-6">
         <Card>
@@ -420,7 +421,6 @@ export default function ProfileTab() {
             </Table>
           </CardContent>
         </Card>
-        <RewardRequestsHistory />
       </div>
 
        <Dialog open={!!editingState} onOpenChange={(isOpen) => !isOpen && setEditingState(null)}>
