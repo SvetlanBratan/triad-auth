@@ -148,9 +148,9 @@ export default function MailTab() {
             <div className="space-y-2">
               {sortedMail.length > 0 ? (
                 sortedMail.map(mail => {
-                   const recipientDisplay = mail.type === 'announcement' && !mail.recipientCharacterId
-                      ? 'для всех'
-                      : mail.recipientCharacterName;
+                   const recipientDisplay = (mail.type === 'announcement' && mail.recipientCharacterName) 
+                      ? mail.recipientCharacterName
+                      : (mail.type === 'announcement' ? 'для всех' : mail.recipientCharacterName);
 
                   return (
                       <button
@@ -215,7 +215,9 @@ export default function MailTab() {
                   <DialogHeader>
                     <DialogTitle>{selectedMail.subject}</DialogTitle>
                     <DialogDescription className="text-[11px]">
-                      От: {selectedMail.senderCharacterName} | Для: {selectedMail.type === 'announcement' && !selectedMail.recipientCharacterId ? 'всех' : selectedMail.recipientCharacterName} | {new Date(selectedMail.sentAt).toLocaleString()}
+                      От: {selectedMail.senderCharacterName} | Для: {(selectedMail.type === 'announcement' && selectedMail.recipientCharacterName) 
+                      ? selectedMail.recipientCharacterName
+                      : (selectedMail.type === 'announcement' ? 'всех' : selectedMail.recipientCharacterName)} | {new Date(selectedMail.sentAt).toLocaleString()}
                     </DialogDescription>
                   </DialogHeader>
                   <ScrollArea className="max-h-96 pr-4 my-4">
