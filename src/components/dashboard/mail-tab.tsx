@@ -118,27 +118,33 @@ export default function MailTab() {
           <ScrollArea className="h-96 pr-4">
             <div className="space-y-2">
               {sortedMail.length > 0 ? (
-                sortedMail.map(mail => (
-                  <button
-                    key={mail.id}
-                    className={cn(
-                      "w-full text-left p-3 rounded-md border transition-colors",
-                      mail.isRead ? "bg-muted/50 hover:bg-muted" : "bg-primary/10 hover:bg-primary/20",
-                    )}
-                    onClick={() => handleSelectMail(mail)}
-                  >
-                    <div className="flex justify-between items-start">
-                      <p className={cn("font-semibold", !mail.isRead && "text-primary")}>
-                        {mail.subject}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground whitespace-nowrap pl-2">{new Date(mail.sentAt).toLocaleString()}</p>
-                    </div>
-                    <div className="text-[11px] text-muted-foreground flex justify-between">
-                        <span>От: {mail.senderCharacterName}</span>
-                        {mail.recipientCharacterName && <span>Для: {mail.recipientCharacterName}</span>}
-                    </div>
-                  </button>
-                ))
+                sortedMail.map(mail => {
+                  const recipientDisplay = mail.type === 'announcement' && !mail.recipientCharacterId
+                      ? 'для всех'
+                      : mail.recipientCharacterName;
+
+                  return (
+                      <button
+                        key={mail.id}
+                        className={cn(
+                          "w-full text-left p-3 rounded-md border transition-colors",
+                          mail.isRead ? "bg-muted/50 hover:bg-muted" : "bg-primary/10 hover:bg-primary/20",
+                        )}
+                        onClick={() => handleSelectMail(mail)}
+                      >
+                        <div className="flex justify-between items-start">
+                          <p className={cn("font-semibold", !mail.isRead && "text-primary")}>
+                            {mail.subject}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground whitespace-nowrap pl-2">{new Date(mail.sentAt).toLocaleString()}</p>
+                        </div>
+                        <div className="text-[11px] text-muted-foreground flex justify-between">
+                            <span>От: {mail.senderCharacterName}</span>
+                            {recipientDisplay && <span>Для: {recipientDisplay}</span>}
+                        </div>
+                      </button>
+                    )
+                })
               ) : (
                 <p className="text-center text-muted-foreground pt-16">Ваш почтовый ящик пуст.</p>
               )}
@@ -180,7 +186,7 @@ export default function MailTab() {
                   <DialogHeader>
                     <DialogTitle>{selectedMail.subject}</DialogTitle>
                     <DialogDescription className="text-[11px]">
-                      От: {selectedMail.senderCharacterName} | Для: {selectedMail.recipientCharacterName} | {new Date(selectedMail.sentAt).toLocaleString()}
+                      От: {selectedMail.senderCharacterName} | Для: {selectedMail.type === 'announcement' && !selectedMail.recipientCharacterId ? 'всех' : selectedMail.recipientCharacterName} | {new Date(selectedMail.sentAt).toLocaleString()}
                     </DialogDescription>
                   </DialogHeader>
                   <ScrollArea className="max-h-96 pr-4 my-4">
