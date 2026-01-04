@@ -2393,15 +2393,16 @@ const sendMassMail = useCallback(async (subject: string, content: string, sender
 
     for (const user of allUsers) {
         let mailSentToThisUser = false;
-        const recipientCharacterNames: string[] = [];
+        let recipientCharacterNames: string[] = [];
 
-        for (const character of user.characters) {
-            if (!recipientsSet || recipientsSet.has(character.id)) {
-                mailSentToThisUser = true;
-                if (recipientsSet) {
-                    recipientCharacterNames.push(character.name);
-                }
-            }
+        if (recipientsSet) {
+             const userCharactersInRecipients = user.characters.filter(c => recipientsSet.has(c.id));
+             if (userCharactersInRecipients.length > 0) {
+                 mailSentToThisUser = true;
+                 recipientCharacterNames = userCharactersInRecipients.map(c => c.name);
+             }
+        } else {
+             mailSentToThisUser = true;
         }
 
         if (mailSentToThisUser) {

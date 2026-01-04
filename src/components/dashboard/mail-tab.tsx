@@ -27,7 +27,7 @@ import { CustomIcon } from '../ui/custom-icon';
 import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover';
 
 const RecipientDisplay = ({ name }: { name?: string }) => {
-    if (!name) return null;
+    if (!name) return <span>Для: для всех</span>;
 
     const names = name.split(', ');
     const isExpandable = names.length > 2;
@@ -148,9 +148,9 @@ export default function MailTab() {
             <div className="space-y-2">
               {sortedMail.length > 0 ? (
                 sortedMail.map(mail => {
-                   const recipientDisplay = (mail.type === 'announcement' && mail.recipientCharacterName) 
-                      ? mail.recipientCharacterName
-                      : (mail.type === 'announcement' ? 'для всех' : mail.recipientCharacterName);
+                  const recipientDisplay = (mail.type === 'announcement' && !mail.recipientCharacterName)
+                    ? undefined
+                    : mail.recipientCharacterName;
 
                   return (
                       <button
@@ -215,7 +215,7 @@ export default function MailTab() {
                   <DialogHeader>
                     <DialogTitle>{selectedMail.subject}</DialogTitle>
                     <DialogDescription className="text-[11px]">
-                      От: {selectedMail.senderCharacterName} | Для: {(selectedMail.type === 'announcement' && !selectedMail.recipientCharacterName) ? 'всех' : selectedMail.recipientCharacterName} | {new Date(selectedMail.sentAt).toLocaleString()}
+                      От: {selectedMail.senderCharacterName} | <RecipientDisplay name={ (selectedMail.type === 'announcement' && !selectedMail.recipientCharacterName) ? undefined : selectedMail.recipientCharacterName} /> | {new Date(selectedMail.sentAt).toLocaleString()}
                     </DialogDescription>
                   </DialogHeader>
                   <ScrollArea className="max-h-96 pr-4 my-4">
