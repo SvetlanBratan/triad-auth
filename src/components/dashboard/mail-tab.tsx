@@ -39,7 +39,7 @@ const RecipientDisplay = ({ name }: { name?: string }) => {
     const displayedNames = names.slice(0, 2).join(', ');
 
     return (
-        <div className="flex items-center gap-1">
+        <span className="inline-flex items-center gap-1">
             <span>Для: {displayedNames}</span>
             <Popover>
                 <PopoverTrigger asChild>
@@ -52,7 +52,7 @@ const RecipientDisplay = ({ name }: { name?: string }) => {
                     </ul>
                 </PopoverContent>
             </Popover>
-        </div>
+        </span>
     );
 };
 
@@ -148,7 +148,7 @@ export default function MailTab() {
             <div className="space-y-2">
               {sortedMail.length > 0 ? (
                 sortedMail.map(mail => {
-                  const recipientDisplay = (mail.type === 'announcement' && !mail.recipientCharacterName)
+                   const recipientDisplay = (mail.type === 'announcement' && !mail.recipientCharacterName)
                     ? undefined
                     : mail.recipientCharacterName;
 
