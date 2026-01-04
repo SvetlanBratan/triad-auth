@@ -311,17 +311,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       return null;
   }, [processUserDoc]);
 
-  const fetchUsersForAdmin = useCallback(async (): Promise<User[]> => {
-    try {
-        const usersCollection = collection(db, "users");
-        const userSnapshot = await getDocs(query(usersCollection, orderBy("points", "desc")));
-        return userSnapshot.docs.map(doc => processUserDoc(doc.data() as User));
-    } catch(error) {
-        console.error("Error fetching users for admin.", error);
-        throw error;
-    }
-  }, [processUserDoc]);
-  
   const fetchCharacterById = useCallback(async (characterId: string): Promise<{ character: Character; owner: User } | null> => {
     try {
         const usersCollection = collection(db, "users");
@@ -342,6 +331,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return null;
     }
   }, [fetchUserById]);
+
+  const fetchUsersForAdmin = useCallback(async (): Promise<User[]> => {
+    try {
+        const usersCollection = collection(db, "users");
+        const userSnapshot = await getDocs(query(usersCollection, orderBy("points", "desc")));
+        return userSnapshot.docs.map(doc => processUserDoc(doc.data() as User));
+    } catch(error) {
+        console.error("Error fetching users for admin.", error);
+        throw error;
+    }
+  }, [processUserDoc]);
+  
 
   const brewPotion = useCallback(async (userId: string, characterId: string, recipeId: string) => {
     await runTransaction(db, async (transaction) => {
@@ -1872,11 +1873,14 @@ const processMonthlySalary = useCallback(async () => {
       getDocs(incomingQuery)
     ]);
 
-    const requests: FamiliarTradeRequest[] = [];
-    outgoingSnapshot.forEach(doc => requests.push({ id: doc.id, ...doc.data() } as FamiliarTradeRequest));
-    incomingSnapshot.forEach(doc => requests.push({ id: doc.id, ...doc.data() } as FamiliarTradeRequest));
+    const requestsMap = new Map<string, FamiliarTradeRequest>();
+    const processSnapshot = (snapshot: any) => {
+        snapshot.forEach((doc: any) => requestsMap.set(doc.id, { id: doc.id, ...doc.data() } as FamiliarTradeRequest));
+    }
+    processSnapshot(outgoingSnapshot);
+    processSnapshot(incomingSnapshot);
 
-    return requests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return Array.from(requestsMap.values()).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [currentUser]);
 
   const acceptFamiliarTradeRequest = useCallback(async (request: FamiliarTradeRequest) => {
@@ -2477,14 +2481,11 @@ const sendMassMail = useCallback(async (subject: string, content: string, sender
             : user.characters;
 
         if (userCharactersInRecipients.length > 0) {
-            
-            const newMail: MailMessage = {
-                id: `mail-mass-${timestamp}-${user.id}`,
+            const mailData: Partial<MailMessage> = {
+                id: `mail-mass-${timestamp}-${user.id.slice(0, 5)}`,
                 senderUserId: 'admin',
                 senderCharacterName: senderName,
                 recipientUserId: user.id,
-                recipientCharacterId: '',
-                recipientCharacterName: recipientsSet ? userCharactersInRecipients.map(c => c.name).join(', ') : undefined,
                 subject,
                 content,
                 sentAt: nowISO,
@@ -2492,7 +2493,16 @@ const sendMassMail = useCallback(async (subject: string, content: string, sender
                 type: 'announcement',
             };
             
-            const sanitizedMail = sanitizeObjectForFirestore(newMail);
+            if (recipientsSet) {
+                mailData.recipientCharacterName = userCharactersInRecipients.map(c => c.name).join(', ');
+                // For simplicity, we just link it to the first recipient character of that user.
+                // The UI will show all recipient names anyway.
+                mailData.recipientCharacterId = userCharactersInRecipients[0].id;
+            } else {
+                 mailData.recipientCharacterId = userCharactersInRecipients[0]?.id || 'all';
+            }
+            
+            const sanitizedMail = sanitizeObjectForFirestore(mailData);
             const updatedMail = [...(user.mail || []), sanitizedMail];
             batch.update(userRef, { mail: updatedMail });
         }
