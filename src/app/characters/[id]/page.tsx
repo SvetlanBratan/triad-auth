@@ -384,6 +384,7 @@ export default function CharacterPage() {
     const TaxpayerIcon = taxpayerIcons[taxpayerStatus];
 
     const isOwnerOrAdmin = currentUser?.id === owner.id || currentUser?.role === 'admin';
+    const isAdmin = currentUser?.role === 'admin';
     
     const inventory = {
       оружие: [], доспехи: [], артефакты: [], зелья: [], гардероб: [],
@@ -685,11 +686,11 @@ export default function CharacterPage() {
                 </AccordionItem>
             </Accordion>
             
-            {(combinedGallery.length > 0 || isOwnerOrAdmin) && (
+            {(combinedGallery.length > 0 || isAdmin) && (
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
                         <CardTitle className="flex items-center gap-2"><Camera /> Колдоснимки</CardTitle>
-                        {isOwnerOrAdmin && (
+                        {isAdmin && (
                             <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'section', section: 'gallery' })} className="shrink-0 h-8 w-8 self-center">
                                 <PlusCircle className="w-4 h-4" />
                             </Button>
@@ -1335,5 +1336,7 @@ export default function CharacterPage() {
         </div>
     );
 }
+
+    
 
     
