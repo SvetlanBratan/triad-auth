@@ -29,6 +29,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import FormattedTextRenderer from '@/components/dashboard/formatted-text-renderer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useIsMobile } from '@/hooks/use-mobile';
+import CharacterPageSkeleton from '@/components/dashboard/character-page-skeleton';
 
 
 const CustomIcon = ({ src, className }: { src: string, className?: string }) => (
@@ -370,7 +371,7 @@ export default function CharacterPage() {
 
 
     if (isCharacterLoading || areUsersLoading) {
-        return <div className="container mx-auto p-4 md:p-8"><p>Загрузка данных персонажа...</p></div>;
+        return <CharacterPageSkeleton />;
     }
 
     if (!characterData || !character || !owner) {
