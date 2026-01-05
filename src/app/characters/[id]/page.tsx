@@ -685,7 +685,7 @@ export default function CharacterPage() {
                 </AccordionItem>
             </Accordion>
             
-            {combinedGallery.length > 0 && (
+            {(combinedGallery.length > 0 || isOwnerOrAdmin) && (
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
                         <CardTitle className="flex items-center gap-2"><Camera /> Колдоснимки</CardTitle>
@@ -928,7 +928,7 @@ export default function CharacterPage() {
                             className="bg-muted/30"
                             data-ai-hint="character banner"
                         />
-                         {currentUser?.role === 'admin' && (
+                         {isOwnerOrAdmin && (
                             <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'section', section: 'gallery' })} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/50 hover:bg-background/80">
                                 <Edit className="w-4 h-4" />
                             </Button>
