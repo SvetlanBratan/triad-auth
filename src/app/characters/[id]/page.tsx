@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -24,7 +25,7 @@ import { Progress } from '@/components/ui/progress';
 import RelationshipActions from '@/components/dashboard/relationship-actions';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import Image from 'next/image';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import FormattedTextRenderer from '@/components/dashboard/formatted-text-renderer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -210,6 +211,7 @@ const FamiliarsSection = ({ character }: { character: Character }) => {
 export default function CharacterPage() {
     const { id } = useParams();
     const { currentUser, updateCharacterInUser, gameDate, consumeInventoryItem, setCurrentUser, fetchCharacterById, fetchUsersForAdmin } = useUser();
+    const queryClient = useQueryClient();
     
     const charId = Array.isArray(id) ? id[0] : id;
     const { data: characterData, isLoading: isCharacterLoading, refetch } = useQuery({
@@ -239,12 +241,36 @@ export default function CharacterPage() {
     const character = characterData?.character;
     const owner = characterData?.owner;
 
+    const mutation = useMutation({
+        mutationFn: (characterData: Character) => {
+            if (!owner) throw new Error("Владелец персонажа не найден.");
+            return updateCharacterInUser(owner.id, characterData);
+        },
+        onMutate: async (newCharacter) => {
+            await queryClient.cancelQueries({ queryKey: ['character', charId] });
+            const previousCharacterData = queryClient.getQueryData(['character', charId]);
+            queryClient.setQueryData(['character', charId], { character: newCharacter, owner });
+            return { previousCharacterData };
+        },
+        onError: (err, newCharacter, context) => {
+            if (context?.previousCharacterData) {
+                queryClient.setQueryData(['character', charId], context.previousCharacterData);
+            }
+            const message = err instanceof Error ? err.message : "Произошла неизвестная ошибка.";
+            toast({ variant: 'destructive', title: "Ошибка", description: message });
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['character', charId] });
+            queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+        },
+        onSuccess: () => {
+            toast({ title: "Анкета обновлена", description: "Данные персонажа успешно сохранены." });
+            setEditingState(null);
+        }
+    });
+
     const handleFormSubmit = (characterData: Character) => {
-        if (!owner) return;
-        updateCharacterInUser(owner.id, characterData);
-        toast({ title: "Анкета обновлена", description: "Данные персонажа успешно сохранены." });
-        setEditingState(null);
-        refetch();
+        mutation.mutate(characterData);
     };
     
     const closeDialog = () => {
@@ -1308,6 +1334,8 @@ export default function CharacterPage() {
         </div>
     );
 }
+
+    
 
     
 

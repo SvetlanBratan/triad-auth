@@ -43,7 +43,7 @@ interface UserContextType extends Omit<User, 'id' | 'name' | 'email' | 'avatar' 
   addPointsToUser: (userId: string, amount: number, reason: string, characterId?: string) => Promise<User | null>;
   addPointsToAllUsers: (amount: number, reason: string) => Promise<void>;
   addCharacterToUser: (userId: string, character: Character) => Promise<void>;
-  updateCharacterInUser: (userId: string, character: Character) => Promise<void>;
+  updateCharacterInUser: (userId: string, character: Character) => Promise<User>;
   deleteCharacterFromUser: (userId: string, characterId: string) => Promise<void>;
   updateUserStatus: (userId: string, status: UserStatus) => Promise<void>;
   updateUserRole: (userId: string, role: UserRole) => Promise<void>;
@@ -749,7 +749,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     await updateUser(userId, { characters: updatedCharacters });
   }, [fetchUserById, updateUser]);
 
-  const updateCharacterInUser = useCallback(async (userId: string, characterToUpdate: Character) => {
+  const updateCharacterInUser = useCallback(async (userId: string, characterToUpdate: Character): Promise<User> => {
     await runTransaction(db, async (transaction) => {
         const userRef = doc(db, "users", userId);
         const userDoc = await transaction.get(userRef);
@@ -806,11 +806,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     });
 
     const updatedUser = await fetchUserById(userId);
-    if (updatedUser) {
-      if (currentUser?.id === userId) {
+    if (!updatedUser) throw new Error("Failed to fetch user after update.");
+    if (currentUser?.id === userId) {
         setCurrentUser(updatedUser);
-      }
     }
+    return updatedUser;
 }, [currentUser?.id, fetchUserById, initialFormData]);
 
 
@@ -2470,18 +2470,14 @@ const sendMassMail = useCallback(async (subject: string, content: string, sender
     const timestamp = Date.now();
     const nowISO = new Date(timestamp).toISOString();
 
-    const recipientsSet = recipientCharacterIds && recipientCharacterIds.length > 0 
-      ? new Set(recipientCharacterIds) 
-      : null;
-
     for (const user of allUsers) {
         const userRef = doc(db, "users", user.id);
-        const userCharactersInRecipients = recipientsSet 
-            ? user.characters.filter(c => recipientsSet.has(c.id))
-            : user.characters;
 
-        if (userCharactersInRecipients.length > 0) {
-            const mailData: Partial<MailMessage> = {
+        // Determine if this user should receive the mail
+        const isRecipient = !recipientCharacterIds || user.characters.some(c => recipientCharacterIds.includes(c.id));
+        
+        if (isRecipient) {
+            const newMail: MailMessage = {
                 id: `mail-mass-${timestamp}-${user.id.slice(0, 5)}`,
                 senderUserId: 'admin',
                 senderCharacterName: senderName,
@@ -2491,19 +2487,17 @@ const sendMassMail = useCallback(async (subject: string, content: string, sender
                 sentAt: nowISO,
                 isRead: false,
                 type: 'announcement',
-            };
+                // recipientCharacterId and recipientCharacterName will be set below if applicable
+            } as MailMessage;
             
-            if (recipientsSet) {
-                mailData.recipientCharacterName = userCharactersInRecipients.map(c => c.name).join(', ');
-                // For simplicity, we just link it to the first recipient character of that user.
-                // The UI will show all recipient names anyway.
-                mailData.recipientCharacterId = userCharactersInRecipients[0].id;
-            } else {
-                 mailData.recipientCharacterId = userCharactersInRecipients[0]?.id || 'all';
+            if (recipientCharacterIds) {
+                const relevantChars = user.characters.filter(c => recipientCharacterIds.includes(c.id));
+                if (relevantChars.length > 0) {
+                    newMail.recipientCharacterName = relevantChars.map(c => c.name).join(', ');
+                    newMail.recipientCharacterId = relevantChars[0].id; // For simplicity, link to the first one
+                }
             }
-            
-            const sanitizedMail = sanitizeObjectForFirestore(mailData);
-            const updatedMail = [...(user.mail || []), sanitizedMail];
+            const updatedMail = [...(user.mail || []), newMail];
             batch.update(userRef, { mail: updatedMail });
         }
     }
@@ -2830,5 +2824,7 @@ const deleteAlchemyRecipe = useCallback(async (recipeId: string) => {
     </AuthContext.Provider>
   );
 }
+
+    
 
     
