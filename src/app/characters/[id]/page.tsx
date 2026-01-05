@@ -689,7 +689,7 @@ export default function CharacterPage() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
                         <CardTitle className="flex items-center gap-2"><Camera /> Колдоснимки</CardTitle>
-                        {currentUser?.role === 'admin' && (
+                        {isOwnerOrAdmin && (
                             <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'section', section: 'gallery' })} className="shrink-0 h-8 w-8 self-center">
                                 <PlusCircle className="w-4 h-4" />
                             </Button>
