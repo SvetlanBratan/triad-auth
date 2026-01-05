@@ -684,7 +684,7 @@ export default function CharacterPage() {
                 </AccordionItem>
             </Accordion>
             
-            {(isMobile || combinedGallery.length > 0) && (
+            {combinedGallery.length > 0 && (
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
                         <CardTitle className="flex items-center gap-2"><Camera /> Колдоснимки</CardTitle>
@@ -1334,9 +1334,5 @@ export default function CharacterPage() {
         </div>
     );
 }
-
-    
-
-    
 
     
