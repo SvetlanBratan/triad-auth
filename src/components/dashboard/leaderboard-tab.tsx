@@ -1,6 +1,5 @@
 
-
-"use client";
+'use client';
 
 import React from 'react';
 import { useUser } from '@/hooks/use-user';
@@ -287,7 +286,7 @@ export default function LeaderboardTab() {
           <CustomIcon src="/icons/leaderboard.svg" className="w-5 h-5 icon-primary" /> Игроки
         </CardTitle>
         <CardDescription>
-            Просматривайте рейтинг игроков или ищите соигроков.
+            Список <span className="line-through">Forbes</span> Тыквенного Переполоха. Нажмите на пользователя, чтобы просмотреть детали.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -297,9 +296,6 @@ export default function LeaderboardTab() {
                 <TabsTrigger value="search"><Search className="mr-2 h-4 w-4"/>Поиск соигроков</TabsTrigger>
             </TabsList>
             <TabsContent value="leaderboard" className="mt-4">
-                 <p className="text-center text-muted-foreground mb-4">
-                    Список <span className="line-through">Forbes</span> Тыквенного Переполоха. Нажмите на пользователя, чтобы просмотреть детали.
-                </p>
                 <LeaderboardTable />
             </TabsContent>
             <TabsContent value="search" className="mt-4">
