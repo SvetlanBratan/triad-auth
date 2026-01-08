@@ -1,10 +1,9 @@
 
 
-
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
-import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage, Cooldowns, PopularityLog, CharacterPopularityUpdate, OwnedFamiliarCard, AlchemyRecipe, AlchemyRecipeComponent, PlayerStatus, PlayerPing } from '@/lib/types';
+import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage, Cooldowns, PopularityLog, CharacterPopularityUpdate, OwnedFamiliarCard, AlchemyRecipe, AlchemyRecipeComponent, PlayerStatus, PlayerPing, SocialLink } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter, increment, FieldValue, arrayUnion, deleteField } from "firebase/firestore";
@@ -28,7 +27,7 @@ export const useAuth = () => {
     return context;
 };
 
-interface UserContextType extends Omit<User, 'id' | 'name' | 'email' | 'avatar' | 'role' | 'points' | 'status' | 'characters' | 'pointHistory' | 'achievementIds' | 'extraCharacterSlots' | 'mail' | 'playerPings' | 'playerStatus' | 'playPlatform' | 'socialLink'> {
+interface UserContextType extends Omit<User, 'id' | 'name' | 'email' | 'avatar' | 'role' | 'points' | 'status' | 'characters' | 'pointHistory' | 'achievementIds' | 'extraCharacterSlots' | 'mail' | 'playerPings' | 'playerStatus' | 'playPlatform' | 'socialLink' | 'socials'> {
   currentUser: User | null;
   setCurrentUser: (user: User | null) => void;
   gameDate: Date | null;
@@ -307,8 +306,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     userData.mail = userData.mail || [];
     userData.playerPings = userData.playerPings || [];
     userData.playerStatus = userData.playerStatus || 'Не играю';
-    userData.playPlatform = userData.playPlatform || '';
-    userData.socialLink = userData.socialLink || '';
+    userData.socials = userData.socials || [];
     return userData;
   }, [initialFormData]);
   
@@ -561,8 +559,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         points: 1000,
         status: 'активный',
         playerStatus: 'Не играю',
-        playPlatform: '',
-        socialLink: '',
+        socials: [],
         characters: [],
         pointHistory: [{
             id: `h-${Date.now()}`,
@@ -634,8 +631,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 pointHistory: [], 
                 achievementIds: userData.achievementIds || [],
                 playerStatus: userData.playerStatus || 'Не играю',
-                playPlatform: userData.playPlatform || '',
-                socialLink: userData.socialLink || '',
+                socials: userData.socials || [],
             };
         });
         return users;
@@ -2152,9 +2148,9 @@ const processMonthlySalary = useCallback(async () => {
         shopBankAccount.history = [shopTx, ...(shopBankAccount.history || [])];
         
         // Grant first purchase achievement
-        const hasFirstPurchaseAchievement = (buyerUserData.achievementIds || []).includes(FIRST_PURCHASE_ACHIEVEMENT_ID);
+        const hasFirstPurchaseAchievement = (buyerUserData.achievementIds || []).includes('ach-first-purchase');
         if (!hasFirstPurchaseAchievement) {
-            buyerUserData.achievementIds = [...(buyerUserData.achievementIds || []), FIRST_PURCHASE_ACHIEVEMENT_ID];
+            buyerUserData.achievementIds = [...(buyerUserData.achievementIds || []), 'ach-first-purchase'];
         }
 
         // 4. Update buyer's character data & shop data

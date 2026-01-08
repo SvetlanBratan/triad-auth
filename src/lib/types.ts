@@ -1,7 +1,4 @@
 
-
-
-
 export type UserRole = "admin" | "user";
 export type UserStatus = "активный" | "неактивный" | "отпуск";
 export type PlayerStatus =
@@ -75,6 +72,12 @@ export type CrimeLevel = 1 | 2 | 3 | 4 | 5;
 export type CitizenshipStatus = "citizen" | "non-citizen" | "refugee";
 export type TaxpayerStatus = "taxable" | "exempt";
 export type MailMessageType = "announcement" | "personal";
+
+export interface SocialLink {
+  id: string;
+  platform: PlayPlatform;
+  link: string;
+}
 
 export interface MailMessage {
   id: string;
@@ -335,14 +338,16 @@ export interface User {
   points: number;
   status: UserStatus;
   playerStatus?: PlayerStatus;
-  playPlatform?: PlayPlatform;
-  socialLink?: string;
+  socials?: SocialLink[];
   characters: Character[];
   pointHistory: PointLog[];
   achievementIds?: string[];
   extraCharacterSlots?: number;
   mail?: MailMessage[];
   playerPings?: PlayerPing[];
+  // Deprecated fields, for migration
+  playPlatform?: PlayPlatform;
+  socialLink?: string;
 }
 
 export interface Reward {
