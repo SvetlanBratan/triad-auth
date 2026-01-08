@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useUser } from '@/hooks/use-user';
@@ -303,8 +301,8 @@ export default function ProfileTab() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-1 space-y-6">
-        <Card>
+      <div className="lg:col-span-1 space-y-6 lg:grid lg:grid-cols-1 lg:gap-6 lg:space-y-0">
+        <Card className="lg:self-start">
           <CardHeader>
              <div className="flex items-center gap-4">
                 <div 
@@ -319,7 +317,7 @@ export default function ProfileTab() {
                         <Pencil className="w-6 h-6 text-white" />
                     </div>
                 </div>
-                <div className="flex-1 overflow-hidden">
+                <div className="flex-1 overflow-hidden min-w-0">
                     <CardTitle className="text-xl sm:text-2xl font-headline truncate">{currentUser.name}</CardTitle>
                     <CardDescription className="truncate text-sm sm:text-base">{currentUser.email}</CardDescription>
                 </div>
