@@ -3,12 +3,12 @@
 "use client";
 
 import React, { useMemo, useState } from 'react';
-import type { User, UserStatus, PointLog, Character, FamiliarCard, FamiliarRank, Moodlet, PlayerStatus, PlayPlatform } from '@/lib/types';
+import type { User, UserStatus, PointLog, Character, FamiliarCard, FamiliarRank, Moodlet, PlayerStatus, PlayPlatform, SocialLink } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Anchor, KeyRound, Sparkles, Pencil, Gamepad2, Link as LinkIcon } from 'lucide-react';
+import { Anchor, KeyRound, Sparkles, Pencil, Gamepad2, Link as LinkIcon, PlusCircle, X } from 'lucide-react';
 import { cn, formatTimeLeft } from '@/lib/utils';
 import FamiliarCardDisplay from './familiar-card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
@@ -206,11 +206,16 @@ export default function UserProfileDialog({ user }: { user: User }) {
   const { toast } = useToast();
   const [isPlayerStatusDialogOpen, setPlayerStatusDialogOpen] = useState(false);
   const [isSocialsDialogOpen, setSocialsDialogOpen] = useState(false);
-  const [socialLink, setSocialLink] = React.useState(user.socialLink || '');
-  const [playPlatform, setPlayPlatform] = React.useState<PlayPlatform>(user.playPlatform || 'Не указана');
+  const [socials, setSocials] = React.useState<SocialLink[]>([]);
   const [isSavingSocials, setIsSavingSocials] = React.useState(false);
 
   if (!user) return null;
+  
+  React.useEffect(() => {
+    if(user) {
+        setSocials(user.socials || []);
+    }
+  }, [user]);
 
   const isAdmin = currentUser?.role === 'admin';
   const isOwner = currentUser?.id === user.id;
@@ -225,7 +230,8 @@ export default function UserProfileDialog({ user }: { user: User }) {
     if (!currentUser) return;
     setIsSavingSocials(true);
     try {
-        await updateUser(user.id, { socialLink, playPlatform });
+        const validSocials = socials.filter(s => s.link.trim() !== '');
+        await updateUser(user.id, { socials: validSocials });
         toast({ title: 'Данные обновлены' });
         setSocialsDialogOpen(false);
     } catch(e) {
@@ -236,14 +242,27 @@ export default function UserProfileDialog({ user }: { user: User }) {
     }
   }
 
-  const handlePlatformClick = () => {
+  const handlePlatformClick = (link?: string) => {
     if (isOwner || isAdmin) {
-        setSocialLink(user.socialLink || '');
-        setPlayPlatform(user.playPlatform || 'Не указана');
+        setSocials(user.socials || []);
         setSocialsDialogOpen(true);
-    } else if (user.socialLink) {
-        window.open(user.socialLink, '_blank', 'noopener,noreferrer');
+    } else if (link) {
+        window.open(link, '_blank', 'noopener,noreferrer');
     }
+  };
+  
+  const handleSocialChange = (index: number, field: keyof SocialLink, value: string) => {
+    const newSocials = [...socials];
+    (newSocials[index] as any)[field] = value;
+    setSocials(newSocials);
+  };
+
+  const addSocialField = () => {
+    setSocials([...socials, { id: `new-${Date.now()}`, platform: 'Discord', link: '' }]);
+  };
+
+  const removeSocialField = (id: string) => {
+    setSocials(socials.filter(s => s.id !== id));
   };
 
 
@@ -313,16 +332,26 @@ export default function UserProfileDialog({ user }: { user: User }) {
                     </Badge>
                 </button>
               </div>
-               <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Платформа</span>
-                <button onClick={handlePlatformClick} className="rounded-md -m-1 p-1 hover:bg-accent transition-colors disabled:cursor-default" disabled={!(isOwner || isAdmin) && !user.socialLink}>
-                  <Badge variant={'outline'}>
-                    <Gamepad2 className="mr-1.5 h-3.5 w-3.5" />
-                    {user.playPlatform || 'Не указана'}
-                    {user.socialLink && <LinkIcon className="ml-1.5 h-3 w-3" />}
-                  </Badge>
-                </button>
-             </div>
+               <div className="flex justify-between items-start">
+                <span className="text-muted-foreground">Платформы</span>
+                <div className="flex flex-wrap gap-1 justify-end">
+                    {(user.socials && user.socials.length > 0) ? (
+                        user.socials.map(social => (
+                            <button key={social.id} onClick={() => handlePlatformClick(social.link)} className="rounded-md -m-1 p-1 hover:bg-accent transition-colors">
+                                <Badge variant={'outline'}>
+                                <Gamepad2 className="mr-1.5 h-3.5 w-3.5" />
+                                {social.platform}
+                                {social.link && <LinkIcon className="ml-1.5 h-3 w-3" />}
+                                </Badge>
+                            </button>
+                        ))
+                    ) : (
+                        <button onClick={() => handlePlatformClick()} className="rounded-md -m-1 p-1 hover:bg-accent transition-colors" disabled={!(isOwner || isAdmin)}>
+                            <Badge variant={'outline'}>Не указаны</Badge>
+                        </button>
+                    )}
+                 </div>
+               </div>
               {isAdmin && (
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Роль</span>
@@ -437,27 +466,46 @@ export default function UserProfileDialog({ user }: { user: User }) {
             <DialogHeader>
                 <DialogTitle>Обновить игровые данные для {user.name}</DialogTitle>
             </DialogHeader>
-            <div className="py-4 space-y-4">
-                <div className="space-y-2">
-                    <Label htmlFor="play-platform">Платформа для игры</Label>
-                    <SearchableSelect
-                        options={playPlatformOptions}
-                        value={playPlatform}
-                        onValueChange={(val) => setPlayPlatform(val as PlayPlatform)}
-                        placeholder="Выберите платформу..."
-                    />
+             <div className="py-4 space-y-4">
+                    {socials.map((social, index) => (
+                        <div key={social.id} className="flex items-end gap-2 p-3 border rounded-md relative">
+                           <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="absolute -top-3 -right-3 h-6 w-6"
+                                onClick={() => removeSocialField(social.id)}
+                            >
+                                <X className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                            <div className="flex-1 grid gap-2">
+                                <div>
+                                    <Label htmlFor={`platform-${index}`}>Платформа</Label>
+                                    <SearchableSelect
+                                        options={playPlatformOptions}
+                                        value={social.platform}
+                                        onValueChange={(val) => handleSocialChange(index, 'platform', val as PlayPlatform)}
+                                        placeholder="Выберите платформу..."
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor={`link-${index}`}>Ссылка</Label>
+                                    <Input id={`link-${index}`} value={social.link} onChange={e => handleSocialChange(index, 'link', e.target.value)} placeholder="https://..."/>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                    <Button variant="outline" onClick={addSocialField}>
+                        <PlusCircle className="mr-2 h-4 w-4"/>
+                        Добавить платформу
+                    </Button>
                 </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="social-link">Ссылка на профиль</Label>
-                    <Input id="social-link" value={socialLink} onChange={e => setSocialLink(e.target.value)} placeholder="https://..."/>
+                <div className="flex justify-end gap-2">
+                    <Button variant="ghost" onClick={() => setSocialsDialogOpen(false)}>Отмена</Button>
+                    <Button onClick={handleSocialsSave} disabled={isSavingSocials}>
+                        {isSavingSocials ? 'Сохранение...' : 'Сохранить'}
+                    </Button>
                 </div>
-            </div>
-            <div className="flex justify-end gap-2">
-                <Button variant="ghost" onClick={() => setSocialsDialogOpen(false)}>Отмена</Button>
-                <Button onClick={handleSocialsSave} disabled={isSavingSocials}>
-                    {isSavingSocials ? 'Сохранение...' : 'Сохранить'}
-                </Button>
-            </div>
         </DialogContent>
     </Dialog>
     </>

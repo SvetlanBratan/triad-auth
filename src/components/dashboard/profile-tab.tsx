@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Trash2, Pencil, UserSquare, Sparkles, Anchor, KeyRound, Link as LinkIcon, Gamepad2 } from 'lucide-react';
-import type { PointLog, UserStatus, Character, User, FamiliarCard, FamiliarRank, PlayerStatus, PlayPlatform } from '@/lib/types';
+import type { PointLog, UserStatus, Character, User, FamiliarCard, FamiliarRank, PlayerStatus, PlayPlatform, SocialLink } from '@/lib/types';
 import Link from 'next/link';
 import {
   Dialog,
@@ -200,8 +200,7 @@ export default function ProfileTab() {
   const [isAvatarDialogOpen, setAvatarDialogOpen] = React.useState(false);
   const [isPlayerStatusDialogOpen, setPlayerStatusDialogOpen] = React.useState(false);
   const [isSocialsDialogOpen, setSocialsDialogOpen] = React.useState(false);
-  const [socialLink, setSocialLink] = React.useState('');
-  const [playPlatform, setPlayPlatform] = React.useState<PlayPlatform>('Не указана');
+  const [socials, setSocials] = React.useState<SocialLink[]>([]);
   const [isSavingSocials, setIsSavingSocials] = React.useState(false);
 
   const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -219,8 +218,7 @@ export default function ProfileTab() {
 
   useEffect(() => {
     if(currentUser) {
-        setSocialLink(currentUser.socialLink || '');
-        setPlayPlatform(currentUser.playPlatform || 'Не указана');
+        setSocials(currentUser.socials || []);
     }
   }, [currentUser]);
 
@@ -281,7 +279,8 @@ export default function ProfileTab() {
     if (!currentUser) return;
     setIsSavingSocials(true);
     try {
-        await updateUser(currentUser.id, { socialLink, playPlatform });
+        const validSocials = socials.filter(s => s.link.trim() !== '');
+        await updateUser(currentUser.id, { socials: validSocials });
         toast({ title: 'Данные обновлены' });
         setSocialsDialogOpen(false);
     } catch(e) {
@@ -293,9 +292,24 @@ export default function ProfileTab() {
   }
 
   const handlePlatformClick = () => {
-    // Owner can always edit.
+    setSocials(currentUser.socials || []);
     setSocialsDialogOpen(true);
   };
+  
+  const handleSocialChange = (index: number, field: keyof SocialLink, value: string) => {
+    const newSocials = [...socials];
+    (newSocials[index] as any)[field] = value;
+    setSocials(newSocials);
+  };
+
+  const addSocialField = () => {
+    setSocials([...socials, { id: `new-${Date.now()}`, platform: 'Discord', link: '' }]);
+  };
+
+  const removeSocialField = (id: string) => {
+    setSocials(socials.filter(s => s.id !== id));
+  };
+
 
   const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString();
 
@@ -391,15 +405,24 @@ export default function ProfileTab() {
                     </Badge>
                 </button>
              </div>
-             <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Платформа</span>
-                <button onClick={handlePlatformClick} className="rounded-md -m-1 p-1 hover:bg-accent transition-colors">
-                  <Badge variant={'outline'}>
-                    <Gamepad2 className="mr-1.5 h-3.5 w-3.5" />
-                    {currentUser.playPlatform || 'Не указана'}
-                    {currentUser.socialLink && <LinkIcon className="ml-1.5 h-3 w-3" />}
-                  </Badge>
-                </button>
+             <div className="flex justify-between items-start">
+                <span className="text-muted-foreground">Платформы</span>
+                 <div className="flex flex-wrap gap-1 justify-end">
+                    {(currentUser.socials && currentUser.socials.length > 0) ? (
+                        currentUser.socials.map(social => (
+                            <button key={social.id} onClick={handlePlatformClick} className="rounded-md -m-1 p-1 hover:bg-accent transition-colors">
+                                <Badge variant={'outline'}>
+                                <Gamepad2 className="mr-1.5 h-3.5 w-3.5" />
+                                {social.platform}
+                                </Badge>
+                            </button>
+                        ))
+                    ) : (
+                        <button onClick={handlePlatformClick} className="rounded-md -m-1 p-1 hover:bg-accent transition-colors">
+                            <Badge variant={'outline'}>Не указаны</Badge>
+                        </button>
+                    )}
+                 </div>
              </div>
             {isAdmin && (
               <div className="flex justify-between items-center">
@@ -555,19 +578,38 @@ export default function ProfileTab() {
                     <DialogTitle>Обновить игровые данные</DialogTitle>
                 </DialogHeader>
                 <div className="py-4 space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="play-platform">Платформа для игры</Label>
-                        <SearchableSelect
-                            options={playPlatformOptions}
-                            value={playPlatform}
-                            onValueChange={(val) => setPlayPlatform(val as PlayPlatform)}
-                            placeholder="Выберите платформу..."
-                        />
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="social-link">Ссылка на профиль</Label>
-                        <Input id="social-link" value={socialLink} onChange={e => setSocialLink(e.target.value)} placeholder="https://..."/>
-                    </div>
+                    {socials.map((social, index) => (
+                        <div key={social.id} className="flex items-end gap-2 p-3 border rounded-md relative">
+                           <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="absolute -top-3 -right-3 h-6 w-6"
+                                onClick={() => removeSocialField(social.id)}
+                            >
+                                <X className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                            <div className="flex-1 grid gap-2">
+                                <div>
+                                    <Label htmlFor={`platform-${index}`}>Платформа</Label>
+                                    <SearchableSelect
+                                        options={playPlatformOptions}
+                                        value={social.platform}
+                                        onValueChange={(val) => handleSocialChange(index, 'platform', val as PlayPlatform)}
+                                        placeholder="Выберите платформу..."
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor={`link-${index}`}>Ссылка</Label>
+                                    <Input id={`link-${index}`} value={social.link} onChange={e => handleSocialChange(index, 'link', e.target.value)} placeholder="https://..."/>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                    <Button variant="outline" onClick={addSocialField}>
+                        <PlusCircle className="mr-2 h-4 w-4"/>
+                        Добавить платформу
+                    </Button>
                 </div>
                 <div className="flex justify-end gap-2">
                     <Button variant="ghost" onClick={() => setSocialsDialogOpen(false)}>Отмена</Button>
