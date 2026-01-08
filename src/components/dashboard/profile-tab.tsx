@@ -466,9 +466,9 @@ export default function ProfileTab() {
         </CardHeader>
         <CardContent>
             {favoritePlayers.length > 0 ? (
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-4 xl:grid-cols-5 gap-y-4 gap-x-1">
+                <div className="flex flex-wrap gap-x-1 gap-y-4">
                     {favoritePlayers.map(player => (
-                        <Link href={`/users/${player.id}`} key={player.id} className="flex flex-col items-center gap-1.5 group">
+                        <Link href={`/users/${player.id}`} key={player.id} className="flex flex-col items-center gap-1.5 group px-2">
                             <Avatar className={cn("w-12 h-12 transition-transform group-hover:scale-105", isMobile && "w-10 h-10")}>
                                 <AvatarImage src={player.avatar} alt={player.name} />
                                 <AvatarFallback>{player.name.slice(0, 2)}</AvatarFallback>

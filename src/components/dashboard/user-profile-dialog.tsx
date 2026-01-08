@@ -424,9 +424,9 @@ export default function UserProfileDialog({ user }: { user: User }) {
                 </CardHeader>
                 <CardContent>
                     {favoritePlayers.length > 0 ? (
-                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-4 xl:grid-cols-5 gap-y-4 gap-x-1">
+                        <div className="flex flex-wrap gap-x-1 gap-y-4">
                             {favoritePlayers.map(player => (
-                                <Link href={`/users/${player.id}`} key={player.id} className="flex flex-col items-center gap-1.5 group">
+                                <Link href={`/users/${player.id}`} key={player.id} className="flex flex-col items-center gap-1.5 group px-2">
                                     <Avatar className="w-12 h-12 lg:w-16 lg:h-16 transition-transform group-hover:scale-105">
                                         <AvatarImage src={player.avatar} alt={player.name} />
                                         <AvatarFallback>{player.name.slice(0, 2)}</AvatarFallback>
