@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Trash2, Pencil, UserSquare, Sparkles, Anchor, KeyRound, Link as LinkIcon, Gamepad2 } from 'lucide-react';
+import { PlusCircle, Trash2, Pencil, UserSquare, Sparkles, Anchor, KeyRound, Link as LinkIcon, Gamepad2, X } from 'lucide-react';
 import type { PointLog, UserStatus, Character, User, FamiliarCard, FamiliarRank, PlayerStatus, PlayPlatform, SocialLink } from '@/lib/types';
 import Link from 'next/link';
 import {
