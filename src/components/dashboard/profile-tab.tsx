@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Trash2, Pencil, UserSquare, Sparkles, Anchor, KeyRound, Link as LinkIcon, Gamepad2, X, Heart, Users } from 'lucide-react';
+import { PlusCircle, Trash2, Pencil, UserSquare, Sparkles, Anchor, KeyRound, Link as LinkIcon, Gamepad2, X, Heart, Users, History } from 'lucide-react';
 import type { PointLog, UserStatus, Character, User, FamiliarCard, FamiliarRank, Moodlet, PlayerStatus, PlayPlatform, SocialLink } from '@/lib/types';
 import Link from 'next/link';
 import {
@@ -27,7 +27,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { cn, formatTimeLeft } from '@/lib/utils';
 import { ACHIEVEMENTS_BY_ID } from '@/lib/data';
@@ -41,6 +41,10 @@ import { CustomIcon } from '../ui/custom-icon';
 import { SearchableSelect } from '../ui/searchable-select';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
+import { useQuery } from '@tanstack/react-query';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 
 const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
     // If the name starts with 'ach-', assume it's a custom achievement icon
@@ -194,6 +198,7 @@ const CharacterDisplay = ({ character, onDelete }: { character: Character, onDel
 
 export default function ProfileTab() {
   const { currentUser, updateCharacterInUser, deleteCharacterFromUser, fetchUsersForAdmin, checkExtraCharacterSlots, setCurrentUser, updateUser } = useUser();
+  const isMobile = useIsMobile();
   const [editingState, setEditingState] = useState<EditingState | null>(null);
   const [isAvatarDialogOpen, setAvatarDialogOpen] = React.useState(false);
   const [isPlayerStatusDialogOpen, setPlayerStatusDialogOpen] = React.useState(false);
@@ -201,7 +206,11 @@ export default function ProfileTab() {
   const [socials, setSocials] = React.useState<SocialLink[]>([]);
   const [isSavingSocials, setIsSavingSocials] = React.useState(false);
 
-  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const { data: allUsers = [], refetch } = useQuery<User[]>({
+    queryKey: ['allUsersForProfile'],
+    queryFn: fetchUsersForAdmin,
+  });
+
   const { toast } = useToast();
 
   const freeSlots = 6;
@@ -209,11 +218,6 @@ export default function ProfileTab() {
   const canAddCharacter = currentUser ? currentUser.characters.length < totalSlots : false;
 
    useEffect(() => {
-    // Fetch all users on mount to populate favorites list
-    fetchUsersForAdmin().then(setAllUsers);
-  }, [fetchUsersForAdmin]);
-
-  useEffect(() => {
     if(currentUser) {
         setSocials(currentUser.socials || []);
     }
@@ -362,100 +366,126 @@ export default function ProfileTab() {
     return favs;
   }, [currentUser?.favoritePlayerIds, allUsers]);
 
-
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-1 lg:grid lg:grid-cols-1 lg:content-start lg:gap-6 space-y-6 lg:space-y-0">
-        <Card className="lg:self-start">
-          <CardHeader>
-             <div className="flex items-center gap-4">
-                <div 
-                    className="relative group cursor-pointer"
-                    onClick={() => setAvatarDialogOpen(true)}
-                >
-                    <Avatar className="h-16 w-16">
-                        <AvatarImage src={currentUser.avatar} alt={currentUser.name} />
-                        <AvatarFallback>{currentUser.name.slice(0, 2)}</AvatarFallback>
-                    </Avatar>
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Pencil className="w-6 h-6 text-white" />
-                    </div>
-                </div>
-                <div className="flex-1 overflow-hidden min-w-0">
-                    <CardTitle className="text-xl sm:text-2xl font-headline truncate">{currentUser.name}</CardTitle>
-                    <CardDescription className="truncate text-sm sm:text-base">{currentUser.email}</CardDescription>
+  const renderProfileCard = () => (
+     <Card className="lg:self-start">
+        <CardHeader>
+            <div className="flex items-center gap-4">
+            <div 
+                className="relative group cursor-pointer"
+                onClick={() => setAvatarDialogOpen(true)}
+            >
+                <Avatar className="h-16 w-16">
+                    <AvatarImage src={currentUser.avatar} alt={currentUser.name} />
+                    <AvatarFallback>{currentUser.name.slice(0, 2)}</AvatarFallback>
+                </Avatar>
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Pencil className="w-6 h-6 text-white" />
                 </div>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Баллы</span>
-              <div className="font-bold text-lg text-primary flex items-center gap-1">
-                <CustomIcon src="/icons/points.svg" className="w-5 h-5 icon-primary" /> {currentUser.points.toLocaleString()}
-              </div>
+            <div className="flex-1 overflow-hidden min-w-0">
+                <CardTitle className="text-xl sm:text-2xl font-headline truncate">{currentUser.name}</CardTitle>
+                <CardDescription className="truncate text-sm sm:text-base">{currentUser.email}</CardDescription>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Статус активности</span>
-              <Badge variant={'outline'} className={cn("capitalize", getStatusClass(currentUser.status))}>
-                {currentUser.status}
-              </Badge>
+        </div>
+        </CardHeader>
+        <CardContent className="space-y-2">
+        <div className="flex justify-between items-center">
+            <span className="text-muted-foreground">Баллы</span>
+            <div className="font-bold text-lg text-primary flex items-center gap-1">
+            <CustomIcon src="/icons/points.svg" className="w-5 h-5 icon-primary" /> {currentUser.points.toLocaleString()}
             </div>
-             <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Игровой статус</span>
-                <button onClick={() => setPlayerStatusDialogOpen(true)} className="rounded-md -m-1 p-1 hover:bg-accent transition-colors">
-                    <Badge variant={'outline'}>
-                        {currentUser.playerStatus || 'Не играю'}
-                    </Badge>
-                </button>
-             </div>
-             <div className="flex justify-between items-start">
-                <span className="text-muted-foreground">Платформы</span>
-                 <div className="flex flex-wrap gap-1 justify-end">
-                    {(currentUser.socials && currentUser.socials.length > 0) ? (
-                        currentUser.socials.map(social => (
-                            <button key={social.id} onClick={handlePlatformClick} className="rounded-md -m-1 p-1 hover:bg-accent transition-colors">
-                                <Badge variant={'outline'}>
-                                <Gamepad2 className="mr-1.5 h-3.5 w-3.5" />
-                                {social.platform}
-                                </Badge>
-                            </button>
-                        ))
-                    ) : (
-                        <button onClick={handlePlatformClick} className="rounded-md -m-1 p-1 hover:bg-accent transition-colors">
-                            <Badge variant={'outline'}>Не указаны</Badge>
+        </div>
+        <div className="flex justify-between items-center">
+            <span className="text-muted-foreground">Статус активности</span>
+            <Badge variant={'outline'} className={cn("capitalize", getStatusClass(currentUser.status))}>
+            {currentUser.status}
+            </Badge>
+        </div>
+            <div className="flex justify-between items-center">
+            <span className="text-muted-foreground">Игровой статус</span>
+            <button onClick={() => setPlayerStatusDialogOpen(true)} className="rounded-md -m-1 p-1 hover:bg-accent transition-colors">
+                <Badge variant={'outline'}>
+                    {currentUser.playerStatus || 'Не играю'}
+                </Badge>
+            </button>
+            </div>
+            <div className="flex justify-between items-start">
+            <span className="text-muted-foreground">Платформы</span>
+                <div className="flex flex-wrap gap-1 justify-end">
+                {(currentUser.socials && currentUser.socials.length > 0) ? (
+                    currentUser.socials.map(social => (
+                        <button key={social.id} onClick={handlePlatformClick} className="rounded-md -m-1 p-1 hover:bg-accent transition-colors">
+                            <Badge variant={'outline'}>
+                            <Gamepad2 className="mr-1.5 h-3.5 w-3.5" />
+                            {social.platform}
+                            </Badge>
                         </button>
-                    )}
-                 </div>
-             </div>
-            {isAdmin && (
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Роль</span>
-                <Badge variant="outline">{currentUser.role}</Badge>
-              </div>
-            )}
-             {userAchievements.length > 0 && (
-                <div className="pt-4">
-                    <h4 className="text-sm font-semibold text-muted-foreground mb-2">Достижения</h4>
-                    <div className="flex flex-wrap gap-2">
-                        {userAchievements.map(ach => (
-                            <Popover key={ach.id}>
-                                <PopoverTrigger asChild>
-                                    <Button variant="outline" size="icon" className="w-8 h-8 bg-muted hover:bg-primary/10">
-                                        <DynamicIcon name={ach.id} />
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto max-w-xs">
-                                    <p className="font-bold">{ach.name}</p>
-                                    <p className="text-xs">{ach.description}</p>
-                                </PopoverContent>
-                            </Popover>
-                        ))}
-                    </div>
+                    ))
+                ) : (
+                    <button onClick={handlePlatformClick} className="rounded-md -m-1 p-1 hover:bg-accent transition-colors">
+                        <Badge variant={'outline'}>Не указаны</Badge>
+                    </button>
+                )}
                 </div>
+            </div>
+        {isAdmin && (
+            <div className="flex justify-between items-center">
+            <span className="text-muted-foreground">Роль</span>
+            <Badge variant="outline">{currentUser.role}</Badge>
+            </div>
+        )}
+            {userAchievements.length > 0 && (
+            <div className="pt-4">
+                <h4 className="text-sm font-semibold text-muted-foreground mb-2">Достижения</h4>
+                <div className="flex flex-wrap gap-2">
+                    {userAchievements.map(ach => (
+                        <Popover key={ach.id}>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" size="icon" className="w-8 h-8 bg-muted hover:bg-primary/10">
+                                    <DynamicIcon name={ach.id} />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto max-w-xs">
+                                <p className="font-bold">{ach.name}</p>
+                                <p className="text-xs">{ach.description}</p>
+                            </PopoverContent>
+                        </Popover>
+                    ))}
+                </div>
+            </div>
+        )}
+        </CardContent>
+    </Card>
+  );
+
+  const renderFavoritesCard = () => (
+    <Card>
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Users /> Избранные соигроки</CardTitle>
+            <CardDescription>Список игроков, которых вы добавили в избранное.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            {favoritePlayers.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    {favoritePlayers.map(player => (
+                        <Link href={`/users/${player.id}`} key={player.id} className="flex flex-col items-center gap-2 group">
+                            <Avatar className="w-16 h-16 transition-transform group-hover:scale-105">
+                                <AvatarImage src={player.avatar} alt={player.name} />
+                                <AvatarFallback>{player.name.slice(0, 2)}</AvatarFallback>
+                            </Avatar>
+                            <p className="text-sm font-medium text-center truncate w-full group-hover:text-primary">{player.name}</p>
+                        </Link>
+                    ))}
+                </div>
+            ) : (
+                <p className="text-center text-muted-foreground py-4">Вы еще не добавили никого в избранное.</p>
             )}
-          </CardContent>
-        </Card>
-        <Card>
+        </CardContent>
+    </Card>
+  );
+  
+  const renderCharactersCard = () => (
+      <Card>
           <CardHeader>
             <div className="flex justify-between items-center">
                 <div>
@@ -489,31 +519,10 @@ export default function ProfileTab() {
             )}
           </CardContent>
         </Card>
-      </div>
-      <div className="lg:col-span-2 space-y-6">
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Users /> Избранные соигроки</CardTitle>
-                <CardDescription>Список игроков, которых вы добавили в избранное.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                {favoritePlayers.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                        {favoritePlayers.map(player => (
-                            <Link href={`/users/${player.id}`} key={player.id} className="flex flex-col items-center gap-2 group">
-                                <Avatar className="w-16 h-16 transition-transform group-hover:scale-105">
-                                    <AvatarImage src={player.avatar} alt={player.name} />
-                                    <AvatarFallback>{player.name.slice(0, 2)}</AvatarFallback>
-                                </Avatar>
-                                <p className="text-sm font-medium text-center truncate w-full group-hover:text-primary">{player.name}</p>
-                            </Link>
-                        ))}
-                    </div>
-                ) : (
-                    <p className="text-center text-muted-foreground py-4">Вы еще не добавили никого в избранное.</p>
-                )}
-            </CardContent>
-        </Card>
+  );
+  
+   const renderHistoryCards = () => (
+     <div className="space-y-6">
         <Card>
           <CardHeader>
             <CardTitle>История баллов</CardTitle>
@@ -552,9 +561,43 @@ export default function ProfileTab() {
           </CardContent>
         </Card>
         <RewardRequestsHistory />
-      </div>
+     </div>
+   );
 
-       <Dialog open={!!editingState} onOpenChange={(isOpen) => !isOpen && setEditingState(null)}>
+
+  return (
+    <>
+      {isMobile ? (
+        <div className="space-y-6">
+          {renderProfileCard()}
+          {renderFavoritesCard()}
+          <Tabs defaultValue="characters" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="characters">Персонажи</TabsTrigger>
+              <TabsTrigger value="history">История</TabsTrigger>
+            </TabsList>
+            <TabsContent value="characters" className="mt-4">
+              {renderCharactersCard()}
+            </TabsContent>
+            <TabsContent value="history" className="mt-4">
+              {renderHistoryCards()}
+            </TabsContent>
+          </Tabs>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-1">
+            {renderProfileCard()}
+          </div>
+          <div className="lg:col-span-2 space-y-6">
+            {renderFavoritesCard()}
+            {renderCharactersCard()}
+            {renderHistoryCards()}
+          </div>
+        </div>
+      )}
+
+      <Dialog open={!!editingState} onOpenChange={(isOpen) => !isOpen && setEditingState(null)}>
             <DialogContent>
                 <CharacterForm 
                     onSubmit={handleFormSubmit as (data: Character) => void}
@@ -645,6 +688,6 @@ export default function ProfileTab() {
                 </div>
             </DialogContent>
         </Dialog>
-    </div>
+    </>
   );
 }
