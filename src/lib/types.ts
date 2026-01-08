@@ -345,6 +345,7 @@ export interface User {
   extraCharacterSlots?: number;
   mail?: MailMessage[];
   playerPings?: PlayerPing[];
+  favoritePlayerIds?: string[];
   // Deprecated fields, for migration
   playPlatform?: PlayPlatform;
   socialLink?: string;
@@ -445,6 +446,8 @@ export interface Potion extends InventoryItem {
     durationSec?: number;
   }[];
   tier: "обычный" | "редкий" | "легендарный";
+  image?: string;
+  quantity: number;
 }
 
 export interface AlchemyRecipeComponent {

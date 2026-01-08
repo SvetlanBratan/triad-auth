@@ -2,13 +2,13 @@
 
 "use client";
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import type { User, UserStatus, PointLog, Character, FamiliarCard, FamiliarRank, Moodlet, PlayerStatus, PlayPlatform, SocialLink } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Anchor, KeyRound, Sparkles, Pencil, Gamepad2, Link as LinkIcon, PlusCircle, X } from 'lucide-react';
+import { Anchor, KeyRound, Sparkles, Pencil, Gamepad2, Link as LinkIcon, PlusCircle, X, Heart } from 'lucide-react';
 import { cn, formatTimeLeft } from '@/lib/utils';
 import FamiliarCardDisplay from './familiar-card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
@@ -202,7 +202,7 @@ const playPlatformOptions: { value: PlayPlatform, label: string }[] = [
 
 
 export default function UserProfileDialog({ user }: { user: User }) {
-  const { currentUser, updateUser } = useUser();
+  const { currentUser, updateUser, addFavoritePlayer, removeFavoritePlayer } = useUser();
   const { toast } = useToast();
   const [isPlayerStatusDialogOpen, setPlayerStatusDialogOpen] = useState(false);
   const [isSocialsDialogOpen, setSocialsDialogOpen] = useState(false);
@@ -219,6 +219,26 @@ export default function UserProfileDialog({ user }: { user: User }) {
 
   const isAdmin = currentUser?.role === 'admin';
   const isOwner = currentUser?.id === user.id;
+
+  const isFavorite = useMemo(() => {
+    return currentUser?.favoritePlayerIds?.includes(user.id) || false;
+  }, [currentUser?.favoritePlayerIds, user.id]);
+
+  const handleToggleFavorite = useCallback(async () => {
+    if (!currentUser) return;
+    try {
+        if (isFavorite) {
+            await removeFavoritePlayer(user.id);
+            toast({ title: 'Удалено из избранного', description: `${user.name} удален(а) из вашего списка соигроков.` });
+        } else {
+            await addFavoritePlayer(user.id);
+            toast({ title: 'Добавлено в избранное', description: `${user.name} добавлен(а) в ваш список соигроков.` });
+        }
+    } catch (e) {
+        const message = e instanceof Error ? e.message : 'Произошла ошибка.';
+        toast({ variant: 'destructive', title: 'Ошибка', description: message });
+    }
+}, [currentUser, isFavorite, removeFavoritePlayer, addFavoritePlayer, user.id, user.name, toast]);
 
   const handlePlayerStatusChange = async (newStatus: PlayerStatus) => {
       await updateUser(user.id, { playerStatus: newStatus });
@@ -296,7 +316,7 @@ export default function UserProfileDialog({ user }: { user: User }) {
         <div className={cn("lg:col-span-1 space-y-6", !(isOwner || isAdmin) && "lg:col-span-2 lg:grid lg:grid-cols-2 lg:gap-6 lg:space-y-0")}>
           <Card className="lg:self-start">
             <CardHeader>
-              <div className="flex items-center gap-4">
+              <div className="flex items-start gap-4">
                 <Avatar className="h-16 w-16">
                   <AvatarImage src={user.avatar} alt={user.name} />
                   <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
@@ -305,6 +325,11 @@ export default function UserProfileDialog({ user }: { user: User }) {
                   <CardTitle className="text-xl sm:text-2xl font-headline truncate">{user.name}</CardTitle>
                   <CardDescription className="truncate">{user.email}</CardDescription>
                 </div>
+                 {!isOwner && currentUser && (
+                  <Button variant="ghost" size="icon" onClick={handleToggleFavorite}>
+                    <Heart className={cn("w-5 h-5 text-muted-foreground", isFavorite && "fill-destructive text-destructive")} />
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardContent className="space-y-2">

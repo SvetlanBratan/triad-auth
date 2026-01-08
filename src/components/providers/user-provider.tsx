@@ -6,7 +6,7 @@ import React, { createContext, useState, useMemo, useCallback, useEffect, useCon
 import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage, Cooldowns, PopularityLog, CharacterPopularityUpdate, OwnedFamiliarCard, AlchemyRecipe, AlchemyRecipeComponent, PlayerStatus, PlayerPing, SocialLink } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
-import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter, increment, FieldValue, arrayUnion, deleteField } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter, increment, FieldValue, arrayUnion, deleteField, arrayRemove } from "firebase/firestore";
 import { ALL_STATIC_FAMILIARS, EVENT_FAMILIARS, MOODLETS_DATA, DEFAULT_GAME_SETTINGS, WEALTH_LEVELS, ALL_SHOPS, SHOPS_BY_ID, POPULARITY_EVENTS, ALL_ACHIEVEMENTS, INVENTORY_CATEGORIES } from '@/lib/data';
 import { differenceInDays } from 'date-fns';
 import { getFunctions, httpsCallable } from 'firebase/functions';
@@ -27,7 +27,7 @@ export const useAuth = () => {
     return context;
 };
 
-interface UserContextType extends Omit<User, 'id' | 'name' | 'email' | 'avatar' | 'role' | 'points' | 'status' | 'characters' | 'pointHistory' | 'achievementIds' | 'extraCharacterSlots' | 'mail' | 'playerPings' | 'playerStatus' | 'playPlatform' | 'socialLink' | 'socials'> {
+interface UserContextType extends Omit<User, 'id' | 'name' | 'email' | 'avatar' | 'role' | 'points' | 'status' | 'characters' | 'pointHistory' | 'achievementIds' | 'extraCharacterSlots' | 'mail' | 'playerPings' | 'playerStatus' | 'playPlatform' | 'socialLink' | 'socials' | 'favoritePlayerIds'> {
   currentUser: User | null;
   setCurrentUser: (user: User | null) => void;
   gameDate: Date | null;
@@ -113,6 +113,8 @@ interface UserContextType extends Omit<User, 'id' | 'name' | 'email' | 'avatar' 
   deleteFamiliarFromDb: (familiarId: string) => Promise<void>;
   sendPlayerPing: (targetUserId: string) => Promise<void>;
   deletePlayerPing: (pingId: string, isMyPing: boolean) => Promise<void>;
+  addFavoritePlayer: (targetUserId: string) => Promise<void>;
+  removeFavoritePlayer: (targetUserId: string) => Promise<void>;
   allFamiliars: FamiliarCard[];
   familiarsById: Record<string, FamiliarCard>;
 }
@@ -307,6 +309,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     userData.playerPings = userData.playerPings || [];
     userData.playerStatus = userData.playerStatus || 'Не играю';
     userData.socials = userData.socials || [];
+    userData.favoritePlayerIds = userData.favoritePlayerIds || [];
     return userData;
   }, [initialFormData]);
   
@@ -2778,6 +2781,19 @@ const deletePlayerPing = useCallback(async (pingId: string, isMyPing: boolean) =
     }
 }, [currentUser, setCurrentUser]);
 
+const addFavoritePlayer = useCallback(async (targetUserId: string) => {
+    if (!currentUser) throw new Error("Not authenticated.");
+    await updateUser(currentUser.id, {
+      favoritePlayerIds: arrayUnion(targetUserId) as unknown as string[]
+    });
+  }, [currentUser, updateUser]);
+
+  const removeFavoritePlayer = useCallback(async (targetUserId: string) => {
+    if (!currentUser) throw new Error("Not authenticated.");
+    await updateUser(currentUser.id, {
+      favoritePlayerIds: arrayRemove(targetUserId) as unknown as string[]
+    });
+  }, [currentUser, updateUser]);
 
 
   const signOutUser = useCallback(() => {
@@ -2879,8 +2895,10 @@ const deletePlayerPing = useCallback(async (pingId: string, isMyPing: boolean) =
       fetchAlchemyRecipes,
       sendPlayerPing,
       deletePlayerPing,
+      addFavoritePlayer,
+      removeFavoritePlayer,
     }),
-    [currentUser, gameSettings, allFamiliars, familiarsById, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes, sendPlayerPing, deletePlayerPing]
+    [currentUser, gameSettings, allFamiliars, familiarsById, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer]
   );
 
   return (
@@ -2891,4 +2909,3 @@ const deletePlayerPing = useCallback(async (pingId: string, isMyPing: boolean) =
     </AuthContext.Provider>
   );
 }
-

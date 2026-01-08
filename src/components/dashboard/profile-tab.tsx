@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Trash2, Pencil, UserSquare, Sparkles, Anchor, KeyRound, Link as LinkIcon, Gamepad2, X } from 'lucide-react';
+import { PlusCircle, Trash2, Pencil, UserSquare, Sparkles, Anchor, KeyRound, Link as LinkIcon, Gamepad2, X, Heart, Users } from 'lucide-react';
 import type { PointLog, UserStatus, Character, User, FamiliarCard, FamiliarRank, PlayerStatus, PlayPlatform, SocialLink } from '@/lib/types';
 import Link from 'next/link';
 import {
@@ -359,6 +359,12 @@ export default function ProfileTab() {
     { value: 'Не указана', label: 'Не указана' },
   ];
 
+  const favoritePlayers = useMemo(() => {
+    if (!currentUser?.favoritePlayerIds || !allUsers.length) return [];
+    const favs = currentUser.favoritePlayerIds.map(id => allUsers.find(u => u.id === id)).filter(Boolean) as User[];
+    return favs;
+  }, [currentUser?.favoritePlayerIds, allUsers]);
+
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -488,6 +494,29 @@ export default function ProfileTab() {
         </Card>
       </div>
       <div className="lg:col-span-2 space-y-6">
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Users /> Избранные соигроки</CardTitle>
+                <CardDescription>Быстрый доступ к профилям игроков, которых вы добавили в избранное.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                {favoritePlayers.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                        {favoritePlayers.map(player => (
+                            <Link href={`/users/${player.id}`} key={player.id} className="flex flex-col items-center gap-2 group">
+                                <Avatar className="w-16 h-16 transition-transform group-hover:scale-105">
+                                    <AvatarImage src={player.avatar} alt={player.name} />
+                                    <AvatarFallback>{player.name.slice(0, 2)}</AvatarFallback>
+                                </Avatar>
+                                <p className="text-sm font-medium text-center truncate w-full group-hover:text-primary">{player.name}</p>
+                            </Link>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-center text-muted-foreground py-4">Вы еще не добавили никого в избранное.</p>
+                )}
+            </CardContent>
+        </Card>
         <Card>
           <CardHeader>
             <CardTitle>История баллов</CardTitle>
