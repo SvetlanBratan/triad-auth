@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Trash2, Pencil, UserSquare, Sparkles, Anchor, KeyRound, Link as LinkIcon, Gamepad2, X, Heart, Users } from 'lucide-react';
-import type { PointLog, UserStatus, Character, User, FamiliarCard, FamiliarRank, PlayerStatus, PlayPlatform, SocialLink } from '@/lib/types';
+import type { PointLog, UserStatus, Character, User, FamiliarCard, FamiliarRank, Moodlet, PlayerStatus, PlayPlatform, SocialLink } from '@/lib/types';
 import Link from 'next/link';
 import {
   Dialog,
@@ -211,10 +211,9 @@ export default function ProfileTab() {
   const canAddCharacter = currentUser ? currentUser.characters.length < totalSlots : false;
 
    useEffect(() => {
-    if (editingState) {
-      fetchUsersForAdmin().then(setAllUsers);
-    }
-  }, [editingState, fetchUsersForAdmin]);
+    // Fetch all users on mount to populate favorites list
+    fetchUsersForAdmin().then(setAllUsers);
+  }, [fetchUsersForAdmin]);
 
   useEffect(() => {
     if(currentUser) {
