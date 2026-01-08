@@ -353,6 +353,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
   
+  const updateGameDate = useCallback(async (newDateString: string) => {
+    const settingsRef = doc(db, 'game_settings', 'main');
+    await updateDoc(settingsRef, { gameDateString: newDateString });
+    await fetchGameSettings();
+  }, [fetchGameSettings]);
+
   const fetchUsersForAdmin = useCallback(async (): Promise<User[]> => {
     try {
         const usersCollection = collection(db, "users");
@@ -430,22 +436,21 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     return { awardedCount };
   }, [fetchUsersForAdmin, fetchGameSettings]);
   
-  const updateGameDate = useCallback(async (newDateString: string) => {
-    const settingsRef = doc(db, 'game_settings', 'main');
-    await updateDoc(settingsRef, { gameDateString: newDateString });
-    await fetchGameSettings();
-  }, [fetchGameSettings]);
+  const fetchAllShops = useCallback(async (): Promise<Shop[]> => {
+      const shopsCollection = collection(db, "shops");
+      const snapshot = await getDocs(shopsCollection);
+      const dbShops = new Map<string, Partial<Shop>>();
+      snapshot.forEach(doc => {
+          dbShops.set(doc.id, doc.data());
+      });
 
-  const grantAchievementToUser = useCallback(async (userId: string, achievementId: string) => {
-    const user = await fetchUserById(userId);
-    if (!user) return;
-
-    const achievementIds = user.achievementIds || [];
-    if (!achievementIds.includes(achievementId)) {
-        const updatedAchievementIds = [...achievementIds, achievementId];
-        await updateUser(userId, { achievementIds: updatedAchievementIds });
-    }
-  }, [fetchUserById]);
+      const allShopsWithData = ALL_SHOPS.map(baseShop => {
+          const dbData = dbShops.get(baseShop.id);
+          return { ...baseShop, ...(dbData || {}) };
+      });
+      
+      return allShopsWithData;
+  }, []);
 
   const brewPotion = useCallback(async (userId: string, characterId: string, recipeId: string) => {
     await runTransaction(db, async (transaction) => {
@@ -539,8 +544,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const updatedUser = await fetchUserById(userId);
         if (updatedUser) setCurrentUser(updatedUser);
     }
-}, [currentUser, fetchUserById, fetchAllShops]);
+  }, [currentUser, fetchUserById, fetchAllShops]);
 
+  const grantAchievementToUser = useCallback(async (userId: string, achievementId: string) => {
+    const user = await fetchUserById(userId);
+    if (!user) return;
+
+    const achievementIds = user.achievementIds || [];
+    if (!achievementIds.includes(achievementId)) {
+        const updatedAchievementIds = [...achievementIds, achievementId];
+        await updateUser(userId, { achievementIds: updatedAchievementIds });
+    }
+  }, [fetchUserById]);
 
   const fetchCharacterById = useCallback(async (characterId: string): Promise<{ character: Character; owner: User } | null> => {
     try {
@@ -1994,22 +2009,6 @@ const processMonthlySalary = useCallback(async () => {
       await updateDoc(requestRef, { status });
   }, []);
 
-  const fetchAllShops = useCallback(async (): Promise<Shop[]> => {
-      const shopsCollection = collection(db, "shops");
-      const snapshot = await getDocs(shopsCollection);
-      const dbShops = new Map<string, Partial<Shop>>();
-      snapshot.forEach(doc => {
-          dbShops.set(doc.id, doc.data());
-      });
-
-      const allShopsWithData = ALL_SHOPS.map(baseShop => {
-          const dbData = dbShops.get(baseShop.id);
-          return { ...baseShop, ...(dbData || {}) };
-      });
-      
-      return allShopsWithData;
-  }, []);
-
   const fetchShopById = useCallback(async (shopId: string): Promise<Shop | null> => {
       const baseShop = SHOPS_BY_ID[shopId];
       if (!baseShop) return null;
@@ -2742,6 +2741,14 @@ const withdrawFromShopTill = useCallback(async (shopId: string) => {
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AlchemyRecipe));
   }, []);
   
+const addAlchemyRecipe = useCallback(async (recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
+    const recipesCollection = collection(db, "alchemy_recipes");
+    await addDoc(recipesCollection, {
+        ...recipe,
+        createdAt: new Date().toISOString()
+    });
+}, []);
+
 const updateAlchemyRecipe = useCallback(async (recipeId: string, recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
     const recipeRef = doc(db, "alchemy_recipes", recipeId);
     await updateDoc(recipeRef, recipe);
@@ -2949,6 +2956,7 @@ const addFavoritePlayer = useCallback(async (targetUserId: string) => {
     </AuthContext.Provider>
   );
 }
+
 
 
 
