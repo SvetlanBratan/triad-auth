@@ -301,7 +301,7 @@ export default function ProfileTab() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-1 space-y-6 lg:grid lg:grid-cols-1 lg:gap-6 lg:space-y-0">
+      <div className="lg:col-span-1 lg:grid lg:grid-cols-1 lg:content-start lg:gap-6 space-y-6 lg:space-y-0">
         <Card className="lg:self-start">
           <CardHeader>
              <div className="flex items-center gap-4">
@@ -336,17 +336,14 @@ export default function ProfileTab() {
                 {currentUser.status}
               </Badge>
             </div>
-             <div className="flex justify-between items-center group">
-              <span className="text-muted-foreground">Игровой статус</span>
-               <div className="flex items-center gap-1">
+             <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Игровой статус</span>
+                <button onClick={() => setPlayerStatusDialogOpen(true)} className="rounded-md -m-1 p-1 hover:bg-accent transition-colors">
                     <Badge variant={'outline'}>
                         {currentUser.playerStatus || 'Не играю'}
                     </Badge>
-                    <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => setPlayerStatusDialogOpen(true)}>
-                        <Pencil className="w-3 h-3" />
-                    </Button>
-               </div>
-            </div>
+                </button>
+             </div>
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Роль</span>
               <Badge variant="outline">{currentUser.role}</Badge>
@@ -414,7 +411,7 @@ export default function ProfileTab() {
             <CardTitle>История баллов</CardTitle>
             <CardDescription>Журнал ваших заработанных и потраченных баллов.</CardDescription>
           </CardHeader>
-          <CardContent className="max-h-[80vh] overflow-y-auto">
+          <CardContent className="max-h-[40vh] overflow-y-auto">
             <Table>
               <TableHeader>
                 <TableRow>
