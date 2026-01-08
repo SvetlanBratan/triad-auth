@@ -119,12 +119,12 @@ export default function RewardsTab() {
 
   return (
     <div>
-        <Card className="mb-6 bg-primary/10 border-primary/20">
+        <Card className="mb-6 bg-accent border-accent/50">
             <CardHeader className="flex flex-row items-center gap-4">
                 <CustomIcon src="/icons/points.svg" className="w-8 h-8 icon-primary" />
                 <div>
                     <CardTitle>Ваши баллы</CardTitle>
-                    <CardDescription className="text-primary/80">У вас есть <span className="font-bold text-xl text-primary">{currentUser?.points.toLocaleString()}</span> баллов для траты.</CardDescription>
+                    <CardDescription className="text-accent-foreground/80">У вас есть <span className="font-bold text-xl text-accent-foreground">{currentUser?.points.toLocaleString()}</span> баллов для траты.</CardDescription>
                 </div>
             </CardHeader>
         </Card>
