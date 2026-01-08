@@ -56,7 +56,7 @@ export function Dashboard() {
   const tabs = [
     { value: 'profile', label: 'Профиль', icon: () => <CustomIcon src="/icons/profile.svg" className="w-5 h-5 icon-primary" /> },
     { value: 'mail', label: 'Почта', icon: () => <CustomIcon src="/icons/mail.svg" className="w-5 h-5 icon-primary" />, notificationCount: unreadMailCount },
-    { value: 'leaderboard', label: 'Лидеры', icon: () => <CustomIcon src="/icons/leaderboard.svg" className="w-5 h-5 icon-primary" /> },
+    { value: 'leaderboard', label: 'Игроки', icon: () => <CustomIcon src="/icons/leaderboard.svg" className="w-5 h-5 icon-primary" /> },
     { value: 'familiars', label: 'Фамильяры', icon: () => <CustomIcon src="/icons/familiars.svg" className="w-5 h-5 icon-primary" />, className: "shrink-0" },
     { value: 'alchemy', label: 'Алхимия', icon: () => <CustomIcon src="/icons/alchemy.svg" className="w-5 h-5 icon-primary" /> },
     { value: 'rewards', label: 'Награды', icon: () => <CustomIcon src="/icons/rewards.svg" className="w-5 h-5 icon-primary" /> },
@@ -121,6 +121,7 @@ export function Dashboard() {
       </Tabs>
   );
 }
+
 
 
 
