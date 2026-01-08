@@ -323,8 +323,8 @@ export default function UserProfileDialog({ user }: { user: User }) {
 
   return (
     <>
-    <div className={cn("grid grid-cols-1 gap-6", (isOwner || isAdmin) && "lg:grid-cols-3")}>
-        <div className="space-y-6 lg:col-span-1">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-1 space-y-6">
           <Card className="lg:self-start">
             <CardHeader>
               <div className="flex items-start gap-4">
@@ -441,7 +441,7 @@ export default function UserProfileDialog({ user }: { user: User }) {
         </Card>
         </div>
 
-        <div className={cn("space-y-6", (isOwner || isAdmin) ? "lg:col-span-2" : "lg:col-span-1")}>
+        <div className="lg:col-span-2 space-y-6">
             <Card>
                 <CardHeader>
                 <CardTitle>Персонажи</CardTitle>
