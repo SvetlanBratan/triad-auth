@@ -6,7 +6,7 @@ import React, { createContext, useState, useMemo, useCallback, useEffect, useCon
 import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage, Cooldowns, PopularityLog, CharacterPopularityUpdate, OwnedFamiliarCard, AlchemyRecipe, AlchemyRecipeComponent, PlayerStatus, PlayerPing } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
-import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter, increment, FieldValue, deleteField } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter, increment, FieldValue, arrayUnion } from "firebase/firestore";
 import { ALL_STATIC_FAMILIARS, EVENT_FAMILIARS, MOODLETS_DATA, DEFAULT_GAME_SETTINGS, WEALTH_LEVELS, ALL_SHOPS, SHOPS_BY_ID, POPULARITY_EVENTS, ALL_ACHIEVEMENTS, INVENTORY_CATEGORIES } from '@/lib/data';
 import { differenceInDays } from 'date-fns';
 import { getFunctions, httpsCallable } from 'firebase/functions';
@@ -2705,11 +2705,11 @@ const fetchAlchemyRecipes = useCallback(async (): Promise<AlchemyRecipe[]> => {
   }, []);
 
 const addAlchemyRecipe = useCallback(async (recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
-    const newRecipe = {
+    const recipesCollection = collection(db, 'alchemy_recipes');
+    await addDoc(recipesCollection, {
         ...recipe,
         createdAt: new Date().toISOString()
-    };
-    await addDoc(collection(db, 'alchemy_recipes'), newRecipe);
+    });
 }, []);
 
 const updateAlchemyRecipe = useCallback(async (recipeId: string, recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
@@ -2890,6 +2890,3 @@ const deletePlayerPing = useCallback(async (pingId: string, isMyPing: boolean) =
 }
 
     
-
-    
-
