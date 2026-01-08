@@ -8,8 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, Users, Search } from 'lucide-react';
-import type { User, UserStatus } from '@/lib/types';
+import { Trophy, Users, Search, Send, Trash2 } from 'lucide-react';
+import type { User, UserStatus, PlayerPing } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
@@ -17,6 +17,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { CustomIcon } from '../ui/custom-icon';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from '../ui/button';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
 
 const getStatusClass = (status: UserStatus) => {
@@ -108,15 +110,63 @@ const LeaderboardTable = () => {
 };
 
 const CoPlayerSearch = () => {
-    const { fetchUsersForAdmin } = useUser();
-    const { data: users = [], isLoading, isError } = useQuery<User[], Error>({
+    const { fetchUsersForAdmin, currentUser, sendPlayerPing, deletePlayerPing } = useUser();
+    const { toast } = useToast();
+    const { data: users = [], isLoading, isError, refetch } = useQuery<User[], Error>({
         queryKey: ['allUsersForSearch'],
         queryFn: fetchUsersForAdmin,
     });
 
-    const activePlayers = React.useMemo(() => {
-        return users.filter(user => user.status === 'активный' && user.playerStatus !== 'Не играю');
-    }, [users]);
+    const [processingId, setProcessingId] = React.useState<string | null>(null);
+
+    const lookingForGamePlayers = React.useMemo(() => {
+        return users.filter(user => user.status === 'активный' && user.playerStatus === 'Ищу соигрока' && user.id !== currentUser?.id);
+    }, [users, currentUser]);
+
+    const myPings = React.useMemo(() => {
+        return currentUser?.playerPings || [];
+    }, [currentUser]);
+
+    const pingsToMe = React.useMemo(() => {
+        const pings: (PlayerPing & { fromUser: User | undefined })[] = [];
+        users.forEach(user => {
+            (user.playerPings || []).forEach(ping => {
+                if (ping.toUserId === currentUser?.id) {
+                    pings.push({ ...ping, fromUser: users.find(u => u.id === ping.fromUserId) });
+                }
+            });
+        });
+        return pings;
+    }, [users, currentUser]);
+
+    const handlePing = async (targetUserId: string) => {
+        if (!currentUser) return;
+        setProcessingId(targetUserId);
+        try {
+            await sendPlayerPing(targetUserId);
+            toast({ title: 'Отклик отправлен!', description: 'Игрок получит уведомление.' });
+            refetch();
+        } catch (error) {
+            const msg = error instanceof Error ? error.message : "Не удалось отправить отклик.";
+            toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+        } finally {
+            setProcessingId(null);
+        }
+    };
+
+    const handleDelete = async (pingId: string, isMyPing: boolean) => {
+        if (!currentUser) return;
+        setProcessingId(pingId);
+        try {
+            await deletePlayerPing(pingId, isMyPing);
+            toast({ title: 'Отклик удален.' });
+        } catch (error) {
+            const msg = error instanceof Error ? error.message : "Не удалось удалить отклик.";
+            toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+        } finally {
+            setProcessingId(null);
+        }
+    };
     
     if (isLoading) {
         return <div className="flex justify-center items-center h-64"><p>Загрузка игроков...</p></div>
@@ -125,38 +175,106 @@ const CoPlayerSearch = () => {
     if(isError) {
         return <p className="text-center text-destructive">Не удалось загрузить список игроков.</p>
     }
+    
+    const sentPingUserIds = new Set(myPings.map(p => p.toUserId));
 
     return (
-        <Table>
-            <TableHeader>
-                <TableRow>
-                    <TableHead>Игрок</TableHead>
-                    <TableHead>Игровой статус</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {activePlayers.map((user) => (
-                    <TableRow key={user.id} className="cursor-pointer">
-                        <TableCell>
-                            <Link href={`/users/${user.id}`} className="flex items-center gap-3">
-                                <Avatar>
-                                    <AvatarImage src={user.avatar} alt={user.name} />
-                                    <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
-                                </Avatar>
-                                <p className="font-medium">{user.name}</p>
-                            </Link>
-                        </TableCell>
-                         <TableCell>
-                             <Link href={`/users/${user.id}`} className="block w-full h-full">
-                                <Badge variant={'outline'}>
-                                    {user.playerStatus}
-                                </Badge>
-                             </Link>
-                        </TableCell>
-                    </TableRow>
-                ))}
-            </TableBody>
-        </Table>
+        <div className="space-y-8">
+            {(pingsToMe.length > 0 || myPings.length > 0) && (
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 className="font-semibold mb-2">Вам откликнулись:</h3>
+                        {pingsToMe.length > 0 ? (
+                            <div className="space-y-2">
+                                {pingsToMe.map(ping => (
+                                    <Alert key={ping.id}>
+                                        <div className="flex items-center justify-between">
+                                            <Link href={`/users/${ping.fromUserId}`} className="flex items-center gap-2">
+                                                <Avatar className="h-8 w-8">
+                                                    <AvatarImage src={ping.fromUser?.avatar} alt={ping.fromUser?.name} />
+                                                    <AvatarFallback>{ping.fromUser?.name.slice(0, 2)}</AvatarFallback>
+                                                </Avatar>
+                                                <span className="font-medium">{ping.fromUser?.name}</span>
+                                            </Link>
+                                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(ping.id, false)} disabled={processingId === ping.id}>
+                                                <Trash2 className="w-4 h-4 text-destructive" />
+                                            </Button>
+                                        </div>
+                                    </Alert>
+                                ))}
+                            </div>
+                        ) : <p className="text-sm text-muted-foreground">Пока нет новых откликов.</p>}
+                    </div>
+                    <div>
+                        <h3 className="font-semibold mb-2">Ваши отклики:</h3>
+                        {myPings.length > 0 ? (
+                            <div className="space-y-2">
+                                {myPings.map(ping => {
+                                    const targetUser = users.find(u => u.id === ping.toUserId);
+                                    return (
+                                        <Alert key={ping.id}>
+                                            <div className="flex items-center justify-between">
+                                                <Link href={`/users/${ping.toUserId}`} className="flex items-center gap-2">
+                                                     <Avatar className="h-8 w-8">
+                                                        <AvatarImage src={targetUser?.avatar} alt={targetUser?.name} />
+                                                        <AvatarFallback>{targetUser?.name.slice(0, 2)}</AvatarFallback>
+                                                    </Avatar>
+                                                    <span className="font-medium">{targetUser?.name}</span>
+                                                </Link>
+                                                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(ping.id, true)} disabled={processingId === ping.id}>
+                                                    <Trash2 className="w-4 h-4 text-destructive" />
+                                                </Button>
+                                            </div>
+                                        </Alert>
+                                    );
+                                })}
+                            </div>
+                        ) : <p className="text-sm text-muted-foreground">Вы еще никому не откликались.</p>}
+                    </div>
+                </div>
+            )}
+
+            <div>
+                 <h3 className="font-semibold mb-4">Игроки в поиске:</h3>
+                 {lookingForGamePlayers.length > 0 ? (
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Игрок</TableHead>
+                                <TableHead className="w-[120px]">Действие</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {lookingForGamePlayers.map((user) => (
+                                <TableRow key={user.id}>
+                                    <TableCell>
+                                        <Link href={`/users/${user.id}`} className="flex items-center gap-3">
+                                            <Avatar>
+                                                <AvatarImage src={user.avatar} alt={user.name} />
+                                                <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
+                                            </Avatar>
+                                            <p className="font-medium">{user.name}</p>
+                                        </Link>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Button 
+                                            size="sm"
+                                            onClick={() => handlePing(user.id)}
+                                            disabled={processingId === user.id || sentPingUserIds.has(user.id)}
+                                        >
+                                            <Send className="mr-2 h-4 w-4"/> 
+                                            {sentPingUserIds.has(user.id) ? 'Отправлено' : 'Откликнуться'}
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                ) : (
+                    <p className="text-center text-muted-foreground py-8">Сейчас нет игроков со статусом "Ищу соигрока".</p>
+                )}
+            </div>
+        </div>
     )
 }
 
