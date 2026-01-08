@@ -260,18 +260,17 @@ export default function UserProfileDialog({ user }: { user: User }) {
                   {user.status}
                 </Badge>
               </div>
-              <div className="flex justify-between items-center group">
+              <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Игровой статус</span>
-                 <div className="flex items-center gap-1">
+                <button 
+                  onClick={() => (isAdmin && !isOwner) && setPlayerStatusDialogOpen(true)} 
+                  disabled={!(isAdmin && !isOwner)}
+                  className="rounded-md -m-1 p-1 hover:bg-accent transition-colors disabled:cursor-default disabled:hover:bg-transparent"
+                >
                     <Badge variant={'outline'}>
-                      {user.playerStatus || 'Не играю'}
+                        {user.playerStatus || 'Не играю'}
                     </Badge>
-                     {isAdmin && !isOwner && (
-                        <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => setPlayerStatusDialogOpen(true)}>
-                            <Pencil className="w-3 h-3" />
-                        </Button>
-                    )}
-                </div>
+                </button>
               </div>
               {(isOwner || isAdmin) && (
                 <div className="flex justify-between items-center">
@@ -385,3 +384,4 @@ export default function UserProfileDialog({ user }: { user: User }) {
     </>
   );
 }
+
