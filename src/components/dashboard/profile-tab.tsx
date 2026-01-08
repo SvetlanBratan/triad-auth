@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser } from '@/hooks/use-user';
@@ -197,7 +198,7 @@ const CharacterDisplay = ({ character, onDelete }: { character: Character, onDel
 
 
 export default function ProfileTab() {
-  const { currentUser, updateCharacterInUser, deleteCharacterFromUser, fetchUsersForAdmin, checkExtraCharacterSlots, setCurrentUser, updateUser } = useUser();
+  const { currentUser, updateCharacterInUser, deleteCharacterFromUser, fetchUsersForAdmin, checkExtraCharacterSlots, setCurrentUser, updateUser, addFavoritePlayer, removeFavoritePlayer } = useUser();
   const isMobile = useIsMobile();
   const [editingState, setEditingState] = useState<EditingState | null>(null);
   const [isAvatarDialogOpen, setAvatarDialogOpen] = React.useState(false);
@@ -469,7 +470,7 @@ export default function ProfileTab() {
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-4 xl:grid-cols-5 gap-y-4 gap-x-2">
                     {favoritePlayers.map(player => (
                         <Link href={`/users/${player.id}`} key={player.id} className="flex flex-col items-center gap-1.5 group">
-                            <Avatar className="w-12 h-12 lg:w-16 lg:h-16 transition-transform group-hover:scale-105">
+                            <Avatar className={cn("w-12 h-12 transition-transform group-hover:scale-105", isMobile && "w-10 h-10")}>
                                 <AvatarImage src={player.avatar} alt={player.name} />
                                 <AvatarFallback>{player.name.slice(0, 2)}</AvatarFallback>
                             </Avatar>
@@ -586,12 +587,12 @@ export default function ProfileTab() {
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 space-y-6">
             {renderProfileCard()}
+            {renderCharactersCard()}
           </div>
           <div className="lg:col-span-2 space-y-6">
             {renderFavoritesCard()}
-            {renderCharactersCard()}
             {renderHistoryCards()}
           </div>
         </div>
