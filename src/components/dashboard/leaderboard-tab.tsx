@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React from 'react';
@@ -119,7 +120,8 @@ const CoPlayerSearch = () => {
     const [processingId, setProcessingId] = React.useState<string | null>(null);
 
     const lookingForGamePlayers = React.useMemo(() => {
-        return users.filter(user => user.status === 'активный' && user.playerStatus === 'Ищу соигрока' && user.id !== currentUser?.id);
+        if (!users || !currentUser) return [];
+        return users.filter(user => user.status === 'активный' && user.playerStatus === 'Ищу соигрока' && user.id !== currentUser.id);
     }, [users, currentUser]);
 
     const myPings = React.useMemo(() => {
