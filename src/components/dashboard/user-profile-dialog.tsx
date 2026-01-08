@@ -3,12 +3,12 @@
 "use client";
 
 import React, { useMemo, useState } from 'react';
-import type { User, UserStatus, PointLog, Character, FamiliarCard, FamiliarRank, Moodlet, PlayerStatus } from '@/lib/types';
+import type { User, UserStatus, PointLog, Character, FamiliarCard, FamiliarRank, Moodlet, PlayerStatus, PlayPlatform } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Anchor, KeyRound, Sparkles, Pencil } from 'lucide-react';
+import { Anchor, KeyRound, Sparkles, Pencil, Gamepad2, Link as LinkIcon } from 'lucide-react';
 import { cn, formatTimeLeft } from '@/lib/utils';
 import FamiliarCardDisplay from './familiar-card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { SearchableSelect } from '../ui/searchable-select';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '../ui/label';
+import { Input } from '../ui/input';
 
 const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
     // If the name starts with 'ach-', assume it's a custom achievement icon
@@ -192,11 +193,22 @@ const playerStatusOptions: { value: PlayerStatus, label: string }[] = [
     { value: 'Не играю', label: 'Не играю' },
 ];
 
+const playPlatformOptions: { value: PlayPlatform, label: string }[] = [
+    { value: 'Discord', label: 'Discord' },
+    { value: 'Вконтакте', label: 'Вконтакте' },
+    { value: 'Telegram', label: 'Telegram' },
+    { value: 'Не указана', label: 'Не указана' },
+];
+
 
 export default function UserProfileDialog({ user }: { user: User }) {
   const { currentUser, updateUser } = useUser();
   const { toast } = useToast();
   const [isPlayerStatusDialogOpen, setPlayerStatusDialogOpen] = useState(false);
+  const [isSocialsDialogOpen, setSocialsDialogOpen] = useState(false);
+  const [socialLink, setSocialLink] = React.useState(user.socialLink || '');
+  const [playPlatform, setPlayPlatform] = React.useState<PlayPlatform>(user.playPlatform || 'Не указана');
+  const [isSavingSocials, setIsSavingSocials] = React.useState(false);
 
   if (!user) return null;
 
@@ -208,6 +220,32 @@ export default function UserProfileDialog({ user }: { user: User }) {
       toast({ title: "Игровой статус обновлен" });
       setPlayerStatusDialogOpen(false);
   };
+  
+  const handleSocialsSave = async () => {
+    if (!currentUser) return;
+    setIsSavingSocials(true);
+    try {
+        await updateUser(user.id, { socialLink, playPlatform });
+        toast({ title: 'Данные обновлены' });
+        setSocialsDialogOpen(false);
+    } catch(e) {
+        const msg = e instanceof Error ? e.message : 'Не удалось сохранить данные.';
+        toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+    } finally {
+        setIsSavingSocials(false);
+    }
+  }
+
+  const handlePlatformClick = () => {
+    if (isOwner || isAdmin) {
+        setSocialLink(user.socialLink || '');
+        setPlayPlatform(user.playPlatform || 'Не указана');
+        setSocialsDialogOpen(true);
+    } else if (user.socialLink) {
+        window.open(user.socialLink, '_blank', 'noopener,noreferrer');
+    }
+  };
+
 
   const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString();
 
@@ -266,8 +304,8 @@ export default function UserProfileDialog({ user }: { user: User }) {
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Игровой статус</span>
                 <button 
-                  onClick={() => (isAdmin && !isOwner) && setPlayerStatusDialogOpen(true)} 
-                  disabled={!(isAdmin && !isOwner)}
+                  onClick={() => (isOwner || isAdmin) && setPlayerStatusDialogOpen(true)} 
+                  disabled={!(isOwner || isAdmin)}
                   className="rounded-md -m-1 p-1 hover:bg-accent transition-colors disabled:cursor-default disabled:hover:bg-transparent"
                 >
                     <Badge variant={'outline'}>
@@ -275,6 +313,16 @@ export default function UserProfileDialog({ user }: { user: User }) {
                     </Badge>
                 </button>
               </div>
+               <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Платформа</span>
+                <button onClick={handlePlatformClick} className="rounded-md -m-1 p-1 hover:bg-accent transition-colors disabled:cursor-default" disabled={!(isOwner || isAdmin) && !user.socialLink}>
+                  <Badge variant={'outline'}>
+                    <Gamepad2 className="mr-1.5 h-3.5 w-3.5" />
+                    {user.playPlatform || 'Не указана'}
+                    {user.socialLink && <LinkIcon className="ml-1.5 h-3 w-3" />}
+                  </Badge>
+                </button>
+             </div>
               {(isOwner || isAdmin) && (
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Роль</span>
@@ -381,6 +429,34 @@ export default function UserProfileDialog({ user }: { user: User }) {
                     onValueChange={(val) => handlePlayerStatusChange(val as PlayerStatus)}
                     placeholder="Выберите статус..."
                 />
+            </div>
+        </DialogContent>
+    </Dialog>
+     <Dialog open={isSocialsDialogOpen} onOpenChange={setSocialsDialogOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Обновить игровые данные для {user.name}</DialogTitle>
+            </DialogHeader>
+            <div className="py-4 space-y-4">
+                <div className="space-y-2">
+                    <Label htmlFor="play-platform">Платформа для игры</Label>
+                    <SearchableSelect
+                        options={playPlatformOptions}
+                        value={playPlatform}
+                        onValueChange={(val) => setPlayPlatform(val as PlayPlatform)}
+                        placeholder="Выберите платформу..."
+                    />
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="social-link">Ссылка на профиль</Label>
+                    <Input id="social-link" value={socialLink} onChange={e => setSocialLink(e.target.value)} placeholder="https://..."/>
+                </div>
+            </div>
+            <div className="flex justify-end gap-2">
+                <Button variant="ghost" onClick={() => setSocialsDialogOpen(false)}>Отмена</Button>
+                <Button onClick={handleSocialsSave} disabled={isSavingSocials}>
+                    {isSavingSocials ? 'Сохранение...' : 'Сохранить'}
+                </Button>
             </div>
         </DialogContent>
     </Dialog>
