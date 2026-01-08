@@ -291,10 +291,8 @@ export default function ProfileTab() {
   }
 
   const handlePlatformClick = () => {
-    // Only owner can edit
-    if (currentUser.socialLink) {
-        window.open(currentUser.socialLink, '_blank', 'noopener,noreferrer');
-    }
+    // Owner can always edit.
+    setSocialsDialogOpen(true);
   };
 
   const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString();
@@ -393,19 +391,13 @@ export default function ProfileTab() {
              </div>
              <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Платформа</span>
-                <button onClick={handlePlatformClick} className="rounded-md -m-1 p-1 hover:bg-accent transition-colors disabled:cursor-default" disabled={!currentUser.socialLink}>
+                <button onClick={handlePlatformClick} className="rounded-md -m-1 p-1 hover:bg-accent transition-colors">
                   <Badge variant={'outline'}>
                     <Gamepad2 className="mr-1.5 h-3.5 w-3.5" />
                     {currentUser.playPlatform || 'Не указана'}
                     {currentUser.socialLink && <LinkIcon className="ml-1.5 h-3 w-3" />}
                   </Badge>
                 </button>
-             </div>
-             <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Соц.сеть/Платформа</span>
-                <Button variant="ghost" size="sm" onClick={() => setSocialsDialogOpen(true)}>
-                    <Pencil className="mr-2 h-3.5 w-3.5"/> Редактировать
-                </Button>
              </div>
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Роль</span>
