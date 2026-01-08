@@ -1,5 +1,6 @@
 
 
+
 export type UserRole = "admin" | "user";
 export type UserStatus = "активный" | "неактивный" | "отпуск";
 export type PlayerStatus =
@@ -332,6 +333,8 @@ export interface User {
   points: number;
   status: UserStatus;
   playerStatus?: PlayerStatus;
+  playPlatform?: string;
+  socialLink?: string;
   characters: Character[];
   pointHistory: PointLog[];
   achievementIds?: string[];

@@ -1,12 +1,13 @@
 
 
+
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
 import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage, Cooldowns, PopularityLog, CharacterPopularityUpdate, OwnedFamiliarCard, AlchemyRecipe, AlchemyRecipeComponent, PlayerStatus, PlayerPing } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
-import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter, increment, FieldValue, arrayUnion } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter, increment, FieldValue, arrayUnion, deleteField } from "firebase/firestore";
 import { ALL_STATIC_FAMILIARS, EVENT_FAMILIARS, MOODLETS_DATA, DEFAULT_GAME_SETTINGS, WEALTH_LEVELS, ALL_SHOPS, SHOPS_BY_ID, POPULARITY_EVENTS, ALL_ACHIEVEMENTS, INVENTORY_CATEGORIES } from '@/lib/data';
 import { differenceInDays } from 'date-fns';
 import { getFunctions, httpsCallable } from 'firebase/functions';
@@ -27,7 +28,7 @@ export const useAuth = () => {
     return context;
 };
 
-interface UserContextType extends Omit<User, 'id' | 'name' | 'email' | 'avatar' | 'role' | 'points' | 'status' | 'characters' | 'pointHistory' | 'achievementIds' | 'extraCharacterSlots' | 'mail' | 'playerPings'> {
+interface UserContextType extends Omit<User, 'id' | 'name' | 'email' | 'avatar' | 'role' | 'points' | 'status' | 'characters' | 'pointHistory' | 'achievementIds' | 'extraCharacterSlots' | 'mail' | 'playerPings' | 'playerStatus' | 'playPlatform' | 'socialLink'> {
   currentUser: User | null;
   setCurrentUser: (user: User | null) => void;
   gameDate: Date | null;
@@ -306,6 +307,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     userData.mail = userData.mail || [];
     userData.playerPings = userData.playerPings || [];
     userData.playerStatus = userData.playerStatus || 'Не играю';
+    userData.playPlatform = userData.playPlatform || '';
+    userData.socialLink = userData.socialLink || '';
     return userData;
   }, [initialFormData]);
   
@@ -558,6 +561,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         points: 1000,
         status: 'активный',
         playerStatus: 'Не играю',
+        playPlatform: '',
+        socialLink: '',
         characters: [],
         pointHistory: [{
             id: `h-${Date.now()}`,
@@ -629,6 +634,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 pointHistory: [], 
                 achievementIds: userData.achievementIds || [],
                 playerStatus: userData.playerStatus || 'Не играю',
+                playPlatform: userData.playPlatform || '',
+                socialLink: userData.socialLink || '',
             };
         });
         return users;
@@ -2888,5 +2895,3 @@ const deletePlayerPing = useCallback(async (pingId: string, isMyPing: boolean) =
     </AuthContext.Provider>
   );
 }
-
-    
