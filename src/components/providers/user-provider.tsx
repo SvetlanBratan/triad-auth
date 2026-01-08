@@ -322,38 +322,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       }
       return null;
   }, [processUserDoc]);
-
-  const fetchCharacterById = useCallback(async (characterId: string): Promise<{ character: Character; owner: User } | null> => {
-    try {
-        const usersCollection = collection(db, "users");
-        const usersSnapshot = await getDocs(usersCollection);
-
-        for (const userDoc of usersSnapshot.docs) {
-            const user = await fetchUserById(userDoc.id); // Use fetchUserById to get fully processed user data
-            if (user && user.characters) {
-                const character = user.characters.find(c => c.id === characterId);
-                if (character) {
-                    return { character, owner: user };
-                }
-            }
-        }
-        return null; // Not found
-    } catch (error) {
-        console.error("Error fetching character by ID:", error);
-        return null;
-    }
-  }, [fetchUserById]);
-
-  const fetchUsersForAdmin = useCallback(async (): Promise<User[]> => {
-    try {
-        const usersCollection = collection(db, "users");
-        const userSnapshot = await getDocs(query(usersCollection, orderBy("points", "desc")));
-        return Promise.all(userSnapshot.docs.map(doc => processUserDoc(doc.data() as User)));
-    } catch(error) {
-        console.error("Error fetching users for admin.", error);
-        throw error;
-    }
-  }, [processUserDoc]);
   
   const fetchGameSettings = useCallback(async () => {
     try {
@@ -384,115 +352,17 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         console.error("Error fetching game settings. Using default.", error);
     }
   }, []);
-
-  const brewPotion = useCallback(async (userId: string, characterId: string, recipeId: string) => {
-    await runTransaction(db, async (transaction) => {
-        const userRef = doc(db, 'users', userId);
-        const userDoc = await transaction.get(userRef);
-        if (!userDoc.exists()) throw new Error("User not found.");
-        const userData = userDoc.data() as User;
-
-        const recipesRef = collection(db, 'alchemy_recipes');
-        const recipeDoc = await getDoc(doc(recipesRef, recipeId));
-        if (!recipeDoc.exists()) throw new Error("Recipe not found.");
-        const recipe = recipeDoc.data() as AlchemyRecipe;
-
-        const charIndex = userData.characters.findIndex(c => c.id === characterId);
-        if (charIndex === -1) throw new Error("Character not found.");
-        const character = userData.characters[charIndex];
-
-        const allItems = ALL_SHOPS.flatMap(s => s.items || []);
-        const allItemsMap = new Map(allItems.map(item => [item.id, item]));
-
-        const inventory = { ...defaultInventory, ...character.inventory };
-        const ingredientsInv = (inventory.ингредиенты || []) as InventoryItem[];
-
-        for (const component of recipe.components) {
-            const requiredIngredient = allItemsMap.get(component.ingredientId);
-            if (!requiredIngredient) throw new Error(`Ingredient with ID ${component.ingredientId} not found.`);
-
-            const playerIngIndex = ingredientsInv.findIndex(i => i.name === requiredIngredient.name);
-            if (playerIngIndex === -1 || ingredientsInv[playerIngIndex].quantity < component.qty) {
-                throw new Error(`Недостаточно ингредиента: ${requiredIngredient.name}`);
-            }
-        }
-
-        recipe.components.forEach(component => {
-            const requiredIngredient = allItemsMap.get(component.ingredientId)!;
-            const playerIngIndex = ingredientsInv.findIndex(i => i.name === requiredIngredient.name)!;
-            if (ingredientsInv[playerIngIndex].quantity > component.qty) {
-                ingredientsInv[playerIngIndex].quantity -= component.qty;
-            } else {
-                ingredientsInv.splice(playerIngIndex, 1);
-            }
-        });
-
-        const resultItem = allItemsMap.get(recipe.resultPotionId);
-        if (!resultItem) throw new Error("Result item not found.");
-        
-        const outputCategory = resultItem.inventoryTag || 'зелья';
-        const outputInv = (inventory[outputCategory] as InventoryItem[] | undefined) || [];
-        const existingItemIndex = outputInv.findIndex(p => p.name === resultItem.name);
-
-        if (existingItemIndex > -1) {
-            outputInv[existingItemIndex].quantity += recipe.outputQty;
-        } else {
-            outputInv.push({
-                id: `inv-item-${Date.now()}`,
-                name: resultItem.name,
-                description: resultItem.description,
-                image: resultItem.image,
-                quantity: recipe.outputQty,
-            });
-        }
-        (inventory as any)[outputCategory] = outputInv;
-        character.inventory = inventory;
-        userData.characters[charIndex] = character;
-        
-        const hasBrewAchievement = (userData.achievementIds || []).includes(FIRST_BREW_ACHIEVEMENT_ID);
-        if(!hasBrewAchievement) {
-            userData.achievementIds = [...(userData.achievementIds || []), FIRST_BREW_ACHIEVEMENT_ID];
-        }
-
-        transaction.update(userRef, { characters: userData.characters, achievementIds: userData.achievementIds });
-    });
-    const updatedUser = await fetchUserById(userId);
-    if(updatedUser) setCurrentUser(updatedUser);
-  }, [fetchUserById]);
-
-  const fetchDbFamiliars = useCallback(async (): Promise<FamiliarCard[]> => {
-    const familiarsCollection = collection(db, "familiars");
-    const snapshot = await getDocs(familiarsCollection);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FamiliarCard));
-  }, []);
-
-  const fetchAndCombineFamiliars = useCallback(async () => {
-    const dbFamiliars = await fetchDbFamiliars();
-    const combined = [...ALL_STATIC_FAMILIARS, ...EVENT_FAMILIARS, ...dbFamiliars];
-    setAllFamiliars(combined);
-    
-    const byId = combined.reduce((acc, card) => {
-        acc[card.id] = card;
-        return acc;
-    }, {} as Record<string, FamiliarCard>);
-    setFamiliarsById(byId);
-  }, [fetchDbFamiliars]);
   
-  useEffect(() => {
-    fetchAndCombineFamiliars();
-  }, [fetchAndCombineFamiliars]);
-
-  const addFamiliarToDb = useCallback(async (familiar: Omit<FamiliarCard, 'id'>) => {
-    const familiarsCollection = collection(db, "familiars");
-    await addDoc(familiarsCollection, familiar);
-    await fetchAndCombineFamiliars();
-  }, [fetchAndCombineFamiliars]);
-
-  const deleteFamiliarFromDb = useCallback(async (familiarId: string) => {
-    const familiarRef = doc(db, "familiars", familiarId);
-    await deleteDoc(familiarRef);
-    await fetchAndCombineFamiliars();
-  }, [fetchAndCombineFamiliars]);
+  const fetchUsersForAdmin = useCallback(async (): Promise<User[]> => {
+    try {
+        const usersCollection = collection(db, "users");
+        const userSnapshot = await getDocs(query(usersCollection, orderBy("points", "desc")));
+        return Promise.all(userSnapshot.docs.map(doc => processUserDoc(doc.data() as User)));
+    } catch(error) {
+        console.error("Error fetching users for admin.", error);
+        throw error;
+    }
+  }, [processUserDoc]);
 
   const processWeeklyBonus = useCallback(async () => {
     const settingsRef = doc(db, 'game_settings', 'main');
@@ -509,17 +379,19 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
 
     const allUsers = await fetchUsersForAdmin();
-    let awardedCount = 0;
     const batch = writeBatch(db);
+    let awardedCount = 0;
 
     for (const user of allUsers) {
         const userRef = doc(db, "users", user.id);
         const updates: Partial<User> = {};
+        let needsUpdate = false;
 
         // Inactivity check
         const lastLogin = user.lastLogin ? new Date(user.lastLogin) : new Date(0);
-        if (differenceInMonths(now, lastLogin) >= 1 && user.status !== 'отпуск') {
+        if (differenceInMonths(now, lastLogin) >= 1 && user.status !== 'отпуск' && user.status !== 'неактивный') {
             updates.status = 'неактивный';
+            needsUpdate = true;
         }
 
         // Weekly bonus for active users
@@ -543,9 +415,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             updates.points = (user.points || 0) + totalBonus;
             updates.pointHistory = [newPointLog, ...(user.pointHistory || [])];
             awardedCount++;
+            needsUpdate = true;
         }
 
-        if (Object.keys(updates).length > 0) {
+        if (needsUpdate) {
             batch.update(userRef, updates);
         }
     }
@@ -556,14 +429,140 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     return { awardedCount };
   }, [fetchUsersForAdmin, fetchGameSettings]);
-
+  
   const updateGameDate = useCallback(async (newDateString: string) => {
     const settingsRef = doc(db, 'game_settings', 'main');
     await updateDoc(settingsRef, { gameDateString: newDateString });
     await fetchGameSettings();
   }, [fetchGameSettings]);
 
-  
+  const grantAchievementToUser = useCallback(async (userId: string, achievementId: string) => {
+    const user = await fetchUserById(userId);
+    if (!user) return;
+
+    const achievementIds = user.achievementIds || [];
+    if (!achievementIds.includes(achievementId)) {
+        const updatedAchievementIds = [...achievementIds, achievementId];
+        await updateUser(userId, { achievementIds: updatedAchievementIds });
+    }
+  }, [fetchUserById]);
+
+  const brewPotion = useCallback(async (userId: string, characterId: string, recipeId: string) => {
+    await runTransaction(db, async (transaction) => {
+        const userRef = doc(db, "users", userId);
+        const userDoc = await transaction.get(userRef);
+        if (!userDoc.exists()) {
+            throw new Error("Пользователь не найден.");
+        }
+        const userData = userDoc.data() as User;
+        
+        const recipeRef = doc(db, "alchemy_recipes", recipeId);
+        const recipeDoc = await transaction.get(recipeRef);
+        if (!recipeDoc.exists()) {
+            throw new Error("Рецепт не найден.");
+        }
+        const recipe = recipeDoc.data() as AlchemyRecipe;
+
+        const charIndex = userData.characters.findIndex(c => c.id === characterId);
+        if (charIndex === -1) {
+            throw new Error("Персонаж не найден.");
+        }
+
+        const character = userData.characters[charIndex];
+        const inventory = character.inventory || {};
+        const ingredientsInv = (inventory.ингредиенты || []) as InventoryItem[];
+        
+        for (const component of recipe.components) {
+            const allItems = (await fetchAllShops()).flatMap(s => s.items || []);
+            const requiredIngredient = allItems.find(item => item.id === component.ingredientId);
+            if (!requiredIngredient) {
+                throw new Error(`Ингредиент с ID ${component.ingredientId} не найден в данных магазина.`);
+            }
+
+            const playerIngIndex = ingredientsInv.findIndex(i => i.name === requiredIngredient.name);
+            if (playerIngIndex === -1 || ingredientsInv[playerIngIndex].quantity < component.qty) {
+                throw new Error(`Недостаточно ингредиента: ${requiredIngredient.name}.`);
+            }
+        }
+        
+        for (const component of recipe.components) {
+            const allItems = (await fetchAllShops()).flatMap(s => s.items || []);
+            const requiredIngredient = allItems.find(item => item.id === component.ingredientId)!;
+            const playerIngIndex = ingredientsInv.findIndex(i => i.name === requiredIngredient.name);
+
+            if (ingredientsInv[playerIngIndex].quantity > component.qty) {
+                ingredientsInv[playerIngIndex].quantity -= component.qty;
+            } else {
+                ingredientsInv.splice(playerIngIndex, 1);
+            }
+        }
+        
+        const allItems = (await fetchAllShops()).flatMap(s => s.items || []);
+        const resultItem = allItems.find(item => item.id === recipe.resultPotionId);
+        if (!resultItem) {
+            throw new Error("Итоговый предмет не найден.");
+        }
+        
+        const tag = resultItem.inventoryTag || 'прочее';
+        const itemInv = (inventory[tag] || []) as InventoryItem[];
+        const existingItemIndex = itemInv.findIndex(p => p.name === resultItem.name);
+
+        if (existingItemIndex > -1) {
+            itemInv[existingItemIndex].quantity += recipe.outputQty;
+        } else {
+            itemInv.push({
+                id: `inv-item-${Date.now()}`,
+                name: resultItem.name,
+                description: resultItem.description,
+                image: resultItem.image,
+                quantity: recipe.outputQty,
+            });
+        }
+        
+        inventory.ингредиенты = ingredientsInv;
+        inventory[tag] = itemInv;
+        character.inventory = inventory;
+        userData.characters[charIndex] = character;
+        
+        const hasBrewAchievement = (userData.achievementIds || []).includes(FIRST_BREW_ACHIEVEMENT_ID);
+        if (!hasBrewAchievement) {
+            userData.achievementIds = [...(userData.achievementIds || []), FIRST_BREW_ACHIEVEMENT_ID];
+        }
+        
+        transaction.update(userRef, { 
+            characters: userData.characters,
+            achievementIds: userData.achievementIds 
+        });
+    });
+
+    if (currentUser?.id === userId) {
+        const updatedUser = await fetchUserById(userId);
+        if (updatedUser) setCurrentUser(updatedUser);
+    }
+}, [currentUser, fetchUserById, fetchAllShops]);
+
+
+  const fetchCharacterById = useCallback(async (characterId: string): Promise<{ character: Character; owner: User } | null> => {
+    try {
+        const usersCollection = collection(db, "users");
+        const usersSnapshot = await getDocs(usersCollection);
+
+        for (const userDoc of usersSnapshot.docs) {
+            const user = await fetchUserById(userDoc.id); // Use fetchUserById to get fully processed user data
+            if (user && user.characters) {
+                const character = user.characters.find(c => c.id === characterId);
+                if (character) {
+                    return { character, owner: user };
+                }
+            }
+        }
+        return null; // Not found
+    } catch (error) {
+        console.error("Error fetching character by ID:", error);
+        return null;
+    }
+  }, [fetchUserById]);
+
   const createNewUser = useCallback(async (uid: string, nickname: string): Promise<User> => {
     const newUser: User = {
         id: uid,
@@ -586,6 +585,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         extraCharacterSlots: 0,
         mail: [],
         playerPings: [],
+        favoritePlayerIds: [],
         lastLogin: new Date().toISOString(),
     };
     try {
@@ -596,6 +596,24 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       throw error;
     }
   }, []);
+
+  const fetchDbFamiliars = useCallback(async (): Promise<FamiliarCard[]> => {
+    const familiarsCollection = collection(db, "familiars");
+    const snapshot = await getDocs(familiarsCollection);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FamiliarCard));
+  }, []);
+
+  const fetchAndCombineFamiliars = useCallback(async () => {
+    const dbFamiliars = await fetchDbFamiliars();
+    const combined = [...ALL_STATIC_FAMILIARS, ...EVENT_FAMILIARS, ...dbFamiliars];
+    setAllFamiliars(combined);
+    
+    const byId = combined.reduce((acc, card) => {
+        acc[card.id] = card;
+        return acc;
+    }, {} as Record<string, FamiliarCard>);
+    setFamiliarsById(byId);
+  }, [fetchDbFamiliars]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -608,13 +626,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             let userData = await fetchUserById(user.uid);
 
             if (userData) {
-                // Update last login time and status
                 const updates: Partial<User> = { lastLogin: new Date().toISOString() };
                 if (userData.status !== 'отпуск') {
                     updates.status = 'активный';
                 }
                 await updateDoc(doc(db, "users", user.uid), updates);
-                userData = { ...userData, ...updates }; // Update local state immediately
+                userData = { ...userData, ...updates }; 
             } else {
                 const nickname = user.displayName || user.email?.split('@')[0] || 'Пользователь';
                 userData = await createNewUser(user.uid, nickname);
@@ -658,6 +675,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 achievementIds: userData.achievementIds || [],
                 playerStatus: userData.playerStatus || 'Не играю',
                 socials: userData.socials || [],
+                favoritePlayerIds: userData.favoritePlayerIds || [],
+                lastLogin: userData.lastLogin
             };
         });
         return users;
@@ -708,16 +727,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     await updateUser(userId, { avatar: avatarUrl });
   }, [updateUser]);
 
-  const grantAchievementToUser = useCallback(async (userId: string, achievementId: string) => {
-    const user = await fetchUserById(userId);
-    if (!user) return;
-
-    const achievementIds = user.achievementIds || [];
-    if (!achievementIds.includes(achievementId)) {
-        const updatedAchievementIds = [...achievementIds, achievementId];
-        await updateUser(userId, { achievementIds: updatedAchievementIds });
-    }
-  }, [fetchUserById, updateUser]);
 
   const addPointsToUser = useCallback(async (userId: string, amount: number, reason: string, characterId?: string): Promise<User | null> => {
     const user = await fetchUserById(userId);
@@ -1863,7 +1872,7 @@ const processMonthlySalary = useCallback(async () => {
     const ranksAreDifferent = initiatorFamiliar.rank !== targetFamiliar.rank;
     const isMythicEventTrade =
       (initiatorFamiliar.rank === 'мифический' && targetFamiliar.rank === 'ивентовый') ||
-      (initiatorFamiliar.rank === 'ивентовый' && initiatorFamiliar.rank === 'мифический');
+      (initiatorFamiliar.rank === 'ивентовый' && targetFamiliar.rank === 'мифический');
 
     if (ranksAreDifferent && !isMythicEventTrade) {
         throw new Error("Обмен возможен только между фамильярами одного ранга, или между мифическим и ивентовым.");
@@ -2727,20 +2736,12 @@ const withdrawFromShopTill = useCallback(async (shopId: string) => {
     if(updatedUser) setCurrentUser(updatedUser);
 }, [currentUser, fetchUserById]);
 
-const fetchAlchemyRecipes = useCallback(async (): Promise<AlchemyRecipe[]> => {
+  const fetchAlchemyRecipes = useCallback(async (): Promise<AlchemyRecipe[]> => {
     const recipesCollection = collection(db, "alchemy_recipes");
     const snapshot = await getDocs(recipesCollection);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AlchemyRecipe));
   }, []);
-
-const addAlchemyRecipe = useCallback(async (recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
-    const recipesCollection = collection(db, 'alchemy_recipes');
-    await addDoc(recipesCollection, {
-        ...recipe,
-        createdAt: new Date().toISOString()
-    });
-}, []);
-
+  
 const updateAlchemyRecipe = useCallback(async (recipeId: string, recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
     const recipeRef = doc(db, "alchemy_recipes", recipeId);
     await updateDoc(recipeRef, recipe);
@@ -2750,6 +2751,18 @@ const deleteAlchemyRecipe = useCallback(async (recipeId: string) => {
     const recipeRef = doc(db, "alchemy_recipes", recipeId);
     await deleteDoc(recipeRef);
 }, []);
+
+  const addFamiliarToDb = useCallback(async (familiar: Omit<FamiliarCard, 'id'>) => {
+    const familiarsCollection = collection(db, "familiars");
+    await addDoc(familiarsCollection, familiar);
+    await fetchAndCombineFamiliars();
+  }, [fetchAndCombineFamiliars]);
+
+  const deleteFamiliarFromDb = useCallback(async (familiarId: string) => {
+    const familiarRef = doc(db, "familiars", familiarId);
+    await deleteDoc(familiarRef);
+    await fetchAndCombineFamiliars();
+  }, [fetchAndCombineFamiliars]);
 
 const sendPlayerPing = useCallback(async (targetUserId: string) => {
     if (!currentUser) throw new Error("Not authenticated.");
@@ -2936,6 +2949,10 @@ const addFavoritePlayer = useCallback(async (targetUserId: string) => {
     </AuthContext.Provider>
   );
 }
+
+
+
+
 
 
 
