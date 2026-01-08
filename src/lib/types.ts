@@ -1,11 +1,14 @@
 
-
-
-
-
 export type UserRole = "admin" | "user";
 export type UserStatus = "активный" | "неактивный" | "отпуск";
-export type PlayerStatus = 'Должен пост' | 'Жду пост' | 'Ищу соигрока' | 'Не играю' | 'Регулярные посты' | 'Медленный темп' | 'Средний темп';
+export type PlayerStatus =
+  | "Должен пост"
+  | "Жду пост"
+  | "Ищу соигрока"
+  | "Не играю"
+  | "Регулярные посты"
+  | "Медленный темп"
+  | "Средний темп";
 export type RewardRequestStatus = "в ожидании" | "одобрено" | "отклонено";
 export type FamiliarRank =
   | "обычный"
@@ -310,6 +313,15 @@ export interface PointLog {
   characterId?: string;
 }
 
+export interface PlayerPing {
+  id: string;
+  fromUserId: string;
+  fromUserName: string;
+  fromUserAvatar: string;
+  toUserId: string;
+  createdAt: string; // ISO string
+}
+
 export interface User {
   id: string;
   name: string;
@@ -324,6 +336,7 @@ export interface User {
   achievementIds?: string[];
   extraCharacterSlots?: number;
   mail?: MailMessage[];
+  playerPings?: PlayerPing[];
 }
 
 export interface Reward {
@@ -409,14 +422,18 @@ export interface CharacterPopularityUpdate {
 
 // --- ALCHEMY TYPES ---
 export interface AlchemyIngredient extends InventoryItem {
-    note?: string;
-    tags: string[];
+  note?: string;
+  tags: string[];
 }
 
 export interface Potion extends InventoryItem {
-    note?: string;
-    effects: { stat: "hp" | "mana" | "luck"; value: number; durationSec?: number }[];
-    tier: "обычный" | "редкий" | "легендарный";
+  note?: string;
+  effects: {
+    stat: "hp" | "mana" | "luck";
+    value: number;
+    durationSec?: number;
+  }[];
+  tier: "обычный" | "редкий" | "легендарный";
 }
 
 export interface AlchemyRecipeComponent {
