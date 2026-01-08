@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useUser } from '@/hooks/use-user';
@@ -493,29 +491,6 @@ export default function ProfileTab() {
         </Card>
       </div>
       <div className="lg:col-span-2 space-y-6">
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Users /> Избранные соигроки</CardTitle>
-                <CardDescription>Быстрый доступ к профилям игроков, которых вы добавили в избранное.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                {favoritePlayers.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                        {favoritePlayers.map(player => (
-                            <Link href={`/users/${player.id}`} key={player.id} className="flex flex-col items-center gap-2 group">
-                                <Avatar className="w-16 h-16 transition-transform group-hover:scale-105">
-                                    <AvatarImage src={player.avatar} alt={player.name} />
-                                    <AvatarFallback>{player.name.slice(0, 2)}</AvatarFallback>
-                                </Avatar>
-                                <p className="text-sm font-medium text-center truncate w-full group-hover:text-primary">{player.name}</p>
-                            </Link>
-                        ))}
-                    </div>
-                ) : (
-                    <p className="text-center text-muted-foreground py-4">Вы еще не добавили никого в избранное.</p>
-                )}
-            </CardContent>
-        </Card>
         <Card>
           <CardHeader>
             <CardTitle>История баллов</CardTitle>

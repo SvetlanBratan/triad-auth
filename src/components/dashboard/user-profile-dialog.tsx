@@ -1,14 +1,12 @@
+'use client';
 
-
-"use client";
-
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import type { User, UserStatus, PointLog, Character, FamiliarCard, FamiliarRank, Moodlet, PlayerStatus, PlayPlatform, SocialLink } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Anchor, KeyRound, Sparkles, Pencil, Gamepad2, Link as LinkIcon, PlusCircle, X, Heart } from 'lucide-react';
+import { Anchor, KeyRound, Sparkles, Pencil, Gamepad2, Link as LinkIcon, PlusCircle, X, Heart, Users } from 'lucide-react';
 import { cn, formatTimeLeft } from '@/lib/utils';
 import FamiliarCardDisplay from './familiar-card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
@@ -23,6 +21,7 @@ import { SearchableSelect } from '../ui/searchable-select';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
+import { useQuery } from '@tanstack/react-query';
 
 const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
     // If the name starts with 'ach-', assume it's a custom achievement icon
@@ -56,17 +55,17 @@ const CharacterDisplay = ({ character }: { character: Character }) => {
     const activeMoodlets = (character.moodlets || []).filter(m => new Date(m.expiresAt) > new Date());
 
 
-    const groupedFamiliars = familiarCards.reduce((acc, ownedCard) => {
+    const groupedFamiliars = familiarCards.reduce((acc, ownedCard, index) => {
         const cardDetails = familiarsById[ownedCard.id];
         if (cardDetails) {
             const rank = cardDetails.rank;
             if (!acc[rank]) {
                 acc[rank] = [];
             }
-            acc[rank].push(cardDetails);
+            acc[rank].push({ ...cardDetails, uniqueKey: `${cardDetails.id}-${index}` });
         }
         return acc;
-    }, {} as Record<FamiliarRank, FamiliarCard[]>);
+    }, {} as Record<FamiliarRank, (FamiliarCard & { uniqueKey: string })[]>);
 
     const accomplishments = character.accomplishments || [];
 
@@ -163,7 +162,7 @@ const CharacterDisplay = ({ character }: { character: Character }) => {
                                         <h4 className="font-semibold capitalize text-muted-foreground mb-2">{rankNames[rank]}</h4>
                                         <div className="flex flex-wrap gap-2">
                                             {groupedFamiliars[rank].map(card => (
-                                                <FamiliarCardDisplay key={card.id} cardId={card.id} />
+                                                <FamiliarCardDisplay key={card.uniqueKey} cardId={card.id} />
                                             ))}
                                         </div>
                                         </div>
@@ -202,12 +201,17 @@ const playPlatformOptions: { value: PlayPlatform, label: string }[] = [
 
 
 export default function UserProfileDialog({ user }: { user: User }) {
-  const { currentUser, updateUser, addFavoritePlayer, removeFavoritePlayer } = useUser();
+  const { currentUser, updateUser, addFavoritePlayer, removeFavoritePlayer, fetchUsersForAdmin } = useUser();
   const { toast } = useToast();
   const [isPlayerStatusDialogOpen, setPlayerStatusDialogOpen] = useState(false);
   const [isSocialsDialogOpen, setSocialsDialogOpen] = useState(false);
   const [socials, setSocials] = React.useState<SocialLink[]>([]);
   const [isSavingSocials, setIsSavingSocials] = React.useState(false);
+
+  const { data: allUsers = [] } = useQuery<User[]>({
+    queryKey: ['allUsersForProfileDialog'],
+    queryFn: fetchUsersForAdmin,
+  });
 
   if (!user) return null;
   
@@ -221,7 +225,8 @@ export default function UserProfileDialog({ user }: { user: User }) {
   const isOwner = currentUser?.id === user.id;
 
   const isFavorite = useMemo(() => {
-    return currentUser?.favoritePlayerIds?.includes(user.id) || false;
+    if (!currentUser?.favoritePlayerIds) return false;
+    return currentUser.favoritePlayerIds.includes(user.id);
   }, [currentUser?.favoritePlayerIds, user.id]);
 
   const handleToggleFavorite = useCallback(async () => {
@@ -310,10 +315,16 @@ export default function UserProfileDialog({ user }: { user: User }) {
     return map;
   }, [user.characters]);
 
+    const favoritePlayers = useMemo(() => {
+        if (!user?.favoritePlayerIds || !allUsers.length) return [];
+        const favs = user.favoritePlayerIds.map(id => allUsers.find(u => u.id === id)).filter(Boolean) as User[];
+        return favs;
+    }, [user?.favoritePlayerIds, allUsers]);
+
   return (
     <>
     <div className={cn("grid grid-cols-1 gap-6", (isOwner || isAdmin) && "lg:grid-cols-3")}>
-        <div className={cn("lg:col-span-1 space-y-6", !(isOwner || isAdmin) && "lg:col-span-2 lg:grid lg:grid-cols-2 lg:gap-6 lg:space-y-0")}>
+        <div className="space-y-6 lg:col-span-1">
           <Card className="lg:self-start">
             <CardHeader>
               <div className="flex items-start gap-4">
@@ -407,64 +418,88 @@ export default function UserProfileDialog({ user }: { user: User }) {
           </Card>
            <Card>
             <CardHeader>
-              <CardTitle>Персонажи</CardTitle>
-              <CardDescription>Список персонажей игрока</CardDescription>
+                <CardTitle className="flex items-center gap-2"><Users /> Избранные соигроки</CardTitle>
+                <CardDescription>Список игроков, которых {user.name} добавил(а) в избранное.</CardDescription>
             </CardHeader>
             <CardContent>
-              {user.characters.length > 0 ? (
-                <Accordion type="single" collapsible className="w-full">
-                  {user.characters.map(char => (
-                    <CharacterDisplay key={char.id} character={char} />
-                  ))}
-                </Accordion>
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">У этого игрока нет персонажей.</p>
-              )}
+                {favoritePlayers.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                        {favoritePlayers.map(player => (
+                            <Link href={`/users/${player.id}`} key={player.id} className="flex flex-col items-center gap-2 group">
+                                <Avatar className="w-16 h-16 transition-transform group-hover:scale-105">
+                                    <AvatarImage src={player.avatar} alt={player.name} />
+                                    <AvatarFallback>{player.name.slice(0, 2)}</AvatarFallback>
+                                </Avatar>
+                                <p className="text-sm font-medium text-center truncate w-full group-hover:text-primary">{player.name}</p>
+                            </Link>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-center text-muted-foreground py-4">{user.name} еще не добавил(а) никого в избранное.</p>
+                )}
             </CardContent>
-          </Card>
+        </Card>
         </div>
 
-        {(isOwner || isAdmin) && (
-            <div className="lg:col-span-2">
-                <Card>
+        <div className={cn("space-y-6", (isOwner || isAdmin) ? "lg:col-span-2" : "lg:col-span-1")}>
+            <Card>
                 <CardHeader>
-                    <CardTitle>История баллов</CardTitle>
-                    <CardDescription>Журнал заработанных и потраченных баллов.</CardDescription>
+                <CardTitle>Персонажи</CardTitle>
+                <CardDescription>Список персонажей игрока</CardDescription>
                 </CardHeader>
-                <CardContent className="max-h-[80vh] overflow-y-auto">
-                    <Table>
-                        <TableHeader>
-                        <TableRow>
-                            <TableHead>Дата</TableHead>
-                            <TableHead>Причина</TableHead>
-                            <TableHead className="text-right">Сумма</TableHead>
-                        </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                        {sortedPointHistory.length > 0 ? sortedPointHistory.map((log: PointLog) => (
-                            <TableRow key={log.id}>
-                            <TableCell className="text-muted-foreground">{formatDate(log.date)}</TableCell>
-                            <TableCell>
-                                <p>{log.reason}</p>
-                                {log.characterId && <p className="text-xs text-muted-foreground">Персонаж: {characterMap.get(log.characterId) || 'Неизвестно'}</p>}
-                            </TableCell>
-                            <TableCell className={`text-right font-semibold ${log.amount > 0 ? 'text-green-600' : 'text-destructive'}`}>
-                                {log.amount > 0 ? '+' : ''}{log.amount.toLocaleString()}
-                            </TableCell>
-                            </TableRow>
-                        )) : (
-                            <TableRow>
-                            <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
-                                Истории баллов пока нет.
-                            </TableCell>
-                            </TableRow>
-                        )}
-                        </TableBody>
-                    </Table>
+                <CardContent>
+                {user.characters.length > 0 ? (
+                    <Accordion type="single" collapsible className="w-full">
+                    {user.characters.map(char => (
+                        <CharacterDisplay key={char.id} character={char} />
+                    ))}
+                    </Accordion>
+                ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">У этого игрока нет персонажей.</p>
+                )}
                 </CardContent>
+            </Card>
+        
+            {(isOwner || isAdmin) && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>История баллов</CardTitle>
+                        <CardDescription>Журнал заработанных и потраченных баллов.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="max-h-[80vh] overflow-y-auto">
+                        <Table>
+                            <TableHeader>
+                            <TableRow>
+                                <TableHead>Дата</TableHead>
+                                <TableHead>Причина</TableHead>
+                                <TableHead className="text-right">Сумма</TableHead>
+                            </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                            {sortedPointHistory.length > 0 ? sortedPointHistory.map((log: PointLog) => (
+                                <TableRow key={log.id}>
+                                <TableCell className="text-muted-foreground">{formatDate(log.date)}</TableCell>
+                                <TableCell>
+                                    <p>{log.reason}</p>
+                                    {log.characterId && <p className="text-xs text-muted-foreground">Персонаж: {characterMap.get(log.characterId) || 'Неизвестно'}</p>}
+                                </TableCell>
+                                <TableCell className={`text-right font-semibold ${log.amount > 0 ? 'text-green-600' : 'text-destructive'}`}>
+                                    {log.amount > 0 ? '+' : ''}{log.amount.toLocaleString()}
+                                </TableCell>
+                                </TableRow>
+                            )) : (
+                                <TableRow>
+                                <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                                    Истории баллов пока нет.
+                                </TableCell>
+                                </TableRow>
+                            )}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
                 </Card>
-            </div>
-        )}
+            )}
+        </div>
     </div>
     
      <Dialog open={isPlayerStatusDialogOpen} onOpenChange={setPlayerStatusDialogOpen}>
