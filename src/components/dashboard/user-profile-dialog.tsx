@@ -186,6 +186,9 @@ const playerStatusOptions: { value: PlayerStatus, label: string }[] = [
     { value: 'Должен пост', label: 'Должен пост' },
     { value: 'Жду пост', label: 'Жду пост' },
     { value: 'Ищу соигрока', label: 'Ищу соигрока' },
+    { value: 'Регулярные посты', label: 'Регулярные посты' },
+    { value: 'Средний темп', label: 'Средний темп' },
+    { value: 'Медленный темп', label: 'Медленный темп' },
     { value: 'Не играю', label: 'Не играю' },
 ];
 
@@ -384,4 +387,3 @@ export default function UserProfileDialog({ user }: { user: User }) {
     </>
   );
 }
-

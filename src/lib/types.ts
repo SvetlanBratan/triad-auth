@@ -2,9 +2,10 @@
 
 
 
+
 export type UserRole = "admin" | "user";
 export type UserStatus = "активный" | "неактивный" | "отпуск";
-export type PlayerStatus = 'Должен пост' | 'Жду пост' | 'Ищу соигрока' | 'Не играю';
+export type PlayerStatus = 'Должен пост' | 'Жду пост' | 'Ищу соигрока' | 'Не играю' | 'Регулярные посты' | 'Медленный темп' | 'Средний темп';
 export type RewardRequestStatus = "в ожидании" | "одобрено" | "отклонено";
 export type FamiliarRank =
   | "обычный"
