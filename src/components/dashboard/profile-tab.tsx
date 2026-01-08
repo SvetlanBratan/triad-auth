@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Trash2, Pencil, UserSquare, Sparkles, Anchor, KeyRound } from 'lucide-react';
+import { PlusCircle, Trash2, Pencil, UserSquare, Sparkles, Anchor, KeyRound, Link as LinkIcon, Gamepad2 } from 'lucide-react';
 import type { PointLog, UserStatus, Character, User, FamiliarCard, FamiliarRank, PlayerStatus } from '@/lib/types';
 import Link from 'next/link';
 import {
@@ -40,6 +40,7 @@ import AvatarUploader from './avatar-uploader';
 import { CustomIcon } from '../ui/custom-icon';
 import { SearchableSelect } from '../ui/searchable-select';
 import { Label } from '../ui/label';
+import { Input } from '../ui/input';
 
 const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
     // If the name starts with 'ach-', assume it's a custom achievement icon
@@ -196,6 +197,11 @@ export default function ProfileTab() {
   const [editingState, setEditingState] = useState<EditingState | null>(null);
   const [isAvatarDialogOpen, setAvatarDialogOpen] = React.useState(false);
   const [isPlayerStatusDialogOpen, setPlayerStatusDialogOpen] = React.useState(false);
+  const [isSocialsDialogOpen, setSocialsDialogOpen] = React.useState(false);
+  const [socialLink, setSocialLink] = React.useState(currentUser?.socialLink || '');
+  const [playPlatform, setPlayPlatform] = React.useState(currentUser?.playPlatform || '');
+  const [isSavingSocials, setIsSavingSocials] = React.useState(false);
+
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const { toast } = useToast();
 
@@ -259,6 +265,21 @@ export default function ProfileTab() {
       toast({ title: "Игровой статус обновлен" });
       setPlayerStatusDialogOpen(false);
   };
+  
+  const handleSocialsSave = async () => {
+    if (!currentUser) return;
+    setIsSavingSocials(true);
+    try {
+        await updateUser(currentUser.id, { socialLink, playPlatform });
+        toast({ title: 'Данные обновлены' });
+        setSocialsDialogOpen(false);
+    } catch(e) {
+        const msg = e instanceof Error ? e.message : 'Не удалось сохранить данные.';
+        toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+    } finally {
+        setIsSavingSocials(false);
+    }
+  }
 
   const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString();
 
@@ -345,6 +366,24 @@ export default function ProfileTab() {
                     <Badge variant={'outline'}>
                         {currentUser.playerStatus || 'Не играю'}
                     </Badge>
+                </button>
+             </div>
+             <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Платформа</span>
+                <button onClick={() => setSocialsDialogOpen(true)} className="rounded-md -m-1 p-1 hover:bg-accent transition-colors">
+                  <Badge variant={'outline'}>
+                    <Gamepad2 className="mr-1.5 h-3.5 w-3.5" />
+                    {currentUser.playPlatform || 'Не указана'}
+                  </Badge>
+                </button>
+             </div>
+             <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Соц. сеть</span>
+                <button onClick={() => setSocialsDialogOpen(true)} className="rounded-md -m-1 p-1 hover:bg-accent transition-colors">
+                   <Badge variant={'outline'}>
+                    <LinkIcon className="mr-1.5 h-3.5 w-3.5" />
+                    {currentUser.socialLink ? 'Добавлена' : 'Не указана'}
+                   </Badge>
                 </button>
              </div>
             <div className="flex justify-between items-center">
@@ -489,6 +528,30 @@ export default function ProfileTab() {
                         onValueChange={(val) => handlePlayerStatusChange(val as PlayerStatus)}
                         placeholder="Выберите статус..."
                     />
+                </div>
+            </DialogContent>
+        </Dialog>
+        
+        <Dialog open={isSocialsDialogOpen} onOpenChange={setSocialsDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Обновить игровые данные</DialogTitle>
+                </DialogHeader>
+                <div className="py-4 space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="play-platform">Платформа для игры</Label>
+                        <Input id="play-platform" value={playPlatform} onChange={e => setPlayPlatform(e.target.value)} placeholder="Напр. Discord, Telegram"/>
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="social-link">Ссылка на профиль</Label>
+                        <Input id="social-link" value={socialLink} onChange={e => setSocialLink(e.target.value)} placeholder="https://..."/>
+                    </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                    <Button variant="ghost" onClick={() => setSocialsDialogOpen(false)}>Отмена</Button>
+                    <Button onClick={handleSocialsSave} disabled={isSavingSocials}>
+                        {isSavingSocials ? 'Сохранение...' : 'Сохранить'}
+                    </Button>
                 </div>
             </DialogContent>
         </Dialog>
