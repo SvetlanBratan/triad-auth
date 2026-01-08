@@ -323,7 +323,7 @@ export default function UserProfileDialog({ user }: { user: User }) {
                   </Badge>
                 </button>
              </div>
-              {(isOwner || isAdmin) && (
+              {isAdmin && (
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Роль</span>
                   <Badge variant="outline">{user.role}</Badge>

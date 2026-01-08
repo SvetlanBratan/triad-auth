@@ -240,6 +240,8 @@ export default function ProfileTab() {
 
   if (!currentUser) return null;
   
+  const isAdmin = currentUser.role === 'admin';
+
   const handleAddClick = () => {
     if (!canAddCharacter) {
         toast({
@@ -399,10 +401,12 @@ export default function ProfileTab() {
                   </Badge>
                 </button>
              </div>
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Роль</span>
-              <Badge variant="outline">{currentUser.role}</Badge>
-            </div>
+            {isAdmin && (
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Роль</span>
+                <Badge variant="outline">{currentUser.role}</Badge>
+              </div>
+            )}
              {userAchievements.length > 0 && (
                 <div className="pt-4">
                     <h4 className="text-sm font-semibold text-muted-foreground mb-2">Достижения</h4>
