@@ -182,7 +182,7 @@ export default function UserProfileDialog({ user }: { user: User }) {
   const { currentUser } = useUser();
   if (!user) return null;
 
-  const isAdminViewer = currentUser?.role === 'admin';
+  const isOwnerOrAdmin = currentUser?.id === user.id || currentUser?.role === 'admin';
 
   const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString();
 
@@ -209,9 +209,8 @@ export default function UserProfileDialog({ user }: { user: User }) {
   }, [user.characters]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column */}
-        <div className="lg:col-span-1 space-y-6">
+    <div className={cn("grid grid-cols-1 gap-6", isOwnerOrAdmin && "lg:grid-cols-3")}>
+        <div className={cn("space-y-6", isOwnerOrAdmin ? "lg:col-span-1" : "lg:col-span-2")}>
           <Card>
             <CardHeader>
               <div className="flex items-center gap-4">
@@ -238,7 +237,7 @@ export default function UserProfileDialog({ user }: { user: User }) {
                   {user.status}
                 </Badge>
               </div>
-              {isAdminViewer && (
+              {isOwnerOrAdmin && (
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Роль</span>
                   <Badge variant="outline">{user.role}</Badge>
@@ -285,46 +284,47 @@ export default function UserProfileDialog({ user }: { user: User }) {
           </Card>
         </div>
 
-        {/* Right Column */}
-        <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>История баллов</CardTitle>
-                <CardDescription>Журнал заработанных и потраченных баллов.</CardDescription>
-              </CardHeader>
-              <CardContent className="max-h-[80vh] overflow-y-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Дата</TableHead>
-                        <TableHead>Причина</TableHead>
-                        <TableHead className="text-right">Сумма</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {sortedPointHistory.length > 0 ? sortedPointHistory.map((log: PointLog) => (
-                        <TableRow key={log.id}>
-                          <TableCell className="text-muted-foreground">{formatDate(log.date)}</TableCell>
-                          <TableCell>
-                            <p>{log.reason}</p>
-                            {log.characterId && <p className="text-xs text-muted-foreground">Персонаж: {characterMap.get(log.characterId) || 'Неизвестно'}</p>}
-                          </TableCell>
-                          <TableCell className={`text-right font-semibold ${log.amount > 0 ? 'text-green-600' : 'text-destructive'}`}>
-                            {log.amount > 0 ? '+' : ''}{log.amount.toLocaleString()}
-                          </TableCell>
-                        </TableRow>
-                      )) : (
+        {isOwnerOrAdmin && (
+            <div className="lg:col-span-2">
+                <Card>
+                <CardHeader>
+                    <CardTitle>История баллов</CardTitle>
+                    <CardDescription>Журнал заработанных и потраченных баллов.</CardDescription>
+                </CardHeader>
+                <CardContent className="max-h-[80vh] overflow-y-auto">
+                    <Table>
+                        <TableHeader>
                         <TableRow>
-                          <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
-                            Истории баллов пока нет.
-                          </TableCell>
+                            <TableHead>Дата</TableHead>
+                            <TableHead>Причина</TableHead>
+                            <TableHead className="text-right">Сумма</TableHead>
                         </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-              </CardContent>
-            </Card>
-        </div>
+                        </TableHeader>
+                        <TableBody>
+                        {sortedPointHistory.length > 0 ? sortedPointHistory.map((log: PointLog) => (
+                            <TableRow key={log.id}>
+                            <TableCell className="text-muted-foreground">{formatDate(log.date)}</TableCell>
+                            <TableCell>
+                                <p>{log.reason}</p>
+                                {log.characterId && <p className="text-xs text-muted-foreground">Персонаж: {characterMap.get(log.characterId) || 'Неизвестно'}</p>}
+                            </TableCell>
+                            <TableCell className={`text-right font-semibold ${log.amount > 0 ? 'text-green-600' : 'text-destructive'}`}>
+                                {log.amount > 0 ? '+' : ''}{log.amount.toLocaleString()}
+                            </TableCell>
+                            </TableRow>
+                        )) : (
+                            <TableRow>
+                            <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                                Истории баллов пока нет.
+                            </TableCell>
+                            </TableRow>
+                        )}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+                </Card>
+            </div>
+        )}
     </div>
   );
 }
