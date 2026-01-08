@@ -232,9 +232,15 @@ export default function UserProfileDialog({ user }: { user: User }) {
                 </div>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Статус</span>
+                <span className="text-muted-foreground">Статус активности</span>
                 <Badge variant={'outline'} className={cn("capitalize", getStatusClass(user.status))}>
                   {user.status}
+                </Badge>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Игровой статус</span>
+                <Badge variant={'outline'}>
+                  {user.playerStatus || 'Не играю'}
                 </Badge>
               </div>
               {isOwnerOrAdmin && (

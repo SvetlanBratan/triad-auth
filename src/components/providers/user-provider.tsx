@@ -3,7 +3,7 @@
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
-import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage, Cooldowns, PopularityLog, CharacterPopularityUpdate, OwnedFamiliarCard, AlchemyRecipe, AlchemyRecipeComponent } from '@/lib/types';
+import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage, Cooldowns, PopularityLog, CharacterPopularityUpdate, OwnedFamiliarCard, AlchemyRecipe, AlchemyRecipeComponent, PlayerStatus } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter, increment, FieldValue, deleteField } from "firebase/firestore";
@@ -299,6 +299,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     userData.extraCharacterSlots = userData.extraCharacterSlots || 0;
     userData.pointHistory = userData.pointHistory || [];
     userData.mail = userData.mail || [];
+    userData.playerStatus = userData.playerStatus || 'Не играю';
     return userData;
   }, [initialFormData]);
   
@@ -550,6 +551,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         role: ADMIN_UIDS.includes(uid) ? 'admin' : 'user',
         points: 1000,
         status: 'активный',
+        playerStatus: 'Не играю',
         characters: [],
         pointHistory: [{
             id: `h-${Date.now()}`,
@@ -1824,7 +1826,7 @@ const processMonthlySalary = useCallback(async () => {
     const ranksAreDifferent = initiatorFamiliar.rank !== targetFamiliar.rank;
     const isMythicEventTrade =
       (initiatorFamiliar.rank === 'мифический' && targetFamiliar.rank === 'ивентовый') ||
-      (initiatorFamiliar.rank === 'ивентовый' && targetFamiliar.rank === 'мифический');
+      (initiatorFamiliar.rank === 'ивентовый' && initiatorFamiliar.rank === 'мифический');
 
     if (ranksAreDifferent && !isMythicEventTrade) {
         throw new Error("Обмен возможен только между фамильярами одного ранга, или между мифическим и ивентовым.");
@@ -1875,7 +1877,11 @@ const processMonthlySalary = useCallback(async () => {
 
     const requestsMap = new Map<string, FamiliarTradeRequest>();
     const processSnapshot = (snapshot: any) => {
-        snapshot.forEach((doc: any) => requestsMap.set(doc.id, { id: doc.id, ...doc.data() } as FamiliarTradeRequest));
+        snapshot.forEach((doc: any) => {
+            if(!requestsMap.has(doc.id)) {
+                requestsMap.set(doc.id, { id: doc.id, ...doc.data() } as FamiliarTradeRequest)
+            }
+        });
     }
     processSnapshot(outgoingSnapshot);
     processSnapshot(incomingSnapshot);
@@ -2473,30 +2479,23 @@ const sendMassMail = useCallback(async (subject: string, content: string, sender
     for (const user of allUsers) {
         const userRef = doc(db, "users", user.id);
 
-        // Determine if this user should receive the mail
-        const isRecipient = !recipientCharacterIds || user.characters.some(c => recipientCharacterIds.includes(c.id));
+        const recipientsSet = recipientCharacterIds ? new Set(recipientCharacterIds) : null;
+        
+        const isRecipient = !recipientsSet || user.characters.some(c => recipientsSet.has(c.id));
         
         if (isRecipient) {
-            const newMail: MailMessage = {
+             const newMail: MailMessage = {
                 id: `mail-mass-${timestamp}-${user.id.slice(0, 5)}`,
                 senderUserId: 'admin',
                 senderCharacterName: senderName,
                 recipientUserId: user.id,
+                recipientCharacterId: '', // Not applicable for multi-character mail
                 subject,
                 content,
                 sentAt: nowISO,
                 isRead: false,
                 type: 'announcement',
-                // recipientCharacterId and recipientCharacterName will be set below if applicable
-            } as MailMessage;
-            
-            if (recipientCharacterIds) {
-                const relevantChars = user.characters.filter(c => recipientCharacterIds.includes(c.id));
-                if (relevantChars.length > 0) {
-                    newMail.recipientCharacterName = relevantChars.map(c => c.name).join(', ');
-                    newMail.recipientCharacterId = relevantChars[0].id; // For simplicity, link to the first one
-                }
-            }
+            };
             const updatedMail = [...(user.mail || []), newMail];
             batch.update(userRef, { mail: updatedMail });
         }

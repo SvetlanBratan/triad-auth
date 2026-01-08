@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useUser } from '@/hooks/use-user';
@@ -8,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Trash2, Pencil, UserSquare, Sparkles, Anchor, KeyRound } from 'lucide-react';
-import type { PointLog, UserStatus, Character, User, FamiliarCard, FamiliarRank } from '@/lib/types';
+import type { PointLog, UserStatus, Character, User, FamiliarCard, FamiliarRank, PlayerStatus } from '@/lib/types';
 import Link from 'next/link';
 import {
   Dialog,
@@ -39,6 +40,8 @@ import FamiliarCardDisplay from './familiar-card';
 import RewardRequestsHistory from './reward-requests-history';
 import AvatarUploader from './avatar-uploader';
 import { CustomIcon } from '../ui/custom-icon';
+import { SearchableSelect } from '../ui/searchable-select';
+import { Label } from '../ui/label';
 
 const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
     // If the name starts with 'ach-', assume it's a custom achievement icon
@@ -191,9 +194,10 @@ const CharacterDisplay = ({ character, onDelete }: { character: Character, onDel
 
 
 export default function ProfileTab() {
-  const { currentUser, updateCharacterInUser, deleteCharacterFromUser, fetchUsersForAdmin, checkExtraCharacterSlots, setCurrentUser } = useUser();
+  const { currentUser, updateCharacterInUser, deleteCharacterFromUser, fetchUsersForAdmin, checkExtraCharacterSlots, setCurrentUser, updateUser } = useUser();
   const [editingState, setEditingState] = useState<EditingState | null>(null);
   const [isAvatarDialogOpen, setAvatarDialogOpen] = React.useState(false);
+  const [isPlayerStatusDialogOpen, setPlayerStatusDialogOpen] = React.useState(false);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const { toast } = useToast();
 
@@ -251,6 +255,13 @@ export default function ProfileTab() {
       setEditingState(null);
   };
 
+  const handlePlayerStatusChange = async (newStatus: PlayerStatus) => {
+      if (!currentUser) return;
+      await updateUser(currentUser.id, { playerStatus: newStatus });
+      toast({ title: "Игровой статус обновлен" });
+      setPlayerStatusDialogOpen(false);
+  };
+
   const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString();
 
   const getStatusClass = (status: UserStatus) => {
@@ -281,6 +292,13 @@ export default function ProfileTab() {
     // For now, it only handles creation.
     return null;
   }, [editingState]);
+  
+  const playerStatusOptions: { value: PlayerStatus, label: string }[] = [
+    { value: 'Должен пост', label: 'Должен пост' },
+    { value: 'Жду пост', label: 'Жду пост' },
+    { value: 'Ищу соигрока', label: 'Ищу соигрока' },
+    { value: 'Не играю', label: 'Не играю' },
+  ];
 
 
   return (
@@ -315,10 +333,21 @@ export default function ProfileTab() {
               </div>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Статус</span>
+              <span className="text-muted-foreground">Статус активности</span>
               <Badge variant={'outline'} className={cn("capitalize", getStatusClass(currentUser.status))}>
                 {currentUser.status}
               </Badge>
+            </div>
+             <div className="flex justify-between items-center group">
+              <span className="text-muted-foreground">Игровой статус</span>
+               <div className="flex items-center gap-1">
+                    <Badge variant={'outline'}>
+                        {currentUser.playerStatus || 'Не играю'}
+                    </Badge>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => setPlayerStatusDialogOpen(true)}>
+                        <Pencil className="w-3 h-3" />
+                    </Button>
+               </div>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Роль</span>
@@ -443,6 +472,26 @@ export default function ProfileTab() {
                     </DialogDescription>
                 </DialogHeader>
                 <AvatarUploader closeDialog={() => setAvatarDialogOpen(false)} />
+            </DialogContent>
+        </Dialog>
+
+        <Dialog open={isPlayerStatusDialogOpen} onOpenChange={setPlayerStatusDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Изменить игровой статус</DialogTitle>
+                    <DialogDescription>
+                        Выберите ваш текущий статус, чтобы другие игроки знали, готовы ли вы к игре.
+                    </DialogDescription>
+                </DialogHeader>
+                 <div className="py-4 space-y-2">
+                    <Label>Ваш статус</Label>
+                    <SearchableSelect
+                        options={playerStatusOptions}
+                        value={currentUser.playerStatus || 'Не играю'}
+                        onValueChange={(val) => handlePlayerStatusChange(val as PlayerStatus)}
+                        placeholder="Выберите статус..."
+                    />
+                </div>
             </DialogContent>
         </Dialog>
     </div>

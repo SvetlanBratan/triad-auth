@@ -1,8 +1,10 @@
 
 
 
+
 export type UserRole = "admin" | "user";
 export type UserStatus = "активный" | "неактивный" | "отпуск";
+export type PlayerStatus = 'Должен пост' | 'Жду пост' | 'Ищу соигрока' | 'Не играю';
 export type RewardRequestStatus = "в ожидании" | "одобрено" | "отклонено";
 export type FamiliarRank =
   | "обычный"
@@ -315,6 +317,7 @@ export interface User {
   role: UserRole;
   points: number;
   status: UserStatus;
+  playerStatus?: PlayerStatus;
   characters: Character[];
   pointHistory: PointLog[];
   achievementIds?: string[];
