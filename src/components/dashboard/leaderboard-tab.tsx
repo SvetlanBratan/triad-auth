@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -6,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, Users, Search, Send, Trash2 } from 'lucide-react';
+import { Trophy, Users, Search, Send, Trash2, Link as LinkIcon, Gamepad2 } from 'lucide-react';
 import type { User, UserStatus, PlayerPing } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -240,6 +241,7 @@ const CoPlayerSearch = () => {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Игрок</TableHead>
+                                <TableHead className="hidden md:table-cell">Платформа</TableHead>
                                 <TableHead className="w-[120px]">Действие</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -247,13 +249,23 @@ const CoPlayerSearch = () => {
                             {lookingForGamePlayers.map((user) => (
                                 <TableRow key={user.id}>
                                     <TableCell>
-                                        <Link href={`/users/${user.id}`} className="flex items-center gap-3">
-                                            <Avatar>
-                                                <AvatarImage src={user.avatar} alt={user.name} />
-                                                <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
-                                            </Avatar>
-                                            <p className="font-medium">{user.name}</p>
-                                        </Link>
+                                        <div className="flex items-center gap-3">
+                                            <Link href={`/users/${user.id}`} className="flex items-center gap-3">
+                                                <Avatar>
+                                                    <AvatarImage src={user.avatar} alt={user.name} />
+                                                    <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
+                                                </Avatar>
+                                                <p className="font-medium">{user.name}</p>
+                                            </Link>
+                                            {user.socialLink && (
+                                                <a href={user.socialLink} target="_blank" rel="noopener noreferrer">
+                                                    <LinkIcon className="h-4 w-4 text-muted-foreground hover:text-primary" />
+                                                </a>
+                                            )}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="hidden md:table-cell">
+                                        <Badge variant="outline"><Gamepad2 className="mr-1.5 h-3.5 w-3.5" />{user.playPlatform || 'Не указана'}</Badge>
                                     </TableCell>
                                     <TableCell>
                                         <Button 

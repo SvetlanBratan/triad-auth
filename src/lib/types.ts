@@ -1,6 +1,7 @@
 
 
 
+
 export type UserRole = "admin" | "user";
 export type UserStatus = "активный" | "неактивный" | "отпуск";
 export type PlayerStatus =
@@ -11,6 +12,7 @@ export type PlayerStatus =
   | "Регулярные посты"
   | "Медленный темп"
   | "Средний темп";
+export type PlayPlatform = "Discord" | "Вконтакте" | "Telegram" | "Не указана";
 export type RewardRequestStatus = "в ожидании" | "одобрено" | "отклонено";
 export type FamiliarRank =
   | "обычный"
@@ -333,7 +335,7 @@ export interface User {
   points: number;
   status: UserStatus;
   playerStatus?: PlayerStatus;
-  playPlatform?: string;
+  playPlatform?: PlayPlatform;
   socialLink?: string;
   characters: Character[];
   pointHistory: PointLog[];

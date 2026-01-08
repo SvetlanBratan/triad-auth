@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser } from '@/hooks/use-user';
@@ -7,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Trash2, Pencil, UserSquare, Sparkles, Anchor, KeyRound, Link as LinkIcon, Gamepad2 } from 'lucide-react';
-import type { PointLog, UserStatus, Character, User, FamiliarCard, FamiliarRank, PlayerStatus } from '@/lib/types';
+import type { PointLog, UserStatus, Character, User, FamiliarCard, FamiliarRank, PlayerStatus, PlayPlatform } from '@/lib/types';
 import Link from 'next/link';
 import {
   Dialog,
@@ -113,7 +114,7 @@ const CharacterDisplay = ({ character, onDelete }: { character: Character, onDel
                  <AlertDialog>
                     <AlertDialogTrigger asChild>
                         <Button variant="ghost" size="icon" className="shrink-0 hover:bg-destructive/10" onClick={e => e.stopPropagation()}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
+                            <Trash2 className="h-4 h-4 text-destructive" />
                         </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
@@ -198,8 +199,8 @@ export default function ProfileTab() {
   const [isAvatarDialogOpen, setAvatarDialogOpen] = React.useState(false);
   const [isPlayerStatusDialogOpen, setPlayerStatusDialogOpen] = React.useState(false);
   const [isSocialsDialogOpen, setSocialsDialogOpen] = React.useState(false);
-  const [socialLink, setSocialLink] = React.useState(currentUser?.socialLink || '');
-  const [playPlatform, setPlayPlatform] = React.useState(currentUser?.playPlatform || '');
+  const [socialLink, setSocialLink] = React.useState('');
+  const [playPlatform, setPlayPlatform] = React.useState<PlayPlatform>('Не указана');
   const [isSavingSocials, setIsSavingSocials] = React.useState(false);
 
   const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -214,6 +215,13 @@ export default function ProfileTab() {
       fetchUsersForAdmin().then(setAllUsers);
     }
   }, [editingState, fetchUsersForAdmin]);
+
+  useEffect(() => {
+    if(currentUser) {
+        setSocialLink(currentUser.socialLink || '');
+        setPlayPlatform(currentUser.playPlatform || 'Не указана');
+    }
+  }, [currentUser]);
 
   useEffect(() => {
     // Check and update extra slots when component mounts or currentUser changes
@@ -320,6 +328,13 @@ export default function ProfileTab() {
     { value: 'Средний темп', label: 'Средний темп' },
     { value: 'Медленный темп', label: 'Медленный темп' },
     { value: 'Не играю', label: 'Не играю' },
+  ];
+  
+  const playPlatformOptions: { value: PlayPlatform, label: string }[] = [
+    { value: 'Discord', label: 'Discord' },
+    { value: 'Вконтакте', label: 'Вконтакте' },
+    { value: 'Telegram', label: 'Telegram' },
+    { value: 'Не указана', label: 'Не указана' },
   ];
 
 
@@ -540,7 +555,12 @@ export default function ProfileTab() {
                 <div className="py-4 space-y-4">
                     <div className="space-y-2">
                         <Label htmlFor="play-platform">Платформа для игры</Label>
-                        <Input id="play-platform" value={playPlatform} onChange={e => setPlayPlatform(e.target.value)} placeholder="Напр. Discord, Telegram"/>
+                        <SearchableSelect
+                            options={playPlatformOptions}
+                            value={playPlatform}
+                            onValueChange={(val) => setPlayPlatform(val as PlayPlatform)}
+                            placeholder="Выберите платформу..."
+                        />
                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="social-link">Ссылка на профиль</Label>
