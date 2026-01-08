@@ -2783,17 +2783,21 @@ const deletePlayerPing = useCallback(async (pingId: string, isMyPing: boolean) =
 
 const addFavoritePlayer = useCallback(async (targetUserId: string) => {
     if (!currentUser) throw new Error("Not authenticated.");
-    await updateUser(currentUser.id, {
-      favoritePlayerIds: arrayUnion(targetUserId) as unknown as string[]
+    const userRef = doc(db, "users", currentUser.id);
+    await updateDoc(userRef, {
+      favoritePlayerIds: arrayUnion(targetUserId)
     });
-  }, [currentUser, updateUser]);
+    setCurrentUser(prev => prev ? ({ ...prev, favoritePlayerIds: [...(prev.favoritePlayerIds || []), targetUserId] }) : null);
+  }, [currentUser]);
 
   const removeFavoritePlayer = useCallback(async (targetUserId: string) => {
     if (!currentUser) throw new Error("Not authenticated.");
-    await updateUser(currentUser.id, {
-      favoritePlayerIds: arrayRemove(targetUserId) as unknown as string[]
+    const userRef = doc(db, "users", currentUser.id);
+    await updateDoc(userRef, {
+      favoritePlayerIds: arrayRemove(targetUserId)
     });
-  }, [currentUser, updateUser]);
+    setCurrentUser(prev => prev ? ({ ...prev, favoritePlayerIds: (prev.favoritePlayerIds || []).filter(id => id !== targetUserId) }) : null);
+  }, [currentUser]);
 
 
   const signOutUser = useCallback(() => {
@@ -2909,3 +2913,4 @@ const addFavoritePlayer = useCallback(async (targetUserId: string) => {
     </AuthContext.Provider>
   );
 }
+
