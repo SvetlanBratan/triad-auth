@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React from 'react';
@@ -121,7 +119,7 @@ const CoPlayerSearch = () => {
 
     const lookingForGamePlayers = React.useMemo(() => {
         if (!users || !currentUser) return [];
-        return users.filter(user => user.status === 'активный' && user.playerStatus === 'Ищу соигрока' && user.id !== currentUser.id);
+        return users.filter(user => user.playerStatus === 'Ищу соигрока' && user.id !== currentUser.id);
     }, [users, currentUser]);
 
     const myPings = React.useMemo(() => {
