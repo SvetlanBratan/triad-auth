@@ -489,7 +489,9 @@ export default function ProfileTab() {
             )}
           </CardContent>
         </Card>
-         <Card>
+      </div>
+      <div className="lg:col-span-2 space-y-6">
+        <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Users /> Избранные соигроки</CardTitle>
                 <CardDescription>Список игроков, которых вы добавили в избранное.</CardDescription>
@@ -512,8 +514,6 @@ export default function ProfileTab() {
                 )}
             </CardContent>
         </Card>
-      </div>
-      <div className="lg:col-span-2 space-y-6">
         <Card>
           <CardHeader>
             <CardTitle>История баллов</CardTitle>

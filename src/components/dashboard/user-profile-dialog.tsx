@@ -325,120 +325,122 @@ export default function UserProfileDialog({ user }: { user: User }) {
     <>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1 space-y-6">
-          <Card className="lg:self-start">
-            <CardHeader>
-              <div className="flex items-start gap-4">
-                <Avatar className="h-16 w-16">
-                  <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
-                </Avatar>
-                <div className="flex-1 overflow-hidden min-w-0">
-                  <CardTitle className="text-xl sm:text-2xl font-headline truncate">{user.name}</CardTitle>
-                  <CardDescription className="truncate">{user.email}</CardDescription>
-                </div>
-                 {!isOwner && currentUser && (
-                  <Button variant="ghost" size="icon" onClick={handleToggleFavorite}>
-                    <Heart className={cn("w-5 h-5 text-muted-foreground", isFavorite && "fill-destructive text-destructive")} />
-                  </Button>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Баллы</span>
-                <div className="font-bold text-lg text-primary flex items-center gap-1">
-                  <CustomIcon src="/icons/points.svg" className="w-5 h-5 icon-primary" /> {user.points.toLocaleString()}
-                </div>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Статус активности</span>
-                <Badge variant={'outline'} className={cn("capitalize", getStatusClass(user.status))}>
-                  {user.status}
-                </Badge>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Игровой статус</span>
-                <button 
-                  onClick={() => (isOwner || isAdmin) && setPlayerStatusDialogOpen(true)} 
-                  disabled={!(isOwner || isAdmin)}
-                  className="rounded-md -m-1 p-1 hover:bg-accent transition-colors disabled:cursor-default disabled:hover:bg-transparent"
-                >
-                    <Badge variant={'outline'}>
-                        {user.playerStatus || 'Не играю'}
-                    </Badge>
-                </button>
-              </div>
-               <div className="flex justify-between items-start">
-                <span className="text-muted-foreground">Платформы</span>
-                <div className="flex flex-wrap gap-1 justify-end">
-                    {(user.socials && user.socials.length > 0) ? (
-                        user.socials.map(social => (
-                            <button key={social.id} onClick={() => handlePlatformClick(social.link)} className="rounded-md -m-1 p-1 hover:bg-accent transition-colors">
-                                <Badge variant={'outline'}>
-                                <Gamepad2 className="mr-1.5 h-3.5 w-3.5" />
-                                {social.platform}
-                                {social.link && <LinkIcon className="ml-1.5 h-3 w-3" />}
-                                </Badge>
-                            </button>
-                        ))
-                    ) : (
-                        <button onClick={() => handlePlatformClick()} className="rounded-md -m-1 p-1 hover:bg-accent transition-colors" disabled={!(isOwner || isAdmin)}>
-                            <Badge variant={'outline'}>Не указаны</Badge>
-                        </button>
+           <div className="space-y-6">
+            <Card className="lg:self-start">
+                <CardHeader>
+                <div className="flex items-start gap-4">
+                    <Avatar className="h-16 w-16">
+                    <AvatarImage src={user.avatar} alt={user.name} />
+                    <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 overflow-hidden min-w-0">
+                    <CardTitle className="text-xl sm:text-2xl font-headline truncate">{user.name}</CardTitle>
+                    <CardDescription className="truncate">{user.email}</CardDescription>
+                    </div>
+                    {!isOwner && currentUser && (
+                    <Button variant="ghost" size="icon" onClick={handleToggleFavorite}>
+                        <Heart className={cn("w-5 h-5 text-muted-foreground", isFavorite && "fill-destructive text-destructive")} />
+                    </Button>
                     )}
-                 </div>
-               </div>
-              {isAdmin && (
+                </div>
+                </CardHeader>
+                <CardContent className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Роль</span>
-                  <Badge variant="outline">{user.role}</Badge>
+                    <span className="text-muted-foreground">Баллы</span>
+                    <div className="font-bold text-lg text-primary flex items-center gap-1">
+                    <CustomIcon src="/icons/points.svg" className="w-5 h-5 icon-primary" /> {user.points.toLocaleString()}
+                    </div>
                 </div>
-              )}
-              {userAchievements.length > 0 && (
-                <div className="pt-4">
-                  <h4 className="text-sm font-semibold text-muted-foreground mb-2">Достижения</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {userAchievements.map(ach => (
-                      <Popover key={ach.id}>
-                        <PopoverTrigger asChild>
-                          <Button variant="outline" size="icon" className="w-8 h-8 bg-muted hover:bg-primary/10">
-                            <DynamicIcon name={ach.id} />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto max-w-xs">
-                          <p className="font-bold">{ach.name}</p>
-                          <p className="text-xs">{ach.description}</p>
-                        </PopoverContent>
-                      </Popover>
-                    ))}
-                  </div>
+                <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Статус активности</span>
+                    <Badge variant={'outline'} className={cn("capitalize", getStatusClass(user.status))}>
+                    {user.status}
+                    </Badge>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-           <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Users /> Избранные соигроки</CardTitle>
-                <CardDescription>Список игроков, которых {user.name} добавил(а) в избранное.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                {favoritePlayers.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                        {favoritePlayers.map(player => (
-                            <Link href={`/users/${player.id}`} key={player.id} className="flex flex-col items-center gap-2 group">
-                                <Avatar className="w-16 h-16 transition-transform group-hover:scale-105">
-                                    <AvatarImage src={player.avatar} alt={player.name} />
-                                    <AvatarFallback>{player.name.slice(0, 2)}</AvatarFallback>
-                                </Avatar>
-                                <p className="text-sm font-medium text-center truncate w-full group-hover:text-primary">{player.name}</p>
-                            </Link>
+                <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Игровой статус</span>
+                    <button 
+                    onClick={() => (isOwner || isAdmin) && setPlayerStatusDialogOpen(true)} 
+                    disabled={!(isOwner || isAdmin)}
+                    className="rounded-md -m-1 p-1 hover:bg-accent transition-colors disabled:cursor-default disabled:hover:bg-transparent"
+                    >
+                        <Badge variant={'outline'}>
+                            {user.playerStatus || 'Не играю'}
+                        </Badge>
+                    </button>
+                </div>
+                <div className="flex justify-between items-start">
+                    <span className="text-muted-foreground">Платформы</span>
+                    <div className="flex flex-wrap gap-1 justify-end">
+                        {(user.socials && user.socials.length > 0) ? (
+                            user.socials.map(social => (
+                                <button key={social.id} onClick={() => handlePlatformClick(social.link)} className="rounded-md -m-1 p-1 hover:bg-accent transition-colors">
+                                    <Badge variant={'outline'}>
+                                    <Gamepad2 className="mr-1.5 h-3.5 w-3.5" />
+                                    {social.platform}
+                                    {social.link && <LinkIcon className="ml-1.5 h-3 w-3" />}
+                                    </Badge>
+                                </button>
+                            ))
+                        ) : (
+                            <button onClick={() => handlePlatformClick()} className="rounded-md -m-1 p-1 hover:bg-accent transition-colors" disabled={!(isOwner || isAdmin)}>
+                                <Badge variant={'outline'}>Не указаны</Badge>
+                            </button>
+                        )}
+                    </div>
+                </div>
+                {isAdmin && (
+                    <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Роль</span>
+                    <Badge variant="outline">{user.role}</Badge>
+                    </div>
+                )}
+                {userAchievements.length > 0 && (
+                    <div className="pt-4">
+                    <h4 className="text-sm font-semibold text-muted-foreground mb-2">Достижения</h4>
+                    <div className="flex flex-wrap gap-2">
+                        {userAchievements.map(ach => (
+                        <Popover key={ach.id}>
+                            <PopoverTrigger asChild>
+                            <Button variant="outline" size="icon" className="w-8 h-8 bg-muted hover:bg-primary/10">
+                                <DynamicIcon name={ach.id} />
+                            </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto max-w-xs">
+                            <p className="font-bold">{ach.name}</p>
+                            <p className="text-xs">{ach.description}</p>
+                            </PopoverContent>
+                        </Popover>
                         ))}
                     </div>
-                ) : (
-                    <p className="text-center text-muted-foreground py-4">{user.name} еще не добавил(а) никого в избранное.</p>
+                    </div>
                 )}
-            </CardContent>
-        </Card>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Users /> Избранные соигроки</CardTitle>
+                    <CardDescription>Список игроков, которых {user.name} добавил(а) в избранное.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {favoritePlayers.length > 0 ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                            {favoritePlayers.map(player => (
+                                <Link href={`/users/${player.id}`} key={player.id} className="flex flex-col items-center gap-2 group">
+                                    <Avatar className="w-16 h-16 transition-transform group-hover:scale-105">
+                                        <AvatarImage src={player.avatar} alt={player.name} />
+                                        <AvatarFallback>{player.name.slice(0, 2)}</AvatarFallback>
+                                    </Avatar>
+                                    <p className="text-sm font-medium text-center truncate w-full group-hover:text-primary">{player.name}</p>
+                                </Link>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-center text-muted-foreground py-4">{user.name} еще не добавил(а) никого в избранное.</p>
+                    )}
+                </CardContent>
+            </Card>
+           </div>
         </div>
 
         <div className="lg:col-span-2 space-y-6">
