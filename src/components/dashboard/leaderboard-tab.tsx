@@ -297,6 +297,7 @@ export default function LeaderboardTab() {
                 <TabsTrigger value="search"><Search className="mr-2 h-4 w-4"/>Поиск соигроков</TabsTrigger>
             </TabsList>
             <TabsContent value="leaderboard" className="mt-4">
+                 <p className="text-center text-muted-foreground mb-4 line-through">Список Forbes</p>
                 <LeaderboardTable />
             </TabsContent>
             <TabsContent value="search" className="mt-4">
