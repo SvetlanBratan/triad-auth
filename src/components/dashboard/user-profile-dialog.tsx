@@ -2,13 +2,13 @@
 
 "use client";
 
-import React, { useMemo } from 'react';
-import type { User, UserStatus, PointLog, Character, FamiliarCard, FamiliarRank, Moodlet } from '@/lib/types';
+import React, { useMemo, useState } from 'react';
+import type { User, UserStatus, PointLog, Character, FamiliarCard, FamiliarRank, Moodlet, PlayerStatus } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Anchor, KeyRound, Sparkles } from 'lucide-react';
+import { Anchor, KeyRound, Sparkles, Pencil } from 'lucide-react';
 import { cn, formatTimeLeft } from '@/lib/utils';
 import FamiliarCardDisplay from './familiar-card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
@@ -18,6 +18,10 @@ import { Button } from '../ui/button';
 import { useUser } from '@/hooks/use-user';
 import Link from 'next/link';
 import { CustomIcon } from '../ui/custom-icon';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
+import { SearchableSelect } from '../ui/searchable-select';
+import { useToast } from '@/hooks/use-toast';
+import { Label } from '../ui/label';
 
 const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
     // If the name starts with 'ach-', assume it's a custom achievement icon
@@ -178,11 +182,29 @@ const CharacterDisplay = ({ character }: { character: Character }) => {
     );
 };
 
+const playerStatusOptions: { value: PlayerStatus, label: string }[] = [
+    { value: 'Должен пост', label: 'Должен пост' },
+    { value: 'Жду пост', label: 'Жду пост' },
+    { value: 'Ищу соигрока', label: 'Ищу соигрока' },
+    { value: 'Не играю', label: 'Не играю' },
+];
+
+
 export default function UserProfileDialog({ user }: { user: User }) {
-  const { currentUser } = useUser();
+  const { currentUser, updateUser } = useUser();
+  const { toast } = useToast();
+  const [isPlayerStatusDialogOpen, setPlayerStatusDialogOpen] = useState(false);
+
   if (!user) return null;
 
-  const isOwnerOrAdmin = currentUser?.id === user.id || currentUser?.role === 'admin';
+  const isAdmin = currentUser?.role === 'admin';
+  const isOwner = currentUser?.id === user.id;
+
+  const handlePlayerStatusChange = async (newStatus: PlayerStatus) => {
+      await updateUser(user.id, { playerStatus: newStatus });
+      toast({ title: "Игровой статус обновлен" });
+      setPlayerStatusDialogOpen(false);
+  };
 
   const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString();
 
@@ -209,8 +231,9 @@ export default function UserProfileDialog({ user }: { user: User }) {
   }, [user.characters]);
 
   return (
-    <div className={cn("grid grid-cols-1 gap-6", isOwnerOrAdmin && "lg:grid-cols-3")}>
-        <div className={cn("lg:col-span-1 space-y-6", !isOwnerOrAdmin && "lg:col-span-2 lg:grid lg:grid-cols-2 lg:gap-6 lg:space-y-0")}>
+    <>
+    <div className={cn("grid grid-cols-1 gap-6", (isOwner || isAdmin) && "lg:grid-cols-3")}>
+        <div className={cn("lg:col-span-1 space-y-6", !(isOwner || isAdmin) && "lg:col-span-2 lg:grid lg:grid-cols-2 lg:gap-6 lg:space-y-0")}>
           <Card className="lg:self-start">
             <CardHeader>
               <div className="flex items-center gap-4">
@@ -237,13 +260,20 @@ export default function UserProfileDialog({ user }: { user: User }) {
                   {user.status}
                 </Badge>
               </div>
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center group">
                 <span className="text-muted-foreground">Игровой статус</span>
-                <Badge variant={'outline'}>
-                  {user.playerStatus || 'Не играю'}
-                </Badge>
+                 <div className="flex items-center gap-1">
+                    <Badge variant={'outline'}>
+                      {user.playerStatus || 'Не играю'}
+                    </Badge>
+                     {isAdmin && !isOwner && (
+                        <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => setPlayerStatusDialogOpen(true)}>
+                            <Pencil className="w-3 h-3" />
+                        </Button>
+                    )}
+                </div>
               </div>
-              {isOwnerOrAdmin && (
+              {(isOwner || isAdmin) && (
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Роль</span>
                   <Badge variant="outline">{user.role}</Badge>
@@ -290,7 +320,7 @@ export default function UserProfileDialog({ user }: { user: User }) {
           </Card>
         </div>
 
-        {isOwnerOrAdmin && (
+        {(isOwner || isAdmin) && (
             <div className="lg:col-span-2">
                 <Card>
                 <CardHeader>
@@ -332,5 +362,26 @@ export default function UserProfileDialog({ user }: { user: User }) {
             </div>
         )}
     </div>
+    
+     <Dialog open={isPlayerStatusDialogOpen} onOpenChange={setPlayerStatusDialogOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Изменить игровой статус для {user.name}</DialogTitle>
+                <DialogDescription>
+                    Выберите новый статус.
+                </DialogDescription>
+            </DialogHeader>
+             <div className="py-4 space-y-2">
+                <Label>Игровой статус</Label>
+                <SearchableSelect
+                    options={playerStatusOptions}
+                    value={user.playerStatus || 'Не играю'}
+                    onValueChange={(val) => handlePlayerStatusChange(val as PlayerStatus)}
+                    placeholder="Выберите статус..."
+                />
+            </div>
+        </DialogContent>
+    </Dialog>
+    </>
   );
 }
