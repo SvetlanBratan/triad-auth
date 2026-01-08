@@ -346,6 +346,7 @@ export interface User {
   mail?: MailMessage[];
   playerPings?: PlayerPing[];
   favoritePlayerIds?: string[];
+  lastLogin?: string; // ISO string
   // Deprecated fields, for migration
   playPlatform?: PlayPlatform;
   socialLink?: string;

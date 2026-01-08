@@ -8,7 +8,7 @@ import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter, increment, FieldValue, arrayUnion, deleteField, arrayRemove } from "firebase/firestore";
 import { ALL_STATIC_FAMILIARS, EVENT_FAMILIARS, MOODLETS_DATA, DEFAULT_GAME_SETTINGS, WEALTH_LEVELS, ALL_SHOPS, SHOPS_BY_ID, POPULARITY_EVENTS, ALL_ACHIEVEMENTS, INVENTORY_CATEGORIES } from '@/lib/data';
-import { differenceInDays } from 'date-fns';
+import { differenceInDays, differenceInMonths } from 'date-fns';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 
 interface AuthContextType {
@@ -27,7 +27,7 @@ export const useAuth = () => {
     return context;
 };
 
-interface UserContextType extends Omit<User, 'id' | 'name' | 'email' | 'avatar' | 'role' | 'points' | 'status' | 'characters' | 'pointHistory' | 'achievementIds' | 'extraCharacterSlots' | 'mail' | 'playerPings' | 'playerStatus' | 'playPlatform' | 'socialLink' | 'socials' | 'favoritePlayerIds'> {
+interface UserContextType extends Omit<User, 'id' | 'name' | 'email' | 'avatar' | 'role' | 'points' | 'status' | 'characters' | 'pointHistory' | 'achievementIds' | 'extraCharacterSlots' | 'mail' | 'playerPings' | 'playerStatus' | 'playPlatform' | 'socialLink' | 'socials' | 'favoritePlayerIds' | 'lastLogin'> {
   currentUser: User | null;
   setCurrentUser: (user: User | null) => void;
   gameDate: Date | null;
@@ -62,7 +62,7 @@ interface UserContextType extends Omit<User, 'id' | 'name' | 'email' | 'avatar' 
   updateUser: (userId: string, updates: Partial<User>) => Promise<void>;
   updateUserAvatar: (userId: string, avatarUrl: string) => Promise<void>;
   updateGameDate: (newDateString: string) => Promise<void>;
-  processWeeklyBonus: () => Promise<{awardedCount: number}>;
+  processWeeklyBonus: () => Promise<{ awardedCount: number }>;
   checkExtraCharacterSlots: (userId: string) => Promise<number>;
   performRelationshipAction: (params: PerformRelationshipActionParams) => Promise<void>;
   recoverFamiliarsFromHistory: (userId: string, characterId: string, oldCharacterName?: string) => Promise<number>;
@@ -310,6 +310,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     userData.playerStatus = userData.playerStatus || 'Не играю';
     userData.socials = userData.socials || [];
     userData.favoritePlayerIds = userData.favoritePlayerIds || [];
+    userData.lastLogin = userData.lastLogin || new Date().toISOString();
     return userData;
   }, [initialFormData]);
   
@@ -354,6 +355,35 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   }, [processUserDoc]);
   
+  const fetchGameSettings = useCallback(async () => {
+    try {
+        const settingsRef = doc(db, 'game_settings', 'main');
+        const docSnap = await getDoc(settingsRef);
+        if (docSnap.exists()) {
+            const data = docSnap.data() as GameSettings;
+            const dateStr = data.gameDateString;
+            const dateParts = dateStr.match(/(\d+)\s(\S+)\s(\d+)/);
+            let finalSettings: GameSettings = { ...DEFAULT_GAME_SETTINGS, ...data };
+            if (dateParts) {
+                const months: { [key: string]: number } = { "января":0, "февраля":1, "марта":2, "апреля":3, "мая":4, "июня":5, "июля":6, "августа":7, "сентября":8, "октября":9, "ноября":10, "декабря":11 };
+                const day = parseInt(dateParts[1]);
+                const month = months[dateParts[2].toLowerCase()];
+                const year = parseInt(dateParts[3]);
+                const gameDate = new Date(year, month, day);
+                 if (!isNaN(gameDate.getTime())) {
+                    finalSettings.gameDate = gameDate;
+                }
+            }
+            setGameSettings(finalSettings);
+        } else {
+            // If no settings exist, create them with defaults
+            await setDoc(doc(db, 'game_settings', 'main'), DEFAULT_GAME_SETTINGS);
+            setGameSettings(DEFAULT_GAME_SETTINGS);
+        }
+    } catch (error) {
+        console.error("Error fetching game settings. Using default.", error);
+    }
+  }, []);
 
   const brewPotion = useCallback(async (userId: string, characterId: string, recipeId: string) => {
     await runTransaction(db, async (transaction) => {
@@ -479,33 +509,45 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
 
     const allUsers = await fetchUsersForAdmin();
-    const activeUsers = allUsers.filter(u => u.status === 'активный');
     let awardedCount = 0;
-
     const batch = writeBatch(db);
 
-    for (const user of activeUsers) {
-        let totalBonus = 800;
-        let reason = "Еженедельный бонус за активность";
-        
-        const popularityPoints = user.characters.reduce((acc, char) => acc + (char.popularity ?? 0), 0);
+    for (const user of allUsers) {
+        const userRef = doc(db, "users", user.id);
+        const updates: Partial<User> = {};
 
-        if (popularityPoints > 0) {
-            totalBonus += popularityPoints;
-            reason += ` и популярность (${popularityPoints})`;
+        // Inactivity check
+        const lastLogin = user.lastLogin ? new Date(user.lastLogin) : new Date(0);
+        if (differenceInMonths(now, lastLogin) >= 1 && user.status !== 'отпуск') {
+            updates.status = 'неактивный';
         }
 
-        const userRef = doc(db, "users", user.id);
-        const newPointLog: PointLog = {
-            id: `h-weekly-${Date.now()}-${user.id.slice(0, 4)}`,
-            date: now.toISOString(),
-            amount: totalBonus,
-            reason,
-        };
-        const newPoints = user.points + totalBonus;
-        const newHistory = [newPointLog, ...user.pointHistory];
-        batch.update(userRef, { points: newPoints, pointHistory: newHistory });
-        awardedCount++;
+        // Weekly bonus for active users
+        if (user.status === 'активный') {
+            let totalBonus = 800;
+            let reason = "Еженедельный бонус за активность";
+            
+            const popularityPoints = user.characters.reduce((acc, char) => acc + (char.popularity ?? 0), 0);
+
+            if (popularityPoints > 0) {
+                totalBonus += popularityPoints;
+                reason += ` и популярность (${popularityPoints})`;
+            }
+
+            const newPointLog: PointLog = {
+                id: `h-weekly-${Date.now()}-${user.id.slice(0, 4)}`,
+                date: now.toISOString(),
+                amount: totalBonus,
+                reason,
+            };
+            updates.points = (user.points || 0) + totalBonus;
+            updates.pointHistory = [newPointLog, ...(user.pointHistory || [])];
+            awardedCount++;
+        }
+
+        if (Object.keys(updates).length > 0) {
+            batch.update(userRef, updates);
+        }
     }
 
     batch.update(settingsRef, { lastWeeklyBonusAwardedAt: now.toISOString() });
@@ -513,37 +555,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     await fetchGameSettings();
 
     return { awardedCount };
-  }, [fetchUsersForAdmin]);
-
-  const fetchGameSettings = useCallback(async () => {
-    try {
-        const settingsRef = doc(db, 'game_settings', 'main');
-        const docSnap = await getDoc(settingsRef);
-        if (docSnap.exists()) {
-            const data = docSnap.data() as GameSettings;
-            const dateStr = data.gameDateString;
-            const dateParts = dateStr.match(/(\d+)\s(\S+)\s(\d+)/);
-            let finalSettings: GameSettings = { ...DEFAULT_GAME_SETTINGS, ...data };
-            if (dateParts) {
-                const months: { [key: string]: number } = { "января":0, "февраля":1, "марта":2, "апреля":3, "мая":4, "июня":5, "июля":6, "августа":7, "сентября":8, "октября":9, "ноября":10, "декабря":11 };
-                const day = parseInt(dateParts[1]);
-                const month = months[dateParts[2].toLowerCase()];
-                const year = parseInt(dateParts[3]);
-                const gameDate = new Date(year, month, day);
-                 if (!isNaN(gameDate.getTime())) {
-                    finalSettings.gameDate = gameDate;
-                }
-            }
-            setGameSettings(finalSettings);
-        } else {
-            // If no settings exist, create them with defaults
-            await setDoc(doc(db, 'game_settings', 'main'), DEFAULT_GAME_SETTINGS);
-            setGameSettings(DEFAULT_GAME_SETTINGS);
-        }
-    } catch (error) {
-        console.error("Error fetching game settings. Using default.", error);
-    }
-  }, []);
+  }, [fetchUsersForAdmin, fetchGameSettings]);
 
   const updateGameDate = useCallback(async (newDateString: string) => {
     const settingsRef = doc(db, 'game_settings', 'main');
@@ -574,6 +586,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         extraCharacterSlots: 0,
         mail: [],
         playerPings: [],
+        lastLogin: new Date().toISOString(),
     };
     try {
       await setDoc(doc(db, "users", uid), newUser);
@@ -593,10 +606,20 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             await fetchGameSettings(); 
             await fetchAndCombineFamiliars();
             let userData = await fetchUserById(user.uid);
-            if (!userData) {
+
+            if (userData) {
+                // Update last login time and status
+                const updates: Partial<User> = { lastLogin: new Date().toISOString() };
+                if (userData.status !== 'отпуск') {
+                    updates.status = 'активный';
+                }
+                await updateDoc(doc(db, "users", user.uid), updates);
+                userData = { ...userData, ...updates }; // Update local state immediately
+            } else {
                 const nickname = user.displayName || user.email?.split('@')[0] || 'Пользователь';
                 userData = await createNewUser(user.uid, nickname);
             }
+
             setCurrentUser(userData);
             if(userData?.role === 'admin') {
                 processWeeklyBonus();
@@ -1840,7 +1863,7 @@ const processMonthlySalary = useCallback(async () => {
     const ranksAreDifferent = initiatorFamiliar.rank !== targetFamiliar.rank;
     const isMythicEventTrade =
       (initiatorFamiliar.rank === 'мифический' && targetFamiliar.rank === 'ивентовый') ||
-      (initiatorFamiliar.rank === 'ивентовый' && targetFamiliar.rank === 'мифический');
+      (initiatorFamiliar.rank === 'ивентовый' && initiatorFamiliar.rank === 'мифический');
 
     if (ranksAreDifferent && !isMythicEventTrade) {
         throw new Error("Обмен возможен только между фамильярами одного ранга, или между мифическим и ивентовым.");
@@ -2913,4 +2936,6 @@ const addFavoritePlayer = useCallback(async (targetUserId: string) => {
     </AuthContext.Provider>
   );
 }
+
+
 
