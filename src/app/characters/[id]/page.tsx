@@ -700,22 +700,24 @@ export default function CharacterPage() {
                     </CardHeader>
                     <CardContent>
                          {combinedGallery.length > 0 ? (
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                {combinedGallery.map((img, index) => {
-                                    if (!img || !img.url) return null;
-                                    return (
-                                        <button key={img.id || index} className="relative aspect-square" onClick={() => setSelectedGalleryItem(img)}>
-                                            <Image
-                                                src={img.url}
-                                                alt={`Gallery image ${img.id}`}
-                                                fill
-                                                style={{ objectFit: 'cover' }}
-                                                className="rounded-lg"
-                                            />
-                                        </button>
-                                    )
-                                })}
-                            </div>
+                            <ScrollArea className={cn(combinedGallery.length > 6 && "h-96")}>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pr-4">
+                                    {combinedGallery.map((img, index) => {
+                                        if (!img || !img.url) return null;
+                                        return (
+                                            <button key={img.id || index} className="relative aspect-square" onClick={() => setSelectedGalleryItem(img)}>
+                                                <Image
+                                                    src={img.url}
+                                                    alt={`Gallery image ${img.id}`}
+                                                    fill
+                                                    style={{ objectFit: 'cover' }}
+                                                    className="rounded-lg"
+                                                />
+                                            </button>
+                                        )
+                                    })}
+                                </div>
+                            </ScrollArea>
                         ) : (
                              <p className="text-sm text-muted-foreground text-center py-4">В галерее пока нет изображений.</p>
                         )}
@@ -1347,4 +1349,3 @@ export default function CharacterPage() {
     
 
     
-
