@@ -26,7 +26,7 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'sun9-11.userapi.com',
+        hostname: '**.userapi.com',
       }
     ],
   },
