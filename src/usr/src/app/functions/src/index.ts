@@ -143,3 +143,25 @@ exports.addAlchemyRecipe = functions.https.onCall(async (data, context) => {
     const result = await db.collection('alchemy_recipes').add(newRecipe);
     return { id: result.id };
 });
+
+exports.deleteUser = functions.https.onCall(async (data, context) => {
+    if (!context.auth || (await db.collection('users').doc(context.auth.uid).get()).data()?.role !== 'admin') {
+        throw new functions.https.HttpsError('permission-denied', 'Only admins can delete users.');
+    }
+
+    const uid = data.uid;
+    if (!uid) {
+        throw new functions.https.HttpsError('invalid-argument', 'The function must be called with a "uid" argument.');
+    }
+
+    try {
+        await admin.auth().deleteUser(uid);
+        return { success: true, message: `Successfully deleted user ${uid}` };
+    } catch (error) {
+        console.error('Error deleting user:', error);
+        throw new functions.https.HttpsError('internal', 'Could not delete user.', error);
+    }
+});
+
+
+    

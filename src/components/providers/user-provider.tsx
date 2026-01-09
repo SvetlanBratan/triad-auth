@@ -115,6 +115,7 @@ interface UserContextType extends Omit<User, 'id' | 'name' | 'email' | 'avatar' 
   deletePlayerPing: (pingId: string, isMyPing: boolean) => Promise<void>;
   addFavoritePlayer: (targetUserId: string) => Promise<void>;
   removeFavoritePlayer: (targetUserId: string) => Promise<void>;
+  deleteUserAccount: (userId: string) => Promise<void>;
   allFamiliars: FamiliarCard[];
   familiarsById: Record<string, FamiliarCard>;
 }
@@ -2535,6 +2536,7 @@ const sendMassMail = useCallback(async (subject: string, content: string, sender
                 senderCharacterName: senderName,
                 recipientUserId: user.id,
                 recipientCharacterId: '', // Not applicable for multi-character mail
+                recipientCharacterName: user.characters.map(c => c.name).join(', '),
                 subject,
                 content,
                 sentAt: nowISO,
@@ -2759,6 +2761,21 @@ const deleteAlchemyRecipe = useCallback(async (recipeId: string) => {
     await deleteDoc(recipeRef);
 }, []);
 
+const deleteUserAccount = useCallback(async (userId: string) => {
+    const deleteUserFn = httpsCallable(functions, 'deleteUser');
+    try {
+        // First, delete from Firestore
+        const userRef = doc(db, "users", userId);
+        await deleteDoc(userRef);
+        
+        // Then, delete from Firebase Auth via the Cloud Function
+        await deleteUserFn({ uid: userId });
+    } catch (error) {
+        console.error("Error deleting user account:", error);
+        throw new Error("Не удалось полностью удалить пользователя.");
+    }
+  }, [functions]);
+
   const addFamiliarToDb = useCallback(async (familiar: Omit<FamiliarCard, 'id'>) => {
     const familiarsCollection = collection(db, "familiars");
     await addDoc(familiarsCollection, familiar);
@@ -2944,8 +2961,9 @@ const addFavoritePlayer = useCallback(async (targetUserId: string) => {
       deletePlayerPing,
       addFavoritePlayer,
       removeFavoritePlayer,
+      deleteUserAccount,
     }),
-    [currentUser, gameSettings, allFamiliars, familiarsById, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer]
+    [currentUser, gameSettings, allFamiliars, familiarsById, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, deleteUserAccount]
   );
 
   return (
@@ -2964,3 +2982,6 @@ const addFavoritePlayer = useCallback(async (targetUserId: string) => {
 
 
 
+
+
+    

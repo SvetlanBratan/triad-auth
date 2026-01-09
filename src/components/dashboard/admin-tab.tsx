@@ -105,12 +105,13 @@ export default function AdminTab() {
     fetchAlchemyRecipes,
     updateAlchemyRecipe,
     deleteAlchemyRecipe,
+    deleteUserAccount,
     familiarsById, // Use the new provider value
     allFamiliars, // Use the new provider value
   } = useUser();
   const queryClient = useQueryClient();
 
-  const { data: users = [], isLoading: isUsersLoading } = useQuery<User[]>({
+  const { data: users = [], isLoading: isUsersLoading, refetch: refetchAdminUsers } = useQuery<User[]>({
     queryKey: ['adminUsers'],
     queryFn: fetchUsersForAdmin,
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -141,6 +142,7 @@ export default function AdminTab() {
   const [clearHistoryUserId, setClearHistoryUserId] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<UserStatus | ''>('');
   const [selectedRole, setSelectedRole] = useState<UserRole | ''>('');
+  const [deleteUserId, setDeleteUserId] = useState<string>('');
   
   // Familiar state
   const [giveFamiliarUserId, setGiveFamiliarUserId] = useState('');
@@ -454,6 +456,19 @@ export default function AdminTab() {
     setRoleSelectedUserId('');
     setSelectedRole('');
   };
+
+  const handleDeleteUser = async () => {
+    if (!deleteUserId) return;
+    try {
+        await deleteUserAccount(deleteUserId);
+        toast({ title: "Пользователь удален", description: "Аккаунт был полностью удален из системы." });
+        await refetchAdminUsers();
+        setDeleteUserId('');
+    } catch(e) {
+        const msg = e instanceof Error ? e.message : 'Не удалось удалить пользователя.';
+        toast({ variant: 'destructive', title: 'Ошибка удаления', description: msg });
+    }
+  }
   
   const weeklyBonusStatus = useMemo(() => {
     if (!lastWeeklyBonusAwardedAt || new Date(lastWeeklyBonusAwardedAt).getFullYear() < 2000) {
@@ -1505,6 +1520,40 @@ export default function AdminTab() {
                     <CardDescription>Действия в этой секции необратимы.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                     <div>
+                        <h4 className="font-semibold text-sm mb-2">Удаление пользователя</h4>
+                        <div className="flex gap-2 items-center">
+                            <SearchableSelect
+                                options={userOnlyOptions}
+                                value={deleteUserId}
+                                onValueChange={setDeleteUserId}
+                                placeholder="Выберите пользователя"
+                            />
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="destructive" size="icon" disabled={!deleteUserId}>
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                    <AlertDialogTitle>Вы уверены?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Это действие навсегда удалит пользователя <strong>{users.find(u => u.id === deleteUserId)?.name}</strong>, всех его персонажей, инвентарь и историю. Аккаунт будет удален из системы аутентификации.
+                                        <strong> Это действие необратимо.</strong>
+                                    </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                    <AlertDialogCancel>Отмена</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleDeleteUser} className="bg-destructive hover:bg-destructive/90">
+                                        Да, я понимаю, удалить
+                                    </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </div>
+                    </div>
+                    <Separator/>
                     <div>
                         <h4 className="font-semibold text-sm mb-2">Очистка истории баллов (1 игрок)</h4>
                         <div className="flex gap-2 items-center">
@@ -2495,3 +2544,6 @@ export default function AdminTab() {
 
 
 
+
+
+    
