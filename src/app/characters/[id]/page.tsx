@@ -229,7 +229,7 @@ export default function CharacterPage() {
     const [editingState, setEditingState] = useState<EditingState | null>(null);
     const [selectedItem, setSelectedItem] = useState<(InventoryItem & { category: InventoryCategory }) | null>(null);
     const [isConsuming, setIsConsuming] = useState(false);
-    const [selectedGalleryItem, setSelectedGalleryItem] = useState<string | null>(null);
+    const [selectedGalleryItem, setSelectedGalleryItem] = useState<GalleryImage | null>(null);
 
     const { toast } = useToast();
 
@@ -701,7 +701,7 @@ export default function CharacterPage() {
                                 {combinedGallery.map((img, index) => {
                                     if (!img || !img.url) return null;
                                     return (
-                                        <button key={img.id || index} className="relative aspect-square" onClick={() => setSelectedGalleryItem(img.url)}>
+                                        <button key={img.id || index} className="relative aspect-square" onClick={() => setSelectedGalleryItem(img)}>
                                             <Image
                                                 src={img.url}
                                                 alt={`Gallery image ${img.id}`}
@@ -1317,17 +1317,15 @@ export default function CharacterPage() {
             </Dialog>
             
              <Dialog open={!!selectedGalleryItem} onOpenChange={() => setSelectedGalleryItem(null)}>
-                <DialogContent className="p-0 bg-transparent border-none max-w-[90vw] w-auto h-[90vh] shadow-none flex items-center justify-center">
+                 <DialogContent className="max-w-4xl w-full h-[90vh] p-4 flex items-center justify-center bg-transparent border-none shadow-none">
                     <DialogTitle className="sr-only">Просмотр</DialogTitle>
-                     {selectedGalleryItem && (
-                        <div className="relative w-auto h-full aspect-auto">
-                            <Image 
-                                src={selectedGalleryItem} 
-                                alt="Увеличенное изображение из галереи" 
-                                fill
-                                className="rounded-lg object-contain"
-                            />
-                        </div>
+                     {selectedGalleryItem?.url && (
+                        <Image 
+                            src={selectedGalleryItem.url} 
+                            alt="Увеличенное изображение из галереи" 
+                            fill
+                            className="rounded-lg object-contain"
+                        />
                     )}
                 </DialogContent>
             </Dialog>
