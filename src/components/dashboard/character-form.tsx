@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import type { Character, User, Accomplishment, Relationship, RelationshipType, CrimeLevel, CitizenshipStatus, Inventory, GalleryImage, GalleryItemType } from '@/lib/types';
+import type { Character, User, Accomplishment, Relationship, RelationshipType, CrimeLevel, CitizenshipStatus, Inventory, GalleryImage } from '@/lib/types';
 import { SKILL_LEVELS, FAME_LEVELS, TRAINING_OPTIONS, CRIME_LEVELS, COUNTRIES } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { DialogClose, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -264,7 +264,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
     };
 
     const addGalleryImageField = () => {
-        const newImage: GalleryImage = { id: `img-${Date.now()}-${Math.random()}`, url: '', type: 'image', taggedCharacterIds: [] };
+        const newImage: GalleryImage = { id: `img-${Date.now()}-${Math.random()}`, url: '', taggedCharacterIds: [] };
         handleFieldChange('galleryImages', [...(formData.galleryImages || []), newImage]);
     };
 
@@ -476,7 +476,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                                 <Input value={formData.bannerImage ?? ''} onChange={(e) => handleFieldChange('bannerImage', e.target.value)} placeholder="https://..."/>
                             </div>
                             <div className="space-y-4">
-                                <Label>Изображения и видео для галереи</Label>
+                                <Label>Изображения галереи</Label>
                                 {(formData.galleryImages || []).map((image, index) => (
                                     <div key={image.id} className="flex flex-col gap-3 p-3 border rounded-md">
                                         <div className="flex items-center gap-2">
@@ -485,20 +485,6 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                                                 <Trash2 className="w-4 h-4 text-destructive"/>
                                             </Button>
                                         </div>
-                                        <RadioGroup 
-                                            defaultValue={image.type || 'image'} 
-                                            onValueChange={(value: GalleryItemType) => handleGalleryImageChange(index, 'type', value)}
-                                            className="flex gap-4"
-                                        >
-                                            <div className="flex items-center space-x-2">
-                                                <RadioGroupItem value="image" id={`type-image-${index}`} />
-                                                <Label htmlFor={`type-image-${index}`}>Изображение</Label>
-                                            </div>
-                                            <div className="flex items-center space-x-2">
-                                                <RadioGroupItem value="video" id={`type-video-${index}`} />
-                                                <Label htmlFor={`type-video-${index}`}>Видео</Label>
-                                            </div>
-                                        </RadioGroup>
                                         <div>
                                             <Label className="text-xs text-muted-foreground">Отмеченные персонажи</Label>
                                             <SearchableMultiSelect
@@ -510,7 +496,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                                         </div>
                                     </div>
                                 ))}
-                                <Button type="button" variant="outline" size="sm" onClick={addGalleryImageField}>Добавить медиа</Button>
+                                <Button type="button" variant="outline" size="sm" onClick={addGalleryImageField}>Добавить изображение</Button>
                             </div>
                         </div>
                     );
@@ -610,7 +596,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                         <div className="space-y-3 rounded-md border p-3 relative">
                             {editingState.mode === 'edit' && (
                                 <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={handleRemoveItem}>
-                                    <Trash2 className="h-4 h-4 text-destructive" />
+                                    <Trash2 className="h-4 w-4 text-destructive" />
                                 </Button>
                             )}
                             <div>
@@ -648,11 +634,9 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                     }
                 </DialogDescription>
              </DialogHeader>
-            <div className="flex-1 overflow-y-auto py-4 pr-6 -mr-6">
-                <ScrollArea className="h-full">
-                    <div className="pr-1">
+            <div className="flex-1 overflow-y-auto py-4 -mr-4">
+                <ScrollArea className="h-full pr-4">
                         {renderContent()}
-                    </div>
                 </ScrollArea>
             </div>
             <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t mt-4">
