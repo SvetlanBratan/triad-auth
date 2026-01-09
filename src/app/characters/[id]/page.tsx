@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -363,7 +364,9 @@ export default function CharacterPage() {
             });
         });
         const allImages = [...ownImages, ...taggedImages];
-        const uniqueImages = Array.from(new Map(allImages.map(item => [item.id, item])).values());
+        // Sort by ID (timestamp) descending to show newest first
+        const uniqueImages = Array.from(new Map(allImages.map(item => [item.id, item])).values())
+            .sort((a, b) => b.id.localeCompare(a.id));
         return uniqueImages;
     }, [character, allUsers]);
 
@@ -1317,15 +1320,17 @@ export default function CharacterPage() {
             </Dialog>
             
              <Dialog open={!!selectedGalleryItem} onOpenChange={() => setSelectedGalleryItem(null)}>
-                 <DialogContent className="max-w-4xl w-full h-[90vh] p-4 flex items-center justify-center bg-transparent border-none shadow-none">
+                <DialogContent className="max-w-4xl w-[90vw] h-[90vh] bg-transparent border-none shadow-none p-0 flex items-center justify-center">
                     <DialogTitle className="sr-only">Просмотр</DialogTitle>
-                     {selectedGalleryItem?.url && (
-                        <Image 
-                            src={selectedGalleryItem.url} 
-                            alt="Увеличенное изображение из галереи" 
-                            fill
-                            className="rounded-lg object-contain"
-                        />
+                    {selectedGalleryItem?.url && (
+                        <div className="relative w-full h-full">
+                            <Image 
+                                src={selectedGalleryItem.url} 
+                                alt="Увеличенное изображение из галереи" 
+                                fill
+                                className="rounded-lg object-contain"
+                            />
+                        </div>
                     )}
                 </DialogContent>
             </Dialog>
@@ -1342,3 +1347,4 @@ export default function CharacterPage() {
     
 
     
+
