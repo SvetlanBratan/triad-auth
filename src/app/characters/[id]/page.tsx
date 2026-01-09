@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -230,7 +228,7 @@ export default function CharacterPage() {
     const [editingState, setEditingState] = useState<EditingState | null>(null);
     const [selectedItem, setSelectedItem] = useState<(InventoryItem & { category: InventoryCategory }) | null>(null);
     const [isConsuming, setIsConsuming] = useState(false);
-    const [selectedGalleryItem, setSelectedGalleryItem] = useState<string | null>(null);
+    const [selectedGalleryItem, setSelectedGalleryItem] = useState<GalleryImage | null>(null);
 
     const { toast } = useToast();
 
@@ -702,7 +700,7 @@ export default function CharacterPage() {
                                 {combinedGallery.map((img, index) => {
                                     if (!img || !img.url) return null;
                                     return (
-                                        <button key={img.id || index} className="relative aspect-square" onClick={() => setSelectedGalleryItem(img.url)}>
+                                        <button key={img.id || index} className="relative aspect-square" onClick={() => setSelectedGalleryItem(img)}>
                                             <Image
                                                 src={img.url}
                                                 alt={`Gallery image ${img.id}`}
@@ -1318,15 +1316,15 @@ export default function CharacterPage() {
             </Dialog>
             
              <Dialog open={!!selectedGalleryItem} onOpenChange={() => setSelectedGalleryItem(null)}>
-                <DialogContent className="p-0 bg-transparent border-none max-w-4xl shadow-none w-auto">
+                <DialogContent className="p-0 bg-transparent border-none max-w-4xl shadow-none w-[90vw] h-[90vh]">
                     <DialogTitle className="sr-only">Просмотр</DialogTitle>
                      {selectedGalleryItem && (
                         <Image 
-                            src={selectedGalleryItem} 
+                            src={selectedGalleryItem.url} 
                             alt="Увеличенное изображение из галереи" 
                             width={1200}
                             height={800}
-                            className="rounded-lg w-full h-auto object-contain max-h-[80vh]"
+                            className="rounded-lg w-full h-full object-contain"
                         />
                     )}
                 </DialogContent>
