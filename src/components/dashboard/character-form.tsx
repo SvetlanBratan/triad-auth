@@ -476,29 +476,27 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                             </div>
                             <div className="space-y-4">
                                 <Label>Изображения для галереи</Label>
-                                <ScrollArea className="max-h-60 pr-4">
-                                    <div className="space-y-4">
-                                    {(formData.galleryImages || []).map((image, index) => (
-                                        <div key={image.id} className="flex flex-col gap-2 p-3 border rounded-md">
-                                            <div className="flex items-center gap-2">
-                                                <Input value={image.url} onChange={(e) => handleGalleryImageChange(index, 'url', e.target.value)} placeholder="URL изображения..."/>
-                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeGalleryImageField(index)}>
-                                                    <Trash2 className="w-4 h-4 text-destructive"/>
-                                                </Button>
-                                            </div>
-                                            <div>
-                                                <Label className="text-xs text-muted-foreground">Отмеченные персонажи</Label>
-                                                <SearchableMultiSelect
-                                                    placeholder="Выберите персонажей..."
-                                                    options={allCharacterOptionsForGallery}
-                                                    selected={image.taggedCharacterIds || []}
-                                                    onChange={(v) => handleGalleryImageChange(index, 'taggedCharacterIds', v)}
-                                                />
-                                            </div>
+                                <div className="space-y-4">
+                                {(formData.galleryImages || []).map((image, index) => (
+                                    <div key={image.id} className="flex flex-col gap-2 p-3 border rounded-md">
+                                        <div className="flex items-center gap-2">
+                                            <Input value={image.url} onChange={(e) => handleGalleryImageChange(index, 'url', e.target.value)} placeholder="URL изображения..."/>
+                                            <Button type="button" variant="ghost" size="icon" onClick={() => removeGalleryImageField(index)}>
+                                                <Trash2 className="w-4 h-4 text-destructive"/>
+                                            </Button>
                                         </div>
-                                    ))}
+                                        <div>
+                                            <Label className="text-xs text-muted-foreground">Отмеченные персонажи</Label>
+                                            <SearchableMultiSelect
+                                                placeholder="Выберите персонажей..."
+                                                options={allCharacterOptionsForGallery}
+                                                selected={image.taggedCharacterIds || []}
+                                                onChange={(v) => handleGalleryImageChange(index, 'taggedCharacterIds', v)}
+                                            />
+                                        </div>
                                     </div>
-                                </ScrollArea>
+                                ))}
+                                </div>
                                 <Button type="button" variant="outline" size="sm" onClick={addGalleryImageField}>Добавить изображение</Button>
                             </div>
                         </div>
@@ -627,7 +625,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
     }
     
     return (
-         <form onSubmit={handleSubmit} className="flex flex-col h-full">
+         <form onSubmit={handleSubmit} className="flex flex-col h-full max-h-[80vh]">
              <DialogHeader>
                 <DialogTitle>{getDialogTitle()}</DialogTitle>
                 <DialogDescription>
@@ -637,9 +635,9 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                     }
                 </DialogDescription>
              </DialogHeader>
-            <ScrollArea className="flex-1 py-4 pr-6">
+            <div className="flex-1 overflow-y-auto py-4 pr-6 -mr-6">
                 {renderContent()}
-            </ScrollArea>
+            </div>
             <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t">
               <DialogClose asChild>
                 <Button type="button" variant="ghost">Отмена</Button>
@@ -651,5 +649,3 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
 };
 
 export default CharacterForm;
-
-    
