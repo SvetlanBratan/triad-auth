@@ -143,3 +143,40 @@ exports.addAlchemyRecipe = functions.https.onCall(async (data, context) => {
     const result = await db.collection('alchemy_recipes').add(newRecipe);
     return { id: result.id };
 });
+
+exports.deleteUser = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError(
+      "unauthenticated",
+      "The function must be called while authenticated."
+    );
+  }
+  
+  const adminUserDoc = await db.collection('users').doc(context.auth.uid).get();
+  if (!adminUserDoc.exists || adminUserDoc.data()?.role !== 'admin') {
+    throw new functions.https.HttpsError('permission-denied', 'Only admins can delete users.');
+  }
+
+  const uidToDelete = data.uid;
+  if (!uidToDelete) {
+      throw new functions.https.HttpsError('invalid-argument', 'The function must be called with a "uid" argument.');
+  }
+
+  try {
+      await admin.auth().deleteUser(uidToDelete);
+      // The Firestore document is already deleted from the client-side call,
+      // but we could add a deletion here as a fallback if needed.
+      // await db.collection('users').doc(uidToDelete).delete();
+      return { success: true, message: `Successfully deleted user ${uidToDelete}` };
+  } catch (error) {
+      console.error('Error deleting user:', error);
+      // Check if the error is because the user doesn't exist in Auth
+      if ((error as any).code === 'auth/user-not-found') {
+          return { success: true, message: 'User not found in Auth, but deletion process will continue for Firestore data.' };
+      }
+      throw new functions.https.HttpsError('internal', 'Could not delete user from Firebase Auth.', error);
+  }
+});
+
+
+    
