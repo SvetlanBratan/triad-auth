@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import type { Character, User, Accomplishment, Relationship, RelationshipType, CrimeLevel, CitizenshipStatus, Inventory, GalleryImage } from '@/lib/types';
+import type { Character, User, Accomplishment, Relationship, RelationshipType, CrimeLevel, CitizenshipStatus, Inventory, GalleryImage, GalleryItemType } from '@/lib/types';
 import { SKILL_LEVELS, FAME_LEVELS, TRAINING_OPTIONS, CRIME_LEVELS, COUNTRIES } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { DialogClose, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -14,6 +14,7 @@ import { SearchableSelect } from '../ui/searchable-select';
 import ImageUploader from './image-uploader';
 import { SearchableMultiSelect } from '../ui/searchable-multi-select';
 import { Switch } from '../ui/switch';
+import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 
 
 export type EditableSection = 
@@ -263,7 +264,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
     };
 
     const addGalleryImageField = () => {
-        const newImage: GalleryImage = { id: `img-${Date.now()}-${Math.random()}`, url: '', taggedCharacterIds: [] };
+        const newImage: GalleryImage = { id: `img-${Date.now()}-${Math.random()}`, url: '', type: 'image', taggedCharacterIds: [] };
         handleFieldChange('galleryImages', [...(formData.galleryImages || []), newImage]);
     };
 
@@ -475,16 +476,29 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                                 <Input value={formData.bannerImage ?? ''} onChange={(e) => handleFieldChange('bannerImage', e.target.value)} placeholder="https://..."/>
                             </div>
                             <div className="space-y-4">
-                                <Label>Изображения для галереи</Label>
-                                <div className="space-y-4">
+                                <Label>Изображения и видео для галереи</Label>
                                 {(formData.galleryImages || []).map((image, index) => (
-                                    <div key={image.id} className="flex flex-col gap-2 p-3 border rounded-md">
+                                    <div key={image.id} className="flex flex-col gap-3 p-3 border rounded-md">
                                         <div className="flex items-center gap-2">
-                                            <Input value={image.url} onChange={(e) => handleGalleryImageChange(index, 'url', e.target.value)} placeholder="URL изображения..."/>
+                                            <Input value={image.url} onChange={(e) => handleGalleryImageChange(index, 'url', e.target.value)} placeholder="URL..."/>
                                             <Button type="button" variant="ghost" size="icon" onClick={() => removeGalleryImageField(index)}>
                                                 <Trash2 className="w-4 h-4 text-destructive"/>
                                             </Button>
                                         </div>
+                                        <RadioGroup 
+                                            defaultValue={image.type || 'image'} 
+                                            onValueChange={(value: GalleryItemType) => handleGalleryImageChange(index, 'type', value)}
+                                            className="flex gap-4"
+                                        >
+                                            <div className="flex items-center space-x-2">
+                                                <RadioGroupItem value="image" id={`type-image-${index}`} />
+                                                <Label htmlFor={`type-image-${index}`}>Изображение</Label>
+                                            </div>
+                                            <div className="flex items-center space-x-2">
+                                                <RadioGroupItem value="video" id={`type-video-${index}`} />
+                                                <Label htmlFor={`type-video-${index}`}>Видео</Label>
+                                            </div>
+                                        </RadioGroup>
                                         <div>
                                             <Label className="text-xs text-muted-foreground">Отмеченные персонажи</Label>
                                             <SearchableMultiSelect
@@ -496,8 +510,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                                         </div>
                                     </div>
                                 ))}
-                                </div>
-                                <Button type="button" variant="outline" size="sm" onClick={addGalleryImageField}>Добавить изображение</Button>
+                                <Button type="button" variant="outline" size="sm" onClick={addGalleryImageField}>Добавить медиа</Button>
                             </div>
                         </div>
                     );
@@ -625,7 +638,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
     }
     
     return (
-         <form onSubmit={handleSubmit} className="flex flex-col h-full max-h-[80vh]">
+         <form onSubmit={handleSubmit} className="flex flex-col h-full max-h-[85vh] overflow-hidden">
              <DialogHeader>
                 <DialogTitle>{getDialogTitle()}</DialogTitle>
                 <DialogDescription>
@@ -636,9 +649,13 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                 </DialogDescription>
              </DialogHeader>
             <div className="flex-1 overflow-y-auto py-4 pr-6 -mr-6">
-                {renderContent()}
+                <ScrollArea className="h-full">
+                    <div className="pr-1">
+                        {renderContent()}
+                    </div>
+                </ScrollArea>
             </div>
-            <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t">
+            <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t mt-4">
               <DialogClose asChild>
                 <Button type="button" variant="ghost">Отмена</Button>
               </DialogClose>

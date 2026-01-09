@@ -1,4 +1,5 @@
 
+
 export type UserRole = "admin" | "user";
 export type UserStatus = "активный" | "неактивный" | "отпуск";
 export type PlayerStatus =
@@ -72,6 +73,8 @@ export type CrimeLevel = 1 | 2 | 3 | 4 | 5;
 export type CitizenshipStatus = "citizen" | "non-citizen" | "refugee";
 export type TaxpayerStatus = "taxable" | "exempt";
 export type MailMessageType = "announcement" | "personal";
+export type GalleryItemType = 'image' | 'video';
+
 
 export interface SocialLink {
   id: string;
@@ -264,6 +267,7 @@ export interface PopularityLog {
 export interface GalleryImage {
   id: string;
   url: string;
+  type?: GalleryItemType;
   taggedCharacterIds?: string[];
 }
 
