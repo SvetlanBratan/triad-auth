@@ -24,6 +24,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: '**.imagekit.io',
       },
+      {
+        protocol: 'https',
+        hostname: 'sun9-11.userapi.com',
+      }
     ],
   },
   experimental: {
