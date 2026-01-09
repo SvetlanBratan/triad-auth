@@ -476,25 +476,29 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                             </div>
                             <div className="space-y-4">
                                 <Label>Изображения для галереи</Label>
-                                {(formData.galleryImages || []).map((image, index) => (
-                                    <div key={image.id} className="flex flex-col gap-2 p-3 border rounded-md">
-                                        <div className="flex items-center gap-2">
-                                            <Input value={image.url} onChange={(e) => handleGalleryImageChange(index, 'url', e.target.value)} placeholder="URL изображения..."/>
-                                            <Button type="button" variant="ghost" size="icon" onClick={() => removeGalleryImageField(index)}>
-                                                <Trash2 className="w-4 h-4 text-destructive"/>
-                                            </Button>
+                                <ScrollArea className="max-h-60 pr-4">
+                                    <div className="space-y-4">
+                                    {(formData.galleryImages || []).map((image, index) => (
+                                        <div key={image.id} className="flex flex-col gap-2 p-3 border rounded-md">
+                                            <div className="flex items-center gap-2">
+                                                <Input value={image.url} onChange={(e) => handleGalleryImageChange(index, 'url', e.target.value)} placeholder="URL изображения..."/>
+                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeGalleryImageField(index)}>
+                                                    <Trash2 className="w-4 h-4 text-destructive"/>
+                                                </Button>
+                                            </div>
+                                            <div>
+                                                <Label className="text-xs text-muted-foreground">Отмеченные персонажи</Label>
+                                                <SearchableMultiSelect
+                                                    placeholder="Выберите персонажей..."
+                                                    options={allCharacterOptionsForGallery}
+                                                    selected={image.taggedCharacterIds || []}
+                                                    onChange={(v) => handleGalleryImageChange(index, 'taggedCharacterIds', v)}
+                                                />
+                                            </div>
                                         </div>
-                                         <div>
-                                            <Label className="text-xs text-muted-foreground">Отмеченные персонажи</Label>
-                                            <SearchableMultiSelect
-                                                placeholder="Выберите персонажей..."
-                                                options={allCharacterOptionsForGallery}
-                                                selected={image.taggedCharacterIds || []}
-                                                onChange={(v) => handleGalleryImageChange(index, 'taggedCharacterIds', v)}
-                                            />
-                                        </div>
+                                    ))}
                                     </div>
-                                ))}
+                                </ScrollArea>
                                 <Button type="button" variant="outline" size="sm" onClick={addGalleryImageField}>Добавить изображение</Button>
                             </div>
                         </div>
