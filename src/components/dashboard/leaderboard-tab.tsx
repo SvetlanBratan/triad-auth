@@ -36,6 +36,7 @@ const getStatusClass = (status: UserStatus) => {
 const LeaderboardTable = () => {
     const { fetchLeaderboardUsers } = useUser();
     const { toast } = useToast();
+    const [statusFilter, setStatusFilter] = React.useState<UserStatus | 'all'>('all');
 
     const { data: users = [], isLoading: isLeaderboardLoading, isError: isLeaderboardError } = useQuery<User[], Error>({
         queryKey: ['leaderboard'],
@@ -52,59 +53,74 @@ const LeaderboardTable = () => {
         }
     }, [isLeaderboardError, toast]);
 
+    const filteredUsers = React.useMemo(() => {
+      if (statusFilter === 'all') {
+        return users;
+      }
+      return users.filter(user => user.status === statusFilter);
+    }, [users, statusFilter]);
+
     if (isLeaderboardLoading) {
         return <div className="flex justify-center items-center h-64"><p>Загрузка...</p></div>
     }
 
     return (
-        <Table>
-            <TableHeader>
-                <TableRow>
-                    <TableHead className="w-[60px] sm:w-[80px]">Ранг</TableHead>
-                    <TableHead>Игрок</TableHead>
-                    <TableHead className="hidden sm:table-cell">Статус</TableHead>
-                    <TableHead className="text-right">Баллы</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {users.map((user, index) => (
-                <TableRow key={user.id} className="cursor-pointer">
-                    <TableCell className="font-bold text-lg text-muted-foreground">
-                        <Link href={`/users/${user.id}`} className="block w-full h-full">
-                            {index === 0 && <Trophy className="w-6 h-6 text-yellow-400 inline-block" />}
-                            {index === 1 && <Trophy className="w-6 h-6 text-slate-400 inline-block" />}
-                            {index === 2 && <Trophy className="w-6 h-6 text-amber-700 inline-block" />}
-                            {index > 2 && index + 1}
-                        </Link>
-                    </TableCell>
-                    <TableCell>
-                        <Link href={`/users/${user.id}`} className="flex items-center gap-3">
-                            <Avatar>
-                            <AvatarImage src={user.avatar} alt={user.name} />
-                            <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                                <p className="font-medium">{user.name}</p>
-                                <p className="text-xs text-muted-foreground sm:hidden capitalize">{user.status}</p>
-                            </div>
-                        </Link>
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell">
-                        <Link href={`/users/${user.id}`} className="block w-full h-full">
-                            <Badge variant={'outline'} className={cn("capitalize", getStatusClass(user.status))}>
-                                {user.status}
-                            </Badge>
-                        </Link>
-                    </TableCell>
-                    <TableCell className="text-right font-bold text-primary">
-                        <Link href={`/users/${user.id}`} className="block w-full h-full">
-                            {user.points.toLocaleString()}
-                        </Link>
-                    </TableCell>
-                </TableRow>
-                ))}
-            </TableBody>
-        </Table>
+        <>
+            <div className="flex flex-wrap gap-2 mb-4">
+                <Button variant={statusFilter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setStatusFilter('all')}>Все</Button>
+                <Button variant={statusFilter === 'активный' ? 'default' : 'outline'} size="sm" onClick={() => setStatusFilter('активный')}>Активные</Button>
+                <Button variant={statusFilter === 'неактивный' ? 'default' : 'outline'} size="sm" onClick={() => setStatusFilter('неактивный')}>Неактивные</Button>
+                <Button variant={statusFilter === 'отпуск' ? 'default' : 'outline'} size="sm" onClick={() => setStatusFilter('отпуск')}>В отпуске</Button>
+            </div>
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead className="w-[60px] sm:w-[80px]">Ранг</TableHead>
+                        <TableHead>Игрок</TableHead>
+                        <TableHead className="hidden sm:table-cell">Статус</TableHead>
+                        <TableHead className="text-right">Баллы</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {filteredUsers.map((user, index) => (
+                    <TableRow key={user.id} className="cursor-pointer">
+                        <TableCell className="font-bold text-lg text-muted-foreground">
+                            <Link href={`/users/${user.id}`} className="block w-full h-full">
+                                {index === 0 && <Trophy className="w-6 h-6 text-yellow-400 inline-block" />}
+                                {index === 1 && <Trophy className="w-6 h-6 text-slate-400 inline-block" />}
+                                {index === 2 && <Trophy className="w-6 h-6 text-amber-700 inline-block" />}
+                                {index > 2 && index + 1}
+                            </Link>
+                        </TableCell>
+                        <TableCell>
+                            <Link href={`/users/${user.id}`} className="flex items-center gap-3">
+                                <Avatar>
+                                <AvatarImage src={user.avatar} alt={user.name} />
+                                <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                    <p className="font-medium">{user.name}</p>
+                                    <p className="text-xs text-muted-foreground sm:hidden capitalize">{user.status}</p>
+                                </div>
+                            </Link>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                            <Link href={`/users/${user.id}`} className="block w-full h-full">
+                                <Badge variant={'outline'} className={cn("capitalize", getStatusClass(user.status))}>
+                                    {user.status}
+                                </Badge>
+                            </Link>
+                        </TableCell>
+                        <TableCell className="text-right font-bold text-primary">
+                            <Link href={`/users/${user.id}`} className="block w-full h-full">
+                                {user.points.toLocaleString()}
+                            </Link>
+                        </TableCell>
+                    </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </>
     );
 };
 
