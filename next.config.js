@@ -30,11 +30,6 @@ const nextConfig = {
       }
     ],
   },
-  experimental: {
-    // This allows requests from any origin in development, which is useful for
-    // cloud-based development environments like Firebase Studio.
-    allowedDevOrigins: ["*"],
-  },
 };
 
 module.exports = nextConfig;
