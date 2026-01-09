@@ -5,7 +5,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, notFound } from 'next/navigation';
 import { useUser } from '@/hooks/use-user';
-import { User, Character, FamiliarCard, FamiliarRank, Moodlet, Relationship, RelationshipType, WealthLevel, BankAccount, Accomplishment, BankTransaction, OwnedFamiliarCard, InventoryCategory, InventoryItem, CitizenshipStatus, TaxpayerStatus, PopularityLog, GalleryImage } from '@/lib/types';
+import { User, Character, FamiliarCard, FamiliarRank, Moodlet, Relationship, RelationshipType, WealthLevel, BankAccount, Accomplishment, BankTransaction, OwnedFamiliarCard, InventoryCategory, InventoryItem, CitizenshipStatus, TaxpayerStatus, PopularityLog, GalleryImage, GalleryItemType } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -230,7 +230,7 @@ export default function CharacterPage() {
     const [editingState, setEditingState] = useState<EditingState | null>(null);
     const [selectedItem, setSelectedItem] = useState<(InventoryItem & { category: InventoryCategory }) | null>(null);
     const [isConsuming, setIsConsuming] = useState(false);
-    const [selectedGalleryImage, setSelectedGalleryImage] = useState<string | null>(null);
+    const [selectedGalleryItem, setSelectedGalleryItem] = useState<GalleryImage | null>(null);
 
     const { toast } = useToast();
 
@@ -702,7 +702,7 @@ export default function CharacterPage() {
                                 {combinedGallery.map((img, index) => {
                                     if (!img || !img.url) return null;
                                     return (
-                                        <button key={img.id || index} className="relative aspect-square" onClick={() => setSelectedGalleryImage(img.url)}>
+                                        <button key={img.id || index} className="relative aspect-square" onClick={() => setSelectedGalleryItem(img)}>
                                             <Image
                                                 src={img.url}
                                                 alt={`Gallery image ${img.id}`}
@@ -1317,17 +1317,20 @@ export default function CharacterPage() {
                 )}
             </Dialog>
             
-             <Dialog open={!!selectedGalleryImage} onOpenChange={() => setSelectedGalleryImage(null)}>
-                <DialogContent className="p-0 bg-transparent border-none w-[90vw] sm:w-auto max-w-sm shadow-none">
-                    <DialogTitle className="sr-only">Увеличенное изображение</DialogTitle>
-                    {selectedGalleryImage && (
+             <Dialog open={!!selectedGalleryItem} onOpenChange={() => setSelectedGalleryItem(null)}>
+                <DialogContent className="p-0 bg-transparent border-none max-w-4xl shadow-none w-auto sm:max-h-[90vh] sm:max-w-[90vw]">
+                    <DialogTitle className="sr-only">Просмотр</DialogTitle>
+                     {selectedGalleryItem?.type === 'image' && selectedGalleryItem.url && (
                         <Image 
-                            src={selectedGalleryImage} 
+                            src={selectedGalleryItem.url} 
                             alt="Увеличенное изображение из галереи" 
-                            width={500}
-                            height={700}
-                            className="rounded-lg w-full h-auto object-contain"
+                            width={1200}
+                            height={1200}
+                            className="rounded-lg w-full h-auto object-contain max-h-[90vh]"
                         />
+                    )}
+                    {selectedGalleryItem?.type === 'video' && selectedGalleryItem.url && (
+                        <video src={selectedGalleryItem.url} controls autoPlay className="rounded-lg max-h-[90vh]" />
                     )}
                 </DialogContent>
             </Dialog>
@@ -1336,6 +1339,8 @@ export default function CharacterPage() {
         </div>
     );
 }
+
+    
 
     
 
