@@ -6,11 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Anchor, KeyRound, Sparkles, Pencil, Gamepad2, Link as LinkIcon, PlusCircle, X, Heart, Users } from 'lucide-react';
+import { Anchor, KeyRound, Sparkles, Pencil, Gamepad2, Link as LinkIcon, PlusCircle, X, Heart, Users, Award } from 'lucide-react';
 import { cn, formatTimeLeft } from '@/lib/utils';
 import FamiliarCardDisplay from './familiar-card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
-import { ACHIEVEMENTS_BY_ID } from '@/lib/data';
+import { ACHIEVEMENTS_BY_ID, ALL_ACHIEVEMENTS } from '@/lib/data';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Button } from '../ui/button';
 import { useUser } from '@/hooks/use-user';
@@ -22,6 +22,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { useQuery } from '@tanstack/react-query';
+import { ScrollArea } from '../ui/scroll-area';
 
 const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
     // If the name starts with 'ach-', assume it's a custom achievement icon
@@ -207,6 +208,7 @@ export default function UserProfileDialog({ user }: { user: User }) {
   const [isSocialsDialogOpen, setSocialsDialogOpen] = useState(false);
   const [socials, setSocials] = React.useState<SocialLink[]>([]);
   const [isSavingSocials, setIsSavingSocials] = React.useState(false);
+  const [isAchievementsOpen, setIsAchievementsOpen] = useState(false);
 
   const { data: allUsers = [] } = useQuery<User[]>({
     queryKey: ['allUsersForProfileDialog'],
@@ -309,6 +311,17 @@ export default function UserProfileDialog({ user }: { user: User }) {
   const sortedPointHistory = [...(user.pointHistory || [])].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   const userAchievements = (user.achievementIds || []).map(id => ACHIEVEMENTS_BY_ID[id]).filter(Boolean);
 
+    const allAchievementsSorted = useMemo(() => {
+        const userAchievementIds = new Set(user.achievementIds || []);
+        return [...ALL_ACHIEVEMENTS].sort((a, b) => {
+            const aUnlocked = userAchievementIds.has(a.id);
+            const bUnlocked = userAchievementIds.has(b.id);
+            if (aUnlocked && !bUnlocked) return -1;
+            if (!aUnlocked && bUnlocked) return 1;
+            return a.name.localeCompare(b.name);
+        });
+    }, [user.achievementIds]);
+
   const characterMap = useMemo(() => {
     const map = new Map<string, string>();
     user.characters.forEach(c => map.set(c.id, c.name));
@@ -395,26 +408,33 @@ export default function UserProfileDialog({ user }: { user: User }) {
                     <Badge variant="outline">{user.role}</Badge>
                     </div>
                 )}
-                {userAchievements.length > 0 && (
-                    <div className="pt-4">
-                    <h4 className="text-sm font-semibold text-muted-foreground mb-2">Достижения</h4>
-                    <div className="flex flex-wrap gap-2">
-                        {userAchievements.map(ach => (
-                        <Popover key={ach.id}>
-                            <PopoverTrigger asChild>
-                            <Button variant="outline" size="icon" className="w-8 h-8 bg-muted hover:bg-primary/10">
-                                <DynamicIcon name={ach.id} />
-                            </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto max-w-xs">
-                            <p className="font-bold">{ach.name}</p>
-                            <p className="text-xs">{ach.description}</p>
-                            </PopoverContent>
-                        </Popover>
-                        ))}
+                 <div className="pt-4 space-y-2">
+                    <div className="flex items-center gap-2">
+                        <h4 className="text-sm font-semibold text-muted-foreground">Достижения</h4>
+                        <Button variant="link" size="sm" className="p-0 h-auto text-xs" onClick={() => setIsAchievementsOpen(true)}>
+                           Получено: {userAchievements.length} / {ALL_ACHIEVEMENTS.length}
+                        </Button>
                     </div>
-                    </div>
-                )}
+                    {userAchievements.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                            {userAchievements.map(ach => (
+                            <Popover key={ach.id}>
+                                <PopoverTrigger asChild>
+                                <Button variant="outline" size="icon" className="w-8 h-8 bg-muted hover:bg-primary/10">
+                                    <DynamicIcon name={ach.id} />
+                                </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto max-w-xs">
+                                <p className="font-bold">{ach.name}</p>
+                                <p className="text-xs">{ach.description}</p>
+                                </PopoverContent>
+                            </Popover>
+                            ))}
+                        </div>
+                    ) : (
+                       <p className="text-xs text-muted-foreground italic">Достижений пока нет.</p>
+                    )}
+                </div>
                 </CardContent>
             </Card>
             <Card>
@@ -504,6 +524,35 @@ export default function UserProfileDialog({ user }: { user: User }) {
         </div>
     </div>
     
+     <Dialog open={isAchievementsOpen} onOpenChange={setIsAchievementsOpen}>
+        <DialogContent className="max-w-2xl">
+            <DialogHeader>
+                <DialogTitle>Все достижения</DialogTitle>
+                <DialogDescription>
+                    Получено: {userAchievements.length} / {ALL_ACHIEVEMENTS.length}
+                </DialogDescription>
+            </DialogHeader>
+            <ScrollArea className="max-h-[60vh] -mx-6 px-6">
+                <div className="space-y-4">
+                    {allAchievementsSorted.map(ach => {
+                        const isUnlocked = (user.achievementIds || []).includes(ach.id);
+                        return (
+                            <div key={ach.id} className={cn("flex items-start gap-4 p-3 rounded-md", isUnlocked ? 'bg-primary/10' : 'bg-muted/50 opacity-60')}>
+                                <div className={cn("p-2 rounded-md", isUnlocked ? 'bg-primary/20' : 'bg-muted')}>
+                                    <DynamicIcon name={ach.id} className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <p className={cn("font-semibold", isUnlocked && 'text-primary')}>{ach.name}</p>
+                                    <p className="text-xs text-muted-foreground">{ach.description}</p>
+                                </div>
+                            </div>
+                        )
+                    })}
+                </div>
+            </ScrollArea>
+        </DialogContent>
+    </Dialog>
+
      <Dialog open={isPlayerStatusDialogOpen} onOpenChange={setPlayerStatusDialogOpen}>
         <DialogContent>
             <DialogHeader>

@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Trash2, Pencil, UserSquare, Sparkles, Anchor, KeyRound, Link as LinkIcon, Gamepad2, X, Heart, Users, History } from 'lucide-react';
+import { PlusCircle, Trash2, Pencil, UserSquare, Sparkles, Anchor, KeyRound, Link as LinkIcon, Gamepad2, X, Heart, Users, History, Award } from 'lucide-react';
 import type { PointLog, UserStatus, Character, User, FamiliarCard, FamiliarRank, Moodlet, PlayerStatus, PlayPlatform, SocialLink } from '@/lib/types';
 import Link from 'next/link';
 import {
@@ -30,7 +30,7 @@ import {
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { cn, formatTimeLeft } from '@/lib/utils';
-import { ACHIEVEMENTS_BY_ID } from '@/lib/data';
+import { ACHIEVEMENTS_BY_ID, ALL_ACHIEVEMENTS } from '@/lib/data';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import CharacterForm, { type EditingState } from './character-form';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
@@ -44,6 +44,7 @@ import { Input } from '../ui/input';
 import { useQuery } from '@tanstack/react-query';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '../ui/scroll-area';
 
 
 const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
@@ -205,6 +206,7 @@ export default function ProfileTab() {
   const [isSocialsDialogOpen, setSocialsDialogOpen] = React.useState(false);
   const [socials, setSocials] = React.useState<SocialLink[]>([]);
   const [isSavingSocials, setIsSavingSocials] = React.useState(false);
+  const [isAchievementsOpen, setIsAchievementsOpen] = useState(false);
 
   const { data: allUsers = [], refetch } = useQuery<User[]>({
     queryKey: ['allUsersForProfile'],
@@ -330,6 +332,17 @@ export default function ProfileTab() {
   const sortedPointHistory = currentUser.pointHistory.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   const userAchievements = (currentUser.achievementIds || []).map(id => ACHIEVEMENTS_BY_ID[id]).filter(Boolean);
 
+    const allAchievementsSorted = useMemo(() => {
+    const userAchievementIds = new Set(currentUser.achievementIds || []);
+    return [...ALL_ACHIEVEMENTS].sort((a, b) => {
+        const aUnlocked = userAchievementIds.has(a.id);
+        const bUnlocked = userAchievementIds.has(b.id);
+        if (aUnlocked && !bUnlocked) return -1;
+        if (!aUnlocked && bUnlocked) return 1;
+        return a.name.localeCompare(b.name);
+    });
+  }, [currentUser.achievementIds]);
+
   const characterMap = useMemo(() => {
     const map = new Map<string, string>();
     currentUser.characters.forEach(c => map.set(c.id, c.name));
@@ -435,8 +448,13 @@ export default function ProfileTab() {
             </div>
         )}
             {userAchievements.length > 0 && (
-            <div className="pt-4">
-                <h4 className="text-sm font-semibold text-muted-foreground mb-2">Достижения</h4>
+            <div className="pt-4 space-y-2">
+                <div className="flex items-center gap-2">
+                    <h4 className="text-sm font-semibold text-muted-foreground">Достижения</h4>
+                    <Button variant="link" size="sm" className="p-0 h-auto text-xs" onClick={() => setIsAchievementsOpen(true)}>
+                       Получено: {userAchievements.length} / {ALL_ACHIEVEMENTS.length}
+                    </Button>
+                </div>
                 <div className="flex flex-wrap gap-2">
                     {userAchievements.map(ach => (
                         <Popover key={ach.id}>
@@ -618,6 +636,35 @@ export default function ProfileTab() {
                     </DialogDescription>
                 </DialogHeader>
                 <AvatarUploader closeDialog={() => setAvatarDialogOpen(false)} />
+            </DialogContent>
+        </Dialog>
+
+        <Dialog open={isAchievementsOpen} onOpenChange={setIsAchievementsOpen}>
+            <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>Все достижения</DialogTitle>
+                    <DialogDescription>
+                       Получено: {userAchievements.length} / {ALL_ACHIEVEMENTS.length}
+                    </DialogDescription>
+                </DialogHeader>
+                <ScrollArea className="max-h-[60vh] -mx-6 px-6">
+                    <div className="space-y-4">
+                        {allAchievementsSorted.map(ach => {
+                            const isUnlocked = (currentUser.achievementIds || []).includes(ach.id);
+                            return (
+                                <div key={ach.id} className={cn("flex items-start gap-4 p-3 rounded-md", isUnlocked ? 'bg-primary/10' : 'bg-muted/50 opacity-60')}>
+                                    <div className={cn("p-2 rounded-md", isUnlocked ? 'bg-primary/20' : 'bg-muted')}>
+                                       <DynamicIcon name={ach.id} className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <p className={cn("font-semibold", isUnlocked && 'text-primary')}>{ach.name}</p>
+                                        <p className="text-xs text-muted-foreground">{ach.description}</p>
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
+                </ScrollArea>
             </DialogContent>
         </Dialog>
 
