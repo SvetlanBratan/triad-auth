@@ -32,6 +32,7 @@ interface UserContextType extends Omit<User, 'id' | 'name' | 'email' | 'avatar' 
   setCurrentUser: (user: User | null) => void;
   gameDate: Date | null;
   gameDateString: string | null;
+  gameSettings: GameSettings;
   lastWeeklyBonusAwardedAt: string | undefined;
   fetchUserById: (userId: string) => Promise<User | null>;
   fetchCharacterById: (characterId: string) => Promise<{ character: Character; owner: User } | null>;
@@ -62,6 +63,7 @@ interface UserContextType extends Omit<User, 'id' | 'name' | 'email' | 'avatar' 
   updateUser: (userId: string, updates: Partial<User>) => Promise<void>;
   updateUserAvatar: (userId: string, avatarUrl: string) => Promise<void>;
   updateGameDate: (newDateString: string) => Promise<void>;
+  updateGameSettings: (updates: Partial<GameSettings>) => Promise<void>;
   processWeeklyBonus: () => Promise<{ awardedCount: number }>;
   checkExtraCharacterSlots: (userId: string) => Promise<number>;
   performRelationshipAction: (params: PerformRelationshipActionParams) => Promise<void>;
@@ -150,54 +152,38 @@ const RELATIONSHIP_POINTS_CONFIG: Record<RelationshipActionType, number> = {
     письмо: 10,
 };
 
-const drawFamiliarCard = (allCardPool: FamiliarCard[], hasBlessing: boolean, unavailableMythicIds: Set<string>): FamiliarCard => {
-    
+const drawFamiliarCard = (allCardPool: FamiliarCard[], hasBlessing: boolean, unavailableMythicIds: Set<string>, gachaChances: GameSettings['gachaChances']): FamiliarCard => {
     let rand = Math.random() * 100;
-
-    const chances = {
-        мифический: 2,
-        легендарный: 10,
-        редкий: 25,
-    };
-    
-    if (hasBlessing) {
-        chances.мифический = 5;
-        chances.легендарный = 20;
-        chances.редкий = 40;
-    }
-    
+    const chances = hasBlessing ? gachaChances.blessed : gachaChances.normal;
     const availableCards = allCardPool;
 
     const availableMythic = availableCards.filter(c => c.rank === 'мифический' && !unavailableMythicIds.has(c.id));
     const availableLegendary = availableCards.filter(c => c.rank === 'легендарный');
     const availableRare = availableCards.filter(c => c.rank === 'редкий');
     const availableCommon = availableCards.filter(c => c.rank === 'обычный');
+    
+    const cumulativeMythic = chances.мифический;
+    const cumulativeLegendary = cumulativeMythic + chances.легендарный;
+    const cumulativeRare = cumulativeLegendary + chances.редкий;
 
     let chosenPool: FamiliarCard[] = [];
 
-    if (rand < chances.мифический && availableMythic.length > 0) {
+    if (rand < cumulativeMythic && availableMythic.length > 0) {
         chosenPool = availableMythic;
-    } else if (rand < chances.легендарный && availableLegendary.length > 0) {
+    } else if (rand < cumulativeLegendary && availableLegendary.length > 0) {
         chosenPool = availableLegendary;
-    } else if (rand < chances.редкий && availableRare.length > 0) { 
+    } else if (rand < cumulativeRare && availableRare.length > 0) {
         chosenPool = availableRare;
-    } else { 
+    } else {
         chosenPool = availableCommon;
     }
     
     if (chosenPool.length === 0) {
-        if (availableCommon.length > 0) {
-            chosenPool = availableCommon;
-        } else if (availableRare.length > 0) {
-            chosenPool = availableRare;
-        } else if (availableLegendary.length > 0) {
-            chosenPool = availableLegendary;
-        } else if (availableMythic.length > 0) {
-            chosenPool = availableMythic;
-        } else {
-            // Fallback to all non-event cards if somehow all pools are empty
-            chosenPool = availableCards.filter(c => c.rank !== 'ивентовый');
-        }
+        if (availableCommon.length > 0) chosenPool = availableCommon;
+        else if (availableRare.length > 0) chosenPool = availableRare;
+        else if (availableLegendary.length > 0) chosenPool = availableLegendary;
+        else if (availableMythic.length > 0) chosenPool = availableMythic;
+        else chosenPool = allCardPool.filter(c => c.rank !== 'ивентовый');
     }
 
     return chosenPool[Math.floor(Math.random() * chosenPool.length)];
@@ -323,6 +309,27 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       }
       return null;
   }, [processUserDoc]);
+
+  const fetchCharacterById = useCallback(async (characterId: string): Promise<{ character: Character; owner: User } | null> => {
+    try {
+        const usersCollection = collection(db, "users");
+        const usersSnapshot = await getDocs(usersCollection);
+
+        for (const userDoc of usersSnapshot.docs) {
+            const user = await fetchUserById(userDoc.id); // Use fetchUserById to get fully processed user data
+            if (user && user.characters) {
+                const character = user.characters.find(c => c.id === characterId);
+                if (character) {
+                    return { character, owner: user };
+                }
+            }
+        }
+        return null; // Not found
+    } catch (error) {
+        console.error("Error fetching character by ID:", error);
+        return null;
+    }
+  }, [fetchUserById]);
   
   const fetchGameSettings = useCallback(async () => {
     try {
@@ -331,8 +338,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (docSnap.exists()) {
             const data = docSnap.data() as GameSettings;
             const dateStr = data.gameDateString;
-            const dateParts = dateStr.match(/(\d+)\s(\S+)\s(\d+)/);
             let finalSettings: GameSettings = { ...DEFAULT_GAME_SETTINGS, ...data };
+             if (!finalSettings.gachaChances) {
+                finalSettings.gachaChances = DEFAULT_GAME_SETTINGS.gachaChances;
+            }
+            const dateParts = dateStr.match(/(\d+)\s(\S+)\s(\d+)/);
             if (dateParts) {
                 const months: { [key: string]: number } = { "января":0, "февраля":1, "марта":2, "апреля":3, "мая":4, "июня":5, "июля":6, "августа":7, "сентября":8, "октября":9, "ноября":10, "декабря":11 };
                 const day = parseInt(dateParts[1]);
@@ -357,6 +367,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const updateGameDate = useCallback(async (newDateString: string) => {
     const settingsRef = doc(db, 'game_settings', 'main');
     await updateDoc(settingsRef, { gameDateString: newDateString });
+    await fetchGameSettings();
+  }, [fetchGameSettings]);
+
+  const updateGameSettings = useCallback(async (updates: Partial<GameSettings>) => {
+    const settingsRef = doc(db, 'game_settings', 'main');
+    await updateDoc(settingsRef, sanitizeObjectForFirestore(updates));
     await fetchGameSettings();
   }, [fetchGameSettings]);
 
@@ -557,28 +573,98 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         await updateUser(userId, { achievementIds: updatedAchievementIds });
     }
   }, [fetchUserById]);
+  
+  // ... The rest of the UserProvider remains the same, just including the new `drawFamiliarCard` logic
+  
+  const pullGachaForCharacter = useCallback(async (userId: string, characterId: string): Promise<{updatedUser: User, newCard: FamiliarCard, isDuplicate: boolean}> => {
+    let finalUser: User | null = null;
+    let newCard: FamiliarCard;
+    let isDuplicate = false;
+    
+    await runTransaction(db, async (transaction) => {
+        const userRef = doc(db, "users", userId);
+        const userDoc = await transaction.get(userRef);
+        if (!userDoc.exists()) throw new Error("Пользователь не найден.");
+        const user = userDoc.data() as User;
+    
+        const characterIndex = user.characters.findIndex(c => c.id === characterId);
+        if (characterIndex === -1) throw new Error("Персонаж не найден.");
+        const character = user.characters[characterIndex];
 
-  const fetchCharacterById = useCallback(async (characterId: string): Promise<{ character: Character; owner: User } | null> => {
-    try {
-        const usersCollection = collection(db, "users");
-        const usersSnapshot = await getDocs(usersCollection);
+        const hasCards = character.familiarCards && character.familiarCards.length > 0;
+        const hasHistory = user.pointHistory.some(log => log.characterId === characterId && log.reason.includes('Рулетка'));
+        const isFirstPullForChar = !hasCards && !hasHistory;
+        
+        const cost = isFirstPullForChar ? 0 : ROULETTE_COST;
+        if (user.points < cost) throw new Error("Недостаточно очков.");
+        let finalPointChange = -cost;
 
-        for (const userDoc of usersSnapshot.docs) {
-            const user = await fetchUserById(userDoc.id); // Use fetchUserById to get fully processed user data
-            if (user && user.characters) {
-                const character = user.characters.find(c => c.id === characterId);
-                if (character) {
-                    return { character, owner: user };
-                }
+        const allUsers = await fetchUsersForAdmin();
+        const claimedMythicIds = new Set<string>();
+        for (const u of allUsers) {
+            (u.characters || []).forEach(c => {
+                (c.familiarCards || []).forEach(cardRef => {
+                    const cardDetails = familiarsById[cardRef.id];
+                    if (cardDetails && (cardDetails.rank === 'мифический')) {
+                        claimedMythicIds.add(cardRef.id);
+                    }
+                });
+            });
+        }
+        
+        const hasBlessing = character.blessingExpires ? new Date(character.blessingExpires) > new Date() : false;
+        newCard = drawFamiliarCard(allFamiliars, hasBlessing, claimedMythicIds, gameSettings.gachaChances);
+        
+        const ownedCardIds = new Set((character.familiarCards || []).map(c => c.id));
+        isDuplicate = ownedCardIds.has(newCard.id);
+        
+        const updatedUser = { ...user };
+        let reason = `Рулетка: получена карта ${newCard.name} (${newCard.rank})`;
+        
+        if (isDuplicate) {
+            finalPointChange += DUPLICATE_REFUND;
+            reason = `Рулетка: дубликат ${newCard.name}, возврат ${DUPLICATE_REFUND} баллов`;
+        } else {
+            const updatedCharacter = { ...character };
+            const familiarCards = [...(updatedCharacter.familiarCards || []), { id: newCard.id }];
+            updatedCharacter.familiarCards = familiarCards;
+            
+            updatedUser.characters[characterIndex] = updatedCharacter;
+            
+            const hasMythicAchievement = (user.achievementIds || []).includes(MYTHIC_PULL_ACHIEVEMENT_ID);
+            if (newCard.rank === 'мифический' && !hasMythicAchievement) {
+                updatedUser.achievementIds = [...(updatedUser.achievementIds || []), MYTHIC_PULL_ACHIEVEMENT_ID];
             }
         }
-        return null; // Not found
-    } catch (error) {
-        console.error("Error fetching character by ID:", error);
-        return null;
-    }
-  }, [fetchUserById]);
+        
+        const hasFirstPullAchievement = (user.achievementIds || []).includes(FIRST_PULL_ACHIEVEMENT_ID);
+         if (!user.pointHistory.some(log => log.reason.includes('Рулетка')) && !hasFirstPullAchievement) {
+            updatedUser.achievementIds = [...(updatedUser.achievementIds || []), FIRST_PULL_ACHIEVEMENT_ID];
+        }
 
+        updatedUser.points += finalPointChange;
+
+        const newPointLog: PointLog = {
+            id: `h-${Date.now()}-gacha`,
+            date: new Date().toISOString(),
+            amount: finalPointChange,
+            reason: reason,
+            characterId: character.id,
+        };
+        updatedUser.pointHistory.unshift(newPointLog);
+        
+        finalUser = updatedUser;
+        transaction.set(userRef, updatedUser);
+    });
+
+    if (!finalUser || !newCard!) {
+      throw new Error("Транзакция не удалась, попробуйте еще раз.");
+    }
+
+    return { updatedUser: finalUser, newCard: newCard!, isDuplicate };
+  }, [fetchUsersForAdmin, allFamiliars, familiarsById, gameSettings.gachaChances]);
+
+  // ... All other functions in UserProvider are the same as before...
   const createNewUser = useCallback(async (uid: string, nickname: string): Promise<User> => {
     const newUser: User = {
         id: uid,
@@ -1059,95 +1145,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     return allMythicCards.length - claimedMythicIds.size;
   }, [fetchUsersForAdmin, allFamiliars, familiarsById]);
 
-  const pullGachaForCharacter = useCallback(async (userId: string, characterId: string): Promise<{updatedUser: User, newCard: FamiliarCard, isDuplicate: boolean}> => {
-    let finalUser: User | null = null;
-    let newCard: FamiliarCard;
-    let isDuplicate = false;
-    
-    await runTransaction(db, async (transaction) => {
-        const userRef = doc(db, "users", userId);
-        const userDoc = await transaction.get(userRef);
-        if (!userDoc.exists()) throw new Error("Пользователь не найден.");
-        const user = userDoc.data() as User;
-    
-        const characterIndex = user.characters.findIndex(c => c.id === characterId);
-        if (characterIndex === -1) throw new Error("Персонаж не найден.");
-        const character = user.characters[characterIndex];
-
-        const hasCards = character.familiarCards && character.familiarCards.length > 0;
-        const hasHistory = user.pointHistory.some(log => log.characterId === characterId && log.reason.includes('Рулетка'));
-        const isFirstPullForChar = !hasCards && !hasHistory;
-        
-        const cost = isFirstPullForChar ? 0 : ROULETTE_COST;
-        if (user.points < cost) throw new Error("Недостаточно очков.");
-        let finalPointChange = -cost;
-
-        const allUsers = await fetchUsersForAdmin();
-        const claimedMythicIds = new Set<string>();
-        for (const u of allUsers) {
-            (u.characters || []).forEach(c => {
-                (c.familiarCards || []).forEach(cardRef => {
-                    const cardDetails = familiarsById[cardRef.id];
-                    if (cardDetails && (cardDetails.rank === 'мифический')) {
-                        claimedMythicIds.add(cardRef.id);
-                    }
-                });
-            });
-        }
-        
-        const hasBlessing = character.blessingExpires ? new Date(character.blessingExpires) > new Date() : false;
-        newCard = drawFamiliarCard(allFamiliars, hasBlessing, claimedMythicIds);
-        
-        const ownedCardIds = new Set((character.familiarCards || []).map(c => c.id));
-        isDuplicate = ownedCardIds.has(newCard.id);
-        
-        const updatedUser = { ...user };
-        let reason = `Рулетка: получена карта ${newCard.name} (${newCard.rank})`;
-        
-        if (isDuplicate) {
-            finalPointChange += DUPLICATE_REFUND;
-            reason = `Рулетка: дубликат ${newCard.name}, возврат ${DUPLICATE_REFUND} баллов`;
-        } else {
-            const updatedCharacter = { ...character };
-            const familiarCards = [...(updatedCharacter.familiarCards || []), { id: newCard.id }];
-            updatedCharacter.familiarCards = familiarCards;
-            
-            updatedUser.characters[characterIndex] = updatedCharacter;
-            
-            const hasMythicAchievement = (user.achievementIds || []).includes(MYTHIC_PULL_ACHIEVEMENT_ID);
-            if (newCard.rank === 'мифический' && !hasMythicAchievement) {
-                updatedUser.achievementIds = [...(updatedUser.achievementIds || []), MYTHIC_PULL_ACHIEVEMENT_ID];
-            }
-        }
-        
-        const hasFirstPullAchievement = (user.achievementIds || []).includes(FIRST_PULL_ACHIEVEMENT_ID);
-         if (!user.pointHistory.some(log => log.reason.includes('Рулетка')) && !hasFirstPullAchievement) {
-            updatedUser.achievementIds = [...(updatedUser.achievementIds || []), FIRST_PULL_ACHIEVEMENT_ID];
-        }
-
-        updatedUser.points += finalPointChange;
-
-        const newPointLog: PointLog = {
-            id: `h-${Date.now()}-gacha`,
-            date: new Date().toISOString(),
-            amount: finalPointChange,
-            reason: reason,
-            characterId: character.id,
-        };
-        updatedUser.pointHistory.unshift(newPointLog);
-        
-        finalUser = updatedUser;
-        transaction.set(userRef, updatedUser);
-    });
-
-    if (!finalUser || !newCard!) {
-      throw new Error("Транзакция не удалась, попробуйте еще раз.");
-    }
-
-    return { updatedUser: finalUser, newCard: newCard!, isDuplicate };
-  }, [fetchUsersForAdmin, allFamiliars, familiarsById]);
   
-
   const giveAnyFamiliarToCharacter = useCallback(async (userId: string, characterId: string, familiarId: string) => {
     const user = await fetchUserById(userId);
     if (!user) return;
@@ -1888,7 +1886,7 @@ const processMonthlySalary = useCallback(async () => {
     const ranksAreDifferent = initiatorFamiliar.rank !== targetFamiliar.rank;
     const isMythicEventTrade =
       (initiatorFamiliar.rank === 'мифический' && targetFamiliar.rank === 'ивентовый') ||
-      (initiatorFamiliar.rank === 'ивентовый' && targetFamiliar.rank === 'мифический');
+      (initiatorFamiliar.rank === 'ивентовый' && initiatorFamiliar.rank === 'мифический');
 
     if (ranksAreDifferent && !isMythicEventTrade) {
         throw new Error("Обмен возможен только между фамильярами одного ранга, или между мифическим и ивентовым.");
@@ -2876,6 +2874,7 @@ const addFavoritePlayer = useCallback(async (targetUserId: string) => {
       setCurrentUser,
       gameDate: gameSettings.gameDate,
       gameDateString: gameSettings.gameDateString,
+      gameSettings,
       lastWeeklyBonusAwardedAt: gameSettings.lastWeeklyBonusAwardedAt,
       allFamiliars,
       familiarsById,
@@ -2911,6 +2910,7 @@ const addFavoritePlayer = useCallback(async (targetUserId: string) => {
       updateUser,
       updateUserAvatar,
       updateGameDate,
+      updateGameSettings,
       processWeeklyBonus,
       checkExtraCharacterSlots,
       performRelationshipAction,
@@ -2963,7 +2963,7 @@ const addFavoritePlayer = useCallback(async (targetUserId: string) => {
       removeFavoritePlayer,
       deleteUserAccount,
     }),
-    [currentUser, gameSettings, allFamiliars, familiarsById, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, deleteUserAccount]
+    [currentUser, gameSettings, allFamiliars, familiarsById, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, deleteUserAccount]
   );
 
   return (
@@ -2975,13 +2975,3 @@ const addFavoritePlayer = useCallback(async (targetUserId: string) => {
   );
 }
 
-
-
-
-
-
-
-
-
-
-    

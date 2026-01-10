@@ -9,6 +9,18 @@ export const DEFAULT_GAME_SETTINGS: GameSettings = {
     gameDateString: "21 марта 2709 год",
     gameDate: new Date(2709, 2, 21), // Month is 0-indexed (2 = March)
     lastWeeklyBonusAwardedAt: new Date(0).toISOString(), // Initialize with a very old date
+    gachaChances: {
+        normal: {
+            мифический: 2,
+            легендарный: 10,
+            редкий: 25,
+        },
+        blessed: {
+            мифический: 5,
+            легендарный: 20,
+            редкий: 40,
+        }
+    }
 }
 
 export const COUNTRIES: string[] = [
@@ -679,6 +691,7 @@ export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) =>
     acc[shop.id] = shop;
     return acc;
 }, {} as Record<string, Shop>);
+
 
 
 

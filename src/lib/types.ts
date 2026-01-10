@@ -100,6 +100,18 @@ export interface GameSettings {
   gameDateString: string;
   gameDate: Date;
   lastWeeklyBonusAwardedAt?: string; // ISO string date
+  gachaChances: {
+    normal: {
+      мифический: number;
+      легендарный: number;
+      редкий: number;
+    };
+    blessed: {
+      мифический: number;
+      легендарный: number;
+      редкий: number;
+    };
+  };
 }
 
 export interface Achievement {
