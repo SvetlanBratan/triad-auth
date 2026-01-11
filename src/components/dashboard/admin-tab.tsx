@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
 import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info, AlertTriangle, Bell, CheckCircle, Store, PackagePlus, Edit, BadgeCheck, FileText, Send, Gavel, Eye, UserMinus, FlaskConical } from 'lucide-react';
-import type { UserStatus, UserRole, User, FamiliarCard, BankAccount, WealthLevel, FamiliarRank, Shop, InventoryCategory, AdminGiveItemForm, InventoryItem, CitizenshipStatus, TaxpayerStatus, CharacterPopularityUpdate, AlchemyRecipe } from '@/lib/types';
+import type { UserStatus, UserRole, User, FamiliarCard, BankAccount, WealthLevel, FamiliarRank, Shop, InventoryCategory, AdminGiveItemForm, InventoryItem, CitizenshipStatus, TaxpayerStatus, CharacterPopularityUpdate, AlchemyRecipe, GameSettings } from '@/lib/types';
 import { EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, WEALTH_LEVELS, ALL_STATIC_FAMILIARS, STARTING_CAPITAL_LEVELS, ALL_SHOPS, INVENTORY_CATEGORIES, POPULARITY_EVENTS } from '@/lib/data';
 import {
   AlertDialog,
@@ -106,8 +106,10 @@ export default function AdminTab() {
     updateAlchemyRecipe,
     deleteAlchemyRecipe,
     deleteUserAccount,
-    familiarsById, // Use the new provider value
-    allFamiliars, // Use the new provider value
+    familiarsById,
+    allFamiliars,
+    gameSettings,
+    updateGameSettings,
   } = useUser();
   const queryClient = useQueryClient();
 
@@ -148,6 +150,7 @@ export default function AdminTab() {
   const [giveFamiliarUserId, setGiveFamiliarUserId] = useState('');
   const [giveFamiliarCharId, setGiveFamiliarCharId] = useState('');
   const [giveFamiliarId, setGiveFamiliarId] = useState('');
+  const [gachaChances, setGachaChances] = useState(gameSettings.gachaChances);
 
 
   // Achievement state
@@ -965,6 +968,29 @@ export default function AdminTab() {
             toast({ variant: 'destructive', title: 'Ошибка удаления', description: message });
         }
     };
+    
+  const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифический' | 'легендарный' | 'редкий', value: string) => {
+    const numValue = parseInt(value, 10);
+    if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+        setGachaChances(prev => ({
+            ...prev,
+            [type]: {
+                ...prev[type],
+                [rank]: numValue
+            }
+        }));
+    }
+  };
+
+  const handleSaveChances = async () => {
+    try {
+        await updateGameSettings({ gachaChances });
+        toast({ title: "Шансы рулетки обновлены" });
+    } catch(e) {
+        const msg = e instanceof Error ? e.message : "Не удалось сохранить шансы.";
+        toast({ variant: "destructive", title: "Ошибка", description: msg });
+    }
+  };
 
 
   // --- Memos ---
@@ -1964,6 +1990,51 @@ export default function AdminTab() {
                             </div>
                         </CardContent>
                     </Card>
+                    </div>
+                     <div className="break-inside-avoid mb-6">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">Настройка шансов рулетки</CardTitle>
+                                <CardDescription>Задайте процентные шансы на выпадение рангов. Обычный ранг рассчитывается автоматически.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                <div className="space-y-4">
+                                    <h4 className="font-semibold text-sm">Обычная прокрутка</h4>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <div>
+                                            <Label htmlFor="norm-mythic">Миф. (%)</Label>
+                                            <Input id="norm-mythic" type="number" value={gachaChances.normal.мифический} onChange={e => handleChanceChange('normal', 'мифический', e.target.value)} />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="norm-legendary">Лег. (%)</Label>
+                                            <Input id="norm-legendary" type="number" value={gachaChances.normal.легендарный} onChange={e => handleChanceChange('normal', 'легендарный', e.target.value)} />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="norm-rare">Ред. (%)</Label>
+                                            <Input id="norm-rare" type="number" value={gachaChances.normal.редкий} onChange={e => handleChanceChange('normal', 'редкий', e.target.value)} />
+                                        </div>
+                                    </div>
+                                </div>
+                                 <div className="space-y-4">
+                                    <h4 className="font-semibold text-sm">Благословенная прокрутка</h4>
+                                     <div className="grid grid-cols-3 gap-2">
+                                        <div>
+                                            <Label htmlFor="blessed-mythic">Миф. (%)</Label>
+                                            <Input id="blessed-mythic" type="number" value={gachaChances.blessed.мифический} onChange={e => handleChanceChange('blessed', 'мифический', e.target.value)} />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="blessed-legendary">Лег. (%)</Label>
+                                            <Input id="blessed-legendary" type="number" value={gachaChances.blessed.легендарный} onChange={e => handleChanceChange('blessed', 'легендарный', e.target.value)} />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="blessed-rare">Ред. (%)</Label>
+                                            <Input id="blessed-rare" type="number" value={gachaChances.blessed.редкий} onChange={e => handleChanceChange('blessed', 'редкий', e.target.value)} />
+                                        </div>
+                                    </div>
+                                </div>
+                                <Button onClick={handleSaveChances}>Сохранить шансы</Button>
+                            </CardContent>
+                        </Card>
                     </div>
                 </div>
             </TabsContent>
