@@ -421,7 +421,7 @@ export default function UserProfileDialog({ user }: { user: User }) {
                             <Popover key={ach.id}>
                                 <PopoverTrigger asChild>
                                 <Button variant="outline" size="icon" className="w-8 h-8 bg-muted hover:bg-primary/10">
-                                    <DynamicIcon name={ach.id} />
+                                    <DynamicIcon name={ach.id} className="w-6 h-6" />
                                 </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto max-w-xs">
