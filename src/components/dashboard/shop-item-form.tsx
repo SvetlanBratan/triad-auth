@@ -11,10 +11,11 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
 import { Textarea } from '../ui/textarea';
-import { INVENTORY_CATEGORIES } from '@/lib/data';
+import { INVENTORY_CATEGORIES, RACE_OPTIONS } from '@/lib/data';
 import { SearchableSelect } from '../ui/searchable-select';
 import ImageKitUploader from './imagekit-uploader';
 import { Switch } from '../ui/switch';
+import { SearchableMultiSelect } from '../ui/searchable-multi-select';
 
 interface ShopItemFormProps {
     shopId: string;
@@ -32,6 +33,8 @@ const initialFormData: Omit<ShopItem, 'id'> = {
     quantity: undefined, // undefined for infinite
     isHidden: false,
     isSinglePurchase: false,
+    requiredRaces: [],
+    requiredDocument: '',
 };
 
 export default function ShopItemForm({ shopId, item, closeDialog, defaultCategory }: ShopItemFormProps) {
@@ -56,6 +59,8 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
                 quantity: item.quantity,
                 isHidden: item.isHidden || false,
                 isSinglePurchase: item.isSinglePurchase || false,
+                requiredRaces: item.requiredRaces || [],
+                requiredDocument: item.requiredDocument || '',
             });
         } else {
             // For new items, use the default category passed from the parent
@@ -158,6 +163,32 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
                     </p>
                 </div>
                 
+                <div className="space-y-4 pt-4 border-t">
+                    <h4 className="font-semibold text-muted-foreground">Ограничения</h4>
+                     <div>
+                        <Label htmlFor="requiredRaces">Доступно для рас</Label>
+                        <SearchableMultiSelect
+                            options={RACE_OPTIONS}
+                            selected={formData.requiredRaces || []}
+                            onChange={(values) => setFormData(p => ({...p, requiredRaces: values}))}
+                            placeholder="Любая раса"
+                        />
+                    </div>
+                     <div>
+                        <Label htmlFor="requiredDocument">Требуется документ</Label>
+                        <Input
+                            id="requiredDocument"
+                            value={formData.requiredDocument}
+                            onChange={(e) => setFormData(prev => ({...prev, requiredDocument: e.target.value}))}
+                            placeholder="Название документа (напр., 'Лицензия на торговлю')"
+                        />
+                         <p className="text-xs text-muted-foreground mt-1">
+                            Персонаж должен иметь предмет с таким названием в инвентаре в категории "Документы".
+                        </p>
+                    </div>
+                </div>
+
+
                  <div className="flex items-center space-x-2 pt-2">
                     <Switch
                         id="isHidden"

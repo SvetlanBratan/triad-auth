@@ -400,6 +400,8 @@ export interface ShopItem {
   purchaseCount?: number;
   isHidden?: boolean;
   isSinglePurchase?: boolean;
+  requiredRaces?: string[];
+  requiredDocument?: string;
 }
 
 export interface Shop {
@@ -464,8 +466,6 @@ export interface Potion extends InventoryItem {
     durationSec?: number;
   }[];
   tier: "обычный" | "редкий" | "легендарный";
-  image?: string;
-  quantity: number;
 }
 
 export interface AlchemyRecipeComponent {

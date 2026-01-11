@@ -1,9 +1,10 @@
+
 'use client';
 
 import React from 'react';
 import { useParams, notFound, useRouter } from 'next/navigation';
 import { useUser } from '@/hooks/use-user';
-import type { Shop, ShopItem, BankAccount, Character, InventoryCategory, InventoryItem } from '@/lib/types';
+import type { Shop, ShopItem, BankAccount, Character, InventoryCategory } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, UserCircle, PlusCircle, Edit, Trash2, ShoppingCart, Info, Package, Settings, RefreshCw, BadgeCheck, Save, Search, WalletCards, Eye } from 'lucide-react';
@@ -34,6 +35,7 @@ import { Textarea } from '@/components/ui/textarea';
 import FormattedTextRenderer from '@/components/dashboard/formatted-text-renderer';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { INVENTORY_CATEGORIES } from '@/lib/data';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default function ShopPage() {
     const { id } = useParams();
@@ -315,9 +317,23 @@ export default function ShopPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                 {filteredItems.map(item => {
                                     const isOutOfStock = item.quantity === 0;
+                                    
                                     const buyerChar = buyerCharacters.find(c => c.id === buyerCharacterId);
-                                    const hasPurchased = item.isSinglePurchase && buyerChar && 
-                                        (buyerChar.inventory[item.inventoryTag as keyof typeof buyerChar.inventory] as InventoryItem[])?.some(invItem => invItem.name === item.name);
+
+                                    const alreadyPurchased = item.isSinglePurchase && buyerChar && 
+                                        Object.values(buyerChar.inventory).flat().some(invItem => invItem.name === item.name);
+
+                                    const meetsRaceRequirement = !item.requiredRaces || item.requiredRaces.length === 0 || (buyerChar && item.requiredRaces.includes(buyerChar.race.split(' (')[0]));
+
+                                    const meetsDocumentRequirement = !item.requiredDocument || (buyerChar && (buyerChar.inventory.документы || []).some(doc => doc.name === item.requiredDocument));
+                                    
+                                    const canPurchase = !isOutOfStock && !alreadyPurchased && meetsRaceRequirement && meetsDocumentRequirement;
+                                    
+                                    let disabledReason = '';
+                                    if(isOutOfStock) disabledReason = "Нет в наличии";
+                                    else if(alreadyPurchased) disabledReason = "Уже приобретено";
+                                    else if(!meetsRaceRequirement) disabledReason = "Недоступно для вашей расы";
+                                    else if(!meetsDocumentRequirement) disabledReason = `Требуется документ: ${item.requiredDocument}`;
 
                                     return (
                                     <Card key={item.id} className={cn("flex flex-col group overflow-hidden max-w-sm mx-auto", item.isHidden && "opacity-60")}>
@@ -378,10 +394,19 @@ export default function ShopPage() {
                                             <div className="text-primary font-bold">
                                                 {formatCurrency(item.price)}
                                             </div>
-                                            <Button className="w-full" onClick={() => handlePurchaseClick(item)} disabled={isOutOfStock || hasPurchased}>
-                                                <ShoppingCart className="mr-2 h-4 w-4" /> 
-                                                {isOutOfStock ? "Нет в наличии" : (hasPurchased ? "Уже приобретено" : "Купить")}
-                                            </Button>
+                                             <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                         <div className="w-full">
+                                                            <Button className="w-full" onClick={() => handlePurchaseClick(item)} disabled={!canPurchase}>
+                                                                <ShoppingCart className="mr-2 h-4 w-4" /> 
+                                                                {disabledReason || "Купить"}
+                                                            </Button>
+                                                        </div>
+                                                    </TooltipTrigger>
+                                                    {disabledReason && <TooltipContent><p>{disabledReason}</p></TooltipContent>}
+                                                </Tooltip>
+                                            </TooltipProvider>
                                         </CardFooter>
                                     </Card>
                                 )})}
