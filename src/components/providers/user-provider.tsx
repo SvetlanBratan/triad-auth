@@ -829,7 +829,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     await updateUser(userId, { avatar: avatarUrl });
   }, [updateUser]);
 
-
   const addPointsToUser = useCallback(async (userId: string, amount: number, reason: string, characterId?: string): Promise<User | null> => {
     const user = await fetchUserById(userId);
     if (!user) return null;
@@ -2116,6 +2115,15 @@ const processMonthlySalary = useCallback(async () => {
         const buyerCharIndex = buyerUserData.characters.findIndex(c => c.id === buyerCharacterId);
         if (buyerCharIndex === -1) throw new Error("Персонаж покупателя не найден.");
         const buyerChar = buyerUserData.characters[buyerCharIndex];
+
+        // Check if single-purchase item has been bought
+        if (item.isSinglePurchase) {
+            const inventory = buyerChar.inventory || {};
+            const alreadyOwned = Object.values(inventory).flat().some(invItem => (invItem as InventoryItem).name === item.name);
+            if (alreadyOwned) {
+                throw new Error("Этот товар можно купить только один раз.");
+            }
+        }
         
         // 2. Check funds
         const price = item.price;
@@ -2974,4 +2982,3 @@ const addFavoritePlayer = useCallback(async (targetUserId: string) => {
     </AuthContext.Provider>
   );
 }
-

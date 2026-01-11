@@ -31,6 +31,7 @@ const initialFormData: Omit<ShopItem, 'id'> = {
     inventoryTag: 'прочее',
     quantity: undefined, // undefined for infinite
     isHidden: false,
+    isSinglePurchase: false,
 };
 
 export default function ShopItemForm({ shopId, item, closeDialog, defaultCategory }: ShopItemFormProps) {
@@ -54,6 +55,7 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
                 inventoryTag: item.inventoryTag || 'прочее',
                 quantity: item.quantity,
                 isHidden: item.isHidden || false,
+                isSinglePurchase: item.isSinglePurchase || false,
             });
         } else {
             // For new items, use the default category passed from the parent
@@ -164,6 +166,14 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
                     />
                     <Label htmlFor="isHidden">Скрыть товар от покупателей</Label>
                 </div>
+                <div className="flex items-center space-x-2 pt-2">
+                    <Switch
+                        id="isSinglePurchase"
+                        checked={formData.isSinglePurchase}
+                        onCheckedChange={(checked) => setFormData(prev => ({...prev, isSinglePurchase: checked}))}
+                    />
+                    <Label htmlFor="isSinglePurchase">Только одна покупка на персонажа</Label>
+                </div>
             </div>
              <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t">
                 <Button type="button" variant="ghost" onClick={closeDialog}>Отмена</Button>
@@ -172,5 +182,3 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
         </form>
     );
 }
-
-    

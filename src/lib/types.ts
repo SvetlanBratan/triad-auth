@@ -398,6 +398,7 @@ export interface ShopItem {
   quantity?: number; // undefined or -1 for infinite
   purchaseCount?: number;
   isHidden?: boolean;
+  isSinglePurchase?: boolean;
 }
 
 export interface Shop {

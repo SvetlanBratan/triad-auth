@@ -317,6 +317,10 @@ export default function ShopPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                 {filteredItems.map(item => {
                                     const isOutOfStock = item.quantity === 0;
+                                    const buyerChar = buyerCharacters.find(c => c.id === buyerCharacterId);
+                                    const hasPurchased = item.isSinglePurchase && buyerChar && 
+                                        (buyerChar.inventory[item.inventoryTag as keyof typeof buyerChar.inventory] as InventoryItem[])?.some(invItem => invItem.name === item.name);
+
                                     return (
                                     <Card key={item.id} className={cn("flex flex-col group overflow-hidden max-w-sm mx-auto", item.isHidden && "opacity-60")}>
                                         {item.image && (
@@ -376,8 +380,9 @@ export default function ShopPage() {
                                             <div className="text-primary font-bold">
                                                 {formatCurrency(item.price)}
                                             </div>
-                                            <Button className="w-full" onClick={() => handlePurchaseClick(item)} disabled={isOutOfStock}>
-                                                <ShoppingCart className="mr-2 h-4 w-4" /> {isOutOfStock ? "Нет в наличии" : "Купить"}
+                                            <Button className="w-full" onClick={() => handlePurchaseClick(item)} disabled={isOutOfStock || hasPurchased}>
+                                                <ShoppingCart className="mr-2 h-4 w-4" /> 
+                                                {isOutOfStock ? "Нет в наличии" : (hasPurchased ? "Уже приобретено" : "Купить")}
                                             </Button>
                                         </CardFooter>
                                     </Card>
@@ -519,7 +524,8 @@ export default function ShopPage() {
                                     if(val > 0) setPurchaseQuantity(val);
                                 }}
                                 min={1}
-                                max={selectedItemForPurchase?.quantity}
+                                max={selectedItemForPurchase?.isSinglePurchase ? 1 : selectedItemForPurchase?.quantity}
+                                disabled={selectedItemForPurchase?.isSinglePurchase}
                             />
                         </div>
 
