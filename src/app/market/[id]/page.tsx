@@ -1,11 +1,9 @@
-
-
 'use client';
 
 import React from 'react';
 import { useParams, notFound, useRouter } from 'next/navigation';
 import { useUser } from '@/hooks/use-user';
-import type { Shop, ShopItem, BankAccount, Character, InventoryCategory } from '@/lib/types';
+import type { Shop, ShopItem, BankAccount, Character, InventoryCategory, InventoryItem } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, UserCircle, PlusCircle, Edit, Trash2, ShoppingCart, Info, Package, Settings, RefreshCw, BadgeCheck, Save, Search, WalletCards, Eye } from 'lucide-react';
@@ -592,4 +590,3 @@ export default function ShopPage() {
         </div>
     );
 }
-
