@@ -1,8 +1,9 @@
+
 'use client';
 
 import React from 'react';
 import type { Character, User, Accomplishment, Relationship, RelationshipType, CrimeLevel, CitizenshipStatus, Inventory, GalleryImage } from '@/lib/types';
-import { SKILL_LEVELS, FAME_LEVELS, TRAINING_OPTIONS, CRIME_LEVELS, COUNTRIES } from '@/lib/data';
+import { SKILL_LEVELS, FAME_LEVELS, TRAINING_OPTIONS, CRIME_LEVELS, COUNTRIES, RACE_OPTIONS } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { DialogClose, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -186,11 +187,17 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
     // State for the single item being edited/added
     const [currentItem, setCurrentItem] = React.useState<Relationship | Accomplishment | null>(null);
 
+    // State for race editing
+    const [baseRace, setBaseRace] = React.useState('');
+    const [raceDetails, setRaceDetails] = React.useState('');
+
      React.useEffect(() => {
         const initializeState = () => {
             if (isCreating) {
                 const newCharacterWithId = { ...initialFormData, id: `c-${Date.now()}` };
                 setFormData(newCharacterWithId);
+                setBaseRace('');
+                setRaceDetails('');
             } else if (character) {
                 const initializedCharacter = {
                     ...initialFormData,
@@ -207,6 +214,17 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                     galleryImages: (character.galleryImages || []).map(img => ({...img, id: img.id || `img-${Date.now()}-${Math.random()}`})),
                 };
                 setFormData(initializedCharacter);
+
+                // Initialize race fields
+                const raceString = initializedCharacter.race || '';
+                const match = raceString.match(/^(.*?)\s*\((.*)\)$/);
+                if (match) {
+                    setBaseRace(match[1].trim());
+                    setRaceDetails(match[2].trim());
+                } else {
+                    setBaseRace(raceString);
+                    setRaceDetails('');
+                }
             }
         };
 
@@ -222,6 +240,19 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
             setCurrentItem(null);
         }
     }, [editingState, character, isCreating]);
+
+    // Effect to update formData.race when baseRace or raceDetails change
+    React.useEffect(() => {
+        if (editingState?.type === 'createCharacter' || (editingState?.type === 'field' && editingState.field === 'race') || (editingState?.type === 'section' && editingState.section === 'mainInfo')) {
+            let combinedRace = baseRace.trim();
+            if (raceDetails.trim()) {
+                combinedRace += ` (${raceDetails.trim()})`;
+            }
+            if (formData.race !== combinedRace) {
+                handleFieldChange('race', combinedRace);
+            }
+        }
+    }, [baseRace, raceDetails, editingState, formData.race]);
     
 
     const characterOptions = React.useMemo(() => {
@@ -415,11 +446,23 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                                     placeholder="Выберите статус..."
                                 />
                             </div>
-                            <div>
+                            <div className="space-y-2">
                                 <Label htmlFor="race">Раса</Label>
-                                <Input id="race" value={formData.race ?? ''} onChange={(e) => handleFieldChange('race', e.target.value)} disabled={!isAdmin && formData.raceIsConfirmed} />
+                                <SearchableSelect
+                                    options={RACE_OPTIONS}
+                                    value={baseRace}
+                                    onValueChange={setBaseRace}
+                                    placeholder="Выберите расу..."
+                                    disabled={!isAdmin && formData.raceIsConfirmed}
+                                />
+                                <Input
+                                    value={raceDetails}
+                                    onChange={(e) => setRaceDetails(e.target.value)}
+                                    placeholder="Уточнение в скобках (необязательно)"
+                                    disabled={!isAdmin && formData.raceIsConfirmed}
+                                />
                                 {isAdmin && (
-                                     <div className="flex items-center space-x-2 mt-2">
+                                     <div className="flex items-center space-x-2 pt-2">
                                         <Switch
                                             id="race-confirmed-switch"
                                             checked={formData.raceIsConfirmed}
@@ -526,9 +569,21 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                 if (field === 'race') {
                     return (
                         <div className="space-y-4">
-                            <div>
+                            <div className="space-y-2">
                                 <Label htmlFor="race">Раса</Label>
-                                <Input id="race" value={formData.race ?? ''} onChange={(e) => handleFieldChange('race', e.target.value)} disabled={!isAdmin && formData.raceIsConfirmed}/>
+                                <SearchableSelect
+                                    options={RACE_OPTIONS}
+                                    value={baseRace}
+                                    onValueChange={setBaseRace}
+                                    placeholder="Выберите расу..."
+                                    disabled={!isAdmin && formData.raceIsConfirmed}
+                                />
+                                <Input
+                                    value={raceDetails}
+                                    onChange={(e) => setRaceDetails(e.target.value)}
+                                    placeholder="Уточнение в скобках (необязательно)"
+                                    disabled={!isAdmin && formData.raceIsConfirmed}
+                                />
                             </div>
                             {isAdmin && (
                                 <div className="flex items-center space-x-2">
@@ -687,3 +742,4 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
 };
 
 export default CharacterForm;
+
