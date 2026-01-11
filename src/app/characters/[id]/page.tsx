@@ -502,7 +502,7 @@ export default function CharacterPage() {
                              <TooltipProvider>
                                 <Tooltip>
                                     <TooltipTrigger><ShieldCheck className="w-4 h-4 text-green-600" /></TooltipTrigger>
-                                    <TooltipContent><p>Раса подтверждена администратором</p></TooltipContent>
+                                    <TooltipContent><p>Раса подтверждена</p></TooltipContent>
                                 </Tooltip>
                             </TooltipProvider>
                         ) : (
