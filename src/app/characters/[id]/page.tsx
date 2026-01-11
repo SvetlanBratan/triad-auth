@@ -454,7 +454,7 @@ export default function CharacterPage() {
                     <div className="flex-1 text-left">
                         {isEmpty && isOwnerOrAdmin ? <span className="italic text-muted-foreground/80">Не указано</span> : finalValue}
                     </div>
-                     {isOwnerOrAdmin && (field !== 'race' || (field === 'race' && !character.raceIsConfirmed)) && (
+                     {isOwnerOrAdmin && (field !== 'race' || (field === 'race' && (isAdmin || !character.raceIsConfirmed))) && (
                          <Button
                             variant="ghost"
                             size="icon"
@@ -767,7 +767,7 @@ export default function CharacterPage() {
                     </AccordionTrigger>
                     {isOwnerOrAdmin && (
                         <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setEditingState({ type: 'relationship', mode: 'add' })}} className="shrink-0 self-center ml-2 h-8 w-8">
-                            <PlusCircle className="h-4 w-4" />
+                            <PlusCircle className="h-4 h-4" />
                         </Button>
                     )}
                 </div>
@@ -1381,3 +1381,6 @@ export default function CharacterPage() {
 
     
 
+
+
+    
