@@ -1143,7 +1143,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
     return allMythicCards.length - claimedMythicIds.size;
   }, [fetchUsersForAdmin, allFamiliars, familiarsById]);
-
   
   const giveAnyFamiliarToCharacter = useCallback(async (userId: string, characterId: string, familiarId: string) => {
     const user = await fetchUserById(userId);
@@ -1885,7 +1884,7 @@ const processMonthlySalary = useCallback(async () => {
     const ranksAreDifferent = initiatorFamiliar.rank !== targetFamiliar.rank;
     const isMythicEventTrade =
       (initiatorFamiliar.rank === 'мифический' && targetFamiliar.rank === 'ивентовый') ||
-      (initiatorFamiliar.rank === 'ивентовый' && initiatorFamiliar.rank === 'мифический');
+      (initiatorFamiliar.rank === 'ивентовый' && targetFamiliar.rank === 'мифический');
 
     if (ranksAreDifferent && !isMythicEventTrade) {
         throw new Error("Обмен возможен только между фамильярами одного ранга, или между мифическим и ивентовым.");
@@ -2982,3 +2981,4 @@ const addFavoritePlayer = useCallback(async (targetUserId: string) => {
     </AuthContext.Provider>
   );
 }
+
