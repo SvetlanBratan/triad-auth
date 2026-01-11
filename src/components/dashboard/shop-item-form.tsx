@@ -33,7 +33,7 @@ const initialFormData: Omit<ShopItem, 'id'> = {
     quantity: undefined, // undefined for infinite
     isHidden: false,
     isSinglePurchase: false,
-    requiredRaces: [],
+    excludedRaces: [],
     requiredDocument: '',
 };
 
@@ -76,7 +76,7 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
                 quantity: item.quantity,
                 isHidden: item.isHidden || false,
                 isSinglePurchase: item.isSinglePurchase || false,
-                requiredRaces: item.requiredRaces || [],
+                excludedRaces: item.excludedRaces || [],
                 requiredDocument: item.requiredDocument || '',
             });
         } else {
@@ -183,12 +183,12 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
                 <div className="space-y-4 pt-4 border-t">
                     <h4 className="font-semibold text-muted-foreground">Ограничения</h4>
                      <div>
-                        <Label htmlFor="requiredRaces">Доступно для рас</Label>
+                        <Label htmlFor="excludedRaces">Недоступно для рас</Label>
                         <SearchableMultiSelect
                             options={RACE_OPTIONS}
-                            selected={formData.requiredRaces || []}
-                            onChange={(values) => setFormData(p => ({...p, requiredRaces: values}))}
-                            placeholder="Любая раса"
+                            selected={formData.excludedRaces || []}
+                            onChange={(values) => setFormData(p => ({...p, excludedRaces: values}))}
+                            placeholder="Доступно для всех рас"
                         />
                     </div>
                      <div>

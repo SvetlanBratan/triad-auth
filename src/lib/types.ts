@@ -400,7 +400,7 @@ export interface ShopItem {
   purchaseCount?: number;
   isHidden?: boolean;
   isSinglePurchase?: boolean;
-  requiredRaces?: string[];
+  excludedRaces?: string[];
   requiredDocument?: string;
 }
 

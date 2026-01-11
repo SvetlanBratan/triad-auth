@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React from 'react';
@@ -323,7 +324,7 @@ export default function ShopPage() {
                                     const alreadyPurchased = item.isSinglePurchase && buyerChar && 
                                         Object.values(buyerChar.inventory).flat().some(invItem => invItem.name === item.name);
 
-                                    const meetsRaceRequirement = !item.requiredRaces || item.requiredRaces.length === 0 || (buyerChar && item.requiredRaces.includes(buyerChar.race.split(' (')[0]));
+                                    const meetsRaceRequirement = !item.excludedRaces || !buyerChar || !item.excludedRaces.includes(buyerChar.race.split(' (')[0]);
 
                                     const meetsDocumentRequirement = !item.requiredDocument || (buyerChar && (buyerChar.inventory.документы || []).some(doc => doc.name === item.requiredDocument));
                                     
