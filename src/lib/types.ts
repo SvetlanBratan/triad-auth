@@ -1,6 +1,5 @@
 
 
-
 export type UserRole = "admin" | "user";
 export type UserStatus = "активный" | "неактивный" | "отпуск";
 export type PlayerStatus =
@@ -287,6 +286,7 @@ export interface Character {
   name: string;
   activity: string;
   race: string;
+  raceIsConfirmed?: boolean;
   birthDate: string;
   countryOfResidence?: string;
   residenceLocation?: string;

@@ -443,17 +443,18 @@ export default function CharacterPage() {
         );
     };
     
-     const InfoRow = ({ label, value, field, section, isVisible = true, icon }: { label: string, value: React.ReactNode, field: keyof Character, section: EditableSection | 'mainInfo', isVisible?: boolean, icon?: React.ReactNode }) => {
+     const InfoRow = ({ label, value, field, section, isVisible = true, icon, children }: { label: string, value?: React.ReactNode, field: keyof Character, section: EditableSection | 'mainInfo', isVisible?: boolean, icon?: React.ReactNode, children?: React.ReactNode }) => {
         if (!isVisible && !isOwnerOrAdmin) return null;
-        const isEmpty = !value;
+        const finalValue = children || value;
+        const isEmpty = !finalValue;
         return (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-1 gap-x-4 group items-start">
                 <span className="text-muted-foreground col-span-1 flex items-center gap-1.5">{icon}{label}:</span>
                 <div className="flex items-center justify-between col-span-1 sm:col-span-2">
                     <div className="flex-1 text-left">
-                        {isEmpty && isOwnerOrAdmin ? <span className="italic text-muted-foreground/80">Не указано</span> : value}
+                        {isEmpty && isOwnerOrAdmin ? <span className="italic text-muted-foreground/80">Не указано</span> : finalValue}
                     </div>
-                    {isOwnerOrAdmin && (
+                     {isOwnerOrAdmin && (field !== 'race' || (field === 'race' && !character.raceIsConfirmed)) && (
                          <Button
                             variant="ghost"
                             size="icon"
@@ -481,6 +482,11 @@ export default function CharacterPage() {
         return { text: 'Удалить', variant: 'destructive' as const };
     };
 
+    const handleRaceConfirm = () => {
+        if (!isAdmin || !character) return;
+        mutation.mutate({ ...character, raceIsConfirmed: true });
+    }
+
     const renderMainInfo = () => (
         <Card>
             <CardHeader>
@@ -489,7 +495,32 @@ export default function CharacterPage() {
             <CardContent className="space-y-4 text-sm">
                 <InfoRow label="Имя" value={character.name} field="name" section="mainInfo" />
                 <InfoRow label="Деятельность" value={character.activity} field="activity" section="mainInfo" />
-                <InfoRow label="Раса" value={character.race} field="race" section="mainInfo" />
+                <InfoRow label="Раса" field="race" section="mainInfo">
+                    <div className="flex items-center gap-2">
+                        <span>{character.race}</span>
+                        {character.raceIsConfirmed ? (
+                             <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger><ShieldCheck className="w-4 h-4 text-green-600" /></TooltipTrigger>
+                                    <TooltipContent><p>Раса подтверждена администратором</p></TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        ) : (
+                            isAdmin && (
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleRaceConfirm}>
+                                                <ShieldAlert className="w-4 h-4 text-yellow-600"/>
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent><p>Подтвердить расу</p></TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            )
+                        )}
+                    </div>
+                </InfoRow>
                 <InfoRow
                     label="Дата рождения"
                     value={
@@ -1349,3 +1380,4 @@ export default function CharacterPage() {
     
 
     
+

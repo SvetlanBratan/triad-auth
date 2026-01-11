@@ -9,12 +9,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '../ui/textarea';
 import { ScrollArea } from '../ui/scroll-area';
-import { Trash2, PlusCircle } from 'lucide-react';
+import { Trash2, PlusCircle, Check } from 'lucide-react';
 import { SearchableSelect } from '../ui/searchable-select';
 import ImageUploader from './image-uploader';
 import { SearchableMultiSelect } from '../ui/searchable-multi-select';
 import { Switch } from '../ui/switch';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
+import { useUser } from '@/hooks/use-user';
 
 
 export type EditableSection = 
@@ -61,6 +62,7 @@ const initialFormData: Omit<Character, 'id'> = {
     name: '',
     activity: '',
     race: '',
+    raceIsConfirmed: false,
     birthDate: '',
     crimeLevel: 5,
     countryOfResidence: '',
@@ -177,6 +179,8 @@ const FormattingHelp = () => (
 
 const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingState }: CharacterFormProps) => {
     const isCreating = editingState?.type === 'createCharacter';
+    const { currentUser } = useUser();
+    const isAdmin = currentUser?.role === 'admin';
     const [formData, setFormData] = React.useState<Character>({ ...initialFormData, id: `c-${Date.now()}`});
     
     // State for the single item being edited/added
@@ -357,6 +361,9 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                 if (editingState.field === 'countryOfResidence' || editingState.field === 'citizenshipStatus' || editingState.field === 'residenceLocation') {
                     return 'Редактировать: Место жительства';
                 }
+                 if (editingState.field === 'race') {
+                    return 'Редактировать: Раса';
+                }
                 return `Редактировать: ${FieldLabels[editingState.field] || 'поле'}`;
             }
         }
@@ -410,7 +417,17 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                             </div>
                             <div>
                                 <Label htmlFor="race">Раса</Label>
-                                <Input id="race" value={formData.race ?? ''} onChange={(e) => handleFieldChange('race', e.target.value)} />
+                                <Input id="race" value={formData.race ?? ''} onChange={(e) => handleFieldChange('race', e.target.value)} disabled={!isAdmin && formData.raceIsConfirmed} />
+                                {isAdmin && (
+                                     <div className="flex items-center space-x-2 mt-2">
+                                        <Switch
+                                            id="race-confirmed-switch"
+                                            checked={formData.raceIsConfirmed}
+                                            onCheckedChange={(checked) => handleFieldChange('raceIsConfirmed', checked)}
+                                        />
+                                        <Label htmlFor="race-confirmed-switch">Раса подтверждена</Label>
+                                    </div>
+                                )}
                             </div>
                             <div>
                                 <Label htmlFor="birthDate">Дата рождения</Label>
@@ -506,6 +523,26 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
 
             case 'field':
                 const field = editingState.field;
+                if (field === 'race') {
+                    return (
+                        <div className="space-y-4">
+                            <div>
+                                <Label htmlFor="race">Раса</Label>
+                                <Input id="race" value={formData.race ?? ''} onChange={(e) => handleFieldChange('race', e.target.value)} disabled={!isAdmin && formData.raceIsConfirmed}/>
+                            </div>
+                            {isAdmin && (
+                                <div className="flex items-center space-x-2">
+                                    <Switch
+                                        id="race-confirmed-switch"
+                                        checked={formData.raceIsConfirmed}
+                                        onCheckedChange={(checked) => handleFieldChange('raceIsConfirmed', checked)}
+                                    />
+                                    <Label htmlFor="race-confirmed-switch">Раса подтверждена</Label>
+                                </div>
+                            )}
+                        </div>
+                    );
+                }
                  if(field === 'countryOfResidence' || field === 'citizenshipStatus' || field === 'residenceLocation') {
                      return (
                          <div className="space-y-4">
