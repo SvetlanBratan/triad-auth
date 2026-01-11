@@ -2,20 +2,20 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import type { ShopItem, Currency, InventoryCategory } from '@/lib/types';
 import { useUser } from '@/hooks/use-user';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { ScrollArea } from '../ui/scroll-area';
 import { Textarea } from '../ui/textarea';
 import { INVENTORY_CATEGORIES, RACE_OPTIONS } from '@/lib/data';
 import { SearchableSelect } from '../ui/searchable-select';
 import ImageKitUploader from './imagekit-uploader';
 import { Switch } from '../ui/switch';
 import { SearchableMultiSelect } from '../ui/searchable-multi-select';
+import { useQuery } from '@tanstack/react-query';
 
 interface ShopItemFormProps {
     shopId: string;
@@ -38,10 +38,27 @@ const initialFormData: Omit<ShopItem, 'id'> = {
 };
 
 export default function ShopItemForm({ shopId, item, closeDialog, defaultCategory }: ShopItemFormProps) {
-    const { addShopItem, updateShopItem } = useUser();
+    const { addShopItem, updateShopItem, fetchAllShops } = useUser();
     const { toast } = useToast();
     const [formData, setFormData] = useState<Omit<ShopItem, 'id'>>(initialFormData);
     const [isLoading, setIsLoading] = useState(false);
+
+    const { data: allShops = [] } = useQuery({
+      queryKey: ['allShops'],
+      queryFn: fetchAllShops,
+    });
+
+    const allDocumentOptions = useMemo(() => {
+      const documentNames = new Set<string>();
+      allShops.forEach(shop => {
+        (shop.items || []).forEach(item => {
+          if (item.inventoryTag === 'документы' && item.name) {
+            documentNames.add(item.name);
+          }
+        });
+      });
+      return Array.from(documentNames).map(name => ({ label: name, value: name }));
+    }, [allShops]);
 
     useEffect(() => {
         if (item) {
@@ -176,11 +193,11 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
                     </div>
                      <div>
                         <Label htmlFor="requiredDocument">Требуется документ</Label>
-                        <Input
-                            id="requiredDocument"
-                            value={formData.requiredDocument}
-                            onChange={(e) => setFormData(prev => ({...prev, requiredDocument: e.target.value}))}
-                            placeholder="Название документа (напр., 'Лицензия на торговлю')"
+                        <SearchableSelect
+                            options={allDocumentOptions}
+                            value={formData.requiredDocument || ''}
+                            onValueChange={(value) => setFormData(prev => ({...prev, requiredDocument: value }))}
+                            placeholder="Выберите документ..."
                         />
                          <p className="text-xs text-muted-foreground mt-1">
                             Персонаж должен иметь предмет с таким названием в инвентаре в категории "Документы".
