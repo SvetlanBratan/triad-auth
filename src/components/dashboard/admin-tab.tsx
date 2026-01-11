@@ -232,6 +232,7 @@ export default function AdminTab() {
   const [editingRecipeId, setEditingRecipeId] = useState<string | null>(null);
   const [newRecipe, setNewRecipe] = useState<Omit<AlchemyRecipe, 'id' | 'createdAt'>>({ name: '', components: [], resultPotionId: '', outputQty: 1, difficulty: 1 });
   const [isSavingRecipe, setIsSavingRecipe] = useState(false);
+  const [isAddingRecipe, setIsAddingRecipe] = useState(false);
 
 
   useEffect(() => {
@@ -2476,15 +2477,3 @@ export default function AdminTab() {
 }
 
     
-
-
-
-
-
-
-
-
-
-
-
-
