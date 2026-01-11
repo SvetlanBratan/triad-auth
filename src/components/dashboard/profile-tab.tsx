@@ -93,7 +93,7 @@ const CharacterDisplay = ({ character, onDelete }: { character: Character, onDel
 
 
     return (
-        <AccordionItem value={character.id} className="border rounded-md px-2 mb-2 hover:bg-muted/50 transition-colors duration-200">
+        <AccordionItem value={character.id} className="border rounded-md px-2 mb-2 hover:bg-muted/50 dark:hover:bg-muted/30 transition-colors duration-200">
              <div className="flex justify-between items-center w-full">
                  <AccordionTrigger className="flex-1 py-3 hover:no-underline group">
                    <div className="flex items-center gap-3">
