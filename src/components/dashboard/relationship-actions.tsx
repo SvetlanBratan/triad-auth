@@ -27,7 +27,7 @@ const Cooldowns = {
     письмо: 7 * 24, // hours
 }
 
-const giftableCategories: InventoryCategory[] = ['подарки', 'драгоценности', 'еда', 'книгиИСвитки', 'артефакты', 'зелья', 'прочее'];
+const giftableCategories: InventoryCategory[] = ['подарки', 'драгоценности', 'еда', 'книгиИСвитки', 'артефакты', 'зелья', 'прочее', 'документы', 'недвижимость', 'гардероб', 'доспехи', 'оружие', 'инструменты', 'транспорт', 'мебель', 'души'];
 
 
 export default function RelationshipActions({ targetCharacter }: RelationshipActionsProps) {
