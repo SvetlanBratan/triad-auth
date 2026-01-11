@@ -72,7 +72,7 @@ export const RACE_OPTIONS: OptionType[] = [
     { value: 'Нетленный', label: 'Нетленный' },
     { value: 'Нимфилус', label: 'Нимфилус' },
     { value: 'Оборотень', label: 'Оборотень' },
-    { value: 'Огненный крылан (Феникс)', label: 'Огненный крылан (Феникс)' },
+    { value: 'Феникс', label: 'Феникс' },
     { value: 'Оприт', label: 'Оприт' },
     { value: 'Пересмешник', label: 'Пересмешник' },
     { value: 'Полукот', label: 'Полукот' },
@@ -771,6 +771,7 @@ export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) =>
     acc[shop.id] = shop;
     return acc;
 }, {} as Record<string, Shop>);
+
 
 
 
