@@ -1,5 +1,6 @@
 
 
+
 export type UserRole = "admin" | "user";
 export type UserStatus = "активный" | "неактивный" | "отпуск";
 export type PlayerStatus =
@@ -433,6 +434,7 @@ export interface PerformRelationshipActionParams {
   description: string;
   itemId?: string;
   itemCategory?: InventoryCategory;
+  quantity?: number;
   content?: string; // For letters
 }
 

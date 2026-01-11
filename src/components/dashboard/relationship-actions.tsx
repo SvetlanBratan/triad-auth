@@ -16,6 +16,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/
 import { differenceInHours, differenceInDays } from 'date-fns';
 import { SearchableSelect } from '../ui/searchable-select';
 import { INVENTORY_CATEGORIES } from '@/lib/data';
+import { Input } from '../ui/input';
 
 
 interface RelationshipActionsProps {
@@ -38,7 +39,8 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
     const [isLoading, setIsLoading] = useState(false);
     const [isGiftDialogOpen, setIsGiftDialogOpen] = useState(false);
     const [isLetterDialogOpen, setIsLetterDialogOpen] = useState(false);
-    const [selectedGift, setSelectedGift] = useState<{ itemId: string; category: InventoryCategory; name: string } | null>(null);
+    const [selectedGift, setSelectedGift] = useState<{ itemId: string; category: InventoryCategory; name: string; maxQuantity: number } | null>(null);
+    const [giftQuantity, setGiftQuantity] = useState(1);
     const [letterContent, setLetterContent] = useState('');
     
     const hasAnyRelationship = useMemo(() => {
@@ -116,6 +118,7 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
              if (params.actionType === 'подарок') {
                 setIsGiftDialogOpen(false);
                 setSelectedGift(null);
+                setGiftQuantity(1);
             }
 
         } catch (error) {
@@ -127,14 +130,15 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
     }
     
     const handleGiftAction = () => {
-        if (!selectedGift) return;
+        if (!selectedGift || giftQuantity <= 0) return;
         handleAction({
             sourceCharacterId,
             targetCharacterId: targetCharacter.id,
             actionType: 'подарок',
-            description: `Подарен предмет: ${selectedGift.name}`,
+            description: `Подарен предмет: ${selectedGift.name} (x${giftQuantity})`,
             itemId: selectedGift.itemId,
-            itemCategory: selectedGift.category
+            itemCategory: selectedGift.category,
+            quantity: giftQuantity,
         })
     };
 
@@ -169,7 +173,7 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
                 label: categoryLabel,
                 options: items.map(item => ({
                     label: `${item.name}${item.quantity > 1 ? ` (x${item.quantity})` : ''}`,
-                    value: JSON.stringify({ itemId: item.id, category: categoryKey, name: item.name })
+                    value: JSON.stringify({ itemId: item.id, category: categoryKey, name: item.name, maxQuantity: item.quantity })
                 }))
             };
         }).filter(group => group && group.options.length > 0);
@@ -199,7 +203,7 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
                     <SearchableSelect
                         options={sourceCharacterOptions}
                         value={sourceCharacterId}
-                        onValueChange={(val) => { setSourceCharacterId(val); setSelectedGift(null); }}
+                        onValueChange={(val) => { setSourceCharacterId(val); setSelectedGift(null); setGiftQuantity(1); }}
                         placeholder="Выберите персонажа..."
                     />
                 </div>
@@ -232,18 +236,42 @@ export default function RelationshipActions({ targetCharacter }: RelationshipAct
                                                 Выберите предмет из инвентаря персонажа {sourceCharacter?.name}, чтобы подарить его {targetCharacter.name}.
                                             </DialogDescription>
                                         </DialogHeader>
-                                        <div className="py-4 space-y-2">
-                                            <Label htmlFor="gift-select">Предмет</Label>
-                                            <SearchableSelect
-                                                options={giftableItemsOptions}
-                                                value={selectedGift ? JSON.stringify(selectedGift) : ''}
-                                                onValueChange={(val) => setSelectedGift(JSON.parse(val))}
-                                                placeholder="Выберите предмет для подарка..."
-                                            />
+                                        <div className="py-4 space-y-4">
+                                            <div>
+                                                <Label htmlFor="gift-select">Предмет</Label>
+                                                <SearchableSelect
+                                                    options={giftableItemsOptions}
+                                                    value={selectedGift ? JSON.stringify(selectedGift) : ''}
+                                                    onValueChange={(val) => {
+                                                        const parsed = JSON.parse(val);
+                                                        setSelectedGift(parsed);
+                                                        setGiftQuantity(1); // Reset quantity on new item selection
+                                                    }}
+                                                    placeholder="Выберите предмет для подарка..."
+                                                />
+                                            </div>
+                                             {selectedGift && selectedGift.maxQuantity > 1 && (
+                                                <div>
+                                                    <Label htmlFor="gift-quantity">Количество</Label>
+                                                    <Input
+                                                        id="gift-quantity"
+                                                        type="number"
+                                                        value={giftQuantity}
+                                                        onChange={(e) => {
+                                                            const val = parseInt(e.target.value, 10);
+                                                            if (val > 0 && val <= selectedGift.maxQuantity) {
+                                                                setGiftQuantity(val);
+                                                            }
+                                                        }}
+                                                        min={1}
+                                                        max={selectedGift.maxQuantity}
+                                                    />
+                                                </div>
+                                            )}
                                         </div>
                                         <DialogFooter>
                                             <DialogClose asChild><Button variant="ghost">Отмена</Button></DialogClose>
-                                            <Button onClick={handleGiftAction} disabled={isLoading || !selectedGift}>
+                                            <Button onClick={handleGiftAction} disabled={isLoading || !selectedGift || giftQuantity <= 0}>
                                                 {isLoading ? 'Отправка...' : 'Подарить'}
                                             </Button>
                                         </DialogFooter>

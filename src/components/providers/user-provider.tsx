@@ -1285,7 +1285,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const performRelationshipAction = useCallback(async (params: PerformRelationshipActionParams) => {
-    const { sourceUserId, sourceCharacterId, targetCharacterId, actionType, description, itemId, itemCategory, content } = params;
+    const { sourceUserId, sourceCharacterId, targetCharacterId, actionType, description, itemId, itemCategory, quantity = 1, content } = params;
 
     await runTransaction(db, async (transaction) => {
         // --- 1. Get all necessary documents ---
@@ -1327,12 +1327,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const categoryItems = (sourceInventory[itemCategory] as InventoryItem[] | undefined) || [];
             const itemIndex = categoryItems.findIndex(i => i.id === itemId);
 
-            if (itemIndex === -1) throw new Error("Предмет для подарка не найден в инвентаре.");
+            if (itemIndex === -1 || categoryItems[itemIndex].quantity < quantity) throw new Error("Предмет для подарка не найден или его недостаточно в инвентаре.");
+            
             const itemToGift = { ...categoryItems[itemIndex] };
 
             // Remove from source
-            if (itemToGift.quantity > 1) {
-                categoryItems[itemIndex].quantity -= 1;
+            if (categoryItems[itemIndex].quantity > quantity) {
+                categoryItems[itemIndex].quantity -= quantity;
             } else {
                 categoryItems.splice(itemIndex, 1);
             }
@@ -1344,9 +1345,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const existingTargetItemIndex = targetCategoryItems.findIndex(invItem => invItem.name === itemToGift.name);
 
             if (existingTargetItemIndex > -1) {
-                 targetCategoryItems[existingTargetItemIndex].quantity += 1;
+                 targetCategoryItems[existingTargetItemIndex].quantity += quantity;
             } else {
-                targetCategoryItems.push({ ...itemToGift, id: `inv-item-${Date.now()}`, quantity: 1 });
+                targetCategoryItems.push({ ...itemToGift, id: `inv-item-${Date.now()}`, quantity });
             }
             targetInventory[itemCategory] = targetCategoryItems;
             
@@ -1363,7 +1364,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 recipientCharacterId: targetCharacterId,
                 recipientCharacterName: targetChar.name,
                 subject: `Вам пришел подарок!`,
-                content: `${sourceChar.name} отправил(а) вам подарок: "${itemToGift.name}".`,
+                content: `${sourceChar.name} отправил(а) вам подарок: "${itemToGift.name}" (x${quantity}).`,
                 sentAt: new Date().toISOString(),
                 isRead: false,
                 type: 'personal' as const,
@@ -2981,4 +2982,5 @@ const addFavoritePlayer = useCallback(async (targetUserId: string) => {
     </AuthContext.Provider>
   );
 }
+
 
