@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
@@ -73,7 +74,7 @@ const CharacterDisplay = ({ character }: { character: Character }) => {
 
     return (
         <AccordionItem value={character.id} className="border-b">
-            <div className="flex justify-between items-center w-full hover:bg-muted/50 rounded-md">
+            <div className="flex justify-between items-center w-full hover:bg-muted/50 dark:hover:bg-muted rounded-md transition-colors duration-200">
             <AccordionTrigger className="flex-1 py-4 px-2 hover:no-underline">
                  <div className="text-left flex items-start gap-2 flex-wrap">
                     <Link href={`/characters/${character.id}`} className="font-bold text-base hover:underline" onClick={(e) => e.stopPropagation()}>
