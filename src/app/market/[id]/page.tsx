@@ -5,7 +5,7 @@
 import React from 'react';
 import { useParams, notFound, useRouter } from 'next/navigation';
 import { useUser } from '@/hooks/use-user';
-import type { Shop, ShopItem, BankAccount, Character, InventoryCategory } from '@/lib/types';
+import type { Shop, ShopItem, BankAccount, Character, InventoryCategory, InventoryItem } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, UserCircle, PlusCircle, Edit, Trash2, ShoppingCart, Info, Package, Settings, RefreshCw, BadgeCheck, Save, Search, WalletCards, Eye } from 'lucide-react';
@@ -110,6 +110,7 @@ export default function ShopPage() {
     const handlePurchaseClick = (item: ShopItem) => {
         setSelectedItemForPurchase(item);
         setPurchaseQuantity(1);
+        setBuyerCharacterId(''); // Reset selected character
         setIsPurchaseDialogOpen(true);
     };
     
@@ -317,25 +318,6 @@ export default function ShopPage() {
                         {filteredItems.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                 {filteredItems.map(item => {
-                                    const isOutOfStock = item.quantity === 0;
-                                    
-                                    const buyerChar = buyerCharacters.find(c => c.id === buyerCharacterId);
-
-                                    const alreadyPurchased = item.isSinglePurchase && buyerChar && 
-                                        Object.values(buyerChar.inventory).flat().some(invItem => invItem.name === item.name);
-
-                                    const meetsRaceRequirement = !item.excludedRaces || !buyerChar || !item.excludedRaces.includes(buyerChar.race.split(' (')[0]);
-
-                                    const meetsDocumentRequirement = !item.requiredDocument || (buyerChar && (buyerChar.inventory.документы || []).some(doc => doc.name === item.requiredDocument));
-                                    
-                                    const canPurchase = !isOutOfStock && !alreadyPurchased && meetsRaceRequirement && meetsDocumentRequirement;
-                                    
-                                    let disabledReason = '';
-                                    if(isOutOfStock) disabledReason = "Нет в наличии";
-                                    else if(alreadyPurchased) disabledReason = "Уже приобретено";
-                                    else if(!meetsRaceRequirement) disabledReason = "Недоступно для вашей расы";
-                                    else if(!meetsDocumentRequirement) disabledReason = `Требуется документ: ${item.requiredDocument}`;
-
                                     return (
                                     <Card key={item.id} className={cn("flex flex-col group overflow-hidden max-w-sm mx-auto", item.isHidden && "opacity-60")}>
                                         {item.image && (
@@ -395,19 +377,10 @@ export default function ShopPage() {
                                             <div className="text-primary font-bold">
                                                 {formatCurrency(item.price)}
                                             </div>
-                                             <TooltipProvider>
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                         <div className="w-full">
-                                                            <Button className="w-full" onClick={() => handlePurchaseClick(item)} disabled={!canPurchase}>
-                                                                <ShoppingCart className="mr-2 h-4 w-4" /> 
-                                                                {disabledReason || "Купить"}
-                                                            </Button>
-                                                        </div>
-                                                    </TooltipTrigger>
-                                                    {disabledReason && <TooltipContent><p>{disabledReason}</p></TooltipContent>}
-                                                </Tooltip>
-                                            </TooltipProvider>
+                                            <Button className="w-full" onClick={() => handlePurchaseClick(item)}>
+                                                <ShoppingCart className="mr-2 h-4 w-4" /> 
+                                                Купить
+                                            </Button>
                                         </CardFooter>
                                     </Card>
                                 )})}
@@ -532,85 +505,124 @@ export default function ShopPage() {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Подтверждение покупки</DialogTitle>
-                        <DialogDescription>
-                            Вы собираетесь купить "{selectedItemForPurchase?.name}".
-                        </DialogDescription>
+                        {selectedItemForPurchase &&
+                            <DialogDescription>
+                                Вы собираетесь купить "{selectedItemForPurchase.name}".
+                            </DialogDescription>
+                        }
                     </DialogHeader>
-                    <div className="py-4 space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="quantity">Количество</Label>
-                            <Input 
-                                id="quantity"
-                                type="number"
-                                value={purchaseQuantity}
-                                onChange={e => {
-                                    const val = parseInt(e.target.value, 10);
-                                    if(val > 0) setPurchaseQuantity(val);
-                                }}
-                                min={1}
-                                max={selectedItemForPurchase?.isSinglePurchase ? 1 : selectedItemForPurchase?.quantity}
-                                disabled={selectedItemForPurchase?.isSinglePurchase}
-                            />
-                        </div>
+                    {(() => {
+                        if (!selectedItemForPurchase) return null;
 
-                         <div className="text-right">
-                            <p className="text-sm text-muted-foreground">Итоговая стоимость:</p>
-                            <p className="font-bold text-primary">{formatCurrency(totalPrice as BankAccount)}</p>
-                        </div>
+                        const buyerChar = buyerCharacters.find(c => c.id === buyerCharacterId);
+
+                        const isOutOfStock = selectedItemForPurchase.quantity === 0;
+
+                        const alreadyPurchased = buyerChar && selectedItemForPurchase.isSinglePurchase &&
+                            Object.values(buyerChar.inventory).flat().some(invItem => (invItem as InventoryItem).name === selectedItemForPurchase!.name);
+
+                        const meetsRaceRequirement = !buyerChar || !selectedItemForPurchase.excludedRaces || !selectedItemForPurchase.excludedRaces.includes(buyerChar.race.split(' (')[0]);
+
+                        const meetsDocumentRequirement = !buyerChar || !selectedItemForPurchase.requiredDocument || 
+                            (buyerChar.inventory.документы || []).some(doc => doc.name === selectedItemForPurchase!.requiredDocument);
+                            
+                        const canPurchase = buyerChar && !isOutOfStock && !alreadyPurchased && meetsRaceRequirement && meetsDocumentRequirement;
                         
-                         <div className="space-y-2">
-                             <label htmlFor="buyer-character" className="text-sm font-medium">Выберите персонажа для оплаты:</label>
-                             {buyerCharacterOptions && buyerCharacterOptions.length > 0 ? (
-                                <SearchableSelect
-                                    options={buyerCharacterOptions}
-                                    value={buyerCharacterId}
-                                    onValueChange={setBuyerCharacterId}
-                                    placeholder="Выберите персонажа..."
-                                    renderSelected={(option) => {
-                                         const character = buyerCharacters.find(c => c.id === option.value);
-                                        if (!character) return option.label;
-                                        return (
-                                            <div className="flex flex-col items-start">
-                                                <span>{character.name}</span>
-                                                <span className="text-xs text-muted-foreground">
-                                                    {formatCurrency(character.bankAccount)}
-                                                </span>
-                                            </div>
-                                        );
-                                    }}
-                                    renderOption={(option) => {
-                                        const character = buyerCharacters.find(c => c.id === option.value);
-                                        if (!character) return option.label;
-                                        return (
-                                            <div>
-                                                <div>{character.name}</div>
-                                                <div className="text-xs text-muted-foreground">
-                                                    Баланс: {formatCurrency(character.bankAccount)}
-                                                </div>
-                                            </div>
-                                        );
-                                    }}
-                                />
-                             ) : (
-                                <Alert variant="destructive">
-                                    <Info className="h-4 w-4" />
-                                    <AlertTitle>Неподходящие персонажи</AlertTitle>
-                                    <AlertDescription>
-                                        Ни у одного из ваших персонажей нет достаточно средств для совершения этой покупки, или они являются владельцами этого заведения.
-                                    </AlertDescription>
-                                </Alert>
-                             )}
-                         </div>
-                    </div>
-                    <DialogFooter>
-                        <DialogClose asChild><Button variant="ghost">Отмена</Button></DialogClose>
-                        <Button 
-                            onClick={handleConfirmPurchase}
-                            disabled={isPurchasing || !buyerCharacterId || purchaseQuantity <= 0 || (selectedItemForPurchase?.quantity !== undefined && purchaseQuantity > selectedItemForPurchase.quantity)}
-                        >
-                            {isPurchasing ? "Обработка..." : "Подтвердить"}
-                        </Button>
-                    </DialogFooter>
+                        let disabledReason = '';
+                        if(isOutOfStock) disabledReason = "Нет в наличии";
+                        else if (alreadyPurchased) disabledReason = "Уже приобретено";
+                        else if (!meetsRaceRequirement) disabledReason = "Недоступно для вашей расы";
+                        else if (!meetsDocumentRequirement) disabledReason = `Требуется документ: ${selectedItemForPurchase.requiredDocument}`;
+
+                        return (
+                            <>
+                                <div className="py-4 space-y-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="quantity">Количество</Label>
+                                        <Input
+                                            id="quantity"
+                                            type="number"
+                                            value={purchaseQuantity}
+                                            onChange={e => {
+                                                const val = parseInt(e.target.value, 10);
+                                                if (val > 0) setPurchaseQuantity(val);
+                                            }}
+                                            min={1}
+                                            max={selectedItemForPurchase.isSinglePurchase ? 1 : selectedItemForPurchase.quantity}
+                                            disabled={selectedItemForPurchase.isSinglePurchase}
+                                        />
+                                    </div>
+
+                                    <div className="text-right">
+                                        <p className="text-sm text-muted-foreground">Итоговая стоимость:</p>
+                                        <p className="font-bold text-primary">{formatCurrency(totalPrice as BankAccount)}</p>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label htmlFor="buyer-character" className="text-sm font-medium">Выберите персонажа для оплаты:</label>
+                                        {buyerCharacterOptions && buyerCharacterOptions.length > 0 ? (
+                                            <SearchableSelect
+                                                options={buyerCharacterOptions}
+                                                value={buyerCharacterId}
+                                                onValueChange={setBuyerCharacterId}
+                                                placeholder="Выберите персонажа..."
+                                                renderSelected={(option) => {
+                                                    const character = buyerCharacters.find(c => c.id === option.value);
+                                                    if (!character) return option.label;
+                                                    return (
+                                                        <div className="flex flex-col items-start">
+                                                            <span>{character.name}</span>
+                                                            <span className="text-xs text-muted-foreground">
+                                                                {formatCurrency(character.bankAccount)}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                }}
+                                                renderOption={(option) => {
+                                                    const character = buyerCharacters.find(c => c.id === option.value);
+                                                    if (!character) return option.label;
+                                                    return (
+                                                        <div>
+                                                            <div>{character.name}</div>
+                                                            <div className="text-xs text-muted-foreground">
+                                                                Баланс: {formatCurrency(character.bankAccount)}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                }}
+                                            />
+                                        ) : (
+                                            <Alert variant="destructive">
+                                                <Info className="h-4 w-4" />
+                                                <AlertTitle>Неподходящие персонажи</AlertTitle>
+                                                <AlertDescription>
+                                                    Ни у одного из ваших персонажей нет достаточно средств для совершения этой покупки, или они являются владельцами этого заведения.
+                                                </AlertDescription>
+                                            </Alert>
+                                        )}
+                                    </div>
+                                    {buyerCharacterId && disabledReason && (
+                                        <Alert variant="destructive">
+                                            <Info className="h-4 w-4" />
+                                            <AlertTitle>Невозможно купить</AlertTitle>
+                                            <AlertDescription>
+                                                {disabledReason}
+                                            </AlertDescription>
+                                        </Alert>
+                                    )}
+                                </div>
+                                <DialogFooter>
+                                    <DialogClose asChild><Button variant="ghost">Отмена</Button></DialogClose>
+                                    <Button
+                                        onClick={handleConfirmPurchase}
+                                        disabled={isPurchasing || !canPurchase || purchaseQuantity <= 0 || (selectedItemForPurchase.quantity !== undefined && purchaseQuantity > selectedItemForPurchase.quantity)}
+                                    >
+                                        {isPurchasing ? "Обработка..." : "Подтвердить"}
+                                    </Button>
+                                </DialogFooter>
+                            </>
+                        )
+                    })()}
                 </DialogContent>
             </Dialog>
         </div>
