@@ -22,7 +22,8 @@ const FormattedTextRenderer: React.FC<FormattedTextRendererProps> = ({ text }) =
 
         // 2. Apply our custom formatting rules.
         processedLine = processedLine
-            .replace(/\*(.*?)\*/g, '<strong>$1</strong>')    // *bold*
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')  // **bold**
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')        // *italic*
             .replace(/'''(.*?)'''/g, '<strong>$1</strong>')  // '''bold'''
             .replace(/''(.*?)''/g, '<em>$1</em>');          // ''italic''
 
