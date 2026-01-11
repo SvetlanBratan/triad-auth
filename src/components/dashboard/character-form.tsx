@@ -171,7 +171,7 @@ const relationshipTypeOptions: { value: RelationshipType, label: string }[] = [
 
 const FormattingHelp = () => (
     <p className="text-xs text-muted-foreground mt-2">
-        Форматирование: '''жирный''', ''курсив'', *жирный*, <s>зачеркнутый</s>, <u>подчеркнутый</u>.
+        Форматирование: '''жирный''', ''курсив'', *жирный*, &lt;s&gt;зачеркнутый&lt;/s&gt;, &lt;u&gt;подчеркнутый&lt;/u&gt;.
     </p>
 );
 
