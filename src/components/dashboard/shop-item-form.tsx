@@ -16,6 +16,7 @@ import ImageKitUploader from './imagekit-uploader';
 import { Switch } from '../ui/switch';
 import { SearchableMultiSelect } from '../ui/searchable-multi-select';
 import { useQuery } from '@tanstack/react-query';
+import { Separator } from '../ui/separator';
 
 interface ShopItemFormProps {
     shopId: string;
@@ -35,6 +36,9 @@ const initialFormData: Omit<ShopItem, 'id'> = {
     isSinglePurchase: false,
     excludedRaces: [],
     requiredDocument: '',
+    inventoryItemName: '',
+    inventoryItemDescription: '',
+    inventoryItemImage: '',
 };
 
 export default function ShopItemForm({ shopId, item, closeDialog, defaultCategory }: ShopItemFormProps) {
@@ -42,6 +46,7 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
     const { toast } = useToast();
     const [formData, setFormData] = useState<Omit<ShopItem, 'id'>>(initialFormData);
     const [isLoading, setIsLoading] = useState(false);
+    const [showInventoryFields, setShowInventoryFields] = useState(false);
 
     const { data: allShops = [] } = useQuery({
       queryKey: ['allShops'],
@@ -78,10 +83,15 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
                 isSinglePurchase: item.isSinglePurchase || false,
                 excludedRaces: item.excludedRaces || [],
                 requiredDocument: item.requiredDocument || '',
+                inventoryItemName: item.inventoryItemName || '',
+                inventoryItemDescription: item.inventoryItemDescription || '',
+                inventoryItemImage: item.inventoryItemImage || '',
             });
+             setShowInventoryFields(!!(item.inventoryItemName || item.inventoryItemDescription || item.inventoryItemImage));
         } else {
             // For new items, use the default category passed from the parent
             setFormData({ ...initialFormData, inventoryTag: defaultCategory });
+            setShowInventoryFields(false);
         }
     }, [item, defaultCategory]);
     
@@ -98,7 +108,16 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
         setIsLoading(true);
 
         try {
-            const finalData = { ...formData };
+            let finalData = { ...formData };
+            if (!showInventoryFields) {
+                finalData = {
+                    ...finalData,
+                    inventoryItemName: '',
+                    inventoryItemDescription: '',
+                    inventoryItemImage: '',
+                };
+            }
+            
             if (item) {
                 const itemDataToUpdate = { ...item, ...finalData };
                 await updateShopItem(shopId, itemDataToUpdate);
@@ -119,29 +138,75 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
     return (
         <form onSubmit={handleSubmit} className="flex flex-col h-full max-h-[75vh]">
             <div className="flex-1 overflow-y-auto pr-6 space-y-4">
-                <ImageKitUploader
-                    currentImageUrl={formData.image}
-                    onUpload={(url) => setFormData(p => ({...p, image: url}))}
-                />
-                <div>
-                    <Label htmlFor="name">Название товара</Label>
-                    <Input
-                        id="name"
-                        value={formData.name}
-                        onChange={(e) => setFormData(prev => ({...prev, name: e.target.value}))}
-                        required
+                <h4 className="font-semibold text-muted-foreground">Витрина магазина</h4>
+                <div className="p-4 border rounded-md space-y-4">
+                    <ImageKitUploader
+                        currentImageUrl={formData.image}
+                        onUpload={(url) => setFormData(p => ({...p, image: url}))}
                     />
+                    <div>
+                        <Label htmlFor="name">Название товара (на витрине)</Label>
+                        <Input
+                            id="name"
+                            value={formData.name}
+                            onChange={(e) => setFormData(prev => ({...prev, name: e.target.value}))}
+                            required
+                        />
+                    </div>
+                    
+                    <div>
+                        <Label htmlFor="description">Описание товара (на витрине)</Label>
+                        <Textarea
+                            id="description"
+                            value={formData.description}
+                            onChange={(e) => setFormData(prev => ({...prev, description: e.target.value}))}
+                            placeholder="Расскажите о товаре..."
+                        />
+                    </div>
                 </div>
-                
-                <div>
-                    <Label htmlFor="description">Описание товара</Label>
-                    <Textarea
-                        id="description"
-                        value={formData.description}
-                        onChange={(e) => setFormData(prev => ({...prev, description: e.target.value}))}
-                        placeholder="Расскажите о товаре..."
+
+                <Separator />
+
+                <div className="flex items-center space-x-2 pt-2">
+                    <Switch
+                        id="show-inventory-fields"
+                        checked={showInventoryFields}
+                        onCheckedChange={setShowInventoryFields}
                     />
+                    <Label htmlFor="show-inventory-fields">Данные для инвентаря отличаются</Label>
                 </div>
+
+                {showInventoryFields && (
+                    <>
+                        <h4 className="font-semibold text-muted-foreground">Данные в инвентаре</h4>
+                        <div className="p-4 border rounded-md space-y-4">
+                            <ImageKitUploader
+                                currentImageUrl={formData.inventoryItemImage}
+                                onUpload={(url) => setFormData(p => ({...p, inventoryItemImage: url}))}
+                            />
+                            <div>
+                                <Label htmlFor="inventory-item-name">Название в инвентаре</Label>
+                                <Input
+                                    id="inventory-item-name"
+                                    value={formData.inventoryItemName || ''}
+                                    onChange={(e) => setFormData(prev => ({...prev, inventoryItemName: e.target.value}))}
+                                    placeholder="Если не указано, используется название с витрины"
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="inventory-item-description">Описание в инвентаре</Label>
+                                <Textarea
+                                    id="inventory-item-description"
+                                    value={formData.inventoryItemDescription || ''}
+                                    onChange={(e) => setFormData(prev => ({...prev, inventoryItemDescription: e.target.value}))}
+                                    placeholder="Если не указано, используется описание с витрины"
+                                />
+                            </div>
+                        </div>
+                    </>
+                )}
+
+                 <Separator />
 
                 <div>
                     <Label htmlFor="inventoryTag">Категория в инвентаре</Label>

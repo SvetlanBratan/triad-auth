@@ -1,5 +1,6 @@
 
 
+
 export type UserRole = "admin" | "user";
 export type UserStatus = "активный" | "неактивный" | "отпуск";
 export type PlayerStatus =
@@ -402,6 +403,9 @@ export interface ShopItem {
   isSinglePurchase?: boolean;
   excludedRaces?: string[];
   requiredDocument?: string;
+  inventoryItemName?: string;
+  inventoryItemDescription?: string;
+  inventoryItemImage?: string;
 }
 
 export interface Shop {
@@ -483,3 +487,4 @@ export interface AlchemyRecipe {
   createdAt: string; // ISO string
 }
 // --- END ALCHEMY TYPES ---
+

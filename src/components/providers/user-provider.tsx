@@ -2116,6 +2116,22 @@ const processMonthlySalary = useCallback(async () => {
         if (buyerCharIndex === -1) throw new Error("Персонаж покупателя не найден.");
         const buyerChar = buyerUserData.characters[buyerCharIndex];
 
+        // Check race requirements
+        if (item.excludedRaces && item.excludedRaces.length > 0) {
+            const buyerRace = buyerChar.race.split(' (')[0]; // Get base race
+            if (item.excludedRaces.includes(buyerRace)) {
+                throw new Error("Данный товар недоступен для вашей расы.");
+            }
+        }
+        
+        // Check document requirements
+        if (item.requiredDocument) {
+            const hasDocument = (buyerChar.inventory.документы || []).some(doc => doc.name === item.requiredDocument);
+            if (!hasDocument) {
+                 throw new Error(`Для покупки требуется документ: ${item.requiredDocument}.`);
+            }
+        }
+
         // Check if single-purchase item has been bought
         if (item.isSinglePurchase) {
             const inventory = buyerChar.inventory || {};
@@ -2161,17 +2177,18 @@ const processMonthlySalary = useCallback(async () => {
             const tag = item.inventoryTag as keyof Inventory;
             (inv[tag] ??= []);
             const list = inv[tag]!;
-
-            const existingItemIndex = list.findIndex(invItem => invItem.name === item.name);
+            
+            const inventoryItemName = item.inventoryItemName || item.name;
+            const existingItemIndex = list.findIndex(invItem => invItem.name === inventoryItemName);
 
             if (existingItemIndex > -1) {
                 list[existingItemIndex].quantity += quantity;
             } else {
                 const newInventoryItem: InventoryItem = {
                     id: `inv-item-${Date.now()}`,
-                    name: item.name,
-                    description: item.description,
-                    image: item.image,
+                    name: inventoryItemName,
+                    description: item.inventoryItemDescription || item.description,
+                    image: item.inventoryItemImage || item.image,
                     quantity: quantity,
                 };
                 list.push(newInventoryItem);
@@ -2982,5 +2999,6 @@ const addFavoritePlayer = useCallback(async (targetUserId: string) => {
     </AuthContext.Provider>
   );
 }
+
 
 
