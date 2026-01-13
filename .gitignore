@@ -40,3 +40,14 @@ next-env.d.ts
 # studio
 .firebase/
 firebase-debug.log
+# secrets
+.env
+.env.*
+secrets/
+**/secrets/
+**/*service-account*.json
+**/firebase-service-account.json
+
+# node
+node_modules/
+**/node_modules/
