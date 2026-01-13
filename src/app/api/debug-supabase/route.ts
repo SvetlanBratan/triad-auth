@@ -20,7 +20,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("alchemy_recipes")
-    .select("id, firebase_uid, created_at, updated_at")
+    .select("id, created_at, updated_at, data")
     .order("created_at", { ascending: false })
     .limit(5);
 
