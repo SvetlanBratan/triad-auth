@@ -6,12 +6,11 @@ import { useUser } from '@/hooks/use-user';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Compass, Send, Hourglass, CheckCircle, Bone } from 'lucide-react';
+import { Compass, Send, Hourglass, CheckCircle, Bone, X } from 'lucide-react';
 import type { Character, FamiliarCard, FamiliarRank, HuntingLocation, OngoingHunt } from '@/lib/types';
 import Image from 'next/image';
 import { SearchableSelect } from '../ui/searchable-select';
 import { formatHuntTimeLeft, cn } from '@/lib/utils';
-import { Progress } from '../ui/progress';
 import {
   Tooltip,
   TooltipContent,
@@ -68,7 +67,7 @@ const Timer = ({ endsAt }: { endsAt: string }) => {
 
 
 export default function HuntingTab() {
-  const { currentUser, gameSettings, startHunt, claimHuntReward, familiarsById } = useUser();
+  const { currentUser, gameSettings, startHunt, claimHuntReward, recallHunt, familiarsById } = useUser();
   const { toast } = useToast();
   
   const [selectedLocation, setSelectedLocation] = useState<HuntingLocation | null>(null);
@@ -76,7 +75,7 @@ export default function HuntingTab() {
   const [selectedFamiliarId, setSelectedFamiliarId] = useState<string>('');
 
   const [isSending, setIsSending] = useState(false);
-  const [isClaimingId, setIsClaimingId] = useState<string | null>(null);
+  const [isProcessingId, setIsProcessingId] = useState<string | null>(null);
 
   const character = useMemo(() => currentUser?.characters.find(c => c.id === selectedCharacterId), [currentUser, selectedCharacterId]);
 
@@ -114,7 +113,7 @@ export default function HuntingTab() {
 
   const handleClaimReward = async (hunt: OngoingHunt) => {
     if (!character) return;
-    setIsClaimingId(hunt.huntId);
+    setIsProcessingId(hunt.huntId);
     try {
         await claimHuntReward(character.id, hunt.huntId);
         toast({ title: 'Добыча собрана!', description: 'Ингредиенты добавлены в инвентарь.' });
@@ -122,7 +121,21 @@ export default function HuntingTab() {
         const msg = e instanceof Error ? e.message : 'Произошла ошибка';
         toast({ variant: 'destructive', title: 'Ошибка', description: msg });
     } finally {
-        setIsClaimingId(null);
+        setIsProcessingId(null);
+    }
+  }
+
+  const handleRecall = async (hunt: OngoingHunt) => {
+    if (!character) return;
+    setIsProcessingId(hunt.huntId);
+    try {
+        await recallHunt(character.id, hunt.huntId);
+        toast({ title: 'Фамильяр отозван', description: 'Экспедиция отменена, добыча не получена.' });
+    } catch(e) {
+        const msg = e instanceof Error ? e.message : 'Произошла ошибка';
+        toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+    } finally {
+        setIsProcessingId(null);
     }
   }
 
@@ -147,7 +160,7 @@ export default function HuntingTab() {
                         return (
                             <div key={hunt.huntId} className="p-4 border rounded-lg flex flex-col sm:flex-row items-center gap-4">
                                 <div className="relative w-16 h-24 shrink-0">
-                                    <Image src={familiar.imageUrl} alt={familiar.name} layout="fill" objectFit="contain" />
+                                    <Image src={familiar.imageUrl} alt={familiar.name} fill style={{objectFit:"contain"}} />
                                 </div>
                                 <div className="flex-1 w-full text-center sm:text-left">
                                     <p className="font-semibold">{familiar.name}</p>
@@ -156,13 +169,25 @@ export default function HuntingTab() {
                                         {isFinished ? 'Завершено!' : <Timer endsAt={hunt.endsAt} />}
                                     </div>
                                 </div>
-                                <Button 
-                                    onClick={() => handleClaimReward(hunt)} 
-                                    disabled={!isFinished || isClaimingId === hunt.huntId}
-                                    className="w-full sm:w-auto"
-                                >
-                                    {isClaimingId === hunt.huntId ? 'Сбор...' : <><Bone className="mr-2 h-4 w-4"/>Забрать добычу</>}
-                                </Button>
+                                <div className="flex gap-2 w-full sm:w-auto">
+                                    {!isFinished && (
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => handleRecall(hunt)}
+                                            disabled={isProcessingId === hunt.huntId}
+                                        >
+                                           <X className="mr-2 h-4 w-4" />Отозвать
+                                        </Button>
+                                    )}
+                                    <Button 
+                                        onClick={() => handleClaimReward(hunt)} 
+                                        disabled={!isFinished || isProcessingId === hunt.huntId}
+                                        className="flex-1"
+                                    >
+                                        {isProcessingId === hunt.huntId ? 'Сбор...' : <><Bone className="mr-2 h-4 w-4"/>Забрать добычу</>}
+                                    </Button>
+                                </div>
                             </div>
                         )
                     })}
