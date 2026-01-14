@@ -959,7 +959,7 @@ export default function AdminTab() {
             setIsAddingRecipe(false);
         }
     };
-    
+  
   const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифический' | 'легендарный' | 'редкий', value: string) => {
     const numValue = parseInt(value, 10);
     if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
@@ -1263,8 +1263,22 @@ export default function AdminTab() {
         label: `${event.label} (+${event.value})`,
     })), []);
     
-    const alchemyResultOptions = useMemo(() => ALL_ITEMS_FOR_ALCHEMY.map(p => ({ value: p.id, label: p.name })), []);
-    const alchemyIngredientOptions = useMemo(() => ALL_ITEMS_FOR_ALCHEMY.filter(i => i.inventoryTag === 'ингредиенты').map(i => ({ value: i.id, label: i.name })), []);
+    const alchemyResultOptions = useMemo(() => ALL_ITEMS_FOR_ALCHEMY.filter(item => item.inventoryTag === 'зелья' || item.inventoryTag === 'артефакты').map(p => ({ value: p.id, label: p.name })), []);
+    
+    const alchemyIngredientOptions = useMemo(() => {
+        const ingredients = new Map<string, { label: string, value: string }>();
+        allShops.forEach(shop => {
+            (shop.items || []).forEach(item => {
+                if (item.inventoryTag === 'ингредиенты') {
+                    const name = item.inventoryItemName || item.name;
+                    if (!ingredients.has(name)) {
+                        ingredients.set(name, { value: item.id, label: name });
+                    }
+                }
+            });
+        });
+        return Array.from(ingredients.values());
+    }, [allShops]);
 
 
   if (isUsersLoading || isShopsLoading) {
@@ -2727,3 +2741,6 @@ export default function AdminTab() {
 
 
 
+
+
+    
