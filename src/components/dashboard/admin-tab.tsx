@@ -1278,7 +1278,6 @@ export default function AdminTab() {
         <TabsTrigger value="general" className="text-xs sm:text-sm">Общее</TabsTrigger>
         <TabsTrigger value="popularity" className="text-xs sm:text-sm">Популярность</TabsTrigger>
         <TabsTrigger value="alchemy" className="text-xs sm:text-sm">Алхимия</TabsTrigger>
-        <TabsTrigger value="hunting" className="text-xs sm:text-sm">Охота</TabsTrigger>
         <TabsTrigger value="familiars" className="text-xs sm:text-sm">Фамильяры</TabsTrigger>
         <TabsTrigger value="economy" className="text-xs sm:text-sm">Экономика</TabsTrigger>
         <TabsTrigger value="shops" className="text-xs sm:text-sm">Магазины</TabsTrigger>
@@ -1849,138 +1848,12 @@ export default function AdminTab() {
         </Card>
       </TabsContent>
       
-       <TabsContent value="hunting" className="mt-4">
-        <Card className="max-w-4xl mx-auto">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Compass /> Управление локациями для охоты</CardTitle>
-            <CardDescription>
-              Создавайте и редактируйте локации, где игроки могут добывать ингредиенты.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {editingHuntLocation ? (
-                 <div className="space-y-6">
-                    <div className="space-y-4">
-                        <h3 className="font-semibold text-lg">{editingHuntLocation.id ? 'Редактирование' : 'Новая локация'}</h3>
-                        <div>
-                            <Label htmlFor="loc-name">Название</Label>
-                            <Input id="loc-name" value={editingHuntLocation.name || ''} onChange={(e) => handleLocationChange(0, 'name', e.target.value)} />
-                        </div>
-                        <div>
-                            <Label htmlFor="loc-desc">Описание</Label>
-                            <Textarea id="loc-desc" value={editingHuntLocation.description || ''} onChange={(e) => handleLocationChange(0, 'description', e.target.value)} />
-                        </div>
-                        <div>
-                            <Label htmlFor="loc-image">URL изображения</Label>
-                            <Input id="loc-image" value={editingHuntLocation.image || ''} onChange={(e) => handleLocationChange(0, 'image', e.target.value)} placeholder="https://..." />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <Label htmlFor="loc-duration">Длительность (в минутах)</Label>
-                                <Input id="loc-duration" type="number" value={editingHuntLocation.durationMinutes || 60} onChange={(e) => handleLocationChange(0, 'durationMinutes', parseInt(e.target.value, 10))} />
-                            </div>
-                            <div>
-                                <Label htmlFor="loc-rank">Мин. ранг</Label>
-                                <SearchableSelect 
-                                    options={rankOptions.filter(o => o.value !== 'ивентовый')}
-                                    value={editingHuntLocation.requiredRank || 'обычный'}
-                                    onValueChange={(val) => handleLocationChange(0, 'requiredRank', val as FamiliarRank)}
-                                    placeholder="Выберите ранг"
-                                />
-                            </div>
-                        </div>
-                    </div>
-                     <div className="space-y-4">
-                        <h4 className="font-semibold">Награды</h4>
-                        {(editingHuntLocation.rewards || []).map((reward, rewardIndex) => (
-                             <div key={rewardIndex} className="p-3 border rounded-md space-y-3">
-                                 <div className="flex justify-between items-start">
-                                     <div className="flex-1 space-y-2">
-                                        <Label>Ингредиент</Label>
-                                        <SearchableSelect 
-                                            options={alchemyIngredientOptions}
-                                            value={reward.itemId}
-                                            onValueChange={(val) => handleLocationRewardChange(0, rewardIndex, 'itemId', val)}
-                                            placeholder="Выберите ингредиент..."
-                                        />
-                                     </div>
-                                      <Button type="button" variant="ghost" size="icon" className="ml-2 mt-6" onClick={() => removeLocationReward(0, rewardIndex)}>
-                                        <Trash2 className="w-4 h-4 text-destructive" />
-                                    </Button>
-                                 </div>
-                                  <div>
-                                    <Label>Шансы выпадения (%)</Label>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-1">
-                                        {(['обычный', 'редкий', 'легендарный', 'мифический'] as FamiliarRank[]).map(rank => (
-                                            <div key={rank} className="space-y-1">
-                                                <Label htmlFor={`chance-${rewardIndex}-${rank}`} className="text-xs capitalize">{rankNames[rank]}</Label>
-                                                <Input id={`chance-${rewardIndex}-${rank}`} type="number" min="0" max="100" 
-                                                    value={reward.chances[rank] || 0}
-                                                    onChange={(e) => handleRewardChanceChange(0, rewardIndex, rank, e.target.value)}
-                                                />
-                                            </div>
-                                        ))}
-                                    </div>
-                                 </div>
-                             </div>
-                        ))}
-                         <Button type="button" variant="outline" size="sm" onClick={() => addLocationReward(0)}>
-                            <PlusCircle className="mr-2 h-4 w-4" /> Добавить награду
-                        </Button>
-                    </div>
-                    <div className="flex gap-2 justify-end">
-                        <Button variant="ghost" onClick={() => setEditingHuntLocation(null)}>Отмена</Button>
-                        <Button onClick={handleSaveHuntingLocation}>
-                            <Save className="mr-2 h-4 w-4" /> Сохранить локацию
-                        </Button>
-                    </div>
-                 </div>
-            ) : (
-                <div className="space-y-4">
-                    <Button onClick={() => setEditingHuntLocation({ name: '', description: '', image: '', durationMinutes: 60, requiredRank: 'обычный', rewards: [] })}>
-                        <PlusCircle className="mr-2 h-4 w-4" /> Добавить новую локацию
-                    </Button>
-                     <div className="space-y-3">
-                        {(gameSettings.huntingLocations || []).map((loc, locIndex) => (
-                             <Card key={loc.id} className="flex flex-col sm:flex-row items-start gap-4 p-4">
-                                <img src={loc.image} alt={loc.name} className="w-full sm:w-32 h-auto aspect-video sm:aspect-square object-cover rounded-md bg-muted" />
-                                <div className="flex-1">
-                                    <h4 className="font-semibold">{loc.name}</h4>
-                                    <p className="text-xs text-muted-foreground">{loc.durationMinutes} мин. / {rankNames[loc.requiredRank]}</p>
-                                    <p className="text-sm mt-1">{loc.description}</p>
-                                </div>
-                                <div className="flex gap-2 self-start">
-                                    <Button size="icon" variant="outline" onClick={() => setEditingHuntLocation(loc)}><Edit className="w-4 h-4" /></Button>
-                                    <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                            <Button size="icon" variant="destructive"><Trash2 className="w-4 h-4" /></Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                                <AlertDialogTitle>Удалить локацию "{loc.name}"?</AlertDialogTitle>
-                                                <AlertDialogDescription>Это действие невозможно отменить.</AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                                <AlertDialogCancel>Отмена</AlertDialogCancel>
-                                                <AlertDialogAction onClick={() => handleDeleteHuntingLocation(loc.id)} className="bg-destructive hover:bg-destructive/90">Удалить</AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
-                                </div>
-                             </Card>
-                        ))}
-                    </div>
-                </div>
-            )}
-          </CardContent>
-        </Card>
-      </TabsContent>
-
       <TabsContent value="familiars" className="mt-4">
         <Tabs defaultValue="stats" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 max-w-sm mx-auto">
+            <TabsList className="grid w-full grid-cols-3 max-w-lg mx-auto">
                 <TabsTrigger value="stats">Статистика</TabsTrigger>
                 <TabsTrigger value="manage">Управление</TabsTrigger>
+                <TabsTrigger value="hunting">Охота</TabsTrigger>
             </TabsList>
             <TabsContent value="stats" className="mt-4">
                 <div className="gap-6 column-1 md:column-2 lg:column-3">
@@ -2163,6 +2036,132 @@ export default function AdminTab() {
             </TabsContent>
             <TabsContent value="manage" className="mt-4">
                 <AdminFamiliarsTab />
+            </TabsContent>
+            <TabsContent value="hunting" className="mt-4">
+                <Card className="max-w-4xl mx-auto">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Compass /> Управление локациями для охоты</CardTitle>
+                        <CardDescription>
+                        Создавайте и редактируйте локации, где игроки могут добывать ингредиенты.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {editingHuntLocation ? (
+                            <div className="space-y-6">
+                                <div className="space-y-4">
+                                    <h3 className="font-semibold text-lg">{editingHuntLocation.id ? 'Редактирование' : 'Новая локация'}</h3>
+                                    <div>
+                                        <Label htmlFor="loc-name">Название</Label>
+                                        <Input id="loc-name" value={editingHuntLocation.name || ''} onChange={(e) => handleLocationChange(0, 'name', e.target.value)} />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="loc-desc">Описание</Label>
+                                        <Textarea id="loc-desc" value={editingHuntLocation.description || ''} onChange={(e) => handleLocationChange(0, 'description', e.target.value)} />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="loc-image">URL изображения</Label>
+                                        <Input id="loc-image" value={editingHuntLocation.image || ''} onChange={(e) => handleLocationChange(0, 'image', e.target.value)} placeholder="https://..." />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <Label htmlFor="loc-duration">Длительность (в минутах)</Label>
+                                            <Input id="loc-duration" type="number" value={editingHuntLocation.durationMinutes || 60} onChange={(e) => handleLocationChange(0, 'durationMinutes', parseInt(e.target.value, 10))} />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="loc-rank">Мин. ранг</Label>
+                                            <SearchableSelect 
+                                                options={rankOptions.filter(o => o.value !== 'ивентовый')}
+                                                value={editingHuntLocation.requiredRank || 'обычный'}
+                                                onValueChange={(val) => handleLocationChange(0, 'requiredRank', val as FamiliarRank)}
+                                                placeholder="Выберите ранг"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="space-y-4">
+                                    <h4 className="font-semibold">Награды</h4>
+                                    {(editingHuntLocation.rewards || []).map((reward, rewardIndex) => (
+                                        <div key={rewardIndex} className="p-3 border rounded-md space-y-3">
+                                            <div className="flex justify-between items-start">
+                                                <div className="flex-1 space-y-2">
+                                                    <Label>Ингредиент</Label>
+                                                    <SearchableSelect 
+                                                        options={alchemyIngredientOptions}
+                                                        value={reward.itemId}
+                                                        onValueChange={(val) => handleLocationRewardChange(0, rewardIndex, 'itemId', val)}
+                                                        placeholder="Выберите ингредиент..."
+                                                    />
+                                                </div>
+                                                <Button type="button" variant="ghost" size="icon" className="ml-2 mt-6" onClick={() => removeLocationReward(0, rewardIndex)}>
+                                                    <Trash2 className="w-4 h-4 text-destructive" />
+                                                </Button>
+                                            </div>
+                                            <div>
+                                                <Label>Шансы выпадения (%)</Label>
+                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-1">
+                                                    {(['обычный', 'редкий', 'легендарный', 'мифический'] as FamiliarRank[]).map(rank => (
+                                                        <div key={rank} className="space-y-1">
+                                                            <Label htmlFor={`chance-${rewardIndex}-${rank}`} className="text-xs capitalize">{rankNames[rank]}</Label>
+                                                            <Input id={`chance-${rewardIndex}-${rank}`} type="number" min="0" max="100" 
+                                                                value={reward.chances[rank] || 0}
+                                                                onChange={(e) => handleRewardChanceChange(0, rewardIndex, rank, e.target.value)}
+                                                            />
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <Button type="button" variant="outline" size="sm" onClick={() => addLocationReward(0)}>
+                                        <PlusCircle className="mr-2 h-4 w-4" /> Добавить награду
+                                    </Button>
+                                </div>
+                                <div className="flex gap-2 justify-end">
+                                    <Button variant="ghost" onClick={() => setEditingHuntLocation(null)}>Отмена</Button>
+                                    <Button onClick={handleSaveHuntingLocation}>
+                                        <Save className="mr-2 h-4 w-4" /> Сохранить локацию
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                <Button onClick={() => setEditingHuntLocation({ name: '', description: '', image: '', durationMinutes: 60, requiredRank: 'обычный', rewards: [] })}>
+                                    <PlusCircle className="mr-2 h-4 w-4" /> Добавить новую локацию
+                                </Button>
+                                <div className="space-y-3">
+                                    {(gameSettings.huntingLocations || []).map((loc, locIndex) => (
+                                        <Card key={loc.id} className="flex flex-col sm:flex-row items-start gap-4 p-4">
+                                            <img src={loc.image} alt={loc.name} className="w-full sm:w-32 h-auto aspect-video sm:aspect-square object-cover rounded-md bg-muted" />
+                                            <div className="flex-1">
+                                                <h4 className="font-semibold">{loc.name}</h4>
+                                                <p className="text-xs text-muted-foreground">{loc.durationMinutes} мин. / {rankNames[loc.requiredRank]}</p>
+                                                <p className="text-sm mt-1">{loc.description}</p>
+                                            </div>
+                                            <div className="flex gap-2 self-start">
+                                                <Button size="icon" variant="outline" onClick={() => setEditingHuntLocation(loc)}><Edit className="w-4 h-4" /></Button>
+                                                <AlertDialog>
+                                                    <AlertDialogTrigger asChild>
+                                                        <Button size="icon" variant="destructive"><Trash2 className="w-4 h-4" /></Button>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                            <AlertDialogTitle>Удалить локацию "{loc.name}"?</AlertDialogTitle>
+                                                            <AlertDialogDescription>Это действие невозможно отменить.</AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                            <AlertDialogCancel>Отмена</AlertDialogCancel>
+                                                            <AlertDialogAction onClick={() => handleDeleteHuntingLocation(loc.id)} className="bg-destructive hover:bg-destructive/90">Удалить</AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
+                                            </div>
+                                        </Card>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
             </TabsContent>
         </Tabs>
       </TabsContent>
@@ -2693,7 +2692,7 @@ export default function AdminTab() {
                             {isSendingMail ? 'Отправка...' : 'Отправить'}
                         </Button>
                     </form>
-                    <Separator />
+                    <Separator className="my-6" />
                     <div className="p-4 border border-destructive/50 rounded-lg">
                         <h4 className="font-semibold text-destructive mb-2 flex items-center gap-2"><ShieldAlert /> Опасная зона</h4>
                          <AlertDialog>
@@ -2724,6 +2723,7 @@ export default function AdminTab() {
 }
 
     
+
 
 
 
