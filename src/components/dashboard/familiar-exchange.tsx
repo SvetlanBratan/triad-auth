@@ -12,6 +12,7 @@ import type { Character, FamiliarCard, FamiliarTradeRequest, User, FamiliarRank 
 import Image from 'next/image';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { cn } from '@/lib/utils';
 
 const rankNames: Record<FamiliarRank, string> = {
     'мифический': 'Мифический',
@@ -21,12 +22,12 @@ const rankNames: Record<FamiliarRank, string> = {
     'обычный': 'Обычный'
 };
 
-const MiniFamiliarCard = ({ cardId }: { cardId: string }) => {
+const MiniFamiliarCard = ({ cardId, isBusy }: { cardId: string, isBusy?: boolean }) => {
     const { familiarsById } = useUser();
     const card = familiarsById[cardId];
     if (!card) return null;
     return (
-        <div className="flex items-center gap-2 p-2 bg-muted rounded-md text-sm">
+        <div className={cn("flex items-center gap-2 p-2 bg-muted rounded-md text-sm", isBusy && "opacity-50")}>
             <Image src={card.imageUrl} alt={card.name} width={32} height={48} className="rounded-sm" data-ai-hint={card['data-ai-hint']} />
             <div>
                 <p className="font-semibold">{card.name}</p>
@@ -66,14 +67,18 @@ export default function FamiliarExchange() {
   const myCharactersOptions = useMemo(() => (currentUser?.characters || []).map(char => ({ value: char.id, label: char.name })), [currentUser]);
   
   const mySelectedChar = useMemo(() => (currentUser?.characters || []).find(c => c.id === initiatorCharId), [currentUser?.characters, initiatorCharId]);
+
+  const busyFamiliarIds = useMemo(() => {
+    return new Set(mySelectedChar?.ongoingHunts?.map(hunt => hunt.familiarId));
+  }, [mySelectedChar]);
   
   const myFamiliarsOptions = useMemo(() => {
     if (!mySelectedChar) return [];
     return (mySelectedChar.familiarCards || [])
         .map(owned => familiarsById[owned.id])
         .filter(Boolean)
-        .map(fam => ({ value: fam.id, label: `${fam.name} (${rankNames[fam.rank]})` }));
-  }, [mySelectedChar, familiarsById]);
+        .map(fam => ({ value: fam.id, label: `${fam.name} (${rankNames[fam.rank]})${busyFamiliarIds.has(fam.id) ? ' (На охоте)' : ''}`, disabled: busyFamiliarIds.has(fam.id) }));
+  }, [mySelectedChar, familiarsById, busyFamiliarIds]);
 
   const selectedFamiliarRank = useMemo(() => {
     if (!initiatorFamiliarId) return null;

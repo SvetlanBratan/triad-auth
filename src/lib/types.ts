@@ -1,4 +1,5 @@
 
+
 export type UserRole = "admin" | "user";
 export type UserStatus = "активный" | "неактивный" | "отпуск";
 export type PlayerStatus =
@@ -111,6 +112,7 @@ export interface GameSettings {
       редкий: number;
     };
   };
+  huntingLocations?: HuntingLocation[];
 }
 
 export interface Achievement {
@@ -281,6 +283,7 @@ export interface GalleryImage {
 }
 
 export interface OngoingHunt {
+    huntId: string;
     familiarId: string;
     locationId: string;
     startedAt: string; // ISO string
@@ -509,4 +512,5 @@ export interface HuntingLocation {
 }
 
 // --- END ALCHEMY & HUNTING TYPES ---
+
 
