@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -54,7 +55,7 @@ const Timer = ({ endsAt }: { endsAt: string }) => {
         const interval = setInterval(() => {
             const newTimeLeft = formatHuntTimeLeft(endsAt);
             setTimeLeft(newTimeLeft);
-            if (newTimeLeft === "00:00") {
+            if (newTimeLeft === "00:00:00") {
                 clearInterval(interval);
             }
         }, 1000);
@@ -115,8 +116,19 @@ export default function HuntingTab() {
     if (!character) return;
     setIsProcessingId(hunt.huntId);
     try {
-        await claimHuntReward(character.id, hunt.huntId);
-        toast({ title: 'Добыча собрана!', description: 'Ингредиенты добавлены в инвентарь.' });
+        const rewards = await claimHuntReward(character.id, hunt.huntId);
+        if (rewards.length > 0) {
+            const rewardList = rewards.map(r => `${r.name} (x${r.quantity})`).join(', ');
+            toast({ 
+                title: 'Добыча собрана!', 
+                description: `Получено: ${rewardList}`
+            });
+        } else {
+            toast({
+                title: 'Охота завершена',
+                description: 'К сожалению, фамильяр вернулся с пустыми лапами.',
+            });
+        }
     } catch(e) {
         const msg = e instanceof Error ? e.message : 'Произошла ошибка';
         toast({ variant: 'destructive', title: 'Ошибка', description: msg });

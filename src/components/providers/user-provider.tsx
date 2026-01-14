@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
@@ -120,7 +121,7 @@ interface UserContextType extends Omit<User, 'id' | 'name' | 'email' | 'avatar' 
   allFamiliars: FamiliarCard[];
   familiarsById: Record<string, FamiliarCard>;
   startHunt: (characterId: string, familiarId: string, locationId: string) => Promise<void>;
-  claimHuntReward: (characterId: string, huntId: string) => Promise<void>;
+  claimHuntReward: (characterId: string, huntId: string) => Promise<InventoryItem[]>;
   recallHunt: (characterId: string, huntId: string) => Promise<void>;
 }
 
@@ -2684,6 +2685,92 @@ const withdrawFromShopTill = useCallback(async (shopId: string) => {
     const snapshot = await getDocs(recipesCollection);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AlchemyRecipe));
   }, []);
+  
+  const brewPotion = useCallback(async (userId: string, characterId: string, recipeId: string) => {
+    if (!currentUser) throw new Error("Not authenticated");
+    
+    await runTransaction(db, async (transaction) => {
+        const userRef = doc(db, "users", userId);
+        const userDoc = await transaction.get(userRef);
+        if (!userDoc.exists()) throw new Error("User not found.");
+        const userData = userDoc.data() as User;
+
+        const charIndex = userData.characters.findIndex(c => c.id === characterId);
+        if (charIndex === -1) throw new Error("Character not found.");
+        const character = userData.characters[charIndex];
+
+        const recipeRef = doc(db, "alchemy_recipes", recipeId);
+        const recipeDoc = await transaction.get(recipeRef);
+        if (!recipeDoc.exists()) throw new Error("Recipe not found.");
+        const recipe = recipeDoc.data() as AlchemyRecipe;
+
+        const inventory = character.inventory || {};
+        const ingredientsInv = (inventory.ингредиенты || []) as InventoryItem[];
+        
+        // Check and consume ingredients
+        for (const component of recipe.components) {
+            const allItems = ALL_SHOPS.flatMap(s => s.items || []);
+            const requiredIngredient = allItems.find(item => item.id === component.ingredientId);
+            if (!requiredIngredient) {
+                throw new Error(`Required ingredient data for ID ${component.ingredientId} not found.`);
+            }
+
+            const playerIngIndex = ingredientsInv.findIndex(i => i.name === requiredIngredient.name);
+            if (playerIngIndex === -1 || ingredientsInv[playerIngIndex].quantity < component.qty) {
+                throw new Error(`Недостаточно ингредиента: ${requiredIngredient.name}`);
+            }
+
+             if (ingredientsInv[playerIngIndex].quantity > component.qty) {
+                ingredientsInv[playerIngIndex].quantity -= component.qty;
+            } else {
+                ingredientsInv.splice(playerIngIndex, 1);
+            }
+        }
+
+        // Add result potion
+        const allItems = ALL_SHOPS.flatMap(s => s.items || []);
+        const resultItem = allItems.find(item => item.id === recipe.resultPotionId);
+        if (!resultItem) throw new Error("Result item data not found.");
+        
+        const resultCategory = resultItem.inventoryTag || 'зелья';
+        const resultInv = (inventory[resultCategory as keyof Inventory] || []) as InventoryItem[];
+        const existingItemIndex = resultInv.findIndex(p => p.name === resultItem.name);
+
+        if (existingItemIndex > -1) {
+            resultInv[existingItemIndex].quantity += recipe.outputQty;
+        } else {
+            resultInv.push({
+                id: `inv-item-${Date.now()}`,
+                name: resultItem.inventoryItemName || resultItem.name,
+                description: resultItem.inventoryItemDescription || resultItem.description,
+                image: resultItem.inventoryItemImage || resultItem.image,
+                quantity: recipe.outputQty,
+            });
+        }
+        
+        inventory.ингредиенты = ingredientsInv;
+        (inventory as any)[resultCategory] = resultInv;
+        character.inventory = inventory;
+        
+        // Grant achievement for first brew
+        if (!(userData.achievementIds || []).includes(FIRST_BREW_ACHIEVEMENT_ID)) {
+             userData.achievementIds = [...(userData.achievementIds || []), FIRST_BREW_ACHIEVEMENT_ID];
+        }
+
+        transaction.update(userRef, { characters: userData.characters, achievementIds: userData.achievementIds });
+    });
+    
+    const updatedUser = await fetchUserById(userId);
+    if(updatedUser) setCurrentUser(updatedUser);
+  }, [currentUser, fetchUserById]);
+
+    const addAlchemyRecipe = useCallback(async (recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
+        const recipesCollection = collection(db, 'alchemy_recipes');
+        await addDoc(recipesCollection, {
+            ...recipe,
+            createdAt: new Date().toISOString()
+        });
+    }, []);
 
     const updateAlchemyRecipe = useCallback(async (recipeId: string, recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
         const recipeRef = doc(db, 'alchemy_recipes', recipeId);
@@ -2696,7 +2783,7 @@ const withdrawFromShopTill = useCallback(async (shopId: string) => {
         const recipeRef = doc(db, 'alchemy_recipes', recipeId);
         await deleteDoc(recipeRef);
     }, []);
-    
+
     const sendPlayerPing = useCallback(async (targetUserId: string) => {
         if (!currentUser) throw new Error("User not authenticated");
         
@@ -2731,26 +2818,19 @@ const withdrawFromShopTill = useCallback(async (shopId: string) => {
       if (isMyPing) {
         // This is an outgoing ping initiated by the current user
         const selfUserRef = doc(db, "users", currentUser.id);
-        await updateDoc(selfUserRef, {
-          playerPings: arrayRemove({ id: pingId, toUserId: currentUser.favoritePlayerIds })
-        });
+        const myPing = currentUser.playerPings?.find(p => p.id === pingId);
+        if (myPing) {
+            await updateDoc(selfUserRef, { playerPings: arrayRemove(myPing) });
+        }
       } else {
         // This is an incoming ping, need to find the sender
         const allUsers = await fetchUsersForAdmin();
         const sender = allUsers.find(u => u.playerPings?.some(p => p.id === pingId));
-        if (sender) {
-          const senderPing = sender.playerPings!.find(p => p.id === pingId)!;
-          const selfUserRef = doc(db, "users", currentUser.id);
-           await updateDoc(selfUserRef, {
-            playerPings: arrayRemove({
-                id: pingId,
-                fromUserId: sender.id,
-                fromUserName: sender.name,
-                fromUserAvatar: sender.avatar,
-                toUserId: currentUser.id,
-                createdAt: senderPing.createdAt
-            })
-           });
+        const selfUserRef = doc(db, "users", currentUser.id);
+        const pingToRemove = currentUser.playerPings?.find(p => p.id === pingId);
+
+        if (pingToRemove) {
+             await updateDoc(selfUserRef, { playerPings: arrayRemove(pingToRemove) });
         }
       }
     }, [currentUser, fetchUsersForAdmin]);
@@ -2775,7 +2855,7 @@ const withdrawFromShopTill = useCallback(async (shopId: string) => {
             await deleteUserFunction({ uid: userId });
         } catch (error) {
             console.error("Cloud function 'deleteUser' failed:", error);
-            // Decide if you still want to delete the Firestore doc if Auth deletion fails
+            // Even if auth deletion fails, proceed to delete Firestore data
         }
         await deleteDoc(doc(db, "users", userId));
     }, [functions]);
@@ -2805,60 +2885,77 @@ const withdrawFromShopTill = useCallback(async (shopId: string) => {
         await updateCharacterInUser(currentUser.id, character);
     }, [currentUser, gameSettings, updateCharacterInUser]);
 
-    const claimHuntReward = useCallback(async (characterId: string, huntId: string) => {
+    const claimHuntReward = useCallback(async (characterId: string, huntId: string): Promise<InventoryItem[]> => {
         if (!currentUser) throw new Error("Not authenticated");
+        let foundRewards: InventoryItem[] = [];
         
-        const character = currentUser.characters.find(c => c.id === characterId);
-        if (!character) throw new Error("Character not found");
-
-        const hunt = (character.ongoingHunts || []).find(h => h.huntId === huntId);
-        if (!hunt || new Date(hunt.endsAt) > new Date()) {
-            throw new Error("Охота еще не завершена или не найдена.");
-        }
-
-        const location = gameSettings.huntingLocations?.find(l => l.id === hunt.locationId);
-        if (!location) throw new Error("Location data not found.");
-
-        const familiar = familiarsById[hunt.familiarId];
-        if (!familiar) throw new Error("Familiar data not found.");
-
-        const rewards: InventoryItem[] = [];
-        for (const reward of location.rewards) {
-            const chance = reward.chances[familiar.rank] || 0;
-            if (Math.random() * 100 < chance) {
-                const allItems = ALL_SHOPS.flatMap(s => s.items || []);
-                const itemData = allItems.find(i => i.id === reward.itemId);
-                if (itemData) {
-                    rewards.push({
-                        id: `inv-item-${Date.now()}-${Math.random()}`,
-                        name: itemData.inventoryItemName || itemData.name,
-                        description: itemData.inventoryItemDescription || itemData.description,
-                        image: itemData.inventoryItemImage || itemData.image,
-                        quantity: 1 // For now, always 1
-                    });
+        await runTransaction(db, async (transaction) => {
+            const userRef = doc(db, "users", currentUser.id);
+            const userDoc = await transaction.get(userRef);
+            if (!userDoc.exists()) throw new Error("User not found.");
+            const userData = userDoc.data() as User;
+    
+            const charIndex = userData.characters.findIndex(c => c.id === characterId);
+            if (charIndex === -1) throw new Error("Character not found.");
+            const character = userData.characters[charIndex];
+    
+            const hunt = (character.ongoingHunts || []).find(h => h.huntId === huntId);
+            if (!hunt || new Date(hunt.endsAt) > new Date()) {
+                throw new Error("Охота еще не завершена или не найдена.");
+            }
+    
+            const location = gameSettings.huntingLocations?.find(l => l.id === hunt.locationId);
+            if (!location) throw new Error("Location data not found.");
+    
+            const familiar = familiarsById[hunt.familiarId];
+            if (!familiar) throw new Error("Familiar data not found.");
+    
+            const rewards: InventoryItem[] = [];
+            for (const reward of location.rewards) {
+                const chance = reward.chances[familiar.rank] || 0;
+                if (Math.random() * 100 < chance) {
+                    const allItems = ALL_SHOPS.flatMap(s => s.items || []);
+                    const itemData = allItems.find(i => i.id === reward.itemId);
+                    if (itemData) {
+                        rewards.push({
+                            id: `inv-item-${Date.now()}-${Math.random()}`,
+                            name: itemData.inventoryItemName || itemData.name,
+                            description: itemData.inventoryItemDescription || itemData.description,
+                            image: itemData.inventoryItemImage || itemData.image,
+                            quantity: 1 // For now, always 1
+                        });
+                    }
                 }
             }
-        }
-        
-        const inventory = character.inventory || initialFormData.inventory;
-        rewards.forEach(rewardItem => {
-            const category = 'ингредиенты'; // Assume all hunt rewards are ingredients for now
-            const list = (inventory[category] as InventoryItem[] | undefined) || [];
-            const existingItemIndex = list.findIndex(i => i.name === rewardItem.name);
-            if (existingItemIndex > -1) {
-                list[existingItemIndex].quantity += rewardItem.quantity;
-            } else {
-                list.push(rewardItem);
-            }
-            inventory[category] = list;
+            
+            foundRewards = [...rewards];
+
+            const inventory = character.inventory || initialFormData.inventory;
+            rewards.forEach(rewardItem => {
+                const category = 'ингредиенты'; // Assume all hunt rewards are ingredients for now
+                const list = (inventory[category] as InventoryItem[] | undefined) || [];
+                const existingItemIndex = list.findIndex(i => i.name === rewardItem.name);
+                if (existingItemIndex > -1) {
+                    list[existingItemIndex].quantity += rewardItem.quantity;
+                } else {
+                    list.push(rewardItem);
+                }
+                inventory[category] = list;
+            });
+    
+            character.inventory = inventory;
+            character.ongoingHunts = (character.ongoingHunts || []).filter(h => h.huntId !== huntId);
+            userData.characters[charIndex] = character;
+    
+            transaction.update(userRef, { characters: userData.characters });
         });
+        
+        const updatedUser = await fetchUserById(currentUser.id);
+        if (updatedUser) setCurrentUser(updatedUser);
 
-        character.inventory = inventory;
-        character.ongoingHunts = (character.ongoingHunts || []).filter(h => h.huntId !== huntId);
+        return foundRewards;
 
-        await updateCharacterInUser(currentUser.id, character);
-
-    }, [currentUser, gameSettings, familiarsById, updateCharacterInUser, initialFormData.inventory]);
+    }, [currentUser, gameSettings, familiarsById, fetchUserById, initialFormData.inventory]);
 
     const recallHunt = useCallback(async (characterId: string, huntId: string) => {
         if (!currentUser) throw new Error("Not authenticated");
@@ -2877,93 +2974,6 @@ const withdrawFromShopTill = useCallback(async (shopId: string) => {
         await updateCharacterInUser(currentUser.id, character);
 
     }, [currentUser, updateCharacterInUser]);
-
-    const brewPotion = useCallback(async (userId: string, characterId: string, recipeId: string) => {
-        if (!currentUser) throw new Error("Not authenticated");
-        
-        await runTransaction(db, async (transaction) => {
-            const userRef = doc(db, "users", userId);
-            const userDoc = await transaction.get(userRef);
-            if (!userDoc.exists()) throw new Error("User not found.");
-            const userData = userDoc.data() as User;
-
-            const charIndex = userData.characters.findIndex(c => c.id === characterId);
-            if (charIndex === -1) throw new Error("Character not found.");
-            const character = userData.characters[charIndex];
-
-            const recipeRef = doc(db, "alchemy_recipes", recipeId);
-            const recipeDoc = await transaction.get(recipeRef);
-            if (!recipeDoc.exists()) throw new Error("Recipe not found.");
-            const recipe = recipeDoc.data() as AlchemyRecipe;
-
-            const inventory = character.inventory || {};
-            const ingredientsInv = (inventory.ингредиенты || []) as InventoryItem[];
-            
-            // Check and consume ingredients
-            for (const component of recipe.components) {
-                const allItems = ALL_SHOPS.flatMap(s => s.items || []);
-                const requiredIngredient = allItems.find(item => item.id === component.ingredientId);
-                if (!requiredIngredient) {
-                    throw new Error(`Required ingredient data for ID ${component.ingredientId} not found.`);
-                }
-
-                const playerIngIndex = ingredientsInv.findIndex(i => i.name === requiredIngredient.name);
-                if (playerIngIndex === -1 || ingredientsInv[playerIngIndex].quantity < component.qty) {
-                    throw new Error(`Недостаточно ингредиента: ${requiredIngredient.name}`);
-                }
-
-                if (ingredientsInv[playerIngIndex].quantity > component.qty) {
-                    ingredientsInv[playerIngIndex].quantity -= component.qty;
-                } else {
-                    ingredientsInv.splice(playerIngIndex, 1);
-                }
-            }
-
-            // Add result potion
-            const allItems = ALL_SHOPS.flatMap(s => s.items || []);
-            const resultItem = allItems.find(item => item.id === recipe.resultPotionId);
-            if (!resultItem) throw new Error("Result item data not found.");
-            
-            const resultCategory = resultItem.inventoryTag || 'зелья';
-            const resultInv = (inventory[resultCategory as keyof Inventory] || []) as InventoryItem[];
-            const existingItemIndex = resultInv.findIndex(p => p.name === resultItem.name);
-
-            if (existingItemIndex > -1) {
-                resultInv[existingItemIndex].quantity += recipe.outputQty;
-            } else {
-                resultInv.push({
-                    id: `inv-item-${Date.now()}`,
-                    name: resultItem.inventoryItemName || resultItem.name,
-                    description: resultItem.inventoryItemDescription || resultItem.description,
-                    image: resultItem.inventoryItemImage || resultItem.image,
-                    quantity: recipe.outputQty,
-                });
-            }
-            
-            inventory.ингредиенты = ingredientsInv;
-            (inventory as any)[resultCategory] = resultInv;
-            character.inventory = inventory;
-            
-            // Grant achievement for first brew
-            if (!(userData.achievementIds || []).includes(FIRST_BREW_ACHIEVEMENT_ID)) {
-                 userData.achievementIds = [...(userData.achievementIds || []), FIRST_BREW_ACHIEVEMENT_ID];
-            }
-
-            transaction.update(userRef, { characters: userData.characters, achievementIds: userData.achievementIds });
-        });
-        
-        const updatedUser = await fetchUserById(userId);
-        if(updatedUser) setCurrentUser(updatedUser);
-      }, [currentUser, fetchUserById]);
-
-    const addAlchemyRecipe = useCallback(async (recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
-        const recipesCollection = collection(db, 'alchemy_recipes');
-        await addDoc(recipesCollection, {
-            ...recipe,
-            createdAt: new Date().toISOString()
-        });
-    }, []);
-
 
   const signOutUser = useCallback(() => {
     signOut(auth);
