@@ -11,8 +11,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
-import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info, AlertTriangle, Bell, CheckCircle, Store, PackagePlus, Edit, BadgeCheck, FileText, Send, Gavel, Eye, UserMinus, FlaskConical } from 'lucide-react';
-import type { UserStatus, UserRole, User, FamiliarCard, BankAccount, WealthLevel, FamiliarRank, Shop, InventoryCategory, AdminGiveItemForm, InventoryItem, CitizenshipStatus, TaxpayerStatus, CharacterPopularityUpdate, AlchemyRecipe, GameSettings } from '@/lib/types';
+import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info, AlertTriangle, Bell, CheckCircle, Store, PackagePlus, Edit, BadgeCheck, FileText, Send, Gavel, Eye, UserMinus, FlaskConical, Compass } from 'lucide-react';
+import type { UserStatus, UserRole, User, FamiliarCard, BankAccount, WealthLevel, FamiliarRank, Shop, InventoryCategory, AdminGiveItemForm, InventoryItem, CitizenshipStatus, TaxpayerStatus, CharacterPopularityUpdate, AlchemyRecipe, GameSettings, HuntingLocation, HuntReward } from '@/lib/types';
 import { EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, WEALTH_LEVELS, ALL_STATIC_FAMILIARS, STARTING_CAPITAL_LEVELS, ALL_SHOPS, INVENTORY_CATEGORIES, POPULARITY_EVENTS } from '@/lib/data';
 import {
   AlertDialog,
@@ -45,6 +45,14 @@ const rankNames: Record<FamiliarRank, string> = {
 };
 
 const rankOrder: FamiliarRank[] = ['мифический', 'ивентовый', 'легендарный', 'редкий', 'обычный'];
+
+const rankOptions: { value: FamiliarRank, label: string }[] = [
+    { value: 'обычный', label: 'Обычный' },
+    { value: 'редкий', label: 'Редкий' },
+    { value: 'легендарный', label: 'Легендарный' },
+    { value: 'мифический', label: 'Мифический' },
+    { value: 'ивентовый', label: 'Ивентовый' },
+];
 
 const citizenshipStatusOptions: { value: CitizenshipStatus, label: string }[] = [
     { value: 'citizen', label: 'Гражданин' },
@@ -231,7 +239,6 @@ export default function AdminTab() {
   // Alchemy State
   const [editingRecipeId, setEditingRecipeId] = useState<string | null>(null);
   const [newRecipe, setNewRecipe] = useState<Omit<AlchemyRecipe, 'id' | 'createdAt'>>({ name: '', components: [], resultPotionId: '', outputQty: 1, difficulty: 1 });
-  const [isSavingRecipe, setIsSavingRecipe] = useState(false);
   const [isAddingRecipe, setIsAddingRecipe] = useState(false);
 
 
@@ -1193,6 +1200,7 @@ export default function AdminTab() {
         <TabsTrigger value="general" className="text-xs sm:text-sm">Общее</TabsTrigger>
         <TabsTrigger value="popularity" className="text-xs sm:text-sm">Популярность</TabsTrigger>
         <TabsTrigger value="alchemy" className="text-xs sm:text-sm">Алхимия</TabsTrigger>
+        <TabsTrigger value="hunting" className="text-xs sm:text-sm">Охота</TabsTrigger>
         <TabsTrigger value="familiars" className="text-xs sm:text-sm">Фамильяры</TabsTrigger>
         <TabsTrigger value="economy" className="text-xs sm:text-sm">Экономика</TabsTrigger>
         <TabsTrigger value="shops" className="text-xs sm:text-sm">Магазины</TabsTrigger>
@@ -1725,6 +1733,18 @@ export default function AdminTab() {
                         {isAddingRecipe ? 'Добавление...' : 'Добавить рецепт'}
                     </Button>
                 </form>
+            </CardContent>
+        </Card>
+      </TabsContent>
+      
+      <TabsContent value="hunting" className="mt-4">
+        <Card>
+            <CardHeader>
+                 <CardTitle className="flex items-center gap-2"><Compass /> Управление Охотой</CardTitle>
+                 <CardDescription>Настройте локации для охоты, награды и шансы их получения.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <p className="text-muted-foreground">Здесь будет форма для управления локациями для охоты.</p>
             </CardContent>
         </Card>
       </TabsContent>
@@ -2477,4 +2497,5 @@ export default function AdminTab() {
 }
 
     
+
 

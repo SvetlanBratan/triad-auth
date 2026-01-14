@@ -1,6 +1,4 @@
 
-
-
 export type UserRole = "admin" | "user";
 export type UserStatus = "активный" | "неактивный" | "отпуск";
 export type PlayerStatus =
@@ -282,6 +280,13 @@ export interface GalleryImage {
   taggedCharacterIds?: string[];
 }
 
+export interface OngoingHunt {
+    familiarId: string;
+    locationId: string;
+    startedAt: string; // ISO string
+    endsAt: string; // ISO string
+}
+
 export interface Character {
   id: string;
   name: string;
@@ -310,6 +315,7 @@ export interface Character {
   marriedTo?: string[];
   inventory: Partial<Inventory>;
   familiarCards: OwnedFamiliarCard[];
+  ongoingHunts?: OngoingHunt[];
   moodlets?: Moodlet[];
   blessingExpires?: string;
   hasLeviathanFriendship?: boolean;
@@ -456,7 +462,7 @@ export interface CharacterPopularityUpdate {
   description?: string;
 }
 
-// --- ALCHEMY TYPES ---
+// --- ALCHEMY & HUNTING TYPES ---
 export interface AlchemyIngredient extends InventoryItem {
   note?: string;
   tags: string[];
@@ -486,5 +492,21 @@ export interface AlchemyRecipe {
   difficulty: number; // 1-10
   createdAt: string; // ISO string
 }
-// --- END ALCHEMY TYPES ---
+
+export interface HuntReward {
+    itemId: string;
+    chances: Record<FamiliarRank, number>; // e.g., { 'обычный': 30, 'редкий': 50, ... }
+}
+
+export interface HuntingLocation {
+    id: string;
+    name: string;
+    description: string;
+    image: string;
+    durationMinutes: number;
+    requiredRank: FamiliarRank;
+    rewards: HuntReward[];
+}
+
+// --- END ALCHEMY & HUNTING TYPES ---
 
