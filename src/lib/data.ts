@@ -1,6 +1,6 @@
 
 
-import type { Reward, FamiliarCard, Achievement, GameSettings, WealthLevel, BankAccount, CapitalLevel, CrimeLevel, Shop, InventoryCategory, PopularityEvent } from './types';
+import type { Reward, FamiliarCard, Achievement, GameSettings, WealthLevel, BankAccount, CapitalLevel, CrimeLevel, Shop, InventoryCategory, PopularityEvent, HuntingLocation } from './types';
 import type { OptionType } from '@/components/ui/multi-select';
 
 // Game Date is now fetched from Firestore. See UserProvider.
@@ -20,7 +20,47 @@ export const DEFAULT_GAME_SETTINGS: GameSettings = {
             легендарный: 20,
             редкий: 40,
         }
-    }
+    },
+    huntingLocations: [
+        {
+            id: 'hunt-forest',
+            name: 'Шепчущий лес',
+            description: 'Древний лес, полный как обычной дичи, так и редких магических растений.',
+            image: 'https://i.postimg.cc/L5YQ9J2g/image.png',
+            durationMinutes: 60,
+            requiredRank: 'обычный',
+            rewards: [
+                { itemId: 'ing-mountain-flower', chances: { 'обычный': 50, 'редкий': 60, 'легендарный': 70, 'мифический': 80, 'ивентовый': 70 } },
+                { itemId: 'ing-sage-leaves', chances: { 'обычный': 30, 'редкий': 40, 'легендарный': 50, 'мифический': 60, 'ивентовый': 50 } },
+                { itemId: 'ing-mandrake-root', chances: { 'обычный': 5, 'редкий': 10, 'легендарный': 15, 'мифический': 20, 'ивентовый': 15 } },
+            ]
+        },
+        {
+            id: 'hunt-caves',
+            name: 'Кристальные пещеры',
+            description: 'Подземные гроты, где растут светящиеся грибы и можно найти редкие минералы.',
+            image: 'https://i.postimg.cc/mD41k3C2/image.png',
+            durationMinutes: 180,
+            requiredRank: 'редкий',
+            rewards: [
+                { itemId: 'ing-glowing-mushroom', chances: { 'обычный': 0, 'редкий': 60, 'легендарный': 75, 'мифический': 90, 'ивентовый': 75 } },
+                { itemId: 'ing-fire-salt', chances: { 'обычный': 0, 'редкий': 20, 'легендарный': 30, 'мифический': 40, 'ивентовый': 30 } },
+            ]
+        },
+        {
+            id: 'hunt-volcano',
+            name: 'Драконье пекло',
+            description: 'Опасные склоны действующего вулкана. Здесь обитают огнеупорные существа и растут закаленные в жаре растения.',
+            image: 'https://i.postimg.cc/0j4BPMzS/image.png',
+            durationMinutes: 360,
+            requiredRank: 'легендарный',
+            rewards: [
+                { itemId: 'ing-fire-salt', chances: { 'обычный': 0, 'редкий': 0, 'легендарный': 70, 'мифический': 80, 'ивентовый': 70 } },
+                { itemId: 'ing-phoenix-feather', chances: { 'обычный': 0, 'редкий': 0, 'легендарный': 10, 'мифический': 20, 'ивентовый': 15 } },
+                { itemId: 'ing-dragon-scale', chances: { 'обычный': 0, 'редкий': 0, 'легендарный': 5, 'мифический': 10, 'ивентовый': 8 } },
+            ]
+        }
+    ]
 }
 
 export const RACE_OPTIONS: OptionType[] = [
@@ -771,6 +811,7 @@ export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) =>
     acc[shop.id] = shop;
     return acc;
 }, {} as Record<string, Shop>);
+
 
 
 

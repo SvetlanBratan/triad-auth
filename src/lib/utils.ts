@@ -35,25 +35,22 @@ export function formatTimeLeft(isoDateString?: string | null): string {
 
 export function formatHuntTimeLeft(isoDateString?: string | null): string {
     if (!isoDateString) {
-        return "00:00";
+        return "00:00:00";
     }
     const targetDate = new Date(isoDateString);
     if (isPast(targetDate)) {
-        return "00:00";
+        return "00:00:00";
     }
     const duration = intervalToDuration({ start: new Date(), end: targetDate });
     
-    const hours = (duration.hours || 0).toString().padStart(2, '0');
+    const totalHours = (duration.days || 0) * 24 + (duration.hours || 0);
     const minutes = (duration.minutes || 0).toString().padStart(2, '0');
     const seconds = (duration.seconds || 0).toString().padStart(2, '0');
 
-    if (duration.days && duration.days > 0) {
-        return `${duration.days}д. ${hours}ч.`;
+    if (totalHours > 0) {
+        return `${totalHours.toString().padStart(2, '0')}:${minutes}:${seconds}`;
     }
-    if (duration.hours && duration.hours > 0) {
-        return `${hours}:${minutes}:${seconds}`;
-    }
-    return `${minutes}:${seconds}`;
+    return `00:${minutes}:${seconds}`;
 }
 
 

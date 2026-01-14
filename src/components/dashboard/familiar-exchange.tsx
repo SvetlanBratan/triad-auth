@@ -50,7 +50,7 @@ export default function FamiliarExchange() {
 
   const { data: tradeRequests = [], isLoading: isRequestsLoading, refetch: refetchRequests } = useQuery<FamiliarTradeRequest[]>({
     queryKey: ['familiarTrades', currentUser?.id],
-    queryFn: fetchFamiliarTradeRequestsForUser,
+    queryFn: () => currentUser ? fetchFamiliarTradeRequestsForUser() : Promise.resolve([]),
     enabled: !!currentUser,
   });
 
@@ -118,10 +118,17 @@ export default function FamiliarExchange() {
 
   const targetFamiliarsOptions = useMemo(() => {
       if (!targetSelectedChar || targetRanks.length === 0) return [];
+      
+      const busyFamiliarIdsOnTarget = new Set((targetSelectedChar.ongoingHunts || []).map(hunt => hunt.familiarId));
+      
       return (targetSelectedChar.familiarCards || [])
           .map(owned => familiarsById[owned.id])
           .filter((card): card is FamiliarCard => !!card && targetRanks.includes(card.rank))
-          .map(fam => ({ value: fam.id, label: `${fam.name} (${rankNames[fam.rank]})` }));
+          .map(fam => ({ 
+              value: fam.id, 
+              label: `${fam.name} (${rankNames[fam.rank]})${busyFamiliarIdsOnTarget.has(fam.id) ? ' (На охоте)' : ''}`,
+              disabled: busyFamiliarIdsOnTarget.has(fam.id)
+          }));
   }, [targetSelectedChar, targetRanks, familiarsById]);
 
 
