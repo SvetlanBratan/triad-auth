@@ -103,7 +103,7 @@ interface UserContextType extends Omit<User, 'id' | 'name' | 'email' | 'avatar' 
   clearAllMailboxes: () => Promise<void>;
   updatePopularity: (updates: CharacterPopularityUpdate[]) => Promise<void>;
   clearAllPopularityHistories: () => Promise<void>;
-  withdrawFromShopTill: () => Promise<void>;
+  withdrawFromShopTill: (shopId: string) => Promise<void>;
   brewPotion: (userId: string, characterId: string, recipeId: string) => Promise<void>;
   addAlchemyRecipe: (recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => Promise<void>;
   updateAlchemyRecipe: (recipeId: string, recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => Promise<void>;
@@ -523,6 +523,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const familiarsCollection = collection(db, "familiars");
     const snapshot = await getDocs(familiarsCollection);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FamiliarCard));
+  }, []);
+
+  const addFamiliarToDb = useCallback(async (familiar: Omit<FamiliarCard, 'id'>) => {
+    const familiarsCollection = collection(db, 'familiars');
+    await addDoc(familiarsCollection, familiar);
+  }, []);
+
+  const deleteFamiliarFromDb = useCallback(async (familiarId: string) => {
+    const familiarRef = doc(db, 'familiars', familiarId);
+    await deleteDoc(familiarRef);
   }, []);
 
   const fetchAndCombineFamiliars = useCallback(async () => {
@@ -1745,8 +1755,7 @@ const processMonthlySalary = useCallback(async () => {
         if (creatorCharIndex === -1) throw new Error("Персонаж создателя запроса не найден.");
 
         const creatorChar = creatorUserData.characters[creatorCharIndex];
-        const bankAccount = creatorChar.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
-        bankAccount[request.fromCurrency] = (bankAccount[request.fromCurrency] || 0) + request.fromAmount;
+        const bankAccount = creatorChar.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };        bankAccount[request.fromCurrency] = (bankAccount[request.fromCurrency] || 0) + request.fromAmount;
         
         const refundTx: BankTransaction = { id: `txn-cancel-${Date.now()}`, date: new Date().toISOString(), reason: 'Отмена запроса на обмен', amount: { [request.fromCurrency]: request.fromAmount }};
         bankAccount.history = [refundTx, ...(bankAccount.history || [])];
@@ -2674,222 +2683,260 @@ const withdrawFromShopTill = useCallback(async (shopId: string) => {
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AlchemyRecipe));
   }, []);
 
-  const startHunt = useCallback(async (characterId: string, familiarId: string, locationId: string) => {
-    if (!currentUser) throw new Error("Not authenticated");
+  const addAlchemyRecipe = useCallback(async (recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
+    const recipesCollection = collection(db, 'alchemy_recipes');
+    await addDoc(recipesCollection, {
+        ...recipe,
+        createdAt: new Date().toISOString()
+    });
+  }, []);
 
+  const brewPotion = useCallback(async (userId: string, characterId: string, recipeId: string) => {
+    if (!currentUser) throw new Error("Not authenticated");
+    
     await runTransaction(db, async (transaction) => {
-        const userRef = doc(db, "users", currentUser.id);
+        const userRef = doc(db, "users", userId);
         const userDoc = await transaction.get(userRef);
         if (!userDoc.exists()) throw new Error("User not found.");
-
         const userData = userDoc.data() as User;
+
         const charIndex = userData.characters.findIndex(c => c.id === characterId);
         if (charIndex === -1) throw new Error("Character not found.");
         const character = userData.characters[charIndex];
 
-        const familiar = familiarsById[familiarId];
+        const recipeRef = doc(db, "alchemy_recipes", recipeId);
+        const recipeDoc = await transaction.get(recipeRef);
+        if (!recipeDoc.exists()) throw new Error("Recipe not found.");
+        const recipe = recipeDoc.data() as AlchemyRecipe;
+
+        const inventory = character.inventory || {};
+        const ingredientsInv = (inventory.ингредиенты || []) as InventoryItem[];
+        
+        // Check and consume ingredients
+        for (const component of recipe.components) {
+            const allItems = ALL_SHOPS.flatMap(s => s.items || []);
+            const requiredIngredient = allItems.find(item => item.id === component.ingredientId);
+            if (!requiredIngredient) {
+                throw new Error(`Required ingredient data for ID ${component.ingredientId} not found.`);
+            }
+
+            const playerIngIndex = ingredientsInv.findIndex(i => i.name === requiredIngredient.name);
+            if (playerIngIndex === -1 || ingredientsInv[playerIngIndex].quantity < component.qty) {
+                throw new Error(`Недостаточно ингредиента: ${requiredIngredient.name}`);
+            }
+
+            if (ingredientsInv[playerIngIndex].quantity > component.qty) {
+                ingredientsInv[playerIngIndex].quantity -= component.qty;
+            } else {
+                ingredientsInv.splice(playerIngIndex, 1);
+            }
+        }
+
+        // Add result potion
+        const allItems = ALL_SHOPS.flatMap(s => s.items || []);
+        const resultItem = allItems.find(item => item.id === recipe.resultPotionId);
+        if (!resultItem) throw new Error("Result item data not found.");
+        
+        const resultCategory = resultItem.inventoryTag || 'зелья';
+        const resultInv = (inventory[resultCategory] || []) as InventoryItem[];
+        const existingItemIndex = resultInv.findIndex(p => p.name === resultItem.name);
+
+        if (existingItemIndex > -1) {
+            resultInv[existingItemIndex].quantity += recipe.outputQty;
+        } else {
+            resultInv.push({
+                id: `inv-item-${Date.now()}`,
+                name: resultItem.name,
+                description: resultItem.description,
+                image: resultItem.image,
+                quantity: recipe.outputQty,
+            });
+        }
+        
+        inventory.ингредиенты = ingredientsInv;
+        (inventory as any)[resultCategory] = resultInv;
+        character.inventory = inventory;
+        
+        // Grant achievement for first brew
+        if (!(userData.achievementIds || []).includes(FIRST_BREW_ACHIEVEMENT_ID)) {
+             userData.achievementIds = [...(userData.achievementIds || []), FIRST_BREW_ACHIEVEMENT_ID];
+        }
+
+        transaction.update(userRef, { characters: userData.characters, achievementIds: userData.achievementIds });
+    });
+    
+    const updatedUser = await fetchUserById(userId);
+    if(updatedUser) setCurrentUser(updatedUser);
+  }, [currentUser, fetchUserById]);
+
+    const updateAlchemyRecipe = useCallback(async (recipeId: string, recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
+        const recipeRef = doc(db, 'alchemy_recipes', recipeId);
+        await updateDoc(recipeRef, {
+            ...recipe,
+        });
+    }, []);
+
+    const deleteAlchemyRecipe = useCallback(async (recipeId: string) => {
+        const recipeRef = doc(db, 'alchemy_recipes', recipeId);
+        await deleteDoc(recipeRef);
+    }, []);
+    
+    const sendPlayerPing = useCallback(async (targetUserId: string) => {
+        if (!currentUser) throw new Error("User not authenticated");
+        
+        const targetUserRef = doc(db, "users", targetUserId);
+        
+        const newPing: PlayerPing = {
+            id: `ping-${Date.now()}`,
+            fromUserId: currentUser.id,
+            fromUserName: currentUser.name,
+            fromUserAvatar: currentUser.avatar,
+            toUserId: targetUserId,
+            createdAt: new Date().toISOString(),
+        };
+
+        await updateDoc(targetUserRef, {
+            playerPings: arrayUnion(newPing)
+        });
+        
+        const selfUserRef = doc(db, "users", currentUser.id);
+         await updateDoc(selfUserRef, {
+            playerPings: arrayUnion({
+                 id: newPing.id,
+                 toUserId: targetUserId
+            })
+        });
+
+    }, [currentUser]);
+
+    const deletePlayerPing = useCallback(async (pingId: string, isMyPing: boolean) => {
+      if (!currentUser) throw new Error("User not authenticated");
+
+      if (isMyPing) {
+        // This is an outgoing ping initiated by the current user
+        const selfUserRef = doc(db, "users", currentUser.id);
+        await updateDoc(selfUserRef, {
+          playerPings: arrayRemove({ id: pingId, toUserId: currentUser.favoritePlayerIds })
+        });
+      } else {
+        // This is an incoming ping, need to find the sender
+        const allUsers = await fetchUsersForAdmin();
+        const sender = allUsers.find(u => u.playerPings?.some(p => p.id === pingId));
+        if (sender) {
+          const senderPing = sender.playerPings!.find(p => p.id === pingId)!;
+          const selfUserRef = doc(db, "users", currentUser.id);
+           await updateDoc(selfUserRef, {
+            playerPings: arrayRemove({
+                id: pingId,
+                fromUserId: sender.id,
+                fromUserName: sender.name,
+                fromUserAvatar: sender.avatar,
+                toUserId: currentUser.id,
+                createdAt: senderPing.createdAt
+            })
+           });
+        }
+      }
+    }, [currentUser, fetchUsersForAdmin]);
+
+    const addFavoritePlayer = useCallback(async (targetUserId: string) => {
+        if (!currentUser) return;
+        await updateUser(currentUser.id, {
+            favoritePlayerIds: arrayUnion(targetUserId)
+        });
+    }, [currentUser, updateUser]);
+
+    const removeFavoritePlayer = useCallback(async (targetUserId: string) => {
+        if (!currentUser) return;
+        await updateUser(currentUser.id, {
+            favoritePlayerIds: arrayRemove(targetUserId)
+        });
+    }, [currentUser, updateUser]);
+
+    const deleteUserAccount = useCallback(async (userId: string) => {
+        const deleteUserFunction = httpsCallable(functions, 'deleteUser');
+        await deleteUserFunction({ uid: userId });
+        await deleteDoc(doc(db, "users", userId));
+    }, [functions]);
+    
+    const startHunt = useCallback(async (characterId: string, familiarId: string, locationId: string) => {
+        if (!currentUser) throw new Error("Not authenticated");
+        
+        const userRef = doc(db, "users", currentUser.id);
+        
+        const character = currentUser.characters.find(c => c.id === characterId);
+        if (!character) throw new Error("Character not found");
+
         const location = gameSettings.huntingLocations?.find(l => l.id === locationId);
-        if (!familiar || !location) throw new Error("Familiar or Location not found.");
-
-        const rankOrder: FamiliarRank[] = ['мифический', 'легендарный', 'редкий', 'обычный'];
-        const requiredRankIndex = rankOrder.indexOf(location.requiredRank);
-        const familiarRankIndex = rankOrder.indexOf(familiar.rank);
-
-        if (familiarRankIndex > requiredRankIndex) {
-            throw new Error("Ранг фамильяра слишком низок для этой локации.");
-        }
-        if ((character.ongoingHunts || []).some(h => h.familiarId === familiarId)) {
-            throw new Error("Этот фамильяр уже на охоте.");
-        }
-
-        const now = new Date();
-        const endsAt = new Date(now.getTime() + location.durationMinutes * 60000);
+        if (!location) throw new Error("Location not found");
 
         const newHunt: OngoingHunt = {
             huntId: `hunt-${Date.now()}`,
-            familiarId,
-            locationId,
-            startedAt: now.toISOString(),
-            endsAt: endsAt.toISOString(),
+            familiarId: familiarId,
+            locationId: locationId,
+            startedAt: new Date().toISOString(),
+            endsAt: new Date(Date.now() + location.durationMinutes * 60 * 1000).toISOString(),
         };
 
         const updatedHunts = [...(character.ongoingHunts || []), newHunt];
         character.ongoingHunts = updatedHunts;
 
-        transaction.update(userRef, { characters: userData.characters });
-    });
+        await updateCharacterInUser(currentUser.id, character);
+    }, [currentUser, gameSettings, updateCharacterInUser]);
 
-    const updatedUser = await fetchUserById(currentUser.id);
-    if (updatedUser) setCurrentUser(updatedUser);
+    const claimHuntReward = useCallback(async (characterId: string, huntId: string) => {
+        if (!currentUser) throw new Error("Not authenticated");
+        
+        const character = currentUser.characters.find(c => c.id === characterId);
+        if (!character) throw new Error("Character not found");
 
-  }, [currentUser, familiarsById, gameSettings, fetchUserById]);
-
-
-  const claimHuntReward = useCallback(async (characterId: string, huntId: string) => {
-    if (!currentUser) throw new Error("Not authenticated");
-    
-    await runTransaction(db, async (transaction) => {
-        const userRef = doc(db, "users", currentUser.id);
-        const userDoc = await transaction.get(userRef);
-        if (!userDoc.exists()) throw new Error("User not found.");
-
-        const userData = userDoc.data() as User;
-        const charIndex = userData.characters.findIndex(c => c.id === characterId);
-        if (charIndex === -1) throw new Error("Character not found.");
-        const character = userData.characters[charIndex];
-
-        const huntIndex = (character.ongoingHunts || []).findIndex(h => h.huntId === huntId);
-        if (huntIndex === -1) throw new Error("Hunting session not found.");
-        const hunt = character.ongoingHunts![huntIndex];
-
-        if (new Date(hunt.endsAt) > new Date()) {
-            throw new Error("Охота еще не завершена.");
+        const hunt = (character.ongoingHunts || []).find(h => h.huntId === huntId);
+        if (!hunt || new Date(hunt.endsAt) > new Date()) {
+            throw new Error("Охота еще не завершена или не найдена.");
         }
 
         const location = gameSettings.huntingLocations?.find(l => l.id === hunt.locationId);
+        if (!location) throw new Error("Location data not found.");
+
         const familiar = familiarsById[hunt.familiarId];
-        if (!location || !familiar) throw new Error("Location or familiar data is missing.");
-        
+        if (!familiar) throw new Error("Familiar data not found.");
+
         const rewards: InventoryItem[] = [];
-        location.rewards.forEach(rewardInfo => {
-            const chance = rewardInfo.chances[familiar.rank] || 0;
+        for (const reward of location.rewards) {
+            const chance = reward.chances[familiar.rank] || 0;
             if (Math.random() * 100 < chance) {
-                const itemData = allFamiliars.find(i => i.id === rewardInfo.itemId); // This is wrong, should be ingredients list. But for now, we follow the structure.
-                // In a real scenario, you'd fetch item data from a proper source.
-                // Here we'll just simulate it.
-                // This will need to be fixed to look into ingredients/items list.
-                // Assuming INGREDIENTS_LIST exists and is accessible
-                 const ingredientData = (gameSettings.huntingLocations || []).flatMap(l => l.rewards).map(r => r.itemId)
-                    .map(id => allFamiliars.find(f => f.id === id));
-
-                rewards.push({
-                    id: `inv-item-${Date.now()}-${Math.random()}`,
-                    name: `Добыча: ${rewardInfo.itemId}`, // Placeholder name
-                    quantity: 1
-                });
+                const itemData = ALL_SHOPS.flatMap(s => s.items || []).find(i => i.id === reward.itemId);
+                if (itemData) {
+                    rewards.push({
+                        id: `inv-item-${Date.now()}-${Math.random()}`,
+                        name: itemData.name,
+                        description: itemData.description,
+                        image: itemData.image,
+                        quantity: 1 // For now, always 1
+                    });
+                }
             }
-        });
-
-        // Add rewards to inventory
-        const inventory = character.inventory || {};
-        rewards.forEach(reward => {
-             const tag: InventoryCategory = 'ингредиенты'; // Assuming all rewards are ingredients
-            (inventory[tag] ??= []);
-            const existingItemIndex = inventory[tag]!.findIndex(i => i.name === reward.name);
-            if(existingItemIndex > -1) {
-                inventory[tag]![existingItemIndex].quantity += 1;
+        }
+        
+        const inventory = character.inventory || initialFormData.inventory;
+        rewards.forEach(rewardItem => {
+            const category = 'ингредиенты'; // Assume all hunt rewards are ingredients for now
+            const list = (inventory[category] as InventoryItem[] | undefined) || [];
+            const existingItemIndex = list.findIndex(i => i.name === rewardItem.name);
+            if (existingItemIndex > -1) {
+                list[existingItemIndex].quantity += rewardItem.quantity;
             } else {
-                inventory[tag]!.push(reward);
+                list.push(rewardItem);
             }
+            inventory[category] = list;
         });
 
         character.inventory = inventory;
-        character.ongoingHunts!.splice(huntIndex, 1);
+        character.ongoingHunts = (character.ongoingHunts || []).filter(h => h.huntId !== huntId);
 
-        transaction.update(userRef, { characters: userData.characters });
-    });
+        await updateCharacterInUser(currentUser.id, character);
 
-    const updatedUser = await fetchUserById(currentUser.id);
-    if(updatedUser) setCurrentUser(updatedUser);
-  }, [currentUser, gameSettings, familiarsById, allFamiliars, fetchUserById]);
-
-const deleteUserAccount = useCallback(async (userId: string) => {
-    const deleteUserFn = httpsCallable(functions, 'deleteUser');
-    try {
-        // First, delete from Firestore
-        const userRef = doc(db, "users", userId);
-        await deleteDoc(userRef);
-        
-        // Then, delete from Firebase Auth via the Cloud Function
-        await deleteUserFn({ uid: userId });
-    } catch (error) {
-        console.error("Error deleting user account:", error);
-        throw new Error("Не удалось полностью удалить пользователя.");
-    }
-  }, [functions]);
-
-  const addFamiliarToDb = useCallback(async (familiar: Omit<FamiliarCard, 'id'>) => {
-    const familiarsCollection = collection(db, "familiars");
-    await addDoc(familiarsCollection, familiar);
-    await fetchAndCombineFamiliars();
-  }, [fetchAndCombineFamiliars]);
-
-  const deleteFamiliarFromDb = useCallback(async (familiarId: string) => {
-    const familiarRef = doc(db, "familiars", familiarId);
-    await deleteDoc(familiarRef);
-    await fetchAndCombineFamiliars();
-  }, [fetchAndCombineFamiliars]);
-
-const sendPlayerPing = useCallback(async (targetUserId: string) => {
-    if (!currentUser) throw new Error("Not authenticated.");
-
-    const targetUserRef = doc(db, "users", targetUserId);
-    const targetUserDoc = await getDoc(targetUserRef);
-    if (!targetUserDoc.exists()) throw new Error("Target user not found.");
-    
-    const newPing: PlayerPing = {
-        id: `ping-${Date.now()}`,
-        fromUserId: currentUser.id,
-        fromUserName: currentUser.name,
-        fromUserAvatar: currentUser.avatar,
-        toUserId: targetUserId,
-        createdAt: new Date().toISOString(),
-    };
-    
-    await updateDoc(doc(db, "users", currentUser.id), {
-        playerPings: arrayUnion(newPing)
-    });
-}, [currentUser]);
-
-const deletePlayerPing = useCallback(async (pingId: string, isMyPing: boolean) => {
-    if (!currentUser) throw new Error("Not authenticated.");
-
-    const userToUpdateId = isMyPing ? currentUser.id : (await getDocs(query(collection(db, "users"), where("playerPings", "array-contains", { id: pingId })))).docs[0]?.id;
-
-    if (!userToUpdateId) {
-        // Attempt to find the user who has this ping
-        const q = query(collection(db, "users"), where("playerPings", "array-contains", { id: pingId }));
-        const querySnapshot = await getDocs(q);
-        if (querySnapshot.empty) {
-            throw new Error("Ping not found.");
-        }
-        const userWithPingRef = querySnapshot.docs[0].ref;
-        const userWithPingData = querySnapshot.docs[0].data() as User;
-        const updatedPings = (userWithPingData.playerPings || []).filter(p => p.id !== pingId);
-        await updateDoc(userWithPingRef, { playerPings: updatedPings });
-    } else {
-        const userRef = doc(db, "users", userToUpdateId);
-        const userDoc = await getDoc(userRef);
-        if (userDoc.exists()) {
-            const userData = userDoc.data() as User;
-            const updatedPings = (userData.playerPings || []).filter(p => p.id !== pingId);
-            await updateDoc(userRef, { playerPings: updatedPings });
-        }
-    }
-
-    // Also update current user state if it was their ping
-    if(isMyPing) {
-        setCurrentUser(prev => prev ? ({ ...prev, playerPings: (prev.playerPings || []).filter(p => p.id !== pingId) }) : null);
-    }
-}, [currentUser, setCurrentUser]);
-
-const addFavoritePlayer = useCallback(async (targetUserId: string) => {
-    if (!currentUser) throw new Error("Not authenticated.");
-    const userRef = doc(db, "users", currentUser.id);
-    await updateDoc(userRef, {
-      favoritePlayerIds: arrayUnion(targetUserId)
-    });
-    setCurrentUser(prev => prev ? ({ ...prev, favoritePlayerIds: [...(prev.favoritePlayerIds || []), targetUserId] }) : null);
-  }, [currentUser]);
-
-  const removeFavoritePlayer = useCallback(async (targetUserId: string) => {
-    if (!currentUser) throw new Error("Not authenticated.");
-    const userRef = doc(db, "users", currentUser.id);
-    await updateDoc(userRef, {
-      favoritePlayerIds: arrayRemove(targetUserId)
-    });
-    setCurrentUser(prev => prev ? ({ ...prev, favoritePlayerIds: (prev.favoritePlayerIds || []).filter(id => id !== targetUserId) }) : null);
-  }, [currentUser]);
+    }, [currentUser, gameSettings, familiarsById, updateCharacterInUser, initialFormData.inventory]);
 
 
   const signOutUser = useCallback(() => {
@@ -2988,8 +3035,8 @@ const addFavoritePlayer = useCallback(async (targetUserId: string) => {
       withdrawFromShopTill,
       brewPotion,
       addAlchemyRecipe,
-      updateAlchemyRecipe: async () => {}, // Placeholder
-      deleteAlchemyRecipe: async () => {}, // Placeholder
+      updateAlchemyRecipe,
+      deleteAlchemyRecipe,
       fetchAlchemyRecipes,
       sendPlayerPing,
       deletePlayerPing,
@@ -2999,7 +3046,7 @@ const addFavoritePlayer = useCallback(async (targetUserId: string) => {
       startHunt,
       claimHuntReward,
     }),
-    [currentUser, gameSettings, allFamiliars, familiarsById, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, fetchAlchemyRecipes, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, deleteUserAccount, startHunt, claimHuntReward]
+    [currentUser, gameSettings, allFamiliars, familiarsById, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe,updateAlchemyRecipe,deleteAlchemyRecipe, fetchAlchemyRecipes, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, deleteUserAccount, startHunt, claimHuntReward]
   );
 
   return (
