@@ -8,7 +8,6 @@ import { onAuthStateChanged, User as FirebaseUser, signOut, reauthenticateWithCr
 import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter, increment, FieldValue, arrayUnion, deleteField } from "firebase/firestore";
 import { ALL_STATIC_FAMILIARS, EVENT_FAMILIARS, MOODLETS_DATA, DEFAULT_GAME_SETTINGS, WEALTH_LEVELS, ALL_SHOPS, SHOPS_BY_ID, POPULARITY_EVENTS, ALL_ACHIEVEMENTS, INVENTORY_CATEGORIES } from '@/lib/data';
 import { differenceInDays, differenceInMonths } from 'date-fns';
-import { getFunctions, httpsCallable } from 'firebase/functions';
 
 interface AuthContextType {
     user: FirebaseUser | null;
@@ -222,8 +221,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [allFamiliars, setAllFamiliars] = useState<FamiliarCard[]>([...ALL_STATIC_FAMILIARS, ...EVENT_FAMILIARS]);
   const [familiarsById, setFamiliarsById] = useState<Record<string, FamiliarCard>>({});
-
-  const functions = useMemo(() => getFunctions(), []);
   
   const initialFormData: Omit<Character, 'id'> = useMemo(() => ({
     name: '',
@@ -326,6 +323,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       setCurrentUser(prev => prev ? { ...prev, ...updates } : null);
     }
   }, [currentUser?.id]);
+  
+  const updateUserAvatar = useCallback(async (userId: string, avatarUrl: string) => {
+    await updateUser(userId, { avatar: avatarUrl });
+  }, [updateUser]);
 
   const grantAchievementToUser = useCallback(async (userId: string, achievementId: string) => {
     const user = await fetchUserById(userId);
@@ -349,30 +350,30 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   }, [processUserDoc]);
   
-    const fetchLeaderboardUsers = useCallback(async (): Promise<User[]> => {
-        const usersCollection = collection(db, "users");
-        const userSnapshot = await getDocs(query(usersCollection, orderBy("points", "desc")));
-        const users = userSnapshot.docs.map(doc => {
-            const userData = doc.data() as User;
-            return {
-                id: userData.id,
-                name: userData.name,
-                avatar: userData.avatar,
-                points: userData.points,
-                status: userData.status,
-                email: userData.email,
-                role: userData.role,
-                characters: userData.characters || [],
-                pointHistory: [], 
-                achievementIds: userData.achievementIds || [],
-                playerStatus: userData.playerStatus || 'Не играю',
-                socials: userData.socials || [],
-                favoritePlayerIds: userData.favoritePlayerIds || [],
-                lastLogin: userData.lastLogin
-            };
-        });
-        return users;
-    }, []);
+  const fetchLeaderboardUsers = useCallback(async (): Promise<User[]> => {
+    const usersCollection = collection(db, "users");
+    const userSnapshot = await getDocs(query(usersCollection, orderBy("points", "desc")));
+    const users = userSnapshot.docs.map(doc => {
+        const userData = doc.data() as User;
+        return {
+            id: userData.id,
+            name: userData.name,
+            avatar: userData.avatar,
+            points: userData.points,
+            status: userData.status,
+            email: userData.email,
+            role: userData.role,
+            characters: userData.characters || [],
+            pointHistory: [], 
+            achievementIds: userData.achievementIds || [],
+            playerStatus: userData.playerStatus || 'Не играю',
+            socials: userData.socials || [],
+            favoritePlayerIds: userData.favoritePlayerIds || [],
+            lastLogin: userData.lastLogin
+        };
+    });
+    return users;
+  }, []);
 
   const addPointsToUser = useCallback(async (userId: string, amount: number, reason: string, characterId?: string): Promise<User | null> => {
     const user = await fetchUserById(userId);
@@ -714,10 +715,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
     return updatedUser;
 }, [currentUser?.id, fetchUserById, initialFormData]);
-  
-  const updateUserAvatar = useCallback(async (userId: string, avatarUrl: string) => {
-    await updateUser(userId, { avatar: avatarUrl });
-  }, [updateUser]);
 
   const updateGameDate = useCallback(async (newDateString: string) => {
     const settingsRef = doc(db, 'game_settings', 'main');
@@ -2698,9 +2695,12 @@ const withdrawFromShopTill = useCallback(async (shopId: string) => {
 
 
   const addAlchemyRecipe = useCallback(async (recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
-      const callable = httpsCallable(functions, 'addAlchemyRecipe');
-      await callable(recipe);
-  }, [functions]);
+    const newRecipe = {
+        ...recipe,
+        createdAt: new Date().toISOString()
+    };
+    await addDoc(collection(db, 'alchemy_recipes'), newRecipe);
+  }, []);
   
   const updateAlchemyRecipe = useCallback(async (recipeId: string, recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
     const recipeRef = doc(db, 'alchemy_recipes', recipeId);
@@ -2716,6 +2716,14 @@ const withdrawFromShopTill = useCallback(async (shopId: string) => {
     const recipesCollection = collection(db, "alchemy_recipes");
     const snapshot = await getDocs(recipesCollection);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AlchemyRecipe));
+  }, []);
+  
+  const addFamiliarToDb = useCallback(async (familiar: Omit<FamiliarCard, 'id'>) => {
+      await addDoc(collection(db, 'familiars'), familiar);
+  }, []);
+
+  const deleteFamiliarFromDb = useCallback(async (familiarId: string) => {
+      await deleteDoc(doc(db, 'familiars', familiarId));
   }, []);
 
   const sendPlayerPing = useCallback(async (targetUserId: string) => {
@@ -2925,15 +2933,7 @@ const withdrawFromShopTill = useCallback(async (shopId: string) => {
     if(updatedUser) setCurrentUser(updatedUser);
   }, [currentUser, fetchUserById]);
 
-  const addFamiliarToDb = useCallback(async (familiar: Omit<FamiliarCard, 'id'>) => {
-      await addDoc(collection(db, 'familiars'), familiar);
-  }, []);
-
-  const deleteFamiliarFromDb = useCallback(async (familiarId: string) => {
-      await deleteDoc(doc(db, 'familiars', familiarId));
-  }, []);
-
-    const changeUserPassword = useCallback(async (currentPassword: string, newPassword: string) => {
+  const changeUserPassword = useCallback(async (currentPassword: string, newPassword: string) => {
     if (!firebaseUser || !firebaseUser.email) {
       throw new Error("Пользователь не аутентифицирован или отсутствует email.");
     }
@@ -3069,3 +3069,4 @@ const withdrawFromShopTill = useCallback(async (shopId: string) => {
     </AuthContext.Provider>
   );
 }
+
