@@ -18,6 +18,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { ScrollArea } from '../ui/scroll-area';
 
 
 const rankOrder: FamiliarRank[] = ['мифический', 'легендарный', 'редкий', 'обычный'];
@@ -38,15 +39,17 @@ const LocationCard = ({ location, onSelect }: { location: HuntingLocation, onSel
                     <Image src={location.image} alt={location.name} fill style={{objectFit:"cover"}} data-ai-hint="fantasy landscape" />
                 </div>
             )}
-            <div className="flex flex-col flex-1">
-                <CardHeader className="flex-grow">
+            <div className="flex flex-col flex-1 p-4 justify-between">
+                <div>
                     <CardTitle className="text-lg">{location.name}</CardTitle>
-                    <CardDescription className="text-xs line-clamp-3">{location.description}</CardDescription>
-                </CardHeader>
-                <CardFooter className="text-xs text-muted-foreground flex justify-between mt-auto">
+                     <ScrollArea className="h-20 mt-2">
+                        <CardDescription className="text-xs pr-4">{location.description}</CardDescription>
+                    </ScrollArea>
+                </div>
+                <div className="text-xs text-muted-foreground flex justify-between mt-2">
                     <span>{location.durationMinutes} мин.</span>
                     <span>Ранг: {rankNames[location.requiredRank]}</span>
-                </CardFooter>
+                </div>
             </div>
         </Card>
     )
@@ -266,3 +269,6 @@ export default function HuntingTab() {
   );
 }
 
+
+
+    
