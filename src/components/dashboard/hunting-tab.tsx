@@ -34,7 +34,7 @@ const LocationCard = ({ location, onSelect }: { location: HuntingLocation, onSel
     return (
         <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer" onClick={() => onSelect(location)}>
             <div className="relative aspect-video bg-muted">
-                <Image src={location.image} alt={location.name} fill style={{objectFit:"cover"}} data-ai-hint="fantasy landscape" />
+                {location.image && <Image src={location.image} alt={location.name} fill style={{objectFit:"cover"}} data-ai-hint="fantasy landscape" />}
             </div>
             <CardHeader>
                 <CardTitle>{location.name}</CardTitle>
