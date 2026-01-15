@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
-import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info, AlertTriangle, Bell, CheckCircle, Store, PackagePlus, Edit, BadgeCheck, FileText, Send, Gavel, Eye, UserMinus, FlaskConical, Compass, Save } from 'lucide-react';
+import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info, AlertTriangle, Bell, CheckCircle, Store, PackagePlus, Edit, BadgeCheck, FileText, Send, Gavel, Eye, UserMinus, FlaskConical, Compass, Save, Merge } from 'lucide-react';
 import type { UserStatus, UserRole, User, FamiliarCard, BankAccount, WealthLevel, FamiliarRank, Shop, InventoryCategory, AdminGiveItemForm, InventoryItem, CitizenshipStatus, TaxpayerStatus, CharacterPopularityUpdate, AlchemyRecipe, GameSettings, HuntingLocation, HuntReward } from '@/lib/types';
 import { EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, WEALTH_LEVELS, ALL_STATIC_FAMILIARS, STARTING_CAPITAL_LEVELS, ALL_SHOPS, INVENTORY_CATEGORIES, POPULARITY_EVENTS } from '@/lib/data';
 import {
@@ -119,6 +119,7 @@ export default function AdminTab() {
     allFamiliars,
     gameSettings,
     updateGameSettings,
+    mergeUserData,
   } = useUser();
   const queryClient = useQueryClient();
 
@@ -244,6 +245,11 @@ export default function AdminTab() {
   
    // Hunting state
   const [editingHuntLocation, setEditingHuntLocation] = useState<Partial<HuntingLocation> | null>(null);
+
+  // Merge state
+  const [sourceMergeUserId, setSourceMergeUserId] = useState('');
+  const [targetMergeUserId, setTargetMergeUserId] = useState('');
+  const [isMerging, setIsMerging] = useState(false);
 
 
   useEffect(() => {
@@ -1068,6 +1074,26 @@ export default function AdminTab() {
     }
   }
 
+  const handleMergeUsers = async () => {
+    if (!sourceMergeUserId || !targetMergeUserId || sourceMergeUserId === targetMergeUserId) {
+        toast({ variant: 'destructive', title: 'Ошибка', description: 'Выберите два разных аккаунта для объединения.' });
+        return;
+    }
+    setIsMerging(true);
+    try {
+        await mergeUserData(sourceMergeUserId, targetMergeUserId);
+        toast({ title: 'Объединение завершено', description: 'Данные успешно перенесены.' });
+        await refetchAdminUsers();
+        setSourceMergeUserId('');
+        setTargetMergeUserId('');
+    } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Произошла ошибка при объединении.';
+        toast({ variant: 'destructive', title: 'Ошибка объединения', description: msg });
+    } finally {
+        setIsMerging(false);
+    }
+  };
+
 
   // --- Memos ---
    const userOptions = useMemo(() => {
@@ -1612,6 +1638,51 @@ export default function AdminTab() {
                     <CardDescription>Действия в этой секции необратимы.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                     <div className="space-y-2 p-3 border rounded-md">
+                        <h4 className="font-semibold text-sm">Объединение данных пользователей</h4>
+                        <div>
+                            <Label>Аккаунт-источник (откуда)</Label>
+                            <SearchableSelect
+                                options={userOnlyOptions}
+                                value={sourceMergeUserId}
+                                onValueChange={setSourceMergeUserId}
+                                placeholder="Выберите пользователя..."
+                            />
+                        </div>
+                        <div>
+                            <Label>Целевой аккаунт (куда)</Label>
+                            <SearchableSelect
+                                options={userOnlyOptions.filter(u => u.value !== sourceMergeUserId)}
+                                value={targetMergeUserId}
+                                onValueChange={setTargetMergeUserId}
+                                placeholder="Выберите пользователя..."
+                                disabled={!sourceMergeUserId}
+                            />
+                        </div>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button className="w-full" variant="secondary" disabled={!sourceMergeUserId || !targetMergeUserId || isMerging}>
+                                    {isMerging ? 'Объединение...' : <><Merge className="mr-2" /> Объединить</>}
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Вы уверены?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Это действие добавит все данные (персонажи, баллы, история и т.д.) от пользователя{' '}
+                                        <span className="font-bold">{users.find(u => u.id === sourceMergeUserId)?.name}</span>{' '}
+                                        к пользователю{' '}
+                                        <span className="font-bold">{users.find(u => u.id === targetMergeUserId)?.name}</span>.
+                                        Исходный аккаунт не будет удален. Это действие необратимо.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Отмена</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleMergeUsers}>Да, объединить</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </div>
                     <div>
                         <h4 className="font-semibold text-sm mb-2">Очистка истории баллов (1 игрок)</h4>
                         <div className="flex gap-2 items-center">
@@ -2706,7 +2777,7 @@ export default function AdminTab() {
                             {isSendingMail ? 'Отправка...' : 'Отправить'}
                         </Button>
                     </form>
-                    <Separator className="my-6" />
+                    <Separator />
                     <div className="p-4 border border-destructive/50 rounded-lg">
                         <h4 className="font-semibold text-destructive mb-2 flex items-center gap-2"><ShieldAlert /> Опасная зона</h4>
                          <AlertDialog>
