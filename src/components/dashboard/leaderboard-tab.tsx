@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -262,7 +261,9 @@ const CoPlayerSearch = () => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {lookingForGamePlayers.map((user) => (
+                            {lookingForGamePlayers.map((user) => {
+                                const firstSocial = user.socials && user.socials.length > 0 ? user.socials[0] : null;
+                                return (
                                 <TableRow key={user.id}>
                                     <TableCell>
                                         <div className="flex items-center gap-3">
@@ -273,15 +274,15 @@ const CoPlayerSearch = () => {
                                                 </Avatar>
                                                 <p className="font-medium">{user.name}</p>
                                             </Link>
-                                            {user.socialLink && (
-                                                <a href={user.socialLink} target="_blank" rel="noopener noreferrer">
+                                            {firstSocial && firstSocial.link && (
+                                                <a href={firstSocial.link} target="_blank" rel="noopener noreferrer">
                                                     <LinkIcon className="h-4 w-4 text-muted-foreground hover:text-primary" />
                                                 </a>
                                             )}
                                         </div>
                                     </TableCell>
                                     <TableCell className="hidden md:table-cell">
-                                        <Badge variant="outline"><Gamepad2 className="mr-1.5 h-3.5 w-3.5" />{user.playPlatform || 'Не указана'}</Badge>
+                                        <Badge variant="outline"><Gamepad2 className="mr-1.5 h-3.5 w-3.5" />{firstSocial ? firstSocial.platform : 'Не указана'}</Badge>
                                     </TableCell>
                                     <TableCell>
                                         <Button 
@@ -294,7 +295,7 @@ const CoPlayerSearch = () => {
                                         </Button>
                                     </TableCell>
                                 </TableRow>
-                            ))}
+                            )})}
                         </TableBody>
                     </Table>
                 ) : (
