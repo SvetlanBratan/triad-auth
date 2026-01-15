@@ -149,6 +149,7 @@ export interface InventoryItem {
   description?: string;
   quantity: number;
   image?: string;
+  inventoryTag?: InventoryCategory;
 }
 
 export interface Inventory {
@@ -515,3 +516,6 @@ export interface HuntingLocation {
 
 
 
+
+
+    
