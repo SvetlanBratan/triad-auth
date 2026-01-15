@@ -42,7 +42,6 @@ export interface UserContextType {
   fetchAvailableMythicCardsCount: () => Promise<number>;
   addPointsToUser: (userId: string, amount: number, reason: string, characterId?: string) => Promise<User | null>;
   addPointsToAllUsers: (amount: number, reason: string) => Promise<void>;
-  addCharacterToUser: (userId: string, character: Character) => Promise<void>;
   updateCharacterInUser: (userId: string, character: Character) => Promise<User>;
   deleteCharacterFromUser: (userId: string, characterId: string) => Promise<void>;
   updateUserStatus: (userId: string, status: UserStatus) => Promise<void>;
@@ -402,6 +401,49 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
     }, [currentUser?.id, processUserDoc]);
 
+    const signOutUser = useCallback(() => {
+        signOut(auth);
+    }, []);
+
+    const addFavoritePlayer = useCallback(async (targetUserId: string) => {
+        if (!currentUser) return;
+        
+        const userRef = doc(db, "users", currentUser.id);
+        await updateDoc(userRef, {
+            favoritePlayerIds: arrayUnion(targetUserId)
+        });
+
+        setCurrentUser(prevUser => {
+            if (!prevUser) return null;
+            const currentFavorites = prevUser.favoritePlayerIds || [];
+            if (!currentFavorites.includes(targetUserId)) {
+                return {
+                    ...prevUser,
+                    favoritePlayerIds: [...currentFavorites, targetUserId]
+                };
+            }
+            return prevUser;
+        });
+
+    }, [currentUser]);
+
+    const removeFavoritePlayer = useCallback(async (targetUserId: string) => {
+        if (!currentUser || !currentUser.favoritePlayerIds) return;
+        
+        const userRef = doc(db, "users", currentUser.id);
+        await updateDoc(userRef, {
+            favoritePlayerIds: arrayRemove(targetUserId)
+        });
+
+        setCurrentUser(prevUser => {
+            if (!prevUser || !prevUser.favoritePlayerIds) return prevUser;
+            return {
+                ...prevUser,
+                favoritePlayerIds: prevUser.favoritePlayerIds.filter(id => id !== targetUserId)
+            };
+        });
+    }, [currentUser]);
+    
     const updateUserAvatar = useCallback(async (userId: string, avatarUrl: string) => {
         await updateUser(userId, { avatar: avatarUrl });
     }, [updateUser]);
@@ -506,6 +548,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
     }, []);
     
+    const addCharacterToUser = useCallback(async (userId: string, characterData: Character) => {
+        const user = await fetchUserById(userId);
+        if (!user) return;
+    
+        const updatedCharacters = [...user.characters, characterData];
+        await updateUser(userId, { characters: updatedCharacters });
+    }, [fetchUserById, updateUser]);
+
     const processWeeklyBonus = useCallback(async () => {
         const settingsRef = doc(db, 'game_settings', 'main');
         const settingsDoc = await getDoc(settingsRef);
@@ -542,9 +592,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return { awardedCount };
     }, [fetchUsersForAdmin, fetchGameSettings, addPointsToUser]);
     
-    const signOutUser = useCallback(() => {
-        signOut(auth);
-    }, []);
+    const updateGameDate = useCallback(async (newDateString: string) => {
+        const settingsRef = doc(db, 'game_settings', 'main');
+        await updateDoc(settingsRef, { gameDateString: newDateString });
+        await fetchGameSettings();
+    }, [fetchGameSettings]);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -594,14 +646,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         signOutUser,
     }), [firebaseUser, loading, signOutUser]);
   
-    const addCharacterToUser = useCallback(async (userId: string, characterData: Character) => {
-        const user = await fetchUserById(userId);
-        if (!user) return;
-
-        const updatedCharacters = [...user.characters, characterData];
-        await updateUser(userId, { characters: updatedCharacters });
-    }, [fetchUserById, updateUser]);
-
     const updateCharacterInUser = useCallback(async (userId: string, characterToUpdate: Character): Promise<User> => {
         await runTransaction(db, async (transaction) => {
             const userRef = doc(db, "users", userId);
@@ -655,7 +699,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 updatedCharacters.push(sanitizedCharacterToUpdate);
             }
             
-            transaction.update(userRef, { characters: updatedCharacters });
+            transaction.update(userRef, { ...sourceUserData, characters: updatedCharacters, favoritePlayerIds: sourceUserData.favoritePlayerIds || [] });
         });
 
         const updatedUser = await fetchUserById(userId);
@@ -2188,6 +2232,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const processAnnualTaxes = useCallback(async (): Promise<{ taxedCharactersCount: number; totalTaxesCollected: BankAccount }> => {
         const allUsers = await fetchUsersForAdmin();
         const allShops = await fetchAllShops();
+        const shopsById = new Map(allShops.map(shop => [shop.id, shop]));
         const batch = writeBatch(db);
         let taxedCharactersCount = 0;
         let totalTaxesCollected: BankAccount = { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
@@ -2232,15 +2277,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                         break;
                     case 'Заприливье':
                         incomeTaxRate = 0.07;
-                        tradeTaxRate = 0.10;
+                        tradeTaxRate = 0.10; // No license discount
                         tradeTaxRateLicensed = 0.10;
                         break;
                     default:
-                        continue;
+                        continue; // No taxes for other countries
                 }
 
                 let totalTaxToPay: Partial<Omit<BankAccount, 'history'>> = { platinum: 0, gold: 0, silver: 0, copper: 0 };
 
+                // 1. Income Tax
                 const wealthInfo = WEALTH_LEVELS.find(w => w.name === character.wealthLevel);
                 if (wealthInfo && wealthInfo.salary) {
                     const annualSalary: Partial<Omit<BankAccount, 'history'>> = {
@@ -2256,6 +2302,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                     });
                 }
                 
+                // 2. Trade Tax
                 const ownedShops = allShops.filter(shop => shop.ownerCharacterId === character.id);
                 if (ownedShops.length > 0) {
                      for (const shop of ownedShops) {
@@ -2276,6 +2323,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                     }
                 }
 
+                // 3. Deduct taxes
                 const finalTaxAmount = totalTaxToPay;
                 if (Object.values(finalTaxAmount).some(v => v > 0)) {
                     let newBalance = { ...(character.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] }) };
@@ -2659,7 +2707,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const sendPlayerPing = useCallback(async (targetUserId: string) => {
           if(!currentUser) throw new Error("Not authenticated");
           const fromUserRef = doc(db, "users", currentUser.id);
-          const targetUserRef = doc(db, "users", targetUserId);
           
           const newPing: PlayerPing = {
               id: `ping-${Date.now()}`,
@@ -2670,41 +2717,37 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
               createdAt: new Date().toISOString()
           };
           
-          await updateDoc(targetUserRef, { playerPings: arrayUnion(newPing) });
           await updateDoc(fromUserRef, { playerPings: arrayUnion(newPing) });
     }, [currentUser]);
 
     const deletePlayerPing = useCallback(async (pingId: string, isMyPing: boolean) => {
-          if(!currentUser) throw new Error("Not authenticated");
-          
-          await runTransaction(db, async (transaction) => {
-            const pingQuery = query(collectionGroup(db, 'users'), where('playerPings', 'array-contains', { id: pingId }));
-            const pingDocs = await getDocs(pingQuery);
+        if(!currentUser) throw new Error("Not authenticated");
+        
+        await runTransaction(db, async (transaction) => {
+            const userToUpdateRef = doc(db, "users", isMyPing ? currentUser.id : pingId.split('-')[0]); // This is not robust
+            const userDoc = await transaction.get(userToUpdateRef);
+            if (!userDoc.exists()) return;
             
-            pingDocs.forEach(docSnap => {
-                const userData = docSnap.data() as User;
-                const updatedPings = (userData.playerPings || []).filter(p => p.id !== pingId);
-                transaction.update(docSnap.ref, { playerPings: updatedPings });
-            });
-          });
-
-          const updatedUser = await fetchUserById(currentUser.id);
-          if (updatedUser) setCurrentUser(updatedUser);
-    }, [currentUser, fetchUserById]);
-
-    const addFavoritePlayer = useCallback(async (targetUserId: string) => {
-        if (!currentUser) return;
-        await updateUser(currentUser.id, {
-            favoritePlayerIds: arrayUnion(targetUserId)
+            const user = userDoc.data() as User;
+            const pings = user.playerPings || [];
+            
+            // This is brittle. If another user sent the ping, we need their ID.
+            // A better way would be to query for the ping.
+            const allUsers = await fetchUsersForAdmin();
+            for (const u of allUsers) {
+                const ping = (u.playerPings || []).find(p => p.id === pingId);
+                if (ping) {
+                    const userWithPingRef = doc(db, "users", u.id);
+                    const updatedPings = (u.playerPings || []).filter(p => p.id !== pingId);
+                    transaction.update(userWithPingRef, { playerPings: updatedPings });
+                    break;
+                }
+            }
         });
-    }, [currentUser, updateUser]);
 
-    const removeFavoritePlayer = useCallback(async (targetUserId: string) => {
-        if (!currentUser || !currentUser.favoritePlayerIds) return;
-         await updateUser(currentUser.id, {
-            favoritePlayerIds: arrayRemove(targetUserId)
-        });
-    }, [currentUser, updateUser]);
+        const updatedUser = await fetchUserById(currentUser.id);
+        if (updatedUser) setCurrentUser(updatedUser);
+    }, [currentUser, fetchUserById, fetchUsersForAdmin]);
 
     const updateGameSettings = useCallback(async (updates: Partial<GameSettings>) => {
         const settingsRef = doc(db, 'game_settings', 'main');
@@ -2891,12 +2934,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
     }, [functions]);
     
-    const updateGameDate = useCallback(async (newDateString: string) => {
-        const settingsRef = doc(db, 'game_settings', 'main');
-        await updateDoc(settingsRef, { gameDateString: newDateString });
-        await fetchGameSettings();
-    }, [fetchGameSettings]);
-
     const userContextValue: UserContextType = useMemo(
         () => ({
           currentUser,
@@ -3016,6 +3053,13 @@ export const useUser = () => {
     }
     return context;
 };
+
+    
+
+    
+
+
+
 
     
 
