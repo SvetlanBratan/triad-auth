@@ -2167,7 +2167,7 @@ export default function AdminTab() {
                                 <div className="space-y-3">
                                     {(gameSettings.huntingLocations || []).map((loc, locIndex) => (
                                         <Card key={loc.id} className="flex flex-col sm:flex-row items-start gap-4 p-4">
-                                            <img src={loc.image} alt={loc.name} className="w-full sm:w-32 h-auto aspect-video sm:aspect-square object-cover rounded-md bg-muted" />
+                                            {loc.image && <img src={loc.image} alt={loc.name} className="w-full sm:w-32 h-auto aspect-video sm:aspect-square object-cover rounded-md bg-muted" />}
                                             <div className="flex-1">
                                                 <h4 className="font-semibold">{loc.name}</h4>
                                                 <p className="text-xs text-muted-foreground">{loc.durationMinutes} мин. / {rankNames[loc.requiredRank]}</p>
