@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
@@ -2583,6 +2584,155 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AlchemyRecipe));
     }, []);
 
+    const brewPotion = useCallback(async (userId: string, characterId: string, recipeId: string): Promise<void> => {
+        const user = await fetchUserById(userId);
+        if (!user) throw new Error("User not found");
+
+        const characterIndex = user.characters.findIndex(c => c.id === characterId);
+        if (characterIndex === -1) throw new Error("Character not found");
+        const character = { ...user.characters[characterIndex] };
+
+        const recipesCollection = collection(db, "alchemy_recipes");
+        const recipeDoc = await getDoc(doc(recipesCollection, recipeId));
+        if (!recipeDoc.exists()) throw new Error("Рецепт не найден.");
+        const recipe = recipeDoc.data() as AlchemyRecipe;
+
+        const inventory = character.inventory || initialFormData.inventory;
+        const ingredientsInv = (inventory.ингредиенты || []) as InventoryItem[];
+
+        const allItemsMap = [...ALL_ITEMS_FOR_ALCHEMY, ...ALL_SHOPS.flatMap(s => s.items || [])].reduce((acc, item) => {
+            if (item) acc.set(item.id, item);
+            return acc;
+        }, new Map<string, any>());
+
+        for (const component of recipe.components) {
+            const requiredIngredient = allItemsMap.get(component.ingredientId);
+            if (!requiredIngredient) {
+                throw new Error(`Required ingredient with ID ${component.ingredientId} not found in any shop or data.`);
+            }
+            const playerIngIndex = ingredientsInv.findIndex(i => i.name === requiredIngredient.name);
+
+            if (playerIngIndex === -1 || ingredientsInv[playerIngIndex].quantity < component.qty) {
+                throw new Error(`Недостаточно ингредиента: ${requiredIngredient.name}`);
+            }
+        }
+
+        recipe.components.forEach(component => {
+            const requiredIngredient = allItemsMap.get(component.ingredientId);
+            const playerIngIndex = ingredientsInv.findIndex(i => i.name === requiredIngredient.name);
+            
+            if (ingredientsInv[playerIngIndex].quantity > component.qty) {
+                ingredientsInv[playerIngIndex].quantity -= component.qty;
+            } else {
+                ingredientsInv.splice(playerIngIndex, 1);
+            }
+        });
+        inventory.ингредиенты = ingredientsInv;
+
+        const resultItem = ALL_ITEMS_FOR_ALCHEMY.find(i => i.id === recipe.resultPotionId);
+        if (!resultItem) throw new Error("Result potion data not found.");
+        const resultCategory = (resultItem as any).inventoryTag as InventoryCategory || 'прочее';
+
+        const categoryInv = (inventory[resultCategory] || []) as InventoryItem[];
+        const existingItemIndex = categoryInv.findIndex(p => p.name === resultItem.name);
+
+        if (existingItemIndex > -1) {
+            categoryInv[existingItemIndex].quantity += recipe.outputQty;
+        } else {
+            categoryInv.push({
+                id: `inv-item-${Date.now()}`,
+                name: resultItem.name,
+                description: (resultItem as any).note || '',
+                image: resultItem.image || '',
+                quantity: recipe.outputQty,
+            });
+        }
+        (inventory as any)[resultCategory] = categoryInv;
+        character.inventory = inventory;
+        
+        const updatedUser = { ...user }; 
+        const hasFirstBrewAchievement = (user.achievementIds || []).includes(FIRST_BREW_ACHIEVEMENT_ID);
+        if (!hasFirstBrewAchievement) {
+            updatedUser.achievementIds = [...(user.achievementIds || []), FIRST_BREW_ACHIEVEMENT_ID];
+        }
+
+        updatedUser.characters[characterIndex] = character;
+        await updateUser(userId, updatedUser);
+
+    }, [fetchUserById, initialFormData, updateUser]);
+    
+    const addAlchemyRecipe = useCallback(async (recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
+        const recipesCollection = collection(db, "alchemy_recipes");
+        await addDoc(recipesCollection, { ...recipe, createdAt: new Date().toISOString() });
+    }, []);
+    
+    const updateAlchemyRecipe = useCallback(async (recipeId: string, recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
+        const recipeRef = doc(db, "alchemy_recipes", recipeId);
+        await setDoc(recipeRef, recipe, { merge: true });
+    }, []);
+    
+    const deleteAlchemyRecipe = useCallback(async (recipeId: string) => {
+        const recipeRef = doc(db, "alchemy_recipes", recipeId);
+        await deleteDoc(recipeRef);
+    }, []);
+
+    const addFamiliarToDb = useCallback(async (familiar: Omit<FamiliarCard, 'id'>) => {
+        const familiarsCollection = collection(db, "familiars");
+        await addDoc(familiarsCollection, familiar);
+    }, []);
+
+    const deleteFamiliarFromDb = useCallback(async (familiarId: string) => {
+        const familiarRef = doc(db, "familiars", familiarId);
+        await deleteDoc(familiarRef);
+    }, []);
+
+    const sendPlayerPing = useCallback(async (targetUserId: string) => {
+        if (!currentUser) throw new Error("Not authenticated");
+        
+        const targetUserRef = doc(db, "users", targetUserId);
+        
+        const newPing: PlayerPing = {
+            id: `ping-${Date.now()}-${currentUser.id.slice(0, 5)}`,
+            fromUserId: currentUser.id,
+            fromUserName: currentUser.name,
+            fromUserAvatar: currentUser.avatar,
+            toUserId: targetUserId,
+            createdAt: new Date().toISOString()
+        };
+
+        await updateDoc(targetUserRef, {
+            playerPings: arrayUnion(newPing)
+        });
+        
+        const myUserRef = doc(db, "users", currentUser.id);
+        await updateDoc(myUserRef, {
+            playerPings: arrayUnion(newPing)
+        });
+
+    }, [currentUser]);
+
+    const deletePlayerPing = useCallback(async (pingId: string, isMyPing: boolean) => {
+        if (!currentUser) throw new Error("Not authenticated");
+
+        const userRef = doc(db, "users", currentUser.id);
+        const userDoc = await getDoc(userRef);
+        const userData = userDoc.data() as User;
+        
+        const pingToRemove = (userData.playerPings || []).find(p => p.id === pingId);
+        if (!pingToRemove) return;
+        
+        const otherUserId = isMyPing ? pingToRemove.toUserId : pingToRemove.fromUserId;
+        
+        const batch = writeBatch(db);
+        batch.update(userRef, { playerPings: arrayRemove(pingToRemove) });
+        
+        const otherUserRef = doc(db, "users", otherUserId);
+        batch.update(otherUserRef, { playerPings: arrayRemove(pingToRemove) });
+        
+        await batch.commit();
+
+    }, [currentUser]);
+
     const updateGameSettings = useCallback(async (updates: Partial<GameSettings>) => {
         const settingsRef = doc(db, 'game_settings', 'main');
         await setDoc(settingsRef, updates, { merge: true });
@@ -2639,7 +2789,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             if (rewardData && Math.random() * 100 < rewardData.chance) {
                 const itemData = ALL_ITEMS_FOR_ALCHEMY.find(i => i.id === rewardRule.itemId);
                 if (itemData) {
-                    rewards.push({ ...itemData, quantity: rewardData.quantity, id: `inv-item-${Date.now()}` });
+                    rewards.push({ ...(itemData as InventoryItem), quantity: rewardData.quantity, id: `inv-item-${Date.now()}` });
                 }
             }
         });
@@ -2858,5 +3008,7 @@ export const useUser = () => {
     }
     return context;
 };
+
+    
 
     
