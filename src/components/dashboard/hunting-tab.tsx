@@ -32,18 +32,22 @@ const rankNames: Record<FamiliarRank, string> = {
 
 const LocationCard = ({ location, onSelect }: { location: HuntingLocation, onSelect: (location: HuntingLocation) => void }) => {
     return (
-        <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer" onClick={() => onSelect(location)}>
-            <div className="relative aspect-video bg-muted">
-                {location.image && <Image src={location.image} alt={location.name} fill style={{objectFit:"cover"}} data-ai-hint="fantasy landscape" />}
+        <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer flex flex-col sm:flex-row" onClick={() => onSelect(location)}>
+            {location.image && (
+                <div className="relative aspect-video sm:aspect-square sm:w-1/3 shrink-0 bg-muted">
+                    <Image src={location.image} alt={location.name} fill style={{objectFit:"cover"}} data-ai-hint="fantasy landscape" />
+                </div>
+            )}
+            <div className="flex flex-col flex-1">
+                <CardHeader className="flex-grow">
+                    <CardTitle className="text-lg">{location.name}</CardTitle>
+                    <CardDescription className="text-xs line-clamp-3">{location.description}</CardDescription>
+                </CardHeader>
+                <CardFooter className="text-xs text-muted-foreground flex justify-between mt-auto">
+                    <span>{location.durationMinutes} мин.</span>
+                    <span>Ранг: {rankNames[location.requiredRank]}</span>
+                </CardFooter>
             </div>
-            <CardHeader>
-                <CardTitle>{location.name}</CardTitle>
-                <CardDescription>{location.description}</CardDescription>
-            </CardHeader>
-            <CardFooter className="text-sm text-muted-foreground flex justify-between">
-                <span>Длительность: {location.durationMinutes} мин.</span>
-                <span>Ранг: {rankNames[location.requiredRank]}</span>
-            </CardFooter>
         </Card>
     )
 }
@@ -261,3 +265,4 @@ export default function HuntingTab() {
     </div>
   );
 }
+
