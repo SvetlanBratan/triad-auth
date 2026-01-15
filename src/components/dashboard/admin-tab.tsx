@@ -114,7 +114,6 @@ export default function AdminTab() {
     fetchAlchemyRecipes,
     updateAlchemyRecipe,
     deleteAlchemyRecipe,
-    deleteUserAccount,
     familiarsById,
     allFamiliars,
     gameSettings,
@@ -154,7 +153,6 @@ export default function AdminTab() {
   const [clearHistoryUserId, setClearHistoryUserId] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<UserStatus | ''>('');
   const [selectedRole, setSelectedRole] = useState<UserRole | ''>('');
-  const [deleteUserId, setDeleteUserId] = useState<string>('');
   
   // Familiar state
   const [giveFamiliarUserId, setGiveFamiliarUserId] = useState('');
@@ -490,19 +488,6 @@ export default function AdminTab() {
     setSelectedRole('');
   };
 
-  const handleDeleteUser = async () => {
-    if (!deleteUserId) return;
-    try {
-        await deleteUserAccount(deleteUserId);
-        toast({ title: "Пользователь удален", description: "Аккаунт был полностью удален из системы." });
-        await refetchAdminUsers();
-        setDeleteUserId('');
-    } catch(e) {
-        const msg = e instanceof Error ? e.message : 'Не удалось удалить пользователя.';
-        toast({ variant: 'destructive', title: 'Ошибка удаления', description: msg });
-    }
-  }
-  
   const weeklyBonusStatus = useMemo(() => {
     if (!lastWeeklyBonusAwardedAt || new Date(lastWeeklyBonusAwardedAt).getFullYear() < 2000) {
         return { canAward: true, daysSinceLast: 7, daysUntilNext: 0 };
@@ -1741,40 +1726,6 @@ export default function AdminTab() {
                             </AlertDialogContent>
                         </AlertDialog>
                     </div>
-                     <div>
-                        <h4 className="font-semibold text-sm mb-2">Удалить аккаунт пользователя</h4>
-                         <div className="flex gap-2 items-center">
-                            <SearchableSelect
-                                options={userOnlyOptions}
-                                value={deleteUserId}
-                                onValueChange={setDeleteUserId}
-                                placeholder="Выберите пользователя"
-                            />
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="destructive" size="icon" disabled={!deleteUserId}>
-                                        <UserMinus className="h-4 w-4" />
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                    <AlertDialogTitle>Вы уверены, что хотите удалить этого пользователя?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        Это действие навсегда удалит аккаунт пользователя 
-                                        <span className="font-bold"> {users.find(u => u.id === deleteUserId)?.name} </span>
-                                        и всю связанную с ним информацию из системы Firebase Auth и Firestore. Это действие необратимо.
-                                    </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                    <AlertDialogCancel>Отмена</AlertDialogCancel>
-                                    <AlertDialogAction onClick={handleDeleteUser} className="bg-destructive hover:bg-destructive/90">
-                                        Да, я понимаю, удалить
-                                    </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                        </div>
-                    </div>
                 </CardContent>
             </Card>
             </div>
@@ -2808,10 +2759,5 @@ export default function AdminTab() {
 }
 
     
-
-
-
-
-
 
     
