@@ -995,11 +995,11 @@ export default function AdminTab() {
   };
   
   const handleRewardChanceChange = (locIndex: number, rewardIndex: number, rank: FamiliarRank, value: string) => {
-    if (!editingHuntLocation || !editingHuntLocation.rewards) return;
+    if (!editingHuntLocation) return;
     const numValue = parseInt(value, 10);
     if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
       const newLoc = { ...editingHuntLocation };
-      const newRewards = [...newLoc.rewards];
+      const newRewards = [...(newLoc.rewards || [])];
       newRewards[rewardIndex].chances[rank] = numValue;
       newLoc.rewards = newRewards;
       setEditingHuntLocation(newLoc);
