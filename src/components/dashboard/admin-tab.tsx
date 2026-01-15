@@ -982,9 +982,9 @@ export default function AdminTab() {
   };
 
   const handleLocationRewardChange = (locIndex: number, rewardIndex: number, field: keyof HuntReward, value: any) => {
-    if (!editingHuntLocation || !editingHuntLocation.rewards) return;
+    if (!editingHuntLocation) return;
     const newLoc = { ...editingHuntLocation };
-    const newRewards = [...newLoc.rewards];
+    const newRewards = [...(newLoc.rewards || [])];
     if (field === 'chances') {
         newRewards[rewardIndex].chances = value;
     } else {
