@@ -1,11 +1,10 @@
 
-
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
 import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage, Cooldowns, PopularityLog, CharacterPopularityUpdate, OwnedFamiliarCard, AlchemyRecipe, AlchemyRecipeComponent, PlayerStatus, PlayerPing, SocialLink, OngoingHunt, HuntReward, PlayPlatform } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
-import { onAuthStateChanged, User as FirebaseUser, signOut } from "firebase/auth";
+import { onAuthStateChanged, User as FirebaseUser, signOut, reauthenticateWithCredential, EmailAuthProvider, updatePassword, updateEmail } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter, increment, FieldValue, arrayUnion, deleteField } from "firebase/firestore";
 import { ALL_STATIC_FAMILIARS, EVENT_FAMILIARS, MOODLETS_DATA, DEFAULT_GAME_SETTINGS, WEALTH_LEVELS, ALL_SHOPS, SHOPS_BY_ID, POPULARITY_EVENTS, ALL_ACHIEVEMENTS, INVENTORY_CATEGORIES } from '@/lib/data';
 import { differenceInDays, differenceInMonths } from 'date-fns';
@@ -117,16 +116,18 @@ interface UserContextType {
   deletePlayerPing: (pingId: string, isMyPing: boolean) => Promise<void>;
   addFavoritePlayer: (targetUserId: string) => Promise<void>;
   removeFavoritePlayer: (targetUserId: string) => Promise<void>;
-  deleteUserAccount: (userId: string) => Promise<void>;
   allFamiliars: FamiliarCard[];
   familiarsById: Record<string, FamiliarCard>;
   startHunt: (characterId: string, familiarId: string, locationId: string) => Promise<void>;
   claimHuntReward: (characterId: string, huntId: string) => Promise<InventoryItem[]>;
   recallHunt: (characterId: string, huntId: string) => Promise<void>;
+  changeUserPassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  changeUserEmail: (newEmail: string, currentPassword: string) => Promise<void>;
 }
 
 export const UserContext = createContext<UserContextType | null>(null);
 
+// ... (rest of the constants remain the same)
 const ADMIN_UIDS = ['Td5P02zpyaMR3IxCY9eCf7gcYky1', 'yawuIwXKVbNhsBQSqWfGZyAzZ3A3'];
 const ROULETTE_COST = 5000;
 const DUPLICATE_REFUND = 1000;
@@ -535,6 +536,27 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     setFamiliarsById(byId);
   }, [fetchDbFamiliars]);
 
+  const fetchCharacterById = useCallback(async (characterId: string): Promise<{ character: Character; owner: User } | null> => {
+    try {
+        const usersCollection = collection(db, "users");
+        const usersSnapshot = await getDocs(usersCollection);
+
+        for (const userDoc of usersSnapshot.docs) {
+            const user = await fetchUserById(userDoc.id); // Use fetchUserById to get fully processed user data
+            if (user && user.characters) {
+                const character = user.characters.find(c => c.id === characterId);
+                if (character) {
+                    return { character, owner: user };
+                }
+            }
+        }
+        return null; // Not found
+    } catch (error) {
+        console.error("Error fetching character by ID:", error);
+        return null;
+    }
+  }, [fetchUserById]);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setLoading(true);
@@ -612,12 +634,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
   
-  const authValue = useMemo(() => ({
-    user: firebaseUser,
-    loading,
-    signOutUser,
-  }), [firebaseUser, loading, signOutUser]);
-
   const addPointsToAllUsers = useCallback(async (amount: number, reason: string) => {
     const allUsers = await fetchUsersForAdmin();
     
@@ -698,28 +714,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
     return updatedUser;
 }, [currentUser?.id, fetchUserById, initialFormData]);
-
-  
-  const fetchCharacterById = useCallback(async (characterId: string): Promise<{ character: Character; owner: User } | null> => {
-    try {
-        const usersCollection = collection(db, "users");
-        const usersSnapshot = await getDocs(usersCollection);
-
-        for (const userDoc of usersSnapshot.docs) {
-            const user = await fetchUserById(userDoc.id); // Use fetchUserById to get fully processed user data
-            if (user && user.characters) {
-                const character = user.characters.find(c => c.id === characterId);
-                if (character) {
-                    return { character, owner: user };
-                }
-            }
-        }
-        return null; // Not found
-    } catch (error) {
-        console.error("Error fetching character by ID:", error);
-        return null;
-    }
-  }, [fetchUserById]);
   
   const updateUserAvatar = useCallback(async (userId: string, avatarUrl: string) => {
     await updateUser(userId, { avatar: avatarUrl });
@@ -2790,16 +2784,6 @@ const withdrawFromShopTill = useCallback(async (shopId: string) => {
     const updatedFavorites = currentUser.favoritePlayerIds.filter(id => id !== targetUserId);
     await updateUser(currentUser.id, { favoritePlayerIds: updatedFavorites });
   }, [currentUser, updateUser]);
-
-  const deleteUserAccount = useCallback(async (userId: string) => {
-    const deleteUserFunction = httpsCallable(functions, 'deleteUser');
-    try {
-        await deleteUserFunction({ uid: userId });
-    } catch (error) {
-        console.error("Cloud function 'deleteUser' failed:", error);
-    }
-    await deleteDoc(doc(db, "users", userId));
-  }, [functions]);
   
   const startHunt = useCallback(async (characterId: string, familiarId: string, locationId: string) => {
     if (!currentUser) throw new Error("Not authenticated.");
@@ -2948,8 +2932,33 @@ const withdrawFromShopTill = useCallback(async (shopId: string) => {
   const deleteFamiliarFromDb = useCallback(async (familiarId: string) => {
       await deleteDoc(doc(db, 'familiars', familiarId));
   }, []);
-  
 
+    const changeUserPassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    if (!firebaseUser || !firebaseUser.email) {
+      throw new Error("Пользователь не аутентифицирован или отсутствует email.");
+    }
+    const credential = EmailAuthProvider.credential(firebaseUser.email, currentPassword);
+    await reauthenticateWithCredential(firebaseUser, credential);
+    await updatePassword(firebaseUser, newPassword);
+  }, [firebaseUser]);
+
+  const changeUserEmail = useCallback(async (newEmail: string, currentPassword: string) => {
+    if (!firebaseUser || !firebaseUser.email) {
+      throw new Error("Пользователь не аутентифицирован или отсутствует email.");
+    }
+    const credential = EmailAuthProvider.credential(firebaseUser.email, currentPassword);
+    await reauthenticateWithCredential(firebaseUser, credential);
+    await updateEmail(firebaseUser, newEmail);
+    // Also update Firestore
+    await updateUser(firebaseUser.uid, { email: newEmail });
+  }, [firebaseUser, updateUser]);
+
+  const authValue = useMemo(() => ({
+    user: firebaseUser,
+    loading,
+    signOutUser,
+  }), [firebaseUser, loading, signOutUser]);
+  
   const userContextValue = useMemo(
     () => ({
       currentUser,
@@ -3043,12 +3052,13 @@ const withdrawFromShopTill = useCallback(async (shopId: string) => {
       deletePlayerPing,
       addFavoritePlayer,
       removeFavoritePlayer,
-      deleteUserAccount,
+      changeUserPassword,
+      changeUserEmail,
       startHunt,
       claimHuntReward,
       recallHunt,
     }),
-    [currentUser, gameSettings, allFamiliars, familiarsById, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, addPointsToUser, addPointsToAllUsers, updateUser, updateUserAvatar, updateGameDate, updateGameSettings, processWeeklyBonus, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, deleteUserAccount, startHunt, claimHuntReward, recallHunt]
+    [currentUser, gameSettings, allFamiliars, familiarsById, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, changeUserPassword, changeUserEmail, startHunt, claimHuntReward, recallHunt]
   );
 
   return (
@@ -3059,8 +3069,3 @@ const withdrawFromShopTill = useCallback(async (shopId: string) => {
     </AuthContext.Provider>
   );
 }
-
-    
-
-    
-
