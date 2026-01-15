@@ -1000,13 +1000,20 @@ export default function AdminTab() {
     if (!isNaN(numValue) && numValue >= 0) {
         const newLoc = { ...editingHuntLocation };
         const newRewards = [...(newLoc.rewards || [])];
-        const rankReward = newRewards[rewardIndex].rewardsByRank[rank] || { chance: 0, quantity: 0 };
+
+        if (!newRewards[rewardIndex].rewardsByRank) {
+          newRewards[rewardIndex].rewardsByRank = {};
+        }
+
+        const rankReward = (newRewards[rewardIndex].rewardsByRank as any)[rank] || { chance: 0, quantity: 1 };
         (rankReward as any)[field] = numValue;
-        newRewards[rewardIndex].rewardsByRank[rank] = rankReward;
+        
+        (newRewards[rewardIndex].rewardsByRank as any)[rank] = rankReward;
+        
         newLoc.rewards = newRewards;
         setEditingHuntLocation(newLoc);
     }
-};
+  };
 
 
   const addLocationReward = (locIndex: number) => {
@@ -1034,7 +1041,7 @@ export default function AdminTab() {
     let updatedLocations;
     
     if (editingHuntLocation.id) { // Editing existing
-        updatedLocations = currentLocations.map(loc => loc.id === editingHuntLocation.id ? editingHuntLocation as HuntingLocation : loc);
+        updatedLocations = currentLocations.map(loc => loc.id === editingHuntLocation.id ? loc as HuntingLocation : loc);
     } else { // Adding new
         const newLocation = { ...editingHuntLocation, id: `hunt-${Date.now()}` } as HuntingLocation;
         updatedLocations = [...currentLocations, newLocation];
@@ -2766,5 +2773,7 @@ export default function AdminTab() {
     </Tabs>
   );
 }
+
+    
 
     
