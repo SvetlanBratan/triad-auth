@@ -985,8 +985,8 @@ export default function AdminTab() {
     if (!editingHuntLocation) return;
     const newLoc = { ...editingHuntLocation };
     const newRewards = [...(newLoc.rewards || [])];
-    if (field === 'chances') {
-        newRewards[rewardIndex].chances = value;
+    if (field === 'rewardsByRank') {
+        newRewards[rewardIndex].rewardsByRank = value;
     } else {
         (newRewards[rewardIndex] as any)[field] = value;
     }
@@ -994,24 +994,26 @@ export default function AdminTab() {
     setEditingHuntLocation(newLoc);
   };
   
-  const handleRewardChanceChange = (locIndex: number, rewardIndex: number, rank: FamiliarRank, value: string) => {
+  const handleRewardRankDataChange = (rewardIndex: number, rank: FamiliarRank, field: 'chance' | 'quantity', value: string) => {
     if (!editingHuntLocation) return;
     const numValue = parseInt(value, 10);
-    if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
-      const newLoc = { ...editingHuntLocation };
-      const newRewards = [...(newLoc.rewards || [])];
-      newRewards[rewardIndex].chances[rank] = numValue;
-      newLoc.rewards = newRewards;
-      setEditingHuntLocation(newLoc);
+    if (!isNaN(numValue) && numValue >= 0) {
+        const newLoc = { ...editingHuntLocation };
+        const newRewards = [...(newLoc.rewards || [])];
+        const rankReward = newRewards[rewardIndex].rewardsByRank[rank] || { chance: 0, quantity: 0 };
+        (rankReward as any)[field] = numValue;
+        newRewards[rewardIndex].rewardsByRank[rank] = rankReward;
+        newLoc.rewards = newRewards;
+        setEditingHuntLocation(newLoc);
     }
-  };
+};
 
 
   const addLocationReward = (locIndex: number) => {
     if (!editingHuntLocation) return;
      const newReward: HuntReward = {
         itemId: '',
-        chances: { 'обычный': 0, 'редкий': 0, 'легендарный': 0, 'мифический': 0, 'ивентовый': 0 }
+        rewardsByRank: { 'обычный': { chance: 0, quantity: 1 } }
     };
     const newLoc = { ...editingHuntLocation };
     newLoc.rewards = [...(newLoc.rewards || []), newReward];
@@ -2133,15 +2135,22 @@ export default function AdminTab() {
                                                 </Button>
                                             </div>
                                             <div>
-                                                <Label>Шансы выпадения (%)</Label>
+                                                <Label>Шансы выпадения (%) и Кол-во</Label>
                                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-1">
-                                                    {(['обычный', 'редкий', 'легендарный', 'мифический'] as FamiliarRank[]).map(rank => (
+                                                    {rankOrder.map(rank => (
                                                         <div key={rank} className="space-y-1">
                                                             <Label htmlFor={`chance-${rewardIndex}-${rank}`} className="text-xs capitalize">{rankNames[rank]}</Label>
-                                                            <Input id={`chance-${rewardIndex}-${rank}`} type="number" min="0" max="100" 
-                                                                value={reward.chances[rank] || 0}
-                                                                onChange={(e) => handleRewardChanceChange(0, rewardIndex, rank, e.target.value)}
-                                                            />
+                                                            <div className='flex items-center gap-1'>
+                                                                <Input id={`chance-${rewardIndex}-${rank}`} type="number" min="0" max="100" 
+                                                                    value={reward.rewardsByRank?.[rank]?.chance || 0}
+                                                                    onChange={(e) => handleRewardRankDataChange(rewardIndex, rank, 'chance', e.target.value)}
+                                                                />
+                                                                 <Input type="number" min="0" 
+                                                                    value={reward.rewardsByRank?.[rank]?.quantity || 1}
+                                                                    onChange={(e) => handleRewardRankDataChange(rewardIndex, rank, 'quantity', e.target.value)}
+                                                                    className="w-16"
+                                                                />
+                                                            </div>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -2757,7 +2766,5 @@ export default function AdminTab() {
     </Tabs>
   );
 }
-
-    
 
     

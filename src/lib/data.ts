@@ -30,9 +30,21 @@ export const DEFAULT_GAME_SETTINGS: GameSettings = {
             durationMinutes: 60,
             requiredRank: 'обычный',
             rewards: [
-                { itemId: 'ing-mountain-flower', chances: { 'обычный': 50, 'редкий': 60, 'легендарный': 70, 'мифический': 80, 'ивентовый': 70 } },
-                { itemId: 'ing-sage-leaves', chances: { 'обычный': 30, 'редкий': 40, 'легендарный': 50, 'мифический': 60, 'ивентовый': 50 } },
-                { itemId: 'ing-mandrake-root', chances: { 'обычный': 5, 'редкий': 10, 'легендарный': 15, 'мифический': 20, 'ивентовый': 15 } },
+                {
+                    itemId: 'ing-mountain-flower', rewardsByRank: {
+                        'обычный': { chance: 50, quantity: 2 }, 'редкий': { chance: 60, quantity: 3 }, 'легендарный': { chance: 70, quantity: 4 }, 'мифический': { chance: 80, quantity: 5 }, 'ивентовый': { chance: 70, quantity: 4 }
+                    }
+                },
+                {
+                    itemId: 'ing-sage-leaves', rewardsByRank: {
+                        'обычный': { chance: 30, quantity: 1 }, 'редкий': { chance: 40, quantity: 2 }, 'легендарный': { chance: 50, quantity: 3 }, 'мифический': { chance: 60, quantity: 4 }, 'ивентовый': { chance: 50, quantity: 3 }
+                    }
+                },
+                {
+                    itemId: 'ing-mandrake-root', rewardsByRank: {
+                        'обычный': { chance: 5, quantity: 1 }, 'редкий': { chance: 10, quantity: 1 }, 'легендарный': { chance: 15, quantity: 2 }, 'мифический': { chance: 20, quantity: 2 }, 'ивентовый': { chance: 15, quantity: 2 }
+                    }
+                },
             ]
         },
         {
@@ -43,8 +55,16 @@ export const DEFAULT_GAME_SETTINGS: GameSettings = {
             durationMinutes: 180,
             requiredRank: 'редкий',
             rewards: [
-                { itemId: 'ing-glowing-mushroom', chances: { 'обычный': 0, 'редкий': 60, 'легендарный': 75, 'мифический': 90, 'ивентовый': 75 } },
-                { itemId: 'ing-fire-salt', chances: { 'обычный': 0, 'редкий': 20, 'легендарный': 30, 'мифический': 40, 'ивентовый': 30 } },
+                {
+                    itemId: 'ing-glowing-mushroom', rewardsByRank: {
+                        'обычный': { chance: 0, quantity: 0 }, 'редкий': { chance: 60, quantity: 2 }, 'легендарный': { chance: 75, quantity: 3 }, 'мифический': { chance: 90, quantity: 4 }, 'ивентовый': { chance: 75, quantity: 3 }
+                    }
+                },
+                {
+                    itemId: 'ing-fire-salt', rewardsByRank: {
+                        'обычный': { chance: 0, quantity: 0 }, 'редкий': { chance: 20, quantity: 1 }, 'легендарный': { chance: 30, quantity: 2 }, 'мифический': { chance: 40, quantity: 3 }, 'ивентовый': { chance: 30, quantity: 2 }
+                    }
+                },
             ]
         },
         {
@@ -55,9 +75,21 @@ export const DEFAULT_GAME_SETTINGS: GameSettings = {
             durationMinutes: 360,
             requiredRank: 'легендарный',
             rewards: [
-                { itemId: 'ing-fire-salt', chances: { 'обычный': 0, 'редкий': 0, 'легендарный': 70, 'мифический': 80, 'ивентовый': 70 } },
-                { itemId: 'ing-phoenix-feather', chances: { 'обычный': 0, 'редкий': 0, 'легендарный': 10, 'мифический': 20, 'ивентовый': 15 } },
-                { itemId: 'ing-dragon-scale', chances: { 'обычный': 0, 'редкий': 0, 'легендарный': 5, 'мифический': 10, 'ивентовый': 8 } },
+                {
+                    itemId: 'ing-fire-salt', rewardsByRank: {
+                        'обычный': { chance: 0, quantity: 0 }, 'редкий': { chance: 0, quantity: 0 }, 'легендарный': { chance: 70, quantity: 2 }, 'мифический': { chance: 80, quantity: 3 }, 'ивентовый': { chance: 70, quantity: 3 }
+                    }
+                },
+                {
+                    itemId: 'ing-phoenix-feather', rewardsByRank: {
+                        'обычный': { chance: 0, quantity: 0 }, 'редкий': { chance: 0, quantity: 0 }, 'легендарный': { chance: 10, quantity: 1 }, 'мифический': { chance: 20, quantity: 1 }, 'ивентовый': { chance: 15, quantity: 1 }
+                    }
+                },
+                {
+                    itemId: 'ing-dragon-scale', rewardsByRank: {
+                        'обычный': { chance: 0, quantity: 0 }, 'редкий': { chance: 0, quantity: 0 }, 'легендарный': { chance: 5, quantity: 1 }, 'мифический': { chance: 10, quantity: 1 }, 'ивентовый': { chance: 8, quantity: 1 }
+                    }
+                },
             ]
         }
     ]
@@ -811,6 +843,7 @@ export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) =>
     acc[shop.id] = shop;
     return acc;
 }, {} as Record<string, Shop>);
+
 
 
 

@@ -499,7 +499,7 @@ export interface AlchemyRecipe {
 
 export interface HuntReward {
     itemId: string;
-    chances: Record<FamiliarRank, number>; // e.g., { 'обычный': 30, 'редкий': 50, ... }
+    rewardsByRank: Partial<Record<FamiliarRank, { chance: number; quantity: number }>>;
 }
 
 export interface HuntingLocation {

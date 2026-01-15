@@ -2818,20 +2818,20 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const allItems = (await fetchAllShops()).flatMap(s => s.items || []);
 
             location.rewards.forEach(reward => {
-                const chance = reward.chances[familiar.rank];
-                if (chance && Math.random() * 100 <= chance) {
+                const rankReward = reward.rewardsByRank?.[familiar.rank];
+                if (rankReward && Math.random() * 100 <= rankReward.chance) {
                     const itemData = allItems.find(i => i.id === reward.itemId);
                     if (itemData) {
                         const existing = gatheredItems.find(i => i.name === itemData.name);
                         if (existing) {
-                            existing.quantity += 1;
+                            existing.quantity += rankReward.quantity;
                         } else {
                             gatheredItems.push({
                                 id: `inv-${Date.now()}-${Math.random()}`,
                                 name: itemData.inventoryItemName || itemData.name,
                                 description: itemData.inventoryItemDescription || itemData.description,
                                 image: itemData.inventoryItemImage || itemData.image,
-                                quantity: 1
+                                quantity: rankReward.quantity,
                             });
                         }
                     }
