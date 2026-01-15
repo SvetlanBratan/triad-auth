@@ -122,7 +122,7 @@ export interface UserContextType {
   claimHuntReward: (characterId: string, huntId: string) => Promise<InventoryItem[]>;
   recallHunt: (characterId: string, huntId: string) => Promise<void>;
   changeUserPassword: (currentPassword: string, newPassword: string) => Promise<void>;
-  changeUserEmail: (newEmail: string, currentPassword: string) => Promise<void>;
+  changeUserEmail: (currentPassword: string, newEmail: string) => Promise<void>;
   deleteUserAccount: (userId: string) => Promise<void>;
 }
 
@@ -216,12 +216,13 @@ const sanitizeObjectForFirestore = (obj: any): any => {
 
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
-  const [gameSettings, setGameSettings] = useState<GameSettings>(DEFAULT_GAME_SETTINGS);
-  const [loading, setLoading] = useState(true);
-  const [allFamiliars, setAllFamiliars] = useState<FamiliarCard[]>([...ALL_STATIC_FAMILIARS, ...EVENT_FAMILIARS]);
-  const [familiarsById, setFamiliarsById] = useState<Record<string, FamiliarCard>>({});
+    const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+    const [gameSettings, setGameSettings] = useState<GameSettings>(DEFAULT_GAME_SETTINGS);
+    const [loading, setLoading] = useState(true);
+    const [allFamiliars, setAllFamiliars] = useState<FamiliarCard[]>([...ALL_STATIC_FAMILIARS, ...EVENT_FAMILIARS]);
+    const [familiarsById, setFamiliarsById] = useState<Record<string, FamiliarCard>>({});
+    const functions = useMemo(() => getFunctions(), []);
   
     const initialFormData: Omit<Character, 'id'> = useMemo(() => ({
         name: '',
@@ -321,7 +322,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             throw error;
         }
     }, [processUserDoc]);
-
+  
     const fetchCharacterById = useCallback(async (characterId: string): Promise<{ character: Character; owner: User } | null> => {
         try {
             const allUsers = await fetchUsersForAdmin();
@@ -340,6 +341,58 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
     }, [fetchUsersForAdmin]);
   
+    const fetchGameSettings = useCallback(async () => {
+        try {
+            const settingsRef = doc(db, 'game_settings', 'main');
+            const docSnap = await getDoc(settingsRef);
+            if (docSnap.exists()) {
+                const data = docSnap.data() as GameSettings;
+                let finalSettings: GameSettings = { ...DEFAULT_GAME_SETTINGS, ...data };
+                 if (!finalSettings.gachaChances) {
+                    finalSettings.gachaChances = DEFAULT_GAME_SETTINGS.gachaChances;
+                }
+                if(data.gameDateString) {
+                    const dateStr = data.gameDateString;
+                    const dateParts = dateStr.match(/(\d+)\s(\S+)\s(\d+)/);
+                    if (dateParts) {
+                        const months: { [key: string]: number } = { "января":0, "февраля":1, "марта":2, "апреля":3, "мая":4, "июня":5, "июля":6, "августа":7, "сентября":8, "октября":9, "ноября":10, "декабря":11 };
+                        const day = parseInt(dateParts[1]);
+                        const month = months[dateParts[2].toLowerCase()];
+                        const year = parseInt(dateParts[3]);
+                        const gameDate = new Date(year, month, day);
+                         if (!isNaN(gameDate.getTime())) {
+                            finalSettings.gameDate = gameDate;
+                        }
+                    }
+                }
+                setGameSettings(finalSettings);
+            } else {
+                await setDoc(doc(db, 'game_settings', 'main'), DEFAULT_GAME_SETTINGS);
+                setGameSettings(DEFAULT_GAME_SETTINGS);
+            }
+        } catch (error) {
+            console.error("Error fetching game settings. Using default.", error);
+        }
+    }, []);
+  
+    const fetchDbFamiliars = useCallback(async (): Promise<FamiliarCard[]> => {
+        const familiarsCollection = collection(db, "familiars");
+        const snapshot = await getDocs(familiarsCollection);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FamiliarCard));
+    }, []);
+
+    const fetchAndCombineFamiliars = useCallback(async () => {
+        const dbFamiliars = await fetchDbFamiliars();
+        const combined = [...ALL_STATIC_FAMILIARS, ...EVENT_FAMILIARS, ...dbFamiliars];
+        setAllFamiliars(combined);
+        
+        const byId = combined.reduce((acc, card) => {
+            acc[card.id] = card;
+            return acc;
+        }, {} as Record<string, FamiliarCard>);
+        setFamiliarsById(byId);
+    }, [fetchDbFamiliars]);
+    
     const updateUser = useCallback(async (userId: string, updates: Partial<User>) => {
         const userRef = doc(db, "users", userId);
         await updateDoc(userRef, sanitizeObjectForFirestore(updates));
@@ -363,7 +416,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             await updateUser(userId, { achievementIds: updatedAchievementIds });
         }
     }, [fetchUserById, updateUser]);
-    
+
     const fetchLeaderboardUsers = useCallback(async (): Promise<User[]> => {
         const usersCollection = collection(db, "users");
         const userSnapshot = await getDocs(query(usersCollection, orderBy("points", "desc")));
@@ -371,7 +424,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const userData = doc.data() as User;
             return {
                 ...userData,
-                pointHistory: [], // Don't need full history for leaderboard
+                pointHistory: [], 
             };
         });
         return users;
@@ -411,7 +464,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
         return finalUser;
     }, [fetchUserById, currentUser?.id, grantAchievementToUser, fetchLeaderboardUsers]);
-  
+    
     const addPointsToAllUsers = useCallback(async (amount: number, reason: string) => {
         const allUsers = await fetchUsersForAdmin();
         for (const user of allUsers) {
@@ -452,41 +505,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           throw error;
         }
     }, []);
-  
-    const fetchGameSettings = useCallback(async () => {
-        try {
-            const settingsRef = doc(db, 'game_settings', 'main');
-            const docSnap = await getDoc(settingsRef);
-            if (docSnap.exists()) {
-                const data = docSnap.data() as GameSettings;
-                let finalSettings: GameSettings = { ...DEFAULT_GAME_SETTINGS, ...data };
-                 if (!finalSettings.gachaChances) {
-                    finalSettings.gachaChances = DEFAULT_GAME_SETTINGS.gachaChances;
-                }
-                if(data.gameDateString) {
-                    const dateStr = data.gameDateString;
-                    const dateParts = dateStr.match(/(\d+)\s(\S+)\s(\d+)/);
-                    if (dateParts) {
-                        const months: { [key: string]: number } = { "января":0, "февраля":1, "марта":2, "апреля":3, "мая":4, "июня":5, "июля":6, "августа":7, "сентября":8, "октября":9, "ноября":10, "декабря":11 };
-                        const day = parseInt(dateParts[1]);
-                        const month = months[dateParts[2].toLowerCase()];
-                        const year = parseInt(dateParts[3]);
-                        const gameDate = new Date(year, month, day);
-                         if (!isNaN(gameDate.getTime())) {
-                            finalSettings.gameDate = gameDate;
-                        }
-                    }
-                }
-                setGameSettings(finalSettings);
-            } else {
-                await setDoc(doc(db, 'game_settings', 'main'), DEFAULT_GAME_SETTINGS);
-                setGameSettings(DEFAULT_GAME_SETTINGS);
-            }
-        } catch (error) {
-            console.error("Error fetching game settings. Using default.", error);
-        }
-    }, []);
-  
+    
     const processWeeklyBonus = useCallback(async () => {
         const settingsRef = doc(db, 'game_settings', 'main');
         const settingsDoc = await getDoc(settingsRef);
@@ -522,25 +541,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         return { awardedCount };
     }, [fetchUsersForAdmin, fetchGameSettings, addPointsToUser]);
-  
-    const fetchDbFamiliars = useCallback(async (): Promise<FamiliarCard[]> => {
-        const familiarsCollection = collection(db, "familiars");
-        const snapshot = await getDocs(familiarsCollection);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FamiliarCard));
-    }, []);
-
-    const fetchAndCombineFamiliars = useCallback(async () => {
-        const dbFamiliars = await fetchDbFamiliars();
-        const combined = [...ALL_STATIC_FAMILIARS, ...EVENT_FAMILIARS, ...dbFamiliars];
-        setAllFamiliars(combined);
-        
-        const byId = combined.reduce((acc, card) => {
-            acc[card.id] = card;
-            return acc;
-        }, {} as Record<string, FamiliarCard>);
-        setFamiliarsById(byId);
-    }, [fetchDbFamiliars]);
-  
+    
     const signOutUser = useCallback(() => {
         signOut(auth);
     }, []);
@@ -1563,14 +1564,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (updatedUser) setCurrentUser(updatedUser);
     }, [fetchUserById, currentUser?.id]);
 
-    const fetchOpenExchangeRequests = useCallback(async (): Promise<ExchangeRequest[]> => {
+ const fetchOpenExchangeRequests = useCallback(async (): Promise<ExchangeRequest[]> => {
         const requestsCollection = collection(db, "exchange_requests");
         const q = query(requestsCollection, where('status', '==', 'open'), orderBy('createdAt', 'desc'));
         const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ExchangeRequest));
     }, []);
 
-    const acceptExchangeRequest = useCallback(async (acceptorUserId: string, acceptorCharacterId: string, request: ExchangeRequest) => {
+  const acceptExchangeRequest = useCallback(async (acceptorUserId: string, acceptorCharacterId: string, request: ExchangeRequest) => {
         await runTransaction(db, async (transaction) => {
             const requestRef = doc(db, "exchange_requests", request.id);
             const requestDoc = await transaction.get(requestRef);
@@ -1628,41 +1629,41 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
     }, [currentUser, fetchUserById]);
 
-    const cancelExchangeRequest = useCallback(async (request: ExchangeRequest) => {
-        await runTransaction(db, async (transaction) => {
-            const requestRef = doc(db, "exchange_requests", request.id);
-            const requestDoc = await transaction.get(requestRef);
-            if (!requestDoc.exists() || requestDoc.data().status !== 'open') {
-                throw new Error("Запрос уже не действителен.");
-            }
-
-            const creatorUserRef = doc(db, "users", request.creatorUserId);
-            const creatorUserDoc = await transaction.get(creatorUserRef);
-            if (!creatorUserDoc.exists()) throw new Error("Создатель запроса не найден.");
-            const creatorUserData = creatorUserDoc.data() as User;
-            const creatorCharIndex = creatorUserData.characters.findIndex(c => c.id === request.creatorCharacterId);
-            if (creatorCharIndex === -1) throw new Error("Персонаж создателя запроса не найден.");
-
-            const creatorChar = creatorUserData.characters[creatorCharIndex];
-            const bankAccount = creatorChar.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
-            bankAccount[request.fromCurrency] = (bankAccount[request.fromCurrency] || 0) + request.fromAmount;
-            
-            const refundTx: BankTransaction = { id: `txn-cancel-${Date.now()}`, date: new Date().toISOString(), reason: 'Отмена запроса на обмен', amount: { [request.fromCurrency]: request.fromAmount }};
-            bankAccount.history = [refundTx, ...(bankAccount.history || [])];
-            creatorChar.bankAccount = bankAccount;
-            
-            transaction.update(creatorUserRef, { characters: creatorUserData.characters });
-            transaction.delete(requestRef);
-        });
-        
-        if (currentUser?.id === request.creatorUserId) {
-           const updatedUser = await fetchUserById(request.creatorUserId);
-           if(updatedUser) setCurrentUser(updatedUser);
+  const cancelExchangeRequest = useCallback(async (request: ExchangeRequest) => {
+    await runTransaction(db, async (transaction) => {
+        const requestRef = doc(db, "exchange_requests", request.id);
+        const requestDoc = await transaction.get(requestRef);
+        if (!requestDoc.exists() || requestDoc.data().status !== 'open') {
+            throw new Error("Запрос уже не действителен.");
         }
-    }, [currentUser, fetchUserById]);
+
+        const creatorUserRef = doc(db, "users", request.creatorUserId);
+        const creatorUserDoc = await transaction.get(creatorUserRef);
+        if (!creatorUserDoc.exists()) throw new Error("Создатель запроса не найден.");
+        const creatorUserData = creatorUserDoc.data() as User;
+        const creatorCharIndex = creatorUserData.characters.findIndex(c => c.id === request.creatorCharacterId);
+        if (creatorCharIndex === -1) throw new Error("Персонаж создателя запроса не найден.");
+
+        const creatorChar = creatorUserData.characters[creatorCharIndex];
+        const bankAccount = creatorChar.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
+        bankAccount[request.fromCurrency] = (bankAccount[request.fromCurrency] || 0) + request.fromAmount;
+        
+        const refundTx: BankTransaction = { id: `txn-cancel-${Date.now()}`, date: new Date().toISOString(), reason: 'Отмена запроса на обмен', amount: { [request.fromCurrency]: request.fromAmount }};
+        bankAccount.history = [refundTx, ...(bankAccount.history || [])];
+        creatorChar.bankAccount = bankAccount;
+        
+        transaction.update(creatorUserRef, { characters: creatorUserData.characters });
+        transaction.delete(requestRef);
+    });
+    
+    if (currentUser?.id === request.creatorUserId) {
+       const updatedUser = await fetchUserById(request.creatorUserId);
+       if(updatedUser) setCurrentUser(updatedUser);
+    }
+  }, [currentUser, fetchUserById]);
 
 
-    const createFamiliarTradeRequest = useCallback(async (initiatorCharacterId: string, initiatorFamiliarId: string, targetCharacterId: string, targetFamiliarId: string) => {
+  const createFamiliarTradeRequest = useCallback(async (initiatorCharacterId: string, initiatorFamiliarId: string, targetCharacterId: string, targetFamiliarId: string) => {
         if (!currentUser) throw new Error("Пользователь не авторизован.");
         
         const allUsers = await fetchUsersForAdmin();
@@ -1719,7 +1720,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     }, [currentUser, fetchUsersForAdmin, familiarsById]);
 
-    const fetchFamiliarTradeRequestsForUser = useCallback(async (): Promise<FamiliarTradeRequest[]> => {
+  const fetchFamiliarTradeRequestsForUser = useCallback(async (): Promise<FamiliarTradeRequest[]> => {
         if (!currentUser) return [];
         
         const requestsCollection = collection(db, "familiar_trade_requests");
@@ -1748,7 +1749,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return requests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }, [currentUser]);
 
-    const acceptFamiliarTradeRequest = useCallback(async (request: FamiliarTradeRequest) => {
+  const acceptFamiliarTradeRequest = useCallback(async (request: FamiliarTradeRequest) => {
          await runTransaction(db, async (transaction) => {
             const requestRef = doc(db, "familiar_trade_requests", request.id);
             const requestDoc = await transaction.get(requestRef);
@@ -1802,12 +1803,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
     }, [currentUser, fetchUserById]);
 
-    const declineOrCancelFamiliarTradeRequest = useCallback(async (request: FamiliarTradeRequest, status: 'отклонено' | 'отменено') => {
+  const declineOrCancelFamiliarTradeRequest = useCallback(async (request: FamiliarTradeRequest, status: 'отклонено' | 'отменено') => {
           const requestRef = doc(db, "familiar_trade_requests", request.id);
           await updateDoc(requestRef, { status });
     }, []);
 
-    const fetchAllShops = useCallback(async (): Promise<Shop[]> => {
+  const fetchAllShops = useCallback(async (): Promise<Shop[]> => {
           const shopsCollection = collection(db, "shops");
           const snapshot = await getDocs(shopsCollection);
           const dbShops = new Map<string, Partial<Shop>>();
@@ -1823,7 +1824,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           return allShopsWithData;
     }, []);
 
-    const fetchShopById = useCallback(async (shopId: string): Promise<Shop | null> => {
+  const fetchShopById = useCallback(async (shopId: string): Promise<Shop | null> => {
           const baseShop = SHOPS_BY_ID[shopId];
           if (!baseShop) return null;
 
@@ -1836,7 +1837,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           return baseShop;
     }, []);
 
-    const updateShopOwner = useCallback(async (shopId: string, ownerUserId: string, ownerCharacterId: string, ownerCharacterName: string) => {
+  const updateShopOwner = useCallback(async (shopId: string, ownerUserId: string, ownerCharacterId: string, ownerCharacterName: string) => {
           const shopRef = doc(db, "shops", shopId);
            await setDoc(shopRef, {
               ownerUserId,
@@ -1846,7 +1847,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           }, { merge: true });
     }, []);
 
-    const removeShopOwner = useCallback(async (shopId: string) => {
+  const removeShopOwner = useCallback(async (shopId: string) => {
         const shopRef = doc(db, "shops", shopId);
         await setDoc(shopRef, {
             ownerUserId: deleteField(),
@@ -1856,12 +1857,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }, { merge: true });
     }, []);
 
-    const updateShopDetails = useCallback(async (shopId: string, details: Partial<Pick<Shop, 'title' | 'description' | 'defaultNewItemCategory'>>) => {
+  const updateShopDetails = useCallback(async (shopId: string, details: Partial<Pick<Shop, 'title' | 'description' | 'defaultNewItemCategory'>>) => {
         const shopRef = doc(db, "shops", shopId);
         await setDoc(shopRef, details, { merge: true });
     }, []);
   
-    const addShopItem = useCallback(async (shopId: string, item: Omit<ShopItem, 'id'>) => {
+  const addShopItem = useCallback(async (shopId: string, item: Omit<ShopItem, 'id'>) => {
         const shopRef = doc(db, "shops", shopId);
         const shopDoc = await getDoc(shopRef);
         const shopData = shopDoc.data() || {};
@@ -1881,7 +1882,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         await setDoc(shopRef, { items: sanitizedItems }, { merge: true });
     }, []);
 
-    const updateShopItem = useCallback(async (shopId: string, itemToUpdate: ShopItem) => {
+  const updateShopItem = useCallback(async (shopId: string, itemToUpdate: ShopItem) => {
         const shopRef = doc(db, "shops", shopId);
         const shopDoc = await getDoc(shopRef);
         const shopData = shopDoc.data() || {};
@@ -1897,7 +1898,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         await setDoc(shopRef, { items: sanitizedItems }, { merge: true });
     }, []);
 
-    const deleteShopItem = useCallback(async (shopId: string, itemId: string) => {
+  const deleteShopItem = useCallback(async (shopId: string, itemId: string) => {
         const shopRef = doc(db, "shops", shopId);
         const shopDoc = await getDoc(shopRef);
         const shopData = shopDoc.data() || {};
@@ -1906,7 +1907,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         await setDoc(shopRef, { items: updatedItems }, { merge: true });
     }, []);
   
-    const purchaseShopItem = useCallback(async (shopId: string, itemId: string, buyerUserId: string, buyerCharacterId: string, quantity: number) => {
+  const purchaseShopItem = useCallback(async (shopId: string, itemId: string, buyerUserId: string, buyerCharacterId: string, quantity: number) => {
         await runTransaction(db, async (transaction) => {
             const shopRef = doc(db, "shops", shopId);
             const shopDoc = await transaction.get(shopRef);
@@ -2704,6 +2705,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             favoritePlayerIds: arrayRemove(targetUserId)
         });
     }, [currentUser, updateUser]);
+
+    const updateGameSettings = useCallback(async (updates: Partial<GameSettings>) => {
+        const settingsRef = doc(db, 'game_settings', 'main');
+        await setDoc(settingsRef, updates, { merge: true });
+        await fetchGameSettings();
+    }, [fetchGameSettings]);
   
     const startHunt = useCallback(async (characterId: string, familiarId: string, locationId: string) => {
         if (!currentUser) throw new Error("Not authenticated.");
@@ -2853,9 +2860,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         await updatePassword(firebaseUser, newPassword);
     }, [firebaseUser]);
 
-    const changeUserEmail = useCallback(async (newEmail: string, currentPassword: string) => {
+    const changeUserEmail = useCallback(async (currentPassword: string, newEmail: string) => {
         if (!firebaseUser || !firebaseUser.email) {
-          throw new Error("Пользователь не аутентифицирован или отсутствует email.");
+            throw new Error("Пользователь не аутентифицирован или отсутствует email.");
         }
         const credential = EmailAuthProvider.credential(firebaseUser.email, currentPassword);
         await reauthenticateWithCredential(firebaseUser, credential);
@@ -2868,11 +2875,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const deleteUserFunction = httpsCallable(functions, 'deleteUser');
         try {
             await deleteUserFunction({ uid: userId });
-            // Also delete the firestore document as a fallback/primary action
             await deleteDoc(doc(db, "users", userId));
         } catch (error) {
             console.error("Error calling deleteUser function or deleting document:", error);
-            // Even if auth deletion fails (e.g., user already deleted from auth), try deleting firestore doc.
             try {
                 await deleteDoc(doc(db, "users", userId));
             } catch (docError) {
@@ -2884,7 +2889,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             }
             throw error;
         }
-    }, []);
+    }, [functions]);
+    
+    const updateGameDate = useCallback(async (newDateString: string) => {
+        const settingsRef = doc(db, 'game_settings', 'main');
+        await updateDoc(settingsRef, { gameDateString: newDateString });
+        await fetchGameSettings();
+    }, [fetchGameSettings]);
 
     const userContextValue: UserContextType = useMemo(
         () => ({
@@ -3005,5 +3016,7 @@ export const useUser = () => {
     }
     return context;
 };
+
+    
 
     
