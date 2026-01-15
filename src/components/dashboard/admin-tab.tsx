@@ -997,7 +997,7 @@ export default function AdminTab() {
   const handleRewardRankDataChange = (rewardIndex: number, rank: FamiliarRank, field: 'chance' | 'quantity', value: string) => {
     if (!editingHuntLocation) return;
     const numValue = parseInt(value, 10);
-    if (!isNaN(numValue) && numValue >= 0) {
+    if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
         const newLoc = { ...editingHuntLocation };
         const newRewards = [...(newLoc.rewards || [])];
 
@@ -2152,7 +2152,7 @@ export default function AdminTab() {
                                                                     value={reward.rewardsByRank?.[rank]?.chance || 0}
                                                                     onChange={(e) => handleRewardRankDataChange(rewardIndex, rank, 'chance', e.target.value)}
                                                                 />
-                                                                 <Input type="number" min="0" 
+                                                                 <Input type="number" min="0" max="100"
                                                                     value={reward.rewardsByRank?.[rank]?.quantity || 1}
                                                                     onChange={(e) => handleRewardRankDataChange(rewardIndex, rank, 'quantity', e.target.value)}
                                                                     className="w-16"
