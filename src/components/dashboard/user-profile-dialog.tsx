@@ -195,9 +195,9 @@ const playerStatusOptions: { value: PlayerStatus, label: string }[] = [
 ];
 
 const playPlatformOptions: { value: PlayPlatform, label: string }[] = [
-    { value: 'Discord', label: 'Discord' },
     { value: 'Вконтакте', label: 'Вконтакте' },
     { value: 'Telegram', label: 'Telegram' },
+    { value: 'Discord', label: 'Discord' },
     { value: 'Не указана', label: 'Не указана' },
 ];
 
@@ -530,7 +530,7 @@ export default function UserProfileDialog({ user }: { user: User }) {
             <DialogHeader>
                 <DialogTitle>Все достижения</DialogTitle>
                 <DialogDescription>
-                    Получено: {userAchievements.length} / {ALL_ACHIEVEMENTS.length}
+                   Получено: {userAchievements.length} / {ALL_ACHIEVEMENTS.length}
                 </DialogDescription>
             </DialogHeader>
             <ScrollArea className="max-h-[60vh] -mx-6 px-6">
@@ -623,3 +623,5 @@ export default function UserProfileDialog({ user }: { user: User }) {
     </>
   );
 }
+
+    
