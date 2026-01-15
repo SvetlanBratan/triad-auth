@@ -170,11 +170,11 @@ const drawFamiliarCard = (allCardPool: FamiliarCard[], hasBlessing: boolean, una
 
     let chosenPool: FamiliarCard[] = [];
 
-    if (rand < cumulativeMythic && availableMythic.length > 0) {
+    if (rand <= cumulativeMythic && availableMythic.length > 0) {
         chosenPool = availableMythic;
-    } else if (rand < cumulativeLegendary && availableLegendary.length > 0) {
+    } else if (rand <= cumulativeLegendary && availableLegendary.length > 0) {
         chosenPool = availableLegendary;
-    } else if (rand < cumulativeRare && availableRare.length > 0) {
+    } else if (rand <= cumulativeRare && availableRare.length > 0) {
         chosenPool = availableRare;
     } else {
         chosenPool = availableCommon;
@@ -317,6 +317,74 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       return null;
   }, [processUserDoc]);
 
+  const updateUser = useCallback(async (userId: string, updates: Partial<User>) => {
+    const userRef = doc(db, "users", userId);
+    await updateDoc(userRef, sanitizeObjectForFirestore(updates));
+    
+    if (currentUser?.id === userId) {
+      setCurrentUser(prev => prev ? { ...prev, ...updates } : null);
+    }
+}, [currentUser?.id]);
+
+  const grantAchievementToUser = useCallback(async (userId: string, achievementId: string) => {
+    const user = await fetchUserById(userId);
+    if (!user) return;
+
+    const achievementIds = user.achievementIds || [];
+    if (!achievementIds.includes(achievementId)) {
+        const updatedAchievementIds = [...achievementIds, achievementId];
+        await updateUser(userId, { achievementIds: updatedAchievementIds });
+    }
+  }, [fetchUserById, updateUser]);
+
+  const fetchUsersForAdmin = useCallback(async (): Promise<User[]> => {
+    try {
+        const usersCollection = collection(db, "users");
+        const userSnapshot = await getDocs(query(usersCollection));
+        return Promise.all(userSnapshot.docs.map(doc => processUserDoc(doc.data() as User)));
+    } catch(error) {
+        console.error("Error fetching users for admin.", error);
+        throw error;
+    }
+  }, [processUserDoc]);
+
+  const addPointsToUser = useCallback(async (userId: string, amount: number, reason: string, characterId?: string): Promise<User | null> => {
+    const user = await fetchUserById(userId);
+    if (!user) return null;
+
+    const newPointLog: PointLog = {
+      id: `h-${Date.now()}`,
+      date: new Date().toISOString(),
+      amount,
+      reason,
+      ...(characterId && { characterId }),
+    };
+    const newPoints = user.points + amount;
+    const newHistory = [newPointLog, ...user.pointHistory].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
+    const updates: Partial<User> = { points: newPoints, pointHistory: newHistory };
+    
+    const userRef = doc(db, "users", userId);
+    await updateDoc(userRef, updates);
+
+    // After updating points, check for Forbes list achievement
+    const allUsers = await fetchUsersForAdmin(); 
+    const sortedUsers = allUsers.sort((a,b) => b.points - a.points);
+    const top3Users = sortedUsers.slice(0, 3);
+    
+    for (const topUser of top3Users) {
+      if (!topUser.achievementIds?.includes(FORBES_LIST_ACHIEVEMENT_ID)) {
+        await grantAchievementToUser(topUser.id, FORBES_LIST_ACHIEVEMENT_ID);
+      }
+    }
+    
+    const finalUser = { ...user, points: newPoints, pointHistory: newHistory };
+    if(currentUser?.id === userId) {
+      setCurrentUser(finalUser);
+    }
+    return finalUser;
+  }, [fetchUserById, currentUser?.id, grantAchievementToUser, fetchUsersForAdmin]);
+
   const fetchCharacterById = useCallback(async (characterId: string): Promise<{ character: Character; owner: User } | null> => {
     try {
         const usersCollection = collection(db, "users");
@@ -383,17 +451,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     await fetchGameSettings();
   }, [fetchGameSettings]);
 
-  const fetchUsersForAdmin = useCallback(async (): Promise<User[]> => {
-    try {
-        const usersCollection = collection(db, "users");
-        const userSnapshot = await getDocs(query(usersCollection, orderBy("points", "desc")));
-        return Promise.all(userSnapshot.docs.map(doc => processUserDoc(doc.data() as User)));
-    } catch(error) {
-        console.error("Error fetching users for admin.", error);
-        throw error;
-    }
-  }, [processUserDoc]);
-
   const processWeeklyBonus = useCallback(async () => {
     const settingsRef = doc(db, 'game_settings', 'main');
     const settingsDoc = await getDoc(settingsRef);
@@ -426,26 +483,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         // Weekly bonus for active users
         if (user.status === 'активный') {
-            let totalBonus = 800;
-            let reason = "Еженедельный бонус за активность";
-            
-            const popularityPoints = user.characters.reduce((acc, char) => acc + (char.popularity ?? 0), 0);
-
-            if (popularityPoints > 0) {
-                totalBonus += popularityPoints;
-                reason += ` и популярность (${popularityPoints})`;
-            }
-
-            const newPointLog: PointLog = {
-                id: `h-weekly-${Date.now()}-${user.id.slice(0, 4)}`,
-                date: now.toISOString(),
-                amount: totalBonus,
-                reason,
-            };
-            updates.points = (user.points || 0) + totalBonus;
-            updates.pointHistory = [newPointLog, ...(user.pointHistory || [])];
+            await addPointsToUser(user.id, 800, 'Еженедельный бонус за активность');
             awardedCount++;
-            needsUpdate = true;
         }
 
         if (needsUpdate) {
@@ -458,34 +497,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     await fetchGameSettings();
 
     return { awardedCount };
-  }, [fetchUsersForAdmin, fetchGameSettings]);
-  
-  const fetchAllShops = useCallback(async (): Promise<Shop[]> => {
-      const shopsCollection = collection(db, "shops");
-      const snapshot = await getDocs(shopsCollection);
-      const dbShops = new Map<string, Partial<Shop>>();
-      snapshot.forEach(doc => {
-          dbShops.set(doc.id, doc.data());
-      });
-
-      const allShopsWithData = ALL_SHOPS.map(baseShop => {
-          const dbData = dbShops.get(baseShop.id);
-          return { ...baseShop, ...(dbData || {}) };
-      });
-      
-      return allShopsWithData;
-  }, []);
-
-  const grantAchievementToUser = useCallback(async (userId: string, achievementId: string) => {
-    const user = await fetchUserById(userId);
-    if (!user) return;
-
-    const achievementIds = user.achievementIds || [];
-    if (!achievementIds.includes(achievementId)) {
-        const updatedAchievementIds = [...achievementIds, achievementId];
-        await updateUser(userId, { achievementIds: updatedAchievementIds });
-    }
-  }, [fetchUserById]);
+  }, [fetchUsersForAdmin, fetchGameSettings, addPointsToUser]);
   
   const createNewUser = useCallback(async (uid: string, nickname: string): Promise<User> => {
     const newUser: User = {
@@ -647,80 +659,19 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-
-  const updateUser = useCallback(async (userId: string, updates: Partial<User>) => {
-      const userRef = doc(db, "users", userId);
-      await updateDoc(userRef, sanitizeObjectForFirestore(updates));
-      
-      if (currentUser?.id === userId) {
-        setCurrentUser(prev => prev ? { ...prev, ...updates } : null);
-      }
-  }, [currentUser?.id]);
-  
   const updateUserAvatar = useCallback(async (userId: string, avatarUrl: string) => {
     await updateUser(userId, { avatar: avatarUrl });
   }, [updateUser]);
-  
-  const addPointsToUser = useCallback(async (userId: string, amount: number, reason: string, characterId?: string): Promise<User | null> => {
-    const user = await fetchUserById(userId);
-    if (!user) return null;
-
-    const newPointLog: PointLog = {
-      id: `h-${Date.now()}`,
-      date: new Date().toISOString(),
-      amount,
-      reason,
-      ...(characterId && { characterId }),
-    };
-    const newPoints = user.points + amount;
-    const newHistory = [newPointLog, ...user.pointHistory].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    
-    const updates: Partial<User> = { points: newPoints, pointHistory: newHistory };
-    
-    const userRef = doc(db, "users", userId);
-    await updateDoc(userRef, updates);
-
-    // After updating points, check for Forbes list achievement
-    const allUsers = await fetchLeaderboardUsers(); 
-    const top3Users = allUsers.slice(0, 3);
-    
-    for (const topUser of top3Users) {
-      if (!topUser.achievementIds?.includes(FORBES_LIST_ACHIEVEMENT_ID)) {
-        await grantAchievementToUser(topUser.id, FORBES_LIST_ACHIEVEMENT_ID);
-      }
-    }
-    
-    const finalUser = { ...user, points: newPoints, pointHistory: newHistory };
-    if(currentUser?.id === userId) {
-      setCurrentUser(finalUser);
-    }
-    return finalUser;
-  }, [fetchUserById, currentUser?.id, grantAchievementToUser, fetchLeaderboardUsers]);
   
   const addPointsToAllUsers = useCallback(async (amount: number, reason: string) => {
     const allUsers = await fetchUsersForAdmin();
     const batch = writeBatch(db);
     
     for (const user of allUsers) {
-        const userRef = doc(db, "users", user.id);
-        const newPointLog: PointLog = {
-            id: `h-${Date.now()}-${user.id.slice(0, 4)}`,
-            date: new Date().toISOString(),
-            amount,
-            reason,
-        };
-        const newPoints = user.points + amount;
-        const newHistory = [newPointLog, ...user.pointHistory].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        batch.update(userRef, { points: newPoints, pointHistory: newHistory });
+        await addPointsToUser(user.id, amount, reason);
     }
 
-    await batch.commit();
-
-    if (currentUser) {
-        const updatedCurrentUser = await fetchUserById(currentUser.id);
-        if(updatedCurrentUser) setCurrentUser(updatedCurrentUser);
-    }
-  }, [fetchUsersForAdmin, fetchUserById, currentUser]);
+  }, [fetchUsersForAdmin, addPointsToUser]);
 
   const addCharacterToUser = useCallback(async (userId: string, characterData: Character) => {
     const user = await fetchUserById(userId);
@@ -1927,6 +1878,22 @@ const processMonthlySalary = useCallback(async () => {
       await updateDoc(requestRef, { status });
   }, []);
 
+  const fetchAllShops = useCallback(async (): Promise<Shop[]> => {
+      const shopsCollection = collection(db, "shops");
+      const snapshot = await getDocs(shopsCollection);
+      const dbShops = new Map<string, Partial<Shop>>();
+      snapshot.forEach(doc => {
+          dbShops.set(doc.id, doc.data());
+      });
+
+      const allShopsWithData = ALL_SHOPS.map(baseShop => {
+          const dbData = dbShops.get(baseShop.id);
+          return { ...baseShop, ...(dbData || {}) };
+      });
+      
+      return allShopsWithData;
+  }, []);
+
   const fetchShopById = useCallback(async (shopId: string): Promise<Shop | null> => {
       const baseShop = SHOPS_BY_ID[shopId];
       if (!baseShop) return null;
@@ -2762,7 +2729,7 @@ const withdrawFromShopTill = useCallback(async (shopId: string) => {
     
     const updatedUser = await fetchUserById(userId);
     if(updatedUser) setCurrentUser(updatedUser);
-  }, [currentUser, fetchUserById]);
+  }, [currentUser, fetchUserById, initialFormData.inventory]);
 
     const addAlchemyRecipe = useCallback(async (recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
         const recipesCollection = collection(db, 'alchemy_recipes');
@@ -2855,7 +2822,6 @@ const withdrawFromShopTill = useCallback(async (shopId: string) => {
             await deleteUserFunction({ uid: userId });
         } catch (error) {
             console.error("Cloud function 'deleteUser' failed:", error);
-            // Even if auth deletion fails, proceed to delete Firestore data
         }
         await deleteDoc(doc(db, "users", userId));
     }, [functions]);
@@ -2913,7 +2879,7 @@ const withdrawFromShopTill = useCallback(async (shopId: string) => {
             const rewards: InventoryItem[] = [];
             for (const reward of location.rewards) {
                 const chance = reward.chances[familiar.rank] || 0;
-                if (Math.random() * 100 < chance) {
+                if (Math.random() * 100 <= chance) {
                     const allItems = ALL_SHOPS.flatMap(s => s.items || []);
                     const itemData = allItems.find(i => i.id === reward.itemId);
                     if (itemData) {
@@ -3083,7 +3049,7 @@ const withdrawFromShopTill = useCallback(async (shopId: string) => {
       claimHuntReward,
       recallHunt,
     }),
-    [currentUser, gameSettings, allFamiliars, familiarsById, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe,updateAlchemyRecipe,deleteAlchemyRecipe, fetchAlchemyRecipes, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, deleteUserAccount, startHunt, claimHuntReward, recallHunt]
+    [currentUser, gameSettings, allFamiliars, familiarsById, fetchUserById, fetchCharacterById, fetchUsersForAdmin, addPointsToAllUsers, addPointsToUser, fetchRewardRequestsForUser, fetchAllRewardRequests, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, fetchLeaderboardUsers, fetchAvailableMythicCardsCount, addCharacterToUser, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, deleteUserAccount, startHunt, claimHuntReward, recallHunt]
   );
 
   return (
@@ -3094,5 +3060,3 @@ const withdrawFromShopTill = useCallback(async (shopId: string) => {
     </AuthContext.Provider>
   );
 }
-
-    
