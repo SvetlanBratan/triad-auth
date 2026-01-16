@@ -223,7 +223,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const [loading, setLoading] = useState(true);
     const [allFamiliars, setAllFamiliars] = useState<FamiliarCard[]>([...ALL_STATIC_FAMILIARS, ...EVENT_FAMILIARS]);
     const [familiarsById, setFamiliarsById] = useState<Record<string, FamiliarCard>>({});
-    const functions = useMemo(() => getFunctions(), []);
   
     const initialFormData: Omit<Character, 'id'> = useMemo(() => ({
         name: '',
@@ -403,52 +402,39 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
     }, [currentUser?.id, processUserDoc]);
 
-    const signOutUser = useCallback(() => {
-        signOut(auth);
+    const createNewUser = useCallback(async (uid: string, nickname: string): Promise<User> => {
+        const newUser: User = {
+            id: uid,
+            name: nickname,
+            email: `${nickname.toLowerCase().replace(/\s/g, '')}@pumpkin.com`,
+            avatar: `https://placehold.co/100x100/A050A0/FFFFFF.png?text=${nickname.charAt(0)}`,
+            role: ADMIN_UIDS.includes(uid) ? 'admin' : 'user',
+            points: 1000,
+            status: 'активный',
+            playerStatus: 'Не играю',
+            socials: [],
+            characters: [],
+            pointHistory: [{
+                id: `h-${Date.now()}`,
+                date: new Date().toISOString(),
+                amount: 1000,
+                reason: 'Приветственный бонус!',
+            }],
+            achievementIds: [],
+            extraCharacterSlots: 0,
+            mail: [],
+            playerPings: [],
+            favoritePlayerIds: [],
+            lastLogin: new Date().toISOString(),
+        };
+        try {
+          await setDoc(doc(db, "users", uid), newUser);
+          return newUser;
+        } catch(error) {
+          console.error("Error creating user in Firestore:", error);
+          throw error;
+        }
     }, []);
-
-    const addFavoritePlayer = useCallback(async (targetUserId: string) => {
-        if (!currentUser) return;
-        
-        const userRef = doc(db, "users", currentUser.id);
-        await updateDoc(userRef, {
-            favoritePlayerIds: arrayUnion(targetUserId)
-        });
-
-        setCurrentUser(prevUser => {
-            if (!prevUser) return null;
-            const currentFavorites = prevUser.favoritePlayerIds || [];
-            if (!currentFavorites.includes(targetUserId)) {
-                return {
-                    ...prevUser,
-                    favoritePlayerIds: [...currentFavorites, targetUserId]
-                };
-            }
-            return prevUser;
-        });
-
-    }, [currentUser]);
-
-    const removeFavoritePlayer = useCallback(async (targetUserId: string) => {
-        if (!currentUser || !currentUser.favoritePlayerIds) return;
-        
-        const userRef = doc(db, "users", currentUser.id);
-        await updateDoc(userRef, {
-            favoritePlayerIds: arrayRemove(targetUserId)
-        });
-
-        setCurrentUser(prevUser => {
-            if (!prevUser || !prevUser.favoritePlayerIds) return prevUser;
-            return {
-                ...prevUser,
-                favoritePlayerIds: prevUser.favoritePlayerIds.filter(id => id !== targetUserId)
-            };
-        });
-    }, [currentUser]);
-    
-    const updateUserAvatar = useCallback(async (userId: string, avatarUrl: string) => {
-        await updateUser(userId, { avatar: avatarUrl });
-    }, [updateUser]);
 
     const grantAchievementToUser = useCallback(async (userId: string, achievementId: string) => {
         const user = await fetchUserById(userId);
@@ -508,53 +494,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
         return finalUser;
     }, [fetchUserById, currentUser?.id, grantAchievementToUser, fetchLeaderboardUsers]);
-    
-    const addPointsToAllUsers = useCallback(async (amount: number, reason: string) => {
-        const allUsers = await fetchUsersForAdmin();
-        for (const user of allUsers) {
-            await addPointsToUser(user.id, amount, reason);
-        }
-    }, [fetchUsersForAdmin, addPointsToUser]);
-    
-    const createNewUser = useCallback(async (uid: string, nickname: string): Promise<User> => {
-        const newUser: User = {
-            id: uid,
-            name: nickname,
-            email: `${nickname.toLowerCase().replace(/\s/g, '')}@pumpkin.com`,
-            avatar: `https://placehold.co/100x100/A050A0/FFFFFF.png?text=${nickname.charAt(0)}`,
-            role: ADMIN_UIDS.includes(uid) ? 'admin' : 'user',
-            points: 1000,
-            status: 'активный',
-            playerStatus: 'Не играю',
-            socials: [],
-            characters: [],
-            pointHistory: [{
-                id: `h-${Date.now()}`,
-                date: new Date().toISOString(),
-                amount: 1000,
-                reason: 'Приветственный бонус!',
-            }],
-            achievementIds: [],
-            extraCharacterSlots: 0,
-            mail: [],
-            playerPings: [],
-            favoritePlayerIds: [],
-            lastLogin: new Date().toISOString(),
-        };
-        try {
-          await setDoc(doc(db, "users", uid), newUser);
-          return newUser;
-        } catch(error) {
-          console.error("Error creating user in Firestore:", error);
-          throw error;
-        }
-    }, []);
-    
-    const updateGameDate = useCallback(async (newDateString: string) => {
-        const settingsRef = doc(db, 'game_settings', 'main');
-        await updateDoc(settingsRef, { gameDateString: newDateString });
-        await fetchGameSettings();
-    }, [fetchGameSettings]);
 
     const processWeeklyBonus = useCallback(async () => {
         const settingsRef = doc(db, 'game_settings', 'main');
@@ -591,7 +530,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         return { awardedCount };
     }, [fetchUsersForAdmin, fetchGameSettings, addPointsToUser]);
-
+    
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
           setLoading(true);
@@ -632,7 +571,67 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         return () => unsubscribe();
     }, [createNewUser, fetchUserById, fetchGameSettings, processWeeklyBonus, fetchAndCombineFamiliars]);
-  
+    
+    const signOutUser = useCallback(() => {
+        signOut(auth);
+    }, []);
+
+    const addFavoritePlayer = useCallback(async (targetUserId: string) => {
+        if (!currentUser) return;
+        
+        const userRef = doc(db, "users", currentUser.id);
+        await updateDoc(userRef, {
+            favoritePlayerIds: arrayUnion(targetUserId)
+        });
+
+        setCurrentUser(prevUser => {
+            if (!prevUser) return null;
+            const currentFavorites = prevUser.favoritePlayerIds || [];
+            if (!currentFavorites.includes(targetUserId)) {
+                return {
+                    ...prevUser,
+                    favoritePlayerIds: [...currentFavorites, targetUserId]
+                };
+            }
+            return prevUser;
+        });
+
+    }, [currentUser]);
+
+    const removeFavoritePlayer = useCallback(async (targetUserId: string) => {
+        if (!currentUser || !currentUser.favoritePlayerIds) return;
+        
+        const userRef = doc(db, "users", currentUser.id);
+        await updateDoc(userRef, {
+            favoritePlayerIds: arrayRemove(targetUserId)
+        });
+
+        setCurrentUser(prevUser => {
+            if (!prevUser || !prevUser.favoritePlayerIds) return prevUser;
+            return {
+                ...prevUser,
+                favoritePlayerIds: prevUser.favoritePlayerIds.filter(id => id !== targetUserId)
+            };
+        });
+    }, [currentUser]);
+    
+    const updateUserAvatar = useCallback(async (userId: string, avatarUrl: string) => {
+        await updateUser(userId, { avatar: avatarUrl });
+    }, [updateUser]);
+
+    const addPointsToAllUsers = useCallback(async (amount: number, reason: string) => {
+        const allUsers = await fetchUsersForAdmin();
+        for (const user of allUsers) {
+            await addPointsToUser(user.id, amount, reason);
+        }
+    }, [fetchUsersForAdmin, addPointsToUser]);
+    
+    const updateGameDate = useCallback(async (newDateString: string) => {
+        const settingsRef = doc(db, 'game_settings', 'main');
+        await updateDoc(settingsRef, { gameDateString: newDateString });
+        await fetchGameSettings();
+    }, [fetchGameSettings]);
+    
     const updateCharacterInUser = useCallback(async (userId: string, characterToUpdate: Character): Promise<User> => {
         await runTransaction(db, async (transaction) => {
             const userRef = doc(db, "users", userId);
@@ -3008,7 +3007,3 @@ export const useUser = () => {
     }
     return context;
 };
-
-    
-
-    
