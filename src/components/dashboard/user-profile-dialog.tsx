@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
@@ -286,7 +287,7 @@ export default function UserProfileDialog({ user }: { user: User }) {
   };
 
   const addSocialField = () => {
-    setSocials([...socials, { id: `new-${Date.now()}`, platform: 'Discord', link: '' }]);
+    setSocials([...socials, { id: `new-${Date.now()}`, platform: 'Вконтакте', link: '' }]);
   };
 
   const removeSocialField = (id: string) => {
@@ -623,5 +624,7 @@ export default function UserProfileDialog({ user }: { user: User }) {
     </>
   );
 }
+
+    
 
     
