@@ -22,6 +22,8 @@ import { SearchableSelect } from '../ui/searchable-select';
 import Image from 'next/image';
 import { CustomIcon } from '../ui/custom-icon';
 import { cn } from '@/lib/utils';
+import { Label } from '../ui/label';
+import { Input } from '../ui/input';
 
 
 const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
@@ -42,6 +44,9 @@ export default function RewardsTab() {
   const [selectedCharacterId, setSelectedCharacterId] = React.useState<string>('');
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [statusEmoji, setStatusEmoji] = React.useState('');
+  const [statusText, setStatusText] = React.useState('');
+
 
   const handleRedeemClick = (reward: Reward) => {
     if (!currentUser) return;
@@ -56,15 +61,22 @@ export default function RewardsTab() {
     }
     
     setSelectedReward(reward);
+    setStatusEmoji(currentUser.statusEmoji || '');
+    setStatusText(currentUser.statusText || '');
     setIsDialogOpen(true);
   };
 
   const handleConfirmRequest = async () => {
     if (!currentUser || !selectedReward) return;
 
-    if ((selectedReward.id !== 'r-custom-status') && !selectedCharacterId) {
+    if (selectedReward.id !== 'r-custom-status' && !selectedCharacterId) {
         toast({ variant: "destructive", title: "Ошибка", description: "Пожалуйста, выберите персонажа." });
         return;
+    }
+
+    if (selectedReward.id === 'r-custom-status' && !statusEmoji.trim()) {
+      toast({ variant: "destructive", title: "Ошибка", description: "Пожалуйста, введите эмодзи." });
+      return;
     }
     
     setIsLoading(true);
@@ -80,23 +92,28 @@ export default function RewardsTab() {
             rewardCost: selectedReward.cost,
             characterId: character?.id || '',
             characterName: character?.name || '',
+            statusEmoji: selectedReward.id === 'r-custom-status' ? statusEmoji : undefined,
+            statusText: selectedReward.id === 'r-custom-status' ? statusText : undefined,
         });
         toast({
             title: "Запрос отправлен!",
             description: `Ваш запрос на "${selectedReward.title}" отправлен на рассмотрение. Баллы списаны.`,
         });
     } catch (error) {
+        const message = error instanceof Error ? error.message : "Не удалось отправить запрос.";
         console.error("Failed to create reward request:", error);
         toast({
             variant: "destructive",
             title: "Ошибка",
-            description: "Не удалось отправить запрос. Попробуйте снова.",
+            description: message,
         });
     } finally {
         setIsLoading(false);
         setIsDialogOpen(false);
         setSelectedReward(null);
         setSelectedCharacterId('');
+        setStatusEmoji('');
+        setStatusText('');
     }
   }
   
@@ -155,11 +172,33 @@ export default function RewardsTab() {
                         <DialogDescription>
                             {selectedReward.id !== 'r-custom-status'
                                 ? 'Выберите персонажа для этой награды. После подтверждения запрос будет отправлен администраторам.'
-                                : 'После подтверждения запрос будет отправлен администраторам.'
+                                : 'Установите новый статус. После подтверждения запрос будет отправлен администраторам.'
                             }
                         </DialogDescription>
                     </DialogHeader>
-                    {selectedReward.id !== 'r-custom-status' && (
+                    {selectedReward.id === 'r-custom-status' ? (
+                        <div className="py-4 space-y-4">
+                            <div className="space-y-2">
+                                <Label>Эмодзи</Label>
+                                <Input
+                                    value={statusEmoji}
+                                    onChange={(e) => setStatusEmoji(e.target.value)}
+                                    placeholder="✨"
+                                    className="w-20 text-center text-lg"
+                                    maxLength={2}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Короткая фраза (до 50 симв.)</Label>
+                                <Input
+                                    value={statusText}
+                                    onChange={(e) => setStatusText(e.target.value)}
+                                    placeholder="Ваш статус..."
+                                    maxLength={50}
+                                />
+                            </div>
+                        </div>
+                    ) : (
                       <div className="py-4 space-y-4">
                           <p>Для какого персонажа вы хотите запросить награду?</p>
                           <SearchableSelect
@@ -170,7 +209,10 @@ export default function RewardsTab() {
                           />
                       </div>
                     )}
-                    <Button onClick={handleConfirmRequest} disabled={isLoading || (selectedReward.id !== 'r-custom-status' && !selectedCharacterId)}>
+                    <Button 
+                        onClick={handleConfirmRequest} 
+                        disabled={isLoading || (selectedReward.id !== 'r-custom-status' && !selectedCharacterId) || (selectedReward.id === 'r-custom-status' && !statusEmoji.trim())}
+                    >
                         {isLoading ? 'Отправка...' : `Отправить запрос за ${selectedReward.cost.toLocaleString()} баллов`}
                     </Button>
                 </DialogContent>

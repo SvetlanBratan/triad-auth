@@ -67,6 +67,13 @@ const RewardRequestsList = ({ requests, onUpdate }: { requests: RewardRequest[],
                                     {statusProps.text}
                                 </Badge>
                             </div>
+                            {request.rewardId === 'r-custom-status' && (request.statusEmoji || request.statusText) && (
+                                <div className="text-sm mt-2 pt-2 border-t">
+                                    <p className="font-semibold text-muted-foreground">Запрошенный статус:</p>
+                                    <p>Эмодзи: <span className="font-bold">{request.statusEmoji}</span></p>
+                                    <p>Текст: <span className="font-bold">{request.statusText}</span></p>
+                                </div>
+                            )}
                         </CardHeader>
                         <CardFooter className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 pt-0">
                              <p className="text-xs text-muted-foreground">

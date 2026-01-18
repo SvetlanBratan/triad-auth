@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useUser } from '@/hooks/use-user';
@@ -206,10 +207,6 @@ export default function ProfileTab() {
   const [editingState, setEditingState] = useState<EditingState | null>(null);
   const [isAvatarDialogOpen, setAvatarDialogOpen] = React.useState(false);
   const [isPlayerStatusDialogOpen, setPlayerStatusDialogOpen] = React.useState(false);
-  const [isCustomStatusDialogOpen, setCustomStatusDialogOpen] = React.useState(false);
-  const [statusEmoji, setStatusEmoji] = React.useState('');
-  const [statusText, setStatusText] = React.useState('');
-  const [isSavingStatus, setIsSavingStatus] = React.useState(false);
   const [isSocialsDialogOpen, setSocialsDialogOpen] = React.useState(false);
   const [socials, setSocials] = React.useState<SocialLink[]>([]);
   const [isSavingSocials, setIsSavingSocials] = React.useState(false);
@@ -229,8 +226,6 @@ export default function ProfileTab() {
    useEffect(() => {
     if(currentUser) {
         setSocials(currentUser.socials || []);
-        setStatusEmoji(currentUser.statusEmoji || '');
-        setStatusText(currentUser.statusText || '');
     }
   }, [currentUser]);
 
@@ -286,24 +281,6 @@ export default function ProfileTab() {
       toast({ title: "Игровой статус обновлен" });
       setPlayerStatusDialogOpen(false);
   };
-  
-  const handleCustomStatusSave = async () => {
-      if (!currentUser) return;
-      setIsSavingStatus(true);
-      try {
-          await updateUser(currentUser.id, { 
-              statusEmoji: statusEmoji.trim(),
-              statusText: statusText.trim(),
-          });
-          toast({ title: 'Статус обновлен' });
-          setCustomStatusDialogOpen(false);
-      } catch(e) {
-          const msg = e instanceof Error ? e.message : 'Не удалось сохранить данные.';
-          toast({ variant: 'destructive', title: 'Ошибка', description: msg });
-      } finally {
-          setIsSavingStatus(false);
-      }
-  };
 
   const handleSocialsSave = async () => {
     if (!currentUser) return;
@@ -333,7 +310,7 @@ export default function ProfileTab() {
   };
 
   const addSocialField = () => {
-    setSocials([...socials, { id: `new-${Date.now()}`, platform: 'Discord', link: '' }]);
+    setSocials([...socials, { id: `new-${Date.now()}`, platform: 'Вконтакте', link: '' }]);
   };
 
   const removeSocialField = (id: string) => {
@@ -436,11 +413,6 @@ export default function ProfileTab() {
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
-                    )}
-                    {currentUser.hasStatusUnlock && (
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setCustomStatusDialogOpen(true)}>
-                            <Pencil className="w-4 h-4" />
-                        </Button>
                     )}
                 </CardTitle>
                 <CardDescription className="truncate text-sm sm:text-base">{currentUser.email}</CardDescription>
@@ -731,44 +703,6 @@ export default function ProfileTab() {
                         placeholder="Выберите статус..."
                     />
                 </div>
-            </DialogContent>
-        </Dialog>
-        
-        <Dialog open={isCustomStatusDialogOpen} onOpenChange={setCustomStatusDialogOpen}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Изменить пользовательский статус</DialogTitle>
-                    <DialogDescription>
-                        Этот статус будет виден другим игрокам в вашем профиле.
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="py-4 space-y-4">
-                    <div className="space-y-2">
-                        <Label>Эмодзи</Label>
-                        <Input
-                            value={statusEmoji}
-                            onChange={(e) => setStatusEmoji(e.target.value)}
-                            placeholder="✨"
-                            className="w-20 text-center text-lg"
-                            maxLength={2}
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Короткая фраза (до 50 симв.)</Label>
-                        <Input
-                            value={statusText}
-                            onChange={(e) => setStatusText(e.target.value)}
-                            placeholder="Ваш статус..."
-                            maxLength={50}
-                        />
-                    </div>
-                </div>
-                <DialogFooter>
-                    <Button variant="ghost" onClick={() => setCustomStatusDialogOpen(false)}>Отмена</Button>
-                    <Button onClick={handleCustomStatusSave} disabled={isSavingStatus}>
-                        {isSavingStatus ? "Сохранение..." : "Сохранить"}
-                    </Button>
-                </DialogFooter>
             </DialogContent>
         </Dialog>
         
