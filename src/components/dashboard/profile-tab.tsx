@@ -14,6 +14,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -46,6 +47,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '../ui/scroll-area';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 
 const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
@@ -204,6 +206,10 @@ export default function ProfileTab() {
   const [editingState, setEditingState] = useState<EditingState | null>(null);
   const [isAvatarDialogOpen, setAvatarDialogOpen] = React.useState(false);
   const [isPlayerStatusDialogOpen, setPlayerStatusDialogOpen] = React.useState(false);
+  const [isCustomStatusDialogOpen, setCustomStatusDialogOpen] = React.useState(false);
+  const [statusEmoji, setStatusEmoji] = React.useState('');
+  const [statusText, setStatusText] = React.useState('');
+  const [isSavingStatus, setIsSavingStatus] = React.useState(false);
   const [isSocialsDialogOpen, setSocialsDialogOpen] = React.useState(false);
   const [socials, setSocials] = React.useState<SocialLink[]>([]);
   const [isSavingSocials, setIsSavingSocials] = React.useState(false);
@@ -223,6 +229,8 @@ export default function ProfileTab() {
    useEffect(() => {
     if(currentUser) {
         setSocials(currentUser.socials || []);
+        setStatusEmoji(currentUser.statusEmoji || '');
+        setStatusText(currentUser.statusText || '');
     }
   }, [currentUser]);
 
@@ -279,6 +287,24 @@ export default function ProfileTab() {
       setPlayerStatusDialogOpen(false);
   };
   
+  const handleCustomStatusSave = async () => {
+      if (!currentUser) return;
+      setIsSavingStatus(true);
+      try {
+          await updateUser(currentUser.id, { 
+              statusEmoji: statusEmoji.trim(),
+              statusText: statusText.trim(),
+          });
+          toast({ title: 'Статус обновлен' });
+          setCustomStatusDialogOpen(false);
+      } catch(e) {
+          const msg = e instanceof Error ? e.message : 'Не удалось сохранить данные.';
+          toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+      } finally {
+          setIsSavingStatus(false);
+      }
+  };
+
   const handleSocialsSave = async () => {
     if (!currentUser) return;
     setIsSavingSocials(true);
@@ -368,9 +394,9 @@ export default function ProfileTab() {
   ];
   
   const playPlatformOptions: { value: PlayPlatform, label: string }[] = [
-    { value: 'Discord', label: 'Discord' },
     { value: 'Вконтакте', label: 'Вконтакте' },
     { value: 'Telegram', label: 'Telegram' },
+    { value: 'Discord', label: 'Discord' },
     { value: 'Не указана', label: 'Не указана' },
   ];
 
@@ -397,7 +423,26 @@ export default function ProfileTab() {
                 </div>
             </div>
             <div className="flex-1 overflow-hidden min-w-0">
-                <CardTitle className="text-xl sm:text-2xl font-headline truncate">{currentUser.name}</CardTitle>
+                <CardTitle className="text-xl sm:text-2xl font-headline truncate flex items-center gap-2">
+                    {currentUser.name}
+                    {currentUser.statusEmoji && (
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <span className="cursor-default">{currentUser.statusEmoji}</span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>{currentUser.statusText}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    )}
+                    {currentUser.hasStatusUnlock && (
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setCustomStatusDialogOpen(true)}>
+                            <Pencil className="w-4 h-4" />
+                        </Button>
+                    )}
+                </CardTitle>
                 <CardDescription className="truncate text-sm sm:text-base">{currentUser.email}</CardDescription>
             </div>
         </div>
@@ -686,6 +731,44 @@ export default function ProfileTab() {
                         placeholder="Выберите статус..."
                     />
                 </div>
+            </DialogContent>
+        </Dialog>
+        
+        <Dialog open={isCustomStatusDialogOpen} onOpenChange={setCustomStatusDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Изменить пользовательский статус</DialogTitle>
+                    <DialogDescription>
+                        Этот статус будет виден другим игрокам в вашем профиле.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4 space-y-4">
+                    <div className="space-y-2">
+                        <Label>Эмодзи</Label>
+                        <Input
+                            value={statusEmoji}
+                            onChange={(e) => setStatusEmoji(e.target.value)}
+                            placeholder="✨"
+                            className="w-20 text-center text-lg"
+                            maxLength={2}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Короткая фраза (до 50 симв.)</Label>
+                        <Input
+                            value={statusText}
+                            onChange={(e) => setStatusText(e.target.value)}
+                            placeholder="Ваш статус..."
+                            maxLength={50}
+                        />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="ghost" onClick={() => setCustomStatusDialogOpen(false)}>Отмена</Button>
+                    <Button onClick={handleCustomStatusSave} disabled={isSavingStatus}>
+                        {isSavingStatus ? "Сохранение..." : "Сохранить"}
+                    </Button>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
         
