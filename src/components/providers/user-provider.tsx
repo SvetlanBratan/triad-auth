@@ -302,6 +302,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         userData.favoritePlayerIds = Array.isArray(userData.favoritePlayerIds) ? userData.favoritePlayerIds : [];
         userData.lastLogin = userData.lastLogin || new Date().toISOString();
         userData.hasStatusUnlock = userData.hasStatusUnlock || false;
+        userData.statusEmoji = userData.statusEmoji || '';
+        userData.statusText = userData.statusText || '';
         return userData;
     }, [initialFormData]);
   
@@ -442,11 +444,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           throw error;
         }
     }, []);
-    
-    const signOutUser = useCallback(() => {
-        signOut(auth);
-    }, []);
-    
+
     const fetchLeaderboardUsers = useCallback(async (): Promise<User[]> => {
         const usersCollection = collection(db, "users");
         const userSnapshot = await getDocs(query(usersCollection, orderBy("points", "desc")));
@@ -591,6 +589,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         return () => unsubscribe();
     }, [createNewUser, fetchUserById, fetchGameSettings, processWeeklyBonus, fetchAndCombineFamiliars]);
+    
+    const signOutUser = useCallback(() => {
+        signOut(auth);
+    }, []);
 
     const addPointsToAllUsers = useCallback(async (amount: number, reason: string) => {
         const allUsers = await fetchUsersForAdmin();
@@ -1700,7 +1702,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const ranksAreDifferent = initiatorFamiliar.rank !== targetFamiliar.rank;
         const isMythicEventTrade =
           (initiatorFamiliar.rank === 'мифический' && targetFamiliar.rank === 'ивентовый') ||
-          (initiatorFamiliar.rank === 'ивентовый' && targetFamiliar.rank === 'мифический');
+          (initiatorFamiliar.rank === 'ивентовый' && initiatorFamiliar.rank === 'мифический');
 
         if (ranksAreDifferent && !isMythicEventTrade) {
             throw new Error("Обмен возможен только между фамильярами одного ранга, или между мифическим и ивентовым.");
@@ -2802,7 +2804,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         const inventory = { ...updatedCharacter.inventory };
         rewards.forEach(reward => {
-            const category = reward.inventoryTag || 'ингредиенты';
+            const category = 'ингредиенты' as const;
             if (!inventory[category]) (inventory as any)[category] = [];
             const categoryItems = inventory[category] as InventoryItem[];
             const existingItemIndex = categoryItems.findIndex(i => i.name === reward.name);
@@ -3012,6 +3014,3 @@ export const useUser = () => {
     }
     return context;
 };
-
-
-    

@@ -25,6 +25,7 @@ import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { useQuery } from '@tanstack/react-query';
 import { ScrollArea } from '../ui/scroll-area';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
     // If the name starts with 'ach-', assume it's a custom achievement icon
@@ -189,10 +190,10 @@ const playerStatusOptions: { value: PlayerStatus, label: string }[] = [
     { value: 'Должен пост', label: 'Должен пост' },
     { value: 'Жду пост', label: 'Жду пост' },
     { value: 'Ищу соигрока', label: 'Ищу соигрока' },
-    { value: 'Регулярные посты', label: 'Регулярные посты' },
-    { value: 'Средний темп', label: 'Средний темп' },
-    { value: 'Медленный темп', label: 'Медленный темп' },
     { value: 'Не играю', label: 'Не играю' },
+    { value: 'Регулярные посты', label: 'Регулярные посты' },
+    { value: 'Медленный темп', label: 'Медленный темп' },
+    { value: 'Средний темп', label: 'Средний темп' },
 ];
 
 const playPlatformOptions: { value: PlayPlatform, label: string }[] = [
@@ -349,7 +350,21 @@ export default function UserProfileDialog({ user }: { user: User }) {
                     <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1 overflow-hidden min-w-0">
-                    <CardTitle className="text-xl sm:text-2xl font-headline truncate">{user.name}</CardTitle>
+                    <CardTitle className="text-xl sm:text-2xl font-headline truncate flex items-center gap-2">
+                        {user.name}
+                        {user.statusEmoji && (
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <span className="cursor-default">{user.statusEmoji}</span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>{user.statusText}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        )}
+                    </CardTitle>
                     <CardDescription className="truncate">{user.email}</CardDescription>
                     </div>
                     {!isOwner && currentUser && (
@@ -624,7 +639,3 @@ export default function UserProfileDialog({ user }: { user: User }) {
     </>
   );
 }
-
-    
-
-    
