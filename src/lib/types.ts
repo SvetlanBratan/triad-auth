@@ -373,6 +373,8 @@ export interface User {
   playerPings?: PlayerPing[];
   favoritePlayerIds?: string[];
   lastLogin?: string; // ISO string
+  statusEmoji?: string;
+  statusText?: string;
   // Deprecated fields, for migration
   playPlatform?: PlayPlatform;
   socialLink?: string;

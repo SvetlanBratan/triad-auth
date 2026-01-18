@@ -17,6 +17,7 @@ import { CustomIcon } from '../ui/custom-icon';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from '../ui/button';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '../ui/tooltip';
 
 
 const getStatusClass = (status: UserStatus) => {
@@ -98,7 +99,21 @@ const LeaderboardTable = () => {
                                 <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
                                 </Avatar>
                                 <div>
-                                    <p className="font-medium">{user.name}</p>
+                                    <div className="flex items-center gap-1.5">
+                                        <p className="font-medium">{user.name}</p>
+                                        {user.statusEmoji && (
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger>
+                                                        <span>{user.statusEmoji}</span>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>{user.statusText}</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        )}
+                                    </div>
                                     <p className="text-xs text-muted-foreground sm:hidden capitalize">{user.status}</p>
                                 </div>
                             </Link>
