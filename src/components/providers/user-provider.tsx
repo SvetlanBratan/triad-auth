@@ -404,6 +404,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
     }, [currentUser?.id, processUserDoc]);
 
+    const updateUserAvatar = useCallback(async (userId: string, avatarUrl: string) => {
+      await updateUser(userId, { avatar: avatarUrl });
+    }, [updateUser]);
+
     const createNewUser = useCallback(async (uid: string, nickname: string): Promise<User> => {
         const newUser: User = {
             id: uid,
@@ -438,7 +442,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           throw error;
         }
     }, []);
-  
+    
     const signOutUser = useCallback(() => {
         signOut(auth);
     }, []);
@@ -456,6 +460,17 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return users;
     }, []);
 
+    const grantAchievementToUser = useCallback(async (userId: string, achievementId: string) => {
+        const user = await fetchUserById(userId);
+        if (!user) return;
+
+        const achievementIds = user.achievementIds || [];
+        if (!achievementIds.includes(achievementId)) {
+            const updatedAchievementIds = [...achievementIds, achievementId];
+            await updateUser(userId, { achievementIds: updatedAchievementIds });
+        }
+    }, [fetchUserById, updateUser]);
+    
     const addPointsToUser = useCallback(async (userId: string, amount: number, reason: string, characterId?: string): Promise<User | null> => {
         const user = await fetchUserById(userId);
         if (!user) return null;
@@ -475,23 +490,21 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const userRef = doc(db, "users", userId);
         await updateDoc(userRef, updates);
         
+        const allUsers = await fetchLeaderboardUsers(); 
+        const top3Users = allUsers.slice(0, 3);
+        
+        for (const topUser of top3Users) {
+          if (!topUser.achievementIds?.includes(FORBES_LIST_ACHIEVEMENT_ID)) {
+            await grantAchievementToUser(topUser.id, FORBES_LIST_ACHIEVEMENT_ID);
+          }
+        }
+        
         const finalUser = { ...user, points: newPoints, pointHistory: newHistory };
         if(currentUser?.id === userId) {
           setCurrentUser(finalUser);
         }
         return finalUser;
-    }, [fetchUserById, currentUser?.id]);
-    
-    const grantAchievementToUser = useCallback(async (userId: string, achievementId: string) => {
-        const user = await fetchUserById(userId);
-        if (!user) return;
-
-        const achievementIds = user.achievementIds || [];
-        if (!achievementIds.includes(achievementId)) {
-            const updatedAchievementIds = [...achievementIds, achievementId];
-            await updateUser(userId, { achievementIds: updatedAchievementIds });
-        }
-    }, [fetchUserById, updateUser]);
+    }, [fetchUserById, currentUser?.id, grantAchievementToUser, fetchLeaderboardUsers]);
 
     const processWeeklyBonus = useCallback(async () => {
         const settingsRef = doc(db, 'game_settings', 'main');
@@ -578,49 +591,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         return () => unsubscribe();
     }, [createNewUser, fetchUserById, fetchGameSettings, processWeeklyBonus, fetchAndCombineFamiliars]);
-
-    const addFavoritePlayer = useCallback(async (targetUserId: string) => {
-        if (!currentUser) return;
-        
-        const userRef = doc(db, "users", currentUser.id);
-        await updateDoc(userRef, {
-            favoritePlayerIds: arrayUnion(targetUserId)
-        });
-
-        setCurrentUser(prevUser => {
-            if (!prevUser) return null;
-            const currentFavorites = prevUser.favoritePlayerIds || [];
-            if (!currentFavorites.includes(targetUserId)) {
-                return {
-                    ...prevUser,
-                    favoritePlayerIds: [...currentFavorites, targetUserId]
-                };
-            }
-            return prevUser;
-        });
-
-    }, [currentUser]);
-
-    const removeFavoritePlayer = useCallback(async (targetUserId: string) => {
-        if (!currentUser || !currentUser.favoritePlayerIds) return;
-        
-        const userRef = doc(db, "users", currentUser.id);
-        await updateDoc(userRef, {
-            favoritePlayerIds: arrayRemove(targetUserId)
-        });
-
-        setCurrentUser(prevUser => {
-            if (!prevUser || !prevUser.favoritePlayerIds) return prevUser;
-            return {
-                ...prevUser,
-                favoritePlayerIds: prevUser.favoritePlayerIds.filter(id => id !== targetUserId)
-            };
-        });
-    }, [currentUser]);
-    
-    const updateUserAvatar = useCallback(async (userId: string, avatarUrl: string) => {
-        await updateUser(userId, { avatar: avatarUrl });
-    }, [updateUser]);
 
     const addPointsToAllUsers = useCallback(async (amount: number, reason: string) => {
         const allUsers = await fetchUsersForAdmin();
@@ -862,7 +832,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             setCurrentUser(updatedUser);
         }
         return {...request, status: newStatus};
-    }, [fetchUserById, currentUser?.id, grantAchievementToUser]);
+    }, [fetchUserById, currentUser?.id]);
     
     const fetchAllRewardRequests = useCallback(async (): Promise<RewardRequest[]> => {
         const requests: RewardRequest[] = [];
@@ -1328,7 +1298,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 const updatedCharacters = [...user.characters];
                 updatedCharacters[characterIndex] = updatedCharacter;
                 
-                await updateUser(user.id, { characters: updatedCharacters });
+                await updateUser(userId, { characters: updatedCharacters });
             }
         }
 
@@ -2503,7 +2473,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const updatedCurrentUser = await fetchUserById(currentUser.id);
             if (updatedCurrentUser) setCurrentUser(updatedCurrentUser);
         }
-    }, [fetchUsersForAdmin, currentUser, fetchUserById, grantAchievementToUser]);
+    }, [fetchUsersForAdmin, currentUser, fetchUserById]);
 
     const clearAllPopularityHistories = useCallback(async () => {
         const allUsers = await fetchUsersForAdmin();
@@ -2737,6 +2707,24 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         
         await batch.commit();
 
+    }, [currentUser]);
+
+    const addFavoritePlayer = useCallback(async (targetUserId: string) => {
+        if (!currentUser) return;
+        const userRef = doc(db, 'users', currentUser.id);
+        await updateDoc(userRef, {
+            favoritePlayerIds: arrayUnion(targetUserId)
+        });
+        setCurrentUser(prev => prev ? { ...prev, favoritePlayerIds: [...(prev.favoritePlayerIds || []), targetUserId] } : null);
+    }, [currentUser]);
+
+    const removeFavoritePlayer = useCallback(async (targetUserId: string) => {
+        if (!currentUser) return;
+        const userRef = doc(db, 'users', currentUser.id);
+        await updateDoc(userRef, {
+            favoritePlayerIds: arrayRemove(targetUserId)
+        });
+        setCurrentUser(prev => prev ? { ...prev, favoritePlayerIds: (prev.favoritePlayerIds || []).filter(id => id !== targetUserId) } : null);
     }, [currentUser]);
 
     const updateGameSettings = useCallback(async (updates: Partial<GameSettings>) => {
@@ -3024,3 +3012,6 @@ export const useUser = () => {
     }
     return context;
 };
+
+
+    
