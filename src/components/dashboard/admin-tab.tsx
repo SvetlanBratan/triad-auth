@@ -1041,7 +1041,7 @@ export default function AdminTab() {
     let updatedLocations;
     
     if (editingHuntLocation.id) { // Editing existing
-        updatedLocations = currentLocations.map(loc => loc.id === editingHuntLocation.id ? loc as HuntingLocation : loc);
+        updatedLocations = currentLocations.map(loc => loc.id === editingHuntLocation!.id ? editingHuntLocation as HuntingLocation : loc);
     } else { // Adding new
         const newLocation = { ...editingHuntLocation, id: `hunt-${Date.now()}` } as HuntingLocation;
         updatedLocations = [...currentLocations, newLocation];
@@ -1283,7 +1283,7 @@ export default function AdminTab() {
         label: `${event.label} (+${event.value})`,
     })), []);
     
-    const alchemyResultOptions = useMemo(() => ALL_ITEMS_FOR_ALCHEMY.filter(item => item.inventoryTag === 'зелья' || item.inventoryTag === 'артефакты').map(p => ({ value: p.id, label: p.name })), []);
+    const alchemyResultOptions = useMemo(() => ALL_ITEMS_FOR_ALCHEMY.filter(item => 'inventoryTag' in item && (item.inventoryTag === 'зелья' || item.inventoryTag === 'артефакты')).map(p => ({ value: p.id, label: p.name })), []);
     
     const alchemyIngredientOptions = useMemo(() => {
         const ingredients = new Map<string, { label: string, value: string }>();
@@ -2142,17 +2142,19 @@ export default function AdminTab() {
                                                 </Button>
                                             </div>
                                             <div>
-                                                <Label>Шансы выпадения (%) и Кол-во</Label>
+                                                <Label>Шанс (%) и Количество (шт.) для каждого ранга</Label>
                                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-1">
                                                     {rankOrder.map(rank => (
                                                         <div key={rank} className="space-y-1">
                                                             <Label htmlFor={`chance-${rewardIndex}-${rank}`} className="text-xs capitalize">{rankNames[rank]}</Label>
                                                             <div className='flex items-center gap-1'>
                                                                 <Input id={`chance-${rewardIndex}-${rank}`} type="number" min="0" max="100" 
+                                                                    placeholder="Шанс"
                                                                     value={reward.rewardsByRank?.[rank]?.chance || 0}
                                                                     onChange={(e) => handleRewardRankDataChange(rewardIndex, rank, 'chance', e.target.value)}
                                                                 />
                                                                  <Input type="number" min="0" max="100"
+                                                                    placeholder="Кол-во"
                                                                     value={reward.rewardsByRank?.[rank]?.quantity || 1}
                                                                     onChange={(e) => handleRewardRankDataChange(rewardIndex, rank, 'quantity', e.target.value)}
                                                                     className="w-16"
@@ -2777,3 +2779,4 @@ export default function AdminTab() {
     
 
     
+

@@ -435,17 +435,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           throw error;
         }
     }, []);
-
-    const grantAchievementToUser = useCallback(async (userId: string, achievementId: string) => {
-        const user = await fetchUserById(userId);
-        if (!user) return;
-
-        const achievementIds = user.achievementIds || [];
-        if (!achievementIds.includes(achievementId)) {
-            const updatedAchievementIds = [...achievementIds, achievementId];
-            await updateUser(userId, { achievementIds: updatedAchievementIds });
-        }
-    }, [fetchUserById, updateUser]);
+  
+    const signOutUser = useCallback(() => {
+        signOut(auth);
+    }, []);
 
     const fetchLeaderboardUsers = useCallback(async (): Promise<User[]> => {
         const usersCollection = collection(db, "users");
@@ -459,6 +452,17 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         });
         return users;
     }, []);
+
+    const grantAchievementToUser = useCallback(async (userId: string, achievementId: string) => {
+        const user = await fetchUserById(userId);
+        if (!user) return;
+
+        const achievementIds = user.achievementIds || [];
+        if (!achievementIds.includes(achievementId)) {
+            const updatedAchievementIds = [...achievementIds, achievementId];
+            await updateUser(userId, { achievementIds: updatedAchievementIds });
+        }
+    }, [fetchUserById, updateUser]);
 
     const addPointsToUser = useCallback(async (userId: string, amount: number, reason: string, characterId?: string): Promise<User | null> => {
         const user = await fetchUserById(userId);
@@ -571,10 +575,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         return () => unsubscribe();
     }, [createNewUser, fetchUserById, fetchGameSettings, processWeeklyBonus, fetchAndCombineFamiliars]);
-    
-    const signOutUser = useCallback(() => {
-        signOut(auth);
-    }, []);
 
     const addFavoritePlayer = useCallback(async (targetUserId: string) => {
         if (!currentUser) return;
@@ -2577,12 +2577,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if(updatedUser) setCurrentUser(updatedUser);
     }, [currentUser, fetchUserById]);
 
-    const fetchAlchemyRecipes = useCallback(async (): Promise<AlchemyRecipe[]> => {
-        const recipesCollection = collection(db, "alchemy_recipes");
-        const snapshot = await getDocs(recipesCollection);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AlchemyRecipe));
-    }, []);
-
     const brewPotion = useCallback(async (userId: string, characterId: string, recipeId: string): Promise<void> => {
         const user = await fetchUserById(userId);
         if (!user) throw new Error("User not found");
@@ -2641,8 +2635,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             categoryInv.push({
                 id: `inv-item-${Date.now()}`,
                 name: resultItem.name,
-                description: (resultItem as any).note || '',
-                image: resultItem.image || '',
+                description: 'inventoryItemDescription' in resultItem ? resultItem.inventoryItemDescription : resultItem.note,
+                image: 'image' in resultItem ? resultItem.image : '',
                 quantity: recipe.outputQty,
             });
         }
@@ -2659,7 +2653,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         await updateUser(userId, updatedUser);
 
     }, [fetchUserById, initialFormData, updateUser]);
-    
+
+    const fetchAlchemyRecipes = useCallback(async (): Promise<AlchemyRecipe[]> => {
+        const recipesCollection = collection(db, "alchemy_recipes");
+        const snapshot = await getDocs(recipesCollection);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AlchemyRecipe));
+    }, []);
+
     const addAlchemyRecipe = useCallback(async (recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
         const recipesCollection = collection(db, "alchemy_recipes");
         await addDoc(recipesCollection, { ...recipe, createdAt: new Date().toISOString() });
@@ -2782,13 +2782,22 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const location = gameSettings.huntingLocations?.find(l => l.id === hunt.locationId);
         if (!familiar || !location) throw new Error("Данные об охоте некорректны.");
 
+        const allItems = [...(await fetchAllShops())].flatMap(shop => shop.items || []);
+        const allItemsMap = new Map(allItems.map(item => [item.id, item]));
+
         const rewards: InventoryItem[] = [];
         (location.rewards || []).forEach(rewardRule => {
             const rewardData = rewardRule.rewardsByRank[familiar.rank];
             if (rewardData && Math.random() * 100 < rewardData.chance) {
-                const itemData = ALL_ITEMS_FOR_ALCHEMY.find(i => i.id === rewardRule.itemId);
+                const itemData = allItemsMap.get(rewardRule.itemId);
                 if (itemData) {
-                    rewards.push({ ...(itemData as InventoryItem), quantity: rewardData.quantity, id: `inv-item-${Date.now()}` });
+                    rewards.push({
+                        id: `inv-item-${Date.now()}-${Math.random()}`,
+                        name: itemData.inventoryItemName || itemData.name,
+                        description: itemData.inventoryItemDescription || itemData.description,
+                        image: itemData.inventoryItemImage || itemData.image,
+                        quantity: rewardData.quantity,
+                    });
                 }
             }
         });
@@ -2798,7 +2807,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         const inventory = { ...updatedCharacter.inventory };
         rewards.forEach(reward => {
-            const category = reward.inventoryTag as InventoryCategory;
+            const category = reward.inventoryTag || 'ингредиенты';
             if (!inventory[category]) inventory[category] = [];
             const existingItemIndex = (inventory[category]! as InventoryItem[]).findIndex(i => i.name === reward.name);
             if (existingItemIndex > -1) {
@@ -2812,7 +2821,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         await updateCharacterInUser(currentUser.id, updatedCharacter);
         return rewards;
 
-    }, [currentUser, familiarsById, gameSettings, updateCharacterInUser]);
+    }, [currentUser, familiarsById, gameSettings, updateCharacterInUser, fetchAllShops]);
 
     const recallHunt = useCallback(async (characterId: string, huntId: string) => {
         if (!currentUser) throw new Error("Пользователь не авторизован.");
@@ -3007,3 +3016,4 @@ export const useUser = () => {
     }
     return context;
 };
+
