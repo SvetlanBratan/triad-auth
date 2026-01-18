@@ -62,23 +62,14 @@ export default function RewardsTab() {
   const handleConfirmRequest = async () => {
     if (!currentUser || !selectedReward) return;
 
-    // For player-wide rewards, character ID is not strictly needed but we can pass a dummy or the first one.
-    // Let's check if the reward is character-specific implicitly by its logic or explicitly.
-    // For now, we'll require a character for all requests to keep it simple.
-    if (!selectedCharacterId) {
+    if ((selectedReward.id !== 'r-custom-status') && !selectedCharacterId) {
         toast({ variant: "destructive", title: "Ошибка", description: "Пожалуйста, выберите персонажа." });
         return;
     }
     
     setIsLoading(true);
-
-    const character = currentUser.characters.find(c => c.id === selectedCharacterId);
     
-    if (!character) {
-        toast({ variant: "destructive", title: "Ошибка", description: "Выбранный персонаж не найден." });
-        setIsLoading(false);
-        return;
-    }
+    const character = currentUser.characters.find(c => c.id === selectedCharacterId);
 
     try {
         await createRewardRequest({
@@ -87,8 +78,8 @@ export default function RewardsTab() {
             rewardId: selectedReward.id,
             rewardTitle: selectedReward.title,
             rewardCost: selectedReward.cost,
-            characterId: character.id,
-            characterName: character.name,
+            characterId: character?.id || '',
+            characterName: character?.name || '',
         });
         toast({
             title: "Запрос отправлен!",
@@ -148,7 +139,7 @@ export default function RewardsTab() {
               <div className="font-bold text-lg text-primary flex items-center gap-1.5">
                 <CustomIcon src="/icons/points.svg" className="w-5 h-5 icon-primary" /> {reward.cost.toLocaleString()}
               </div>
-              <Button size="sm" onClick={() => handleRedeemClick(reward)} disabled={(currentUser?.points ?? 0) < reward.cost || isLoading || currentUser?.characters.length === 0}>
+              <Button size="sm" onClick={() => handleRedeemClick(reward)} disabled={(currentUser?.points ?? 0) < reward.cost || isLoading}>
                 {isLoading ? 'Обработка...' : 'Запросить'}
               </Button>
             </CardFooter>
@@ -162,19 +153,24 @@ export default function RewardsTab() {
                     <DialogHeader>
                         <DialogTitle>Запросить "{selectedReward.title}"</DialogTitle>
                         <DialogDescription>
-                            Выберите персонажа для этой награды. После подтверждения запрос будет отправлен администраторам.
+                            {selectedReward.id !== 'r-custom-status'
+                                ? 'Выберите персонажа для этой награды. После подтверждения запрос будет отправлен администраторам.'
+                                : 'После подтверждения запрос будет отправлен администраторам.'
+                            }
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="py-4 space-y-4">
-                        <p>Для какого персонажа вы хотите запросить награду?</p>
-                        <SearchableSelect
-                            options={characterOptions}
-                            value={selectedCharacterId}
-                            onValueChange={setSelectedCharacterId}
-                            placeholder="Выберите персонажа..."
-                        />
-                    </div>
-                    <Button onClick={handleConfirmRequest} disabled={!selectedCharacterId || isLoading}>
+                    {selectedReward.id !== 'r-custom-status' && (
+                      <div className="py-4 space-y-4">
+                          <p>Для какого персонажа вы хотите запросить награду?</p>
+                          <SearchableSelect
+                              options={characterOptions}
+                              value={selectedCharacterId}
+                              onValueChange={setSelectedCharacterId}
+                              placeholder="Выберите персонажа..."
+                          />
+                      </div>
+                    )}
+                    <Button onClick={handleConfirmRequest} disabled={isLoading || (selectedReward.id !== 'r-custom-status' && !selectedCharacterId)}>
                         {isLoading ? 'Отправка...' : `Отправить запрос за ${selectedReward.cost.toLocaleString()} баллов`}
                     </Button>
                 </DialogContent>

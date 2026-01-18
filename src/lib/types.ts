@@ -375,6 +375,7 @@ export interface User {
   lastLogin?: string; // ISO string
   statusEmoji?: string;
   statusText?: string;
+  hasStatusUnlock?: boolean;
   // Deprecated fields, for migration
   playPlatform?: PlayPlatform;
   socialLink?: string;
@@ -515,9 +516,3 @@ export interface HuntingLocation {
 }
 
 // --- END ALCHEMY & HUNTING TYPES ---
-
-
-
-
-
-    

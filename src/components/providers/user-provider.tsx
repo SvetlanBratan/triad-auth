@@ -149,6 +149,7 @@ const GODS_FAVORITE_ACHIEVEMENT_ID = 'ach-gods-favorite';
 const EXTRA_CHARACTER_REWARD_ID = 'r-extra-char';
 const AI_ART_REWARD_ID = 'r-ai-art';
 const ERA_FACE_ACHIEVEMENT_ID = 'ach-era-face';
+const CUSTOM_STATUS_REWARD_ID = 'r-custom-status';
 
 
 const RELATIONSHIP_POINTS_CONFIG: Record<RelationshipActionType, number> = {
@@ -300,6 +301,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         userData.socials = userData.socials || [];
         userData.favoritePlayerIds = Array.isArray(userData.favoritePlayerIds) ? userData.favoritePlayerIds : [];
         userData.lastLogin = userData.lastLogin || new Date().toISOString();
+        userData.hasStatusUnlock = userData.hasStatusUnlock || false;
         return userData;
     }, [initialFormData]);
   
@@ -426,6 +428,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             playerPings: [],
             favoritePlayerIds: [],
             lastLogin: new Date().toISOString(),
+            hasStatusUnlock: false,
         };
         try {
           await setDoc(doc(db, "users", uid), newUser);
@@ -439,7 +442,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const signOutUser = useCallback(() => {
         signOut(auth);
     }, []);
-
+    
     const fetchLeaderboardUsers = useCallback(async (): Promise<User[]> => {
         const usersCollection = collection(db, "users");
         const userSnapshot = await getDocs(query(usersCollection, orderBy("points", "desc")));
@@ -452,17 +455,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         });
         return users;
     }, []);
-
-    const grantAchievementToUser = useCallback(async (userId: string, achievementId: string) => {
-        const user = await fetchUserById(userId);
-        if (!user) return;
-
-        const achievementIds = user.achievementIds || [];
-        if (!achievementIds.includes(achievementId)) {
-            const updatedAchievementIds = [...achievementIds, achievementId];
-            await updateUser(userId, { achievementIds: updatedAchievementIds });
-        }
-    }, [fetchUserById, updateUser]);
 
     const addPointsToUser = useCallback(async (userId: string, amount: number, reason: string, characterId?: string): Promise<User | null> => {
         const user = await fetchUserById(userId);
@@ -482,22 +474,24 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         
         const userRef = doc(db, "users", userId);
         await updateDoc(userRef, updates);
-
-        const allUsers = await fetchLeaderboardUsers(); 
-        const top3Users = allUsers.slice(0, 3);
-        
-        for (const topUser of top3Users) {
-          if (!topUser.achievementIds?.includes(FORBES_LIST_ACHIEVEMENT_ID)) {
-            await grantAchievementToUser(topUser.id, FORBES_LIST_ACHIEVEMENT_ID);
-          }
-        }
         
         const finalUser = { ...user, points: newPoints, pointHistory: newHistory };
         if(currentUser?.id === userId) {
           setCurrentUser(finalUser);
         }
         return finalUser;
-    }, [fetchUserById, currentUser?.id, grantAchievementToUser, fetchLeaderboardUsers]);
+    }, [fetchUserById, currentUser?.id]);
+    
+    const grantAchievementToUser = useCallback(async (userId: string, achievementId: string) => {
+        const user = await fetchUserById(userId);
+        if (!user) return;
+
+        const achievementIds = user.achievementIds || [];
+        if (!achievementIds.includes(achievementId)) {
+            const updatedAchievementIds = [...achievementIds, achievementId];
+            await updateUser(userId, { achievementIds: updatedAchievementIds });
+        }
+    }, [fetchUserById, updateUser]);
 
     const processWeeklyBonus = useCallback(async () => {
         const settingsRef = doc(db, 'game_settings', 'main');
@@ -531,9 +525,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         await updateDoc(settingsRef, { lastWeeklyBonusAwardedAt: now.toISOString() });
         await fetchGameSettings();
+        
+        const allUsersWithLeaderboard = await fetchLeaderboardUsers(); 
+        const top3Users = allUsersWithLeaderboard.slice(0, 3);
+        
+        for (const topUser of top3Users) {
+          if (!topUser.achievementIds?.includes(FORBES_LIST_ACHIEVEMENT_ID)) {
+            await grantAchievementToUser(topUser.id, FORBES_LIST_ACHIEVEMENT_ID);
+          }
+        }
 
         return { awardedCount };
-    }, [fetchUsersForAdmin, fetchGameSettings, addPointsToUser]);
+    }, [fetchUsersForAdmin, fetchGameSettings, addPointsToUser, fetchLeaderboardUsers, grantAchievementToUser]);
     
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -811,6 +814,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
                 if(request.rewardId === EXTRA_CHARACTER_REWARD_ID) {
                     updatesForUser.extraCharacterSlots = (user.extraCharacterSlots || 0) + 1;
+                }
+                
+                if (request.rewardId === CUSTOM_STATUS_REWARD_ID) {
+                    updatesForUser.hasStatusUnlock = true;
                 }
 
                 if (characterToUpdateIndex !== -1) {
@@ -2808,12 +2815,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const inventory = { ...updatedCharacter.inventory };
         rewards.forEach(reward => {
             const category = reward.inventoryTag || 'ингредиенты';
-            if (!inventory[category]) inventory[category] = [];
-            const existingItemIndex = (inventory[category]! as InventoryItem[]).findIndex(i => i.name === reward.name);
+            if (!inventory[category]) (inventory as any)[category] = [];
+            const categoryItems = inventory[category] as InventoryItem[];
+            const existingItemIndex = categoryItems.findIndex(i => i.name === reward.name);
             if (existingItemIndex > -1) {
-                (inventory[category]! as InventoryItem[])[existingItemIndex].quantity += reward.quantity;
+                categoryItems[existingItemIndex].quantity += reward.quantity;
             } else {
-                (inventory[category]! as InventoryItem[]).push(reward);
+                categoryItems.push(reward);
             }
         });
         updatedCharacter.inventory = inventory;
@@ -3016,4 +3024,3 @@ export const useUser = () => {
     }
     return context;
 };
-
