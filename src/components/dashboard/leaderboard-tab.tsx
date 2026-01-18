@@ -35,7 +35,7 @@ const getStatusClass = (status: UserStatus) => {
 const LeaderboardTable = () => {
     const { fetchLeaderboardUsers } = useUser();
     const { toast } = useToast();
-    const [statusFilter, setStatusFilter] = React.useState<UserStatus | 'all'>('all');
+    const [statusFilter, setStatusFilter] = React.useState<UserStatus | 'all'>('активный');
 
     const { data: users = [], isLoading: isLeaderboardLoading, isError: isLeaderboardError } = useQuery<User[], Error>({
         queryKey: ['leaderboard'],
