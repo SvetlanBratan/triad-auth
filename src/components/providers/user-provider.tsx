@@ -458,17 +458,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return users;
     }, []);
 
-    const grantAchievementToUser = useCallback(async (userId: string, achievementId: string) => {
-        const user = await fetchUserById(userId);
-        if (!user) return;
-
-        const achievementIds = user.achievementIds || [];
-        if (!achievementIds.includes(achievementId)) {
-            const updatedAchievementIds = [...achievementIds, achievementId];
-            await updateUser(userId, { achievementIds: updatedAchievementIds });
-        }
-    }, [fetchUserById, updateUser]);
-    
     const addPointsToUser = useCallback(async (userId: string, amount: number, reason: string, characterId?: string): Promise<User | null> => {
         const user = await fetchUserById(userId);
         if (!user) return null;
@@ -488,22 +477,34 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const userRef = doc(db, "users", userId);
         await updateDoc(userRef, updates);
         
-        const allUsers = await fetchLeaderboardUsers(); 
-        const top3Users = allUsers.slice(0, 3);
-        
-        for (const topUser of top3Users) {
-          if (!topUser.achievementIds?.includes(FORBES_LIST_ACHIEVEMENT_ID)) {
-            await grantAchievementToUser(topUser.id, FORBES_LIST_ACHIEVEMENT_ID);
-          }
-        }
-        
         const finalUser = { ...user, points: newPoints, pointHistory: newHistory };
         if(currentUser?.id === userId) {
           setCurrentUser(finalUser);
         }
         return finalUser;
-    }, [fetchUserById, currentUser?.id, grantAchievementToUser, fetchLeaderboardUsers]);
+    }, [fetchUserById, currentUser?.id]);
+    
+    const grantAchievementToUser = useCallback(async (userId: string, achievementId: string) => {
+        const user = await fetchUserById(userId);
+        if (!user) return;
 
+        const achievementIds = user.achievementIds || [];
+        if (!achievementIds.includes(achievementId)) {
+            const updatedAchievementIds = [...achievementIds, achievementId];
+            await updateUser(userId, { achievementIds: updatedAchievementIds });
+            
+            // Check for Forbes list achievement after granting another
+            const allUsers = await fetchLeaderboardUsers(); 
+            const top3Users = allUsers.slice(0, 3);
+            
+            for (const topUser of top3Users) {
+              if (topUser.id === userId && !topUser.achievementIds?.includes(FORBES_LIST_ACHIEVEMENT_ID)) {
+                 await grantAchievementToUser(topUser.id, FORBES_LIST_ACHIEVEMENT_ID);
+              }
+            }
+        }
+    }, [fetchUserById, updateUser, fetchLeaderboardUsers]);
+    
     const processWeeklyBonus = useCallback(async () => {
         const settingsRef = doc(db, 'game_settings', 'main');
         const settingsDoc = await getDoc(settingsRef);
@@ -789,7 +790,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 }
                 
                 if (request.rewardId === CUSTOM_STATUS_REWARD_ID) {
-                    updatesForUser.hasStatusUnlock = true;
+                    updatesForUser.statusEmoji = request.statusEmoji;
+                    updatesForUser.statusText = request.statusText;
                 }
 
                 if (characterToUpdateIndex !== -1) {
@@ -2990,7 +2992,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         changeUserPassword,
         changeUserEmail,
         mergeUserData,
-    }), [currentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, allFamiliars, familiarsById, startHunt, claimHuntReward, recallHunt, changeUserPassword, changeUserEmail, mergeUserData]);
+    }), [currentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, grantAchievementToUser, addPointsToAllUsers, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, allFamiliars, familiarsById, startHunt, claimHuntReward, recallHunt, changeUserPassword, changeUserEmail, mergeUserData]);
     
     const authValue = useMemo(() => ({
         user: firebaseUser,
@@ -3014,3 +3016,6 @@ export const useUser = () => {
     }
     return context;
 };
+
+
+    
