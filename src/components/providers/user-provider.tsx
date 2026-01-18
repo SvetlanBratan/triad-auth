@@ -109,7 +109,6 @@ export interface UserContextType {
   addAlchemyRecipe: (recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => Promise<void>;
   updateAlchemyRecipe: (recipeId: string, recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => Promise<void>;
   deleteAlchemyRecipe: (recipeId: string) => Promise<void>;
-  fetchAlchemyRecipes: () => Promise<AlchemyRecipe[]>;
   fetchDbFamiliars: () => Promise<FamiliarCard[]>;
   addFamiliarToDb: (familiar: Omit<FamiliarCard, 'id'>) => Promise<void>;
   deleteFamiliarFromDb: (familiarId: string) => Promise<void>;
@@ -301,7 +300,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         userData.socials = userData.socials || [];
         userData.favoritePlayerIds = Array.isArray(userData.favoritePlayerIds) ? userData.favoritePlayerIds : [];
         userData.lastLogin = userData.lastLogin || new Date().toISOString();
-        userData.hasStatusUnlock = userData.hasStatusUnlock || false;
         userData.statusEmoji = userData.statusEmoji || '';
         userData.statusText = userData.statusText || '';
         return userData;
@@ -315,6 +313,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
         return null;
     }, [processUserDoc]);
+
+    const updateUser = useCallback(async (userId: string, updates: Partial<User>) => {
+        const userRef = doc(db, "users", userId);
+        await updateDoc(userRef, sanitizeObjectForFirestore(updates));
+        
+        if (currentUser?.id === userId) {
+            setCurrentUser(prev => prev ? processUserDoc({ ...prev, ...updates }) : null);
+        }
+    }, [currentUser?.id, processUserDoc]);
 
     const fetchUsersForAdmin = useCallback(async (): Promise<User[]> => {
         try {
@@ -397,66 +404,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         setFamiliarsById(byId);
     }, [fetchDbFamiliars]);
     
-    const updateUser = useCallback(async (userId: string, updates: Partial<User>) => {
-        const userRef = doc(db, "users", userId);
-        await updateDoc(userRef, sanitizeObjectForFirestore(updates));
-        
-        if (currentUser?.id === userId) {
-            setCurrentUser(prev => prev ? processUserDoc({ ...prev, ...updates }) : null);
-        }
-    }, [currentUser?.id, processUserDoc]);
-
     const updateUserAvatar = useCallback(async (userId: string, avatarUrl: string) => {
       await updateUser(userId, { avatar: avatarUrl });
     }, [updateUser]);
-
-    const createNewUser = useCallback(async (uid: string, nickname: string): Promise<User> => {
-        const newUser: User = {
-            id: uid,
-            name: nickname,
-            email: `${nickname.toLowerCase().replace(/\s/g, '')}@pumpkin.com`,
-            avatar: `https://placehold.co/100x100/A050A0/FFFFFF.png?text=${nickname.charAt(0)}`,
-            role: ADMIN_UIDS.includes(uid) ? 'admin' : 'user',
-            points: 1000,
-            status: 'активный',
-            playerStatus: 'Не играю',
-            socials: [],
-            characters: [],
-            pointHistory: [{
-                id: `h-${Date.now()}`,
-                date: new Date().toISOString(),
-                amount: 1000,
-                reason: 'Приветственный бонус!',
-            }],
-            achievementIds: [],
-            extraCharacterSlots: 0,
-            mail: [],
-            playerPings: [],
-            favoritePlayerIds: [],
-            lastLogin: new Date().toISOString(),
-            hasStatusUnlock: false,
-        };
-        try {
-          await setDoc(doc(db, "users", uid), newUser);
-          return newUser;
-        } catch(error) {
-          console.error("Error creating user in Firestore:", error);
-          throw error;
-        }
-    }, []);
-
-    const fetchLeaderboardUsers = useCallback(async (): Promise<User[]> => {
-        const usersCollection = collection(db, "users");
-        const userSnapshot = await getDocs(query(usersCollection, orderBy("points", "desc")));
-        const users = userSnapshot.docs.map(doc => {
-            const userData = doc.data() as User;
-            return {
-                ...userData,
-                pointHistory: [], 
-            };
-        });
-        return users;
-    }, []);
 
     const addPointsToUser = useCallback(async (userId: string, amount: number, reason: string, characterId?: string): Promise<User | null> => {
         const user = await fetchUserById(userId);
@@ -484,6 +434,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return finalUser;
     }, [fetchUserById, currentUser?.id]);
     
+    const fetchLeaderboardUsers = useCallback(async (): Promise<User[]> => {
+        const usersCollection = collection(db, "users");
+        const userSnapshot = await getDocs(query(usersCollection, orderBy("points", "desc")));
+        const users = await Promise.all(userSnapshot.docs.map(doc => processUserDoc(doc.data() as User)));
+        return users.filter((user): user is User => user !== null);
+    }, [processUserDoc]);
+
     const grantAchievementToUser = useCallback(async (userId: string, achievementId: string) => {
         const user = await fetchUserById(userId);
         if (!user) return;
@@ -504,7 +461,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             }
         }
     }, [fetchUserById, updateUser, fetchLeaderboardUsers]);
-    
+
     const processWeeklyBonus = useCallback(async () => {
         const settingsRef = doc(db, 'game_settings', 'main');
         const settingsDoc = await getDoc(settingsRef);
@@ -550,6 +507,42 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return { awardedCount };
     }, [fetchUsersForAdmin, fetchGameSettings, addPointsToUser, fetchLeaderboardUsers, grantAchievementToUser]);
     
+    const createNewUser = useCallback(async (uid: string, nickname: string): Promise<User> => {
+        const newUser: User = {
+            id: uid,
+            name: nickname,
+            email: `${nickname.toLowerCase().replace(/\s/g, '')}@pumpkin.com`,
+            avatar: `https://placehold.co/100x100/A050A0/FFFFFF.png?text=${nickname.charAt(0)}`,
+            role: ADMIN_UIDS.includes(uid) ? 'admin' : 'user',
+            points: 1000,
+            status: 'активный',
+            playerStatus: 'Не играю',
+            socials: [],
+            characters: [],
+            pointHistory: [{
+                id: `h-${Date.now()}`,
+                date: new Date().toISOString(),
+                amount: 1000,
+                reason: 'Приветственный бонус!',
+            }],
+            achievementIds: [],
+            extraCharacterSlots: 0,
+            mail: [],
+            playerPings: [],
+            favoritePlayerIds: [],
+            lastLogin: new Date().toISOString(),
+            statusEmoji: '',
+            statusText: '',
+        };
+        try {
+          await setDoc(doc(db, "users", uid), newUser);
+          return newUser;
+        } catch(error) {
+          console.error("Error creating user in Firestore:", error);
+          throw error;
+        }
+    }, []);
+
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
           setLoading(true);
@@ -761,61 +754,61 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             let updatesForUser: Partial<User> = {};
 
             if (newStatus === 'одобрено') {
-                let characterToUpdateIndex = -1;
-                if (request.characterId) {
-                    characterToUpdateIndex = user.characters.findIndex(c => c.id === request.characterId);
-                }
-                
-                const achievementMap: Record<string, string> = {
-                  'r-race-1': 'ach-unique-character', 'r-race-2': 'ach-unique-character', 'r-race-3': 'ach-unique-character', 'r-race-4': 'ach-unique-character',
-                  'r-extra-char': 'ach-multi-hand', 'r-wild-pet': 'ach-tamer', 'r-crime-connections': 'ach-mafiosi', 'r-leviathan': 'ach-submariner',
-                  'r-ship': 'ach-seaman', 'r-airship': 'ach-sky-master', 'r-archmage': 'ach-big-mage', 'r-court-position': 'ach-important-person',
-                  'r-baron': 'ach-baron', 'r-land-titled': 'ach-sir-lady', 'r-extra-element': 'ach-warlock', 'r-extra-doctrine': 'ach-wizard',
-                  'r-guild': 'ach-guildmaster', 'r-hybrid': 'ach-hybrid', 'r-swap-element': 'ach-exchange-master', 'r-forbidden-magic': 'ach-dark-lord',
-                  'r-body-parts': 'ach-chimera-mancer', 'r-pumpkin-wife': PUMPKIN_SPOUSE_ACHIEVEMENT_ID, 'r-pumpkin-husband': PUMPKIN_HUSBAND_ACHIEVEMENT_ID,
-                  'r-blessing': GODS_FAVORITE_ACHIEVEMENT_ID,
-                  [AI_ART_REWARD_ID]: ERA_FACE_ACHIEVEMENT_ID,
-                };
-
-                const achievementIdToGrant = achievementMap[request.rewardId];
-                if (achievementIdToGrant) {
-                    const currentAchievements = user.achievementIds || [];
-                    if (!currentAchievements.includes(achievementIdToGrant)) {
-                        updatesForUser.achievementIds = [...currentAchievements, achievementIdToGrant];
-                    }
-                }
-
-                if(request.rewardId === EXTRA_CHARACTER_REWARD_ID) {
-                    updatesForUser.extraCharacterSlots = (user.extraCharacterSlots || 0) + 1;
-                }
-                
                 if (request.rewardId === CUSTOM_STATUS_REWARD_ID) {
                     updatesForUser.statusEmoji = request.statusEmoji;
                     updatesForUser.statusText = request.statusText;
-                }
-
-                if (characterToUpdateIndex !== -1) {
-                    const updatedCharacters = [...user.characters];
-                    let characterToUpdate = { ...updatedCharacters[characterToUpdateIndex] };
-                    let familiarCards = characterToUpdate.familiarCards || [];
-
-                    if (request.rewardId === PUMPKIN_WIFE_REWARD_ID) {
-                         familiarCards = [...familiarCards, { id: PUMPKIN_WIFE_CARD_ID }];
-                    } else if (request.rewardId === PUMPKIN_HUSBAND_REWARD_ID) {
-                       familiarCards = [...familiarCards, { id: PUMPKIN_HUSBAND_CARD_ID }];
-                    } else if (request.rewardId === 'r-blessing') {
-                        const expiryDate = new Date();
-                        expiryDate.setDate(expiryDate.getDate() + 5);
-                        characterToUpdate.blessingExpires = expiryDate.toISOString();
-                    } else if (request.rewardId === 'r-leviathan') {
-                        characterToUpdate.hasLeviathanFriendship = true;
-                    } else if (request.rewardId === 'r-crime-connections') {
-                        characterToUpdate.hasCrimeConnections = true;
+                } else {
+                    let characterToUpdateIndex = -1;
+                    if (request.characterId) {
+                        characterToUpdateIndex = user.characters.findIndex(c => c.id === request.characterId);
                     }
                     
-                    characterToUpdate.familiarCards = familiarCards;
-                    updatedCharacters[characterToUpdateIndex] = characterToUpdate;
-                    updatesForUser.characters = updatedCharacters;
+                    const achievementMap: Record<string, string> = {
+                        'r-race-1': 'ach-unique-character', 'r-race-2': 'ach-unique-character', 'r-race-3': 'ach-unique-character', 'r-race-4': 'ach-unique-character',
+                        'r-extra-char': 'ach-multi-hand', 'r-wild-pet': 'ach-tamer', 'r-crime-connections': 'ach-mafiosi', 'r-leviathan': 'ach-submariner',
+                        'r-ship': 'ach-seaman', 'r-airship': 'ach-sky-master', 'r-archmage': 'ach-big-mage', 'r-court-position': 'ach-important-person',
+                        'r-baron': 'ach-baron', 'r-land-titled': 'ach-sir-lady', 'r-extra-element': 'ach-warlock', 'r-extra-doctrine': 'ach-wizard',
+                        'r-guild': 'ach-guildmaster', 'r-hybrid': 'ach-hybrid', 'r-swap-element': 'ach-exchange-master', 'r-forbidden-magic': 'ach-dark-lord',
+                        'r-body-parts': 'ach-chimera-mancer', 'r-pumpkin-wife': PUMPKIN_SPOUSE_ACHIEVEMENT_ID, 'r-pumpkin-husband': PUMPKIN_HUSBAND_ACHIEVEMENT_ID,
+                        'r-blessing': GODS_FAVORITE_ACHIEVEMENT_ID,
+                        [AI_ART_REWARD_ID]: ERA_FACE_ACHIEVEMENT_ID,
+                    };
+
+                    const achievementIdToGrant = achievementMap[request.rewardId];
+                    if (achievementIdToGrant) {
+                        const currentAchievements = user.achievementIds || [];
+                        if (!currentAchievements.includes(achievementIdToGrant)) {
+                            updatesForUser.achievementIds = [...currentAchievements, achievementIdToGrant];
+                        }
+                    }
+
+                    if(request.rewardId === EXTRA_CHARACTER_REWARD_ID) {
+                        updatesForUser.extraCharacterSlots = (user.extraCharacterSlots || 0) + 1;
+                    }
+                    
+                    if (characterToUpdateIndex !== -1) {
+                        const updatedCharacters = [...user.characters];
+                        let characterToUpdate = { ...updatedCharacters[characterToUpdateIndex] };
+                        let familiarCards = characterToUpdate.familiarCards || [];
+
+                        if (request.rewardId === PUMPKIN_WIFE_REWARD_ID) {
+                             familiarCards = [...familiarCards, { id: PUMPKIN_WIFE_CARD_ID }];
+                        } else if (request.rewardId === PUMPKIN_HUSBAND_REWARD_ID) {
+                           familiarCards = [...familiarCards, { id: PUMPKIN_HUSBAND_CARD_ID }];
+                        } else if (request.rewardId === 'r-blessing') {
+                            const expiryDate = new Date();
+                            expiryDate.setDate(expiryDate.getDate() + 5);
+                            characterToUpdate.blessingExpires = expiryDate.toISOString();
+                        } else if (request.rewardId === 'r-leviathan') {
+                            characterToUpdate.hasLeviathanFriendship = true;
+                        } else if (request.rewardId === 'r-crime-connections') {
+                            characterToUpdate.hasCrimeConnections = true;
+                        }
+                        
+                        characterToUpdate.familiarCards = familiarCards;
+                        updatedCharacters[characterToUpdateIndex] = characterToUpdate;
+                        updatesForUser.characters = updatedCharacters;
+                    }
                 }
             } else if (newStatus === 'отклонено') {
                   const reason = `Возврат за отклоненный запрос: ${request.rewardTitle}`;
@@ -2477,7 +2470,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const updatedCurrentUser = await fetchUserById(currentUser.id);
             if (updatedCurrentUser) setCurrentUser(updatedCurrentUser);
         }
-    }, [fetchUsersForAdmin, currentUser, fetchUserById]);
+    }, [fetchUsersForAdmin, currentUser, fetchUserById, grantAchievementToUser]);
 
     const clearAllPopularityHistories = useCallback(async () => {
         const allUsers = await fetchUsersForAdmin();
@@ -2574,10 +2567,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const inventory = character.inventory || initialFormData.inventory;
         const ingredientsInv = (inventory.ингредиенты || []) as InventoryItem[];
 
-        const allItemsMap = [...ALL_ITEMS_FOR_ALCHEMY, ...ALL_SHOPS.flatMap(s => s.items || [])].reduce((acc, item) => {
-            if (item) acc.set(item.id, item);
-            return acc;
-        }, new Map<string, any>());
+        const allItems = [...ALL_ITEMS_FOR_ALCHEMY, ...ALL_SHOPS.flatMap(s => s.items || [])];
+        const allItemsMap = new Map(allItems.map(item => item && [item.id, item]).filter(Boolean) as [string, ShopItem | AlchemyIngredient | Potion][]);
 
         for (const component of recipe.components) {
             const requiredIngredient = allItemsMap.get(component.ingredientId);
@@ -2592,7 +2583,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
 
         recipe.components.forEach(component => {
-            const requiredIngredient = allItemsMap.get(component.ingredientId);
+            const requiredIngredient = allItemsMap.get(component.ingredientId)!;
             const playerIngIndex = ingredientsInv.findIndex(i => i.name === requiredIngredient.name);
             
             if (ingredientsInv[playerIngIndex].quantity > component.qty) {
@@ -2603,9 +2594,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         });
         inventory.ингредиенты = ingredientsInv;
 
-        const resultItem = ALL_ITEMS_FOR_ALCHEMY.find(i => i.id === recipe.resultPotionId);
+        const resultItem = allItemsMap.get(recipe.resultPotionId);
         if (!resultItem) throw new Error("Result potion data not found.");
-        const resultCategory = (resultItem as any).inventoryTag as InventoryCategory || 'прочее';
+        const resultCategory = resultItem.inventoryTag as InventoryCategory || 'прочее';
 
         const categoryInv = (inventory[resultCategory] || []) as InventoryItem[];
         const existingItemIndex = categoryInv.findIndex(p => p.name === resultItem.name);
@@ -2616,8 +2607,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             categoryInv.push({
                 id: `inv-item-${Date.now()}`,
                 name: resultItem.name,
-                description: 'inventoryItemDescription' in resultItem ? resultItem.inventoryItemDescription : resultItem.note,
-                image: 'image' in resultItem ? resultItem.image : '',
+                description: resultItem.description,
+                image: resultItem.image,
                 quantity: recipe.outputQty,
             });
         }
@@ -2992,7 +2983,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         changeUserPassword,
         changeUserEmail,
         mergeUserData,
-    }), [currentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, grantAchievementToUser, addPointsToAllUsers, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, allFamiliars, familiarsById, startHunt, claimHuntReward, recallHunt, changeUserPassword, changeUserEmail, mergeUserData]);
+    }), [currentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, allFamiliars, familiarsById, startHunt, claimHuntReward, recallHunt, changeUserPassword, changeUserEmail, mergeUserData]);
     
     const authValue = useMemo(() => ({
         user: firebaseUser,
@@ -3019,3 +3010,4 @@ export const useUser = () => {
 
 
     
+
