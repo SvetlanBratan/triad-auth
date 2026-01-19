@@ -13,12 +13,14 @@ import Image from 'next/image';
 import { SearchableSelect } from '../ui/searchable-select';
 import { formatHuntTimeLeft, cn } from '@/lib/utils';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { ScrollArea } from '../ui/scroll-area';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { DEFAULT_GAME_SETTINGS } from '@/lib/data';
 
 
@@ -43,9 +45,9 @@ const LocationCard = ({ location, onSelect }: { location: HuntingLocation, onSel
             <div className="flex flex-col flex-1 p-4 justify-between">
                 <div>
                     <CardTitle className="text-lg">{location.name}</CardTitle>
-                     <ScrollArea className="h-20 mt-2">
-                        <CardDescription className="text-xs pr-4">{location.description}</CardDescription>
-                    </ScrollArea>
+                     <div className="h-20 mt-2">
+                        <p className="text-xs text-muted-foreground pr-4">{location.description}</p>
+                    </div>
                 </div>
                 <div className="text-xs text-muted-foreground flex justify-between mt-2">
                     <span>{location.durationMinutes} мин.</span>
@@ -171,44 +173,62 @@ export default function HuntingTab() {
                 <CardHeader>
                     <CardTitle>Текущие экспедиции</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="flex flex-wrap gap-4">
                     {ongoingHunts.map(hunt => {
                         const location = gameSettings.huntingLocations?.find(l => l.id === hunt.locationId);
                         const familiar = familiarsById[hunt.familiarId];
                         const isFinished = new Date(hunt.endsAt) <= new Date();
                         
                         return (
-                            <div key={hunt.huntId} className="p-4 border rounded-lg flex flex-col sm:flex-row items-center gap-4">
-                                <div className="relative w-16 h-24 shrink-0">
-                                    <Image src={familiar.imageUrl} alt={familiar.name} fill style={{objectFit:"contain"}} />
-                                </div>
-                                <div className="flex-1 w-full text-center sm:text-left">
-                                    <p className="font-semibold">{familiar.name}</p>
-                                    <p className="text-sm text-muted-foreground">{location?.name}</p>
-                                    <div className="text-lg font-mono font-bold text-primary mt-1">
-                                        {isFinished ? 'Завершено!' : <Timer endsAt={hunt.endsAt} />}
+                            <Dialog key={hunt.huntId}>
+                                <DialogTrigger asChild>
+                                    <div className="relative w-28 h-40 cursor-pointer group transition-all duration-300 hover:scale-105">
+                                        <Image src={familiar.imageUrl} alt={familiar.name} layout="fill" className="rounded-lg object-cover" />
+                                        {isFinished ? (
+                                            <div className="absolute inset-0 bg-green-800/60 flex items-center justify-center rounded-lg backdrop-blur-sm">
+                                                <Bone className="w-8 h-8 text-white animate-pulse" />
+                                            </div>
+                                        ) : (
+                                            <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs text-center p-1 rounded-b-lg">
+                                                <Timer endsAt={hunt.endsAt} />
+                                            </div>
+                                        )}
+                                        <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/60 to-transparent p-1 rounded-t-lg">
+                                            <p className="text-white text-xs font-bold truncate">{familiar.name}</p>
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="flex gap-2 w-full sm:w-auto">
-                                    {!isFinished && (
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={() => handleRecall(hunt)}
-                                            disabled={isProcessingId === hunt.huntId}
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>{familiar.name}</DialogTitle>
+                                        <DialogDescription>Охота в локации: {location?.name}</DialogDescription>
+                                    </DialogHeader>
+                                    <div className="py-4 text-center">
+                                        <div className="text-2xl font-mono font-bold text-primary">
+                                            {isFinished ? 'Завершено!' : <Timer endsAt={hunt.endsAt} />}
+                                        </div>
+                                         <p className="text-sm text-muted-foreground">{isFinished ? 'Можно забрать добычу.' : 'Осталось времени.'}</p>
+                                    </div>
+                                    <DialogFooter className="grid grid-cols-2 gap-2">
+                                        {!isFinished && (
+                                            <Button
+                                                variant="outline"
+                                                onClick={() => handleRecall(hunt)}
+                                                disabled={isProcessingId === hunt.huntId}
+                                            >
+                                               <X className="mr-2 h-4 w-4" />Отозвать
+                                            </Button>
+                                        )}
+                                        <Button 
+                                            onClick={() => handleClaimReward(hunt)} 
+                                            disabled={!isFinished || isProcessingId === hunt.huntId}
+                                            className={cn(!isFinished && "col-span-2")}
                                         >
-                                           <X className="mr-2 h-4 w-4" />Отозвать
+                                            {isProcessingId === hunt.huntId ? 'Сбор...' : <><Bone className="mr-2 h-4 w-4"/>Забрать добычу</>}
                                         </Button>
-                                    )}
-                                    <Button 
-                                        onClick={() => handleClaimReward(hunt)} 
-                                        disabled={!isFinished || isProcessingId === hunt.huntId}
-                                        className="flex-1"
-                                    >
-                                        {isProcessingId === hunt.huntId ? 'Сбор...' : <><Bone className="mr-2 h-4 w-4"/>Забрать добычу</>}
-                                    </Button>
-                                </div>
-                            </div>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
                         )
                     })}
                 </CardContent>
