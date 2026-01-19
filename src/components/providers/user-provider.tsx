@@ -3,7 +3,7 @@
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
-import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage, Cooldowns, PopularityLog, CharacterPopularityUpdate, OwnedFamiliarCard, AlchemyRecipe, AlchemyRecipeComponent, PlayerStatus, PlayerPing, SocialLink, OngoingHunt, HuntReward, PlayPlatform } from '@/lib/types';
+import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage, Cooldowns, PopularityLog, CharacterPopularityUpdate, OwnedFamiliarCard, AlchemyRecipe, AlchemyRecipeComponent, PlayerStatus, PlayerPing, SocialLink, OngoingHunt, HuntReward, PlayPlatform, Potion, AlchemyIngredient } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut, reauthenticateWithCredential, EmailAuthProvider, updatePassword, updateEmail } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter, increment, FieldValue, arrayUnion, arrayRemove, deleteField } from "firebase/firestore";
@@ -323,6 +323,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             setCurrentUser(prev => prev ? processUserDoc({ ...prev, ...updates }) : null);
         }
     }, [currentUser?.id, processUserDoc]);
+    
+    const updateUserAvatar = useCallback(async (userId: string, avatarUrl: string) => {
+      await updateUser(userId, { avatar: avatarUrl });
+    }, [updateUser]);
 
     const fetchUsersForAdmin = useCallback(async (): Promise<User[]> => {
         try {
@@ -404,10 +408,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }, {} as Record<string, FamiliarCard>);
         setFamiliarsById(byId);
     }, [fetchDbFamiliars]);
-    
-    const updateUserAvatar = useCallback(async (userId: string, avatarUrl: string) => {
-      await updateUser(userId, { avatar: avatarUrl });
-    }, [updateUser]);
 
     const addPointsToUser = useCallback(async (userId: string, amount: number, reason: string, characterId?: string): Promise<User | null> => {
         const user = await fetchUserById(userId);
@@ -2552,81 +2552,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if(updatedUser) setCurrentUser(updatedUser);
     }, [currentUser, fetchUserById]);
 
-    const brewPotion = useCallback(async (userId: string, characterId: string, recipeId: string): Promise<void> => {
-        const user = await fetchUserById(userId);
-        if (!user) throw new Error("User not found");
-
-        const characterIndex = user.characters.findIndex(c => c.id === characterId);
-        if (characterIndex === -1) throw new Error("Character not found");
-        const character = { ...user.characters[characterIndex] };
-
-        const recipesCollection = collection(db, "alchemy_recipes");
-        const recipeDoc = await getDoc(doc(recipesCollection, recipeId));
-        if (!recipeDoc.exists()) throw new Error("Рецепт не найден.");
-        const recipe = recipeDoc.data() as AlchemyRecipe;
-
-        const inventory = character.inventory || initialFormData.inventory;
-        const ingredientsInv = (inventory.ингредиенты || []) as InventoryItem[];
-
-        const allItems = [...ALL_ITEMS_FOR_ALCHEMY, ...ALL_SHOPS.flatMap(s => s.items || [])];
-        const allItemsMap = new Map(allItems.map(item => item && [item.id, item]).filter(Boolean) as [string, ShopItem | AlchemyIngredient | Potion][]);
-
-        for (const component of recipe.components) {
-            const requiredIngredient = allItemsMap.get(component.ingredientId);
-            if (!requiredIngredient) {
-                throw new Error(`Required ingredient with ID ${component.ingredientId} not found in any shop or data.`);
-            }
-            const playerIngIndex = ingredientsInv.findIndex(i => i.name === requiredIngredient.name);
-
-            if (playerIngIndex === -1 || ingredientsInv[playerIngIndex].quantity < component.qty) {
-                throw new Error(`Недостаточно ингредиента: ${requiredIngredient.name}`);
-            }
-        }
-
-        recipe.components.forEach(component => {
-            const requiredIngredient = allItemsMap.get(component.ingredientId)!;
-            const playerIngIndex = ingredientsInv.findIndex(i => i.name === requiredIngredient.name);
-            
-            if (ingredientsInv[playerIngIndex].quantity > component.qty) {
-                ingredientsInv[playerIngIndex].quantity -= component.qty;
-            } else {
-                ingredientsInv.splice(playerIngIndex, 1);
-            }
-        });
-        inventory.ингредиенты = ingredientsInv;
-
-        const resultItem = allItemsMap.get(recipe.resultPotionId);
-        if (!resultItem) throw new Error("Result potion data not found.");
-        const resultCategory = resultItem.inventoryTag as InventoryCategory || 'прочее';
-
-        const categoryInv = (inventory[resultCategory] || []) as InventoryItem[];
-        const existingItemIndex = categoryInv.findIndex(p => p.name === resultItem.name);
-
-        if (existingItemIndex > -1) {
-            categoryInv[existingItemIndex].quantity += recipe.outputQty;
-        } else {
-            categoryInv.push({
-                id: `inv-item-${Date.now()}`,
-                name: resultItem.name,
-                description: resultItem.description,
-                image: resultItem.image,
-                quantity: recipe.outputQty,
-            });
-        }
-        (inventory as any)[resultCategory] = categoryInv;
-        character.inventory = inventory;
-        
-        const updatedUser = { ...user }; 
-        const hasFirstBrewAchievement = (user.achievementIds || []).includes(FIRST_BREW_ACHIEVEMENT_ID);
-        if (!hasFirstBrewAchievement) {
-            updatedUser.achievementIds = [...(user.achievementIds || []), FIRST_BREW_ACHIEVEMENT_ID];
-        }
-
-        updatedUser.characters[characterIndex] = character;
-        await updateUser(userId, updatedUser);
-
-    }, [fetchUserById, initialFormData, updateUser]);
-
     const fetchAlchemyRecipes = useCallback(async (): Promise<AlchemyRecipe[]> => {
         const recipesCollection = collection(db, "alchemy_recipes");
         const snapshot = await getDocs(recipesCollection);
@@ -2887,12 +2812,90 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         });
     }, []);
 
+    const brewPotion = useCallback(async (userId: string, characterId: string, recipeId: string): Promise<void> => {
+        await runTransaction(db, async (transaction) => {
+            const userRef = doc(db, "users", userId);
+            const userDoc = await transaction.get(userRef);
+            if (!userDoc.exists()) throw new Error("Пользователь не найден.");
+            const userData = userDoc.data() as User;
+            const charIndex = userData.characters.findIndex(c => c.id === characterId);
+            if (charIndex === -1) throw new Error("Персонаж не найден.");
+
+            const recipeRef = doc(db, "alchemy_recipes", recipeId);
+            const recipeDoc = await transaction.get(recipeRef);
+            if (!recipeDoc.exists()) throw new Error("Рецепт не найден.");
+            const recipe = recipeDoc.data() as AlchemyRecipe;
+
+            const character = userData.characters[charIndex];
+            const inventory = character.inventory || initialFormData.inventory;
+            const ingredientsInv = (inventory.ингредиенты || []) as InventoryItem[];
+
+            const allItems = [...ALL_ITEMS_FOR_ALCHEMY, ...ALL_SHOPS.flatMap(s => s.items || [])];
+            const allItemsMap = new Map(allItems.map(item => item && [item.id, item]).filter(Boolean) as [string, ShopItem | AlchemyIngredient | Potion][]);
+
+            for (const component of recipe.components) {
+                const requiredIngredient = allItemsMap.get(component.ingredientId);
+                if (!requiredIngredient) {
+                    throw new Error(`Required ingredient with ID ${component.ingredientId} not found.`);
+                }
+                const playerIngIndex = ingredientsInv.findIndex(i => i.name === requiredIngredient.name);
+
+                if (playerIngIndex === -1 || ingredientsInv[playerIngIndex].quantity < component.qty) {
+                    throw new Error(`Недостаточно ингредиента: ${requiredIngredient.name}`);
+                }
+
+                if (ingredientsInv[playerIngIndex].quantity > component.qty) {
+                    ingredientsInv[playerIngIndex].quantity -= component.qty;
+                } else {
+                    ingredientsInv.splice(playerIngIndex, 1);
+                }
+            }
+
+            inventory.ингредиенты = ingredientsInv;
+
+            const resultItem = allItemsMap.get(recipe.resultPotionId);
+            if (!resultItem) {
+                throw new Error("Resulting item not found in data.");
+            }
+
+            const resultCategory = resultItem.inventoryTag || 'зелья';
+            const potionsInv = (inventory[resultCategory] || []) as InventoryItem[];
+            const existingPotionIndex = potionsInv.findIndex(p => p.name === resultItem.name);
+
+            if (existingPotionIndex > -1) {
+                potionsInv[existingPotionIndex].quantity += recipe.outputQty;
+            } else {
+                potionsInv.push({
+                    id: `inv-item-${Date.now()}`,
+                    name: resultItem.name,
+                    description: 'description' in resultItem ? resultItem.description : undefined,
+                    image: 'image' in resultItem ? resultItem.image : undefined,
+                    quantity: recipe.outputQty,
+                });
+            }
+            (inventory as any)[resultCategory] = potionsInv;
+            character.inventory = inventory;
+            
+            const hasFirstBrewAchievement = (userData.achievementIds || []).includes(FIRST_BREW_ACHIEVEMENT_ID);
+            if (!hasFirstBrewAchievement) {
+                userData.achievementIds = [...(userData.achievementIds || []), FIRST_BREW_ACHIEVEMENT_ID];
+            }
+
+            userData.characters[charIndex] = character;
+            transaction.update(userRef, { characters: userData.characters, achievementIds: userData.achievementIds });
+        });
+
+        if (currentUser && currentUser.id === userId) {
+            const updatedUser = await fetchUserById(userId);
+            if(updatedUser) setCurrentUser(updatedUser);
+        }
+    }, [currentUser, fetchUserById, initialFormData]);
+
     const userContextValue = useMemo(() => ({
         currentUser,
         setCurrentUser,
         gameDate: gameSettings.gameDate,
         gameDateString: gameSettings.gameDateString,
-        gameSettings,
         lastWeeklyBonusAwardedAt: gameSettings.lastWeeklyBonusAwardedAt,
         fetchUserById,
         fetchCharacterById,
@@ -2984,7 +2987,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         changeUserPassword,
         changeUserEmail,
         mergeUserData,
-    }), [currentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, allFamiliars, familiarsById, startHunt, claimHuntReward, recallHunt, changeUserPassword, changeUserEmail, mergeUserData]);
+    }), [currentUser, setCurrentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateGameDate, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, addAlchemyRecipe, fetchAlchemyRecipes, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, allFamiliars, familiarsById, startHunt, claimHuntReward, recallHunt, changeUserPassword, changeUserEmail, mergeUserData, brewPotion, updateUserAvatar]);
     
     const authValue = useMemo(() => ({
         user: firebaseUser,
@@ -3008,3 +3011,6 @@ export const useUser = () => {
     }
     return context;
 };
+
+
+
