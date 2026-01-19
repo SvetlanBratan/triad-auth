@@ -94,6 +94,7 @@ export default function HuntingTab() {
         (char.ongoingHunts || []).map(hunt => ({
           ...hunt,
           userId: user.id,
+          characterName: hunt.characterName || char.name, // Backfill missing name
         }))
       )
     );
@@ -457,3 +458,4 @@ export default function HuntingTab() {
     </div>
   );
 }
+
