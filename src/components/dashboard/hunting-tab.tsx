@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -35,12 +33,18 @@ const rankNames: Record<FamiliarRank, string> = {
     'ивентовый': 'Ивентовый',
 };
 
-const LocationCard = ({ location, onSelect }: { location: HuntingLocation, onSelect: (location: HuntingLocation) => void }) => {
+const LocationCard = ({ location, onSelect, currentHunts = 0, limit = 10 }: { location: HuntingLocation, onSelect: (location: HuntingLocation) => void, currentHunts?: number, limit?: number }) => {
+    const isFull = currentHunts >= limit;
     return (
-        <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer flex flex-col sm:flex-row" onClick={() => onSelect(location)}>
+        <Card className={cn("overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer flex flex-col sm:flex-row", isFull && "opacity-60 cursor-not-allowed")} onClick={() => !isFull && onSelect(location)}>
             {location.image && (
                 <div className="relative aspect-video sm:aspect-square sm:w-1/3 shrink-0 bg-muted">
                     <Image src={location.image} alt={location.name} fill style={{objectFit:"cover"}} data-ai-hint="fantasy landscape" />
+                    {isFull && (
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                            <p className="text-white font-bold text-lg">Заполнено</p>
+                        </div>
+                    )}
                 </div>
             )}
             <div className="flex flex-col flex-1 p-4 justify-between">
@@ -50,9 +54,9 @@ const LocationCard = ({ location, onSelect }: { location: HuntingLocation, onSel
                         <p className="text-xs text-muted-foreground pr-4">{location.description}</p>
                     </div>
                 </div>
-                <div className="text-xs text-muted-foreground flex justify-between mt-2">
-                    <span>{location.durationMinutes} мин.</span>
-                    <span>Ранг: {rankNames[location.requiredRank]}</span>
+                <div className="text-xs text-muted-foreground flex justify-between items-center mt-2">
+                    <span>{location.durationMinutes} мин. / Ранг: {rankNames[location.requiredRank]}</span>
+                    <span className="font-semibold text-foreground">{currentHunts} / {limit}</span>
                 </div>
             </div>
         </Card>
@@ -107,6 +111,14 @@ export default function HuntingTab() {
         })
         .map(fam => ({ value: fam.id, label: `${fam.name} (${rankNames[fam.rank]})`}));
   }, [character, selectedLocation, familiarsById]);
+
+  const huntsByLocation = useMemo(() => {
+    if (!character) return {};
+    return (character.ongoingHunts || []).reduce((acc, hunt) => {
+        acc[hunt.locationId] = (acc[hunt.locationId] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
+  }, [character]);
 
   const handleStartHunt = async () => {
     if (!selectedCharacterId || !selectedFamiliarId || !selectedLocation) return;
@@ -317,9 +329,10 @@ export default function HuntingTab() {
                                 <div>
                                     <h3 className="font-semibold mb-2">Доступные локации:</h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {(gameSettings.huntingLocations || []).map(loc => (
-                                            <LocationCard key={loc.id} location={loc} onSelect={setSelectedLocation} />
-                                        ))}
+                                        {(gameSettings.huntingLocations || []).map(loc => {
+                                             const currentHunts = huntsByLocation[loc.id] || 0;
+                                             return <LocationCard key={loc.id} location={loc} onSelect={setSelectedLocation} currentHunts={currentHunts} limit={10} />
+                                        })}
                                     </div>
                                 </div>
                             )}
@@ -331,9 +344,3 @@ export default function HuntingTab() {
     </div>
   );
 }
-
-
-
-    
-
-    

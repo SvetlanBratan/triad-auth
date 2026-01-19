@@ -3,7 +3,7 @@
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
-import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage, Cooldowns, PopularityLog, CharacterPopularityUpdate, OwnedFamiliarCard, AlchemyRecipe, Potion, AlchemyIngredient, PlayerPing, HuntingLocation, OngoingHunt, HuntReward } from '@/lib/types';
+import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage, Cooldowns, PopularityLog, CharacterPopularityUpdate, OwnedFamiliarCard, AlchemyRecipe, Potion, AlchemyIngredient, PlayerPing, OngoingHunt, PlayerStatus, PlayPlatform, SocialLink } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut, reauthenticateWithCredential, EmailAuthProvider, updatePassword, updateEmail } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter, increment, FieldValue, arrayUnion, arrayRemove, deleteField } from "firebase/firestore";
@@ -2660,6 +2660,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const location = gameSettings.huntingLocations?.find(l => l.id === locationId);
         if (!location) throw new Error("Локация не найдена.");
 
+        const currentHuntsInLocation = (character.ongoingHunts || []).filter(h => h.locationId === locationId).length;
+        if (currentHuntsInLocation >= 10) {
+            throw new Error("В эту локацию нельзя отправить больше 10 фамильяров.");
+        }
+
         const startedAt = new Date();
         const endsAt = new Date(startedAt.getTime() + location.durationMinutes * 60000);
 
@@ -2749,7 +2754,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const allItems = [...(await fetchAllShops())].flatMap(shop => shop.items || []);
         const allItemsMap = new Map(allItems.map(item => [item.id, item]));
 
-        const totalRewards: InventoryItem[] = [];
+        const totalRewardsMap = new Map<string, InventoryItem>();
         const updatedCharacter = JSON.parse(JSON.stringify(character)); // Deep copy to avoid mutation issues
         
         for (const hunt of finishedHunts) {
@@ -2762,13 +2767,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 if (rewardData && Math.random() * 100 < rewardData.chance) {
                     const itemData = allItemsMap.get(rewardRule.itemId);
                     if (itemData) {
-                        const existingReward = totalRewards.find(r => r.name === (itemData.inventoryItemName || itemData.name));
+                        const itemName = itemData.inventoryItemName || itemData.name;
+                        const existingReward = totalRewardsMap.get(itemName);
+
                         if (existingReward) {
                             existingReward.quantity += rewardData.quantity;
                         } else {
-                            totalRewards.push({
+                            totalRewardsMap.set(itemName, {
                                 id: `inv-item-${Date.now()}-${Math.random()}`,
-                                name: itemData.inventoryItemName || itemData.name,
+                                name: itemName,
                                 description: itemData.inventoryItemDescription || itemData.description,
                                 image: itemData.inventoryItemImage || itemData.image,
                                 quantity: rewardData.quantity,
@@ -2778,6 +2785,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 }
             });
         }
+        
+        const totalRewards = Array.from(totalRewardsMap.values());
 
         // Add rewards to inventory
         const inventory = updatedCharacter.inventory;
@@ -2793,7 +2802,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             }
         });
         
-        // Remove all finished hunts
         const finishedHuntIds = new Set(finishedHunts.map(h => h.huntId));
         updatedCharacter.ongoingHunts = (updatedCharacter.ongoingHunts || []).filter(h => !finishedHuntIds.has(h.huntId));
 
@@ -2893,7 +2901,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const ingredientsInv = (inventory.ингредиенты || []) as InventoryItem[];
 
             const allItems = [...(await fetchAllShops())].flatMap(shop => shop.items || []);
-            const allItemsMap = new Map(allItems.map(item => [item.id, item]));
+            const allItemsMap = new Map<string, ShopItem | AlchemyIngredient | Potion>();
+            [...ALL_ITEMS_FOR_ALCHEMY, ...allItems].forEach(item => {
+                if (item) allItemsMap.set(item.id, item);
+            });
 
 
             for (const component of recipe.components) {
@@ -2921,7 +2932,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 throw new Error("Resulting item not found in data.");
             }
 
-            const resultCategory = resultItem.inventoryTag || 'зелья';
+            const resultCategory = (resultItem as ShopItem).inventoryTag || 'зелья';
             const potionsInv = (inventory[resultCategory] || []) as InventoryItem[];
             const existingPotionIndex = potionsInv.findIndex(p => p.name === resultItem.name);
 
@@ -2930,9 +2941,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             } else {
                 potionsInv.push({
                     id: `inv-item-${Date.now()}`,
-                    name: resultItem.inventoryItemName || resultItem.name,
-                    description: resultItem.inventoryItemDescription || resultItem.description,
-                    image: resultItem.inventoryItemImage || resultItem.image,
+                    name: (resultItem as ShopItem).inventoryItemName || resultItem.name,
+                    description: (resultItem as ShopItem).inventoryItemDescription || (resultItem as Potion).note,
+                    image: (resultItem as ShopItem).inventoryItemImage || resultItem.image,
                     quantity: recipe.outputQty,
                 });
             }
