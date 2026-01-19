@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
@@ -1696,7 +1695,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const ranksAreDifferent = initiatorFamiliar.rank !== targetFamiliar.rank;
         const isMythicEventTrade =
           (initiatorFamiliar.rank === 'мифический' && targetFamiliar.rank === 'ивентовый') ||
-          (initiatorFamiliar.rank === 'ивентовый' && initiatorFamiliar.rank === 'мифический');
+          (initiatorFamiliar.rank === 'ивентовый' && targetFamiliar.rank === 'мифический');
 
         if (ranksAreDifferent && !isMythicEventTrade) {
             throw new Error("Обмен возможен только между фамильярами одного ранга, или между мифическим и ивентовым.");
@@ -2657,12 +2656,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const addFamiliarToDb = useCallback(async (familiar: Omit<FamiliarCard, 'id'>) => {
         const familiarsCollection = collection(db, "familiars");
         await addDoc(familiarsCollection, familiar);
-    }, []);
+        await fetchAndCombineFamiliars();
+    }, [fetchAndCombineFamiliars]);
 
     const deleteFamiliarFromDb = useCallback(async (familiarId: string) => {
         const familiarRef = doc(db, "familiars", familiarId);
         await deleteDoc(familiarRef);
-    }, []);
+        await fetchAndCombineFamiliars();
+    }, [fetchAndCombineFamiliars]);
 
     const sendPlayerPing = useCallback(async (targetUserId: string) => {
         if (!currentUser) throw new Error("Not authenticated");
@@ -3163,4 +3164,6 @@ export const useUser = () => {
     
 
     
+
+
 
