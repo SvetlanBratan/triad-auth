@@ -109,6 +109,7 @@ export interface UserContextType {
   addAlchemyRecipe: (recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => Promise<void>;
   updateAlchemyRecipe: (recipeId: string, recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => Promise<void>;
   deleteAlchemyRecipe: (recipeId: string) => Promise<void>;
+  fetchAlchemyRecipes: () => Promise<AlchemyRecipe[]>;
   fetchDbFamiliars: () => Promise<FamiliarCard[]>;
   addFamiliarToDb: (familiar: Omit<FamiliarCard, 'id'>) => Promise<void>;
   deleteFamiliarFromDb: (familiarId: string) => Promise<void>;
@@ -3010,4 +3011,6 @@ export const useUser = () => {
 
 
     
+
+
 
