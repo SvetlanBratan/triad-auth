@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -20,6 +19,7 @@ import {
   DialogDescription,
   DialogFooter,
   DialogTrigger,
+  DialogClose,
 } from '@/components/ui/dialog';
 import { DEFAULT_GAME_SETTINGS } from '@/lib/data';
 import { ScrollArea, ScrollBar } from '../ui/scroll-area';
@@ -431,7 +431,7 @@ export default function HuntingTab() {
                 <div className="pt-4 space-y-2">
                     <h4 className="font-semibold flex items-center gap-2 text-muted-foreground"><Users className="w-4 w-4" /> Сейчас на охоте ({huntsInSelectedLocation.length} / {selectedLocation?.limit ?? 10})</h4>
                     {huntsInSelectedLocation.length > 0 ? (
-                        <ScrollArea className="h-40">
+                        <ScrollArea className="h-80">
                             <div className="space-y-2 pr-4">
                                 {huntsInSelectedLocation.map(hunt => {
                                     const familiar = familiarsById[hunt.familiarId];
@@ -465,6 +465,3 @@ export default function HuntingTab() {
     </div>
   );
 }
-
-
-
