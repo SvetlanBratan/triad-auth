@@ -329,7 +329,7 @@ export default function ShopPage() {
                                                 />
                                             </div>
                                         )}
-                                        <CardHeader className="flex-grow">
+                                        <CardHeader>
                                             <div className="flex justify-between items-start">
                                                 <CardTitle className="text-lg flex items-center gap-2">
                                                   {item.name}
@@ -366,7 +366,8 @@ export default function ShopPage() {
                                                 </div>
                                             }
                                         </CardHeader>
-                                        <CardFooter className="flex-col items-start gap-4 pt-0 mt-auto">
+                                        <div className="flex-grow" />
+                                        <CardFooter className="flex-col items-start gap-4 pt-0">
                                              {item.quantity !== undefined && item.quantity >= 0 && (
                                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                                     <Package className="h-4 w-4" />
@@ -627,3 +628,5 @@ export default function ShopPage() {
         </div>
     );
 }
+
+    
