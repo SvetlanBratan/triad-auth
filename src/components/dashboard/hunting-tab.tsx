@@ -41,7 +41,7 @@ const rankNames: Record<FamiliarRank, string> = {
 const LocationCard = ({ location, onSelect, currentHunts = 0, limit = 10 }: { location: HuntingLocation, onSelect: (location: HuntingLocation) => void, currentHunts?: number, limit?: number }) => {
     const isFull = currentHunts >= limit;
     return (
-        <Card className={cn("overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer flex flex-col sm:flex-row", isFull && "opacity-60 cursor-not-allowed")} onClick={() => !isFull && onSelect(location)}>
+        <Card className={cn("overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer flex flex-col sm:flex-row", isFull && "opacity-60")} onClick={() => onSelect(location)}>
             {location.image && (
                 <div className="relative aspect-video sm:aspect-square sm:w-1/3 shrink-0 bg-muted">
                     <Image src={location.image} alt={location.name} fill style={{objectFit:"cover"}} data-ai-hint="fantasy landscape" />
@@ -275,6 +275,11 @@ export default function HuntingTab() {
     if (!selectedLocation) return [];
     return allOngoingHunts.filter(hunt => hunt.locationId === selectedLocation.id);
   }, [allOngoingHunts, selectedLocation]);
+
+  const isLocationFull = useMemo(() => {
+    if (!selectedLocation) return false;
+    return (huntsByLocation[selectedLocation.id] || 0) >= 10;
+}, [selectedLocation, huntsByLocation]);
   
   return (
     <div className="space-y-8">
@@ -391,33 +396,37 @@ export default function HuntingTab() {
         <Dialog open={!!selectedLocation} onOpenChange={(isOpen) => { if (!isOpen) setSelectedLocation(null) }}>
             <DialogContent className="max-w-2xl">
                 <DialogHeader>
-                    <DialogTitle>Отправить в: {selectedLocation?.name}</DialogTitle>
+                    <DialogTitle>{isLocationFull ? `Локация: ${selectedLocation?.name}`: `Отправить в: ${selectedLocation?.name}`}</DialogTitle>
                     <DialogDescription>
-                        Выберите фамильяра или отправьте всех доступных.
+                         {isLocationFull ? "В этой локации нет свободных мест." : "Выберите фамильяра или отправьте всех доступных."}
                     </DialogDescription>
                 </DialogHeader>
-                <div className="py-4 space-y-4">
-                    <div>
-                        <Label>Один фамильяр</Label>
-                        <SearchableSelect
-                            options={availableFamiliars}
-                            value={selectedFamiliarId}
-                            onValueChange={setSelectedFamiliarId}
-                            placeholder="Выберите фамильяра..."
-                        />
-                        <Button onClick={handleStartHunt} disabled={!selectedFamiliarId || isSending} className="w-full mt-2">
-                            <Send className="mr-2 h-4 w-4"/>{isSending ? 'Отправка...' : 'Отправить выбранного'}
-                        </Button>
-                    </div>
-                    <Separator />
-                     <div>
-                        <Label>Отправить нескольких</Label>
-                        <Button onClick={handleStartMaxHunts} disabled={isSending || !availableFamiliars || availableFamiliars.length === 0 || (10 - (huntsByLocation[selectedLocation?.id ?? ''] || 0)) <= 0} variant="secondary" className="w-full">
-                            <Users className="mr-2 h-4 w-4" /> {isSending ? 'Отправка...' : `Отправить всех доступных (${Math.min(availableFamiliars?.length || 0, 10 - (huntsByLocation[selectedLocation?.id ?? ''] || 0))})`}
-                        </Button>
-                    </div>
-                </div>
-                <Separator />
+                 {!isLocationFull && (
+                    <>
+                        <div className="py-4 space-y-4">
+                            <div>
+                                <Label>Один фамильяр</Label>
+                                <SearchableSelect
+                                    options={availableFamiliars}
+                                    value={selectedFamiliarId}
+                                    onValueChange={setSelectedFamiliarId}
+                                    placeholder="Выберите фамильяра..."
+                                />
+                                <Button onClick={handleStartHunt} disabled={!selectedFamiliarId || isSending} className="w-full mt-2">
+                                    <Send className="mr-2 h-4 w-4"/>{isSending ? 'Отправка...' : 'Отправить выбранного'}
+                                </Button>
+                            </div>
+                            <Separator />
+                            <div>
+                                <Label>Отправить нескольких</Label>
+                                <Button onClick={handleStartMaxHunts} disabled={isSending || !availableFamiliars || availableFamiliars.length === 0 || (10 - (huntsByLocation[selectedLocation?.id ?? ''] || 0)) <= 0} variant="secondary" className="w-full">
+                                    <Users className="mr-2 h-4 w-4" /> {isSending ? 'Отправка...' : `Отправить всех доступных (${Math.min(availableFamiliars?.length || 0, 10 - (huntsByLocation[selectedLocation?.id ?? ''] || 0))})`}
+                                </Button>
+                            </div>
+                        </div>
+                        <Separator />
+                    </>
+                )}
                 <div className="pt-4 space-y-2">
                     <h4 className="font-semibold flex items-center gap-2 text-muted-foreground"><Users className="w-4 w-4" /> Сейчас на охоте ({huntsInSelectedLocation.length} / 10)</h4>
                     {huntsInSelectedLocation.length > 0 ? (
