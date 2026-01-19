@@ -437,13 +437,20 @@ export default function HuntingTab() {
                                     const familiar = familiarsById[hunt.familiarId];
                                     if (!familiar) return null;
                                     const isOwn = hunt.characterId === selectedCharacterId;
+                                    const isFinished = new Date(hunt.endsAt) <= now;
                                     return (
                                         <div key={hunt.huntId} className={cn("flex items-center gap-3 text-sm p-2 rounded-md", isOwn ? "bg-primary/10" : "bg-muted")}>
                                             <Image src={familiar.imageUrl} alt={familiar.name} width={40} height={60} className="rounded-md object-cover" data-ai-hint={familiar['data-ai-hint']}/>
-                                            <div className="truncate">
+                                            <div className="truncate flex-1">
                                                 <p className="font-semibold truncate">{familiar.name}</p>
                                                 <p className="text-xs text-muted-foreground truncate">Владелец: {hunt.characterName}</p>
                                             </div>
+                                             {isFinished && (
+                                                <div className="flex items-center gap-1 text-xs text-green-600 shrink-0">
+                                                    <CheckCircle className="w-3.5 h-3.5" />
+                                                    <span>Готово</span>
+                                                </div>
+                                            )}
                                         </div>
                                     )
                                 })}
@@ -458,5 +465,6 @@ export default function HuntingTab() {
     </div>
   );
 }
+
 
 
