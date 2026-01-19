@@ -2780,6 +2780,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
             const newHunt: OngoingHunt = {
                 huntId: `hunt-${Date.now()}-${familiarId.slice(0, 5)}`,
+                characterId: character.id,
+                characterName: character.name,
                 familiarId,
                 locationId,
                 startedAt: startedAt.toISOString(),
@@ -2845,6 +2847,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 
                 const newHunt: OngoingHunt = {
                     huntId: `hunt-${Date.now()}-${familiarId.slice(0, 5)}-${Math.random().toString(36).substring(2, 7)}`,
+                    characterId: character.id,
+                    characterName: character.name,
                     familiarId,
                     locationId,
                     startedAt: startedAt.toISOString(),
@@ -3205,6 +3209,7 @@ export const useUser = () => {
     
 
     
+
 
 
 

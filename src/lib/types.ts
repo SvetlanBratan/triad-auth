@@ -285,6 +285,8 @@ export interface GalleryImage {
 
 export interface OngoingHunt {
     huntId: string;
+    characterId: string;
+    characterName: string;
     familiarId: string;
     locationId: string;
     startedAt: string; // ISO string

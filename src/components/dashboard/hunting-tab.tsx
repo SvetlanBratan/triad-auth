@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -6,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Compass, Send, Hourglass, CheckCircle, Bone, X, Users } from 'lucide-react';
-import type { Character, FamiliarCard, FamiliarRank, HuntingLocation, OngoingHunt, InventoryItem } from '@/lib/types';
+import type { Character, FamiliarCard, FamiliarRank, HuntingLocation, OngoingHunt, InventoryItem, User } from '@/lib/types';
 import Image from 'next/image';
 import { SearchableSelect } from '../ui/searchable-select';
 import { formatHuntTimeLeft, cn, getPlural } from '@/lib/utils';
@@ -23,6 +24,7 @@ import { DEFAULT_GAME_SETTINGS } from '@/lib/data';
 import { ScrollArea, ScrollBar } from '../ui/scroll-area';
 import { Label } from '../ui/label';
 import { Separator } from '../ui/separator';
+import { useQuery } from '@tanstack/react-query';
 
 
 const rankOrder: FamiliarRank[] = ['мифический', 'легендарный', 'редкий', 'обычный'];
@@ -66,7 +68,7 @@ const LocationCard = ({ location, onSelect, currentHunts = 0, limit = 10 }: { lo
 }
 
 export default function HuntingTab() {
-  const { currentUser, gameSettings = DEFAULT_GAME_SETTINGS, startHunt, claimHuntReward, recallHunt, familiarsById, claimAllHuntRewards, startMultipleHunts } = useUser();
+  const { currentUser, gameSettings = DEFAULT_GAME_SETTINGS, startHunt, claimHuntReward, recallHunt, familiarsById, claimAllHuntRewards, startMultipleHunts, fetchUsersForAdmin } = useUser();
   const { toast } = useToast();
   
   const [selectedLocation, setSelectedLocation] = useState<HuntingLocation | null>(null);
@@ -78,6 +80,23 @@ export default function HuntingTab() {
   const [isClaimingAll, setIsClaimingAll] = useState(false);
   
   const [now, setNow] = useState(new Date());
+
+  const { data: allUsers = [] } = useQuery<User[]>({
+    queryKey: ['allUsersForHunting'],
+    queryFn: fetchUsersForAdmin,
+  });
+
+  const allOngoingHunts = useMemo(() => {
+    if (!allUsers.length) return [];
+    return allUsers.flatMap(user =>
+      user.characters.flatMap(char =>
+        (char.ongoingHunts || []).map(hunt => ({
+          ...hunt,
+          userId: user.id,
+        }))
+      )
+    );
+  }, [allUsers]);
 
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 1000);
@@ -103,12 +122,11 @@ export default function HuntingTab() {
   }, [character, selectedLocation, familiarsById]);
 
   const huntsByLocation = useMemo(() => {
-    if (!character) return {};
-    return (character.ongoingHunts || []).reduce((acc, hunt) => {
+    return allOngoingHunts.reduce((acc, hunt) => {
         acc[hunt.locationId] = (acc[hunt.locationId] || 0) + 1;
         return acc;
     }, {} as Record<string, number>);
-  }, [character]);
+  }, [allOngoingHunts]);
 
   const handleStartHunt = async () => {
     if (!selectedCharacterId || !selectedFamiliarId || !selectedLocation) return;
@@ -246,6 +264,11 @@ export default function HuntingTab() {
           setIsClaimingAll(false);
       }
   }
+
+    const huntsInSelectedLocation = useMemo(() => {
+    if (!selectedLocation) return [];
+    return allOngoingHunts.filter(hunt => hunt.locationId === selectedLocation.id);
+  }, [allOngoingHunts, selectedLocation]);
   
   return (
     <div className="space-y-8">
@@ -360,7 +383,7 @@ export default function HuntingTab() {
         </Card>
 
         <Dialog open={!!selectedLocation} onOpenChange={(isOpen) => { if (!isOpen) setSelectedLocation(null) }}>
-            <DialogContent>
+            <DialogContent className="max-w-2xl">
                 <DialogHeader>
                     <DialogTitle>Отправить в: {selectedLocation?.name}</DialogTitle>
                     <DialogDescription>
@@ -387,6 +410,32 @@ export default function HuntingTab() {
                             <Users className="mr-2 h-4 w-4" /> {isSending ? 'Отправка...' : `Отправить всех доступных (${Math.min(availableFamiliars.length, 10 - (huntsByLocation[selectedLocation?.id ?? ''] || 0))})`}
                         </Button>
                     </div>
+                </div>
+                <Separator />
+                <div className="pt-4 space-y-2">
+                    <h4 className="font-semibold flex items-center gap-2 text-muted-foreground"><Users className="w-4 h-4" /> Сейчас на охоте ({huntsInSelectedLocation.length} / 10)</h4>
+                    {huntsInSelectedLocation.length > 0 ? (
+                        <ScrollArea className="h-40">
+                            <div className="space-y-2 pr-4">
+                                {huntsInSelectedLocation.map(hunt => {
+                                    const familiar = familiarsById[hunt.familiarId];
+                                    if (!familiar) return null;
+                                    const isOwn = hunt.characterId === selectedCharacterId;
+                                    return (
+                                        <div key={hunt.huntId} className={cn("flex items-center gap-3 text-sm p-2 rounded-md", isOwn ? "bg-primary/10" : "bg-muted")}>
+                                            <Image src={familiar.imageUrl} alt={familiar.name} width={40} height={60} className="rounded-md object-cover" data-ai-hint={familiar['data-ai-hint']}/>
+                                            <div className="truncate">
+                                                <p className="font-semibold truncate">{familiar.name}</p>
+                                                <p className="text-xs text-muted-foreground truncate">Владелец: {hunt.characterName}</p>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </ScrollArea>
+                    ) : (
+                        <p className="text-sm text-muted-foreground text-center pt-4">В этой локации сейчас никого нет.</p>
+                    )}
                 </div>
             </DialogContent>
         </Dialog>
