@@ -19,6 +19,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ScrollArea } from '../ui/scroll-area';
+import { DEFAULT_GAME_SETTINGS } from '@/lib/data';
 
 
 const rankOrder: FamiliarRank[] = ['мифический', 'легендарный', 'редкий', 'обычный'];
@@ -75,7 +76,7 @@ const Timer = ({ endsAt }: { endsAt: string }) => {
 
 
 export default function HuntingTab() {
-  const { currentUser, gameSettings, startHunt, claimHuntReward, recallHunt, familiarsById } = useUser();
+  const { currentUser, gameSettings = DEFAULT_GAME_SETTINGS, startHunt, claimHuntReward, recallHunt, familiarsById } = useUser();
   const { toast } = useToast();
   
   const [selectedLocation, setSelectedLocation] = useState<HuntingLocation | null>(null);
