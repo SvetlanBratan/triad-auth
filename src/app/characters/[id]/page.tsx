@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -832,6 +830,7 @@ export default function CharacterPage() {
          <div className="space-y-6">
             {inventoryLayout.map(section => {
                 const hasContent = section.categories.some(cat => {
+                    if (isAdmin === false && cat.key === 'услуги') return false;
                     if (cat.key === 'предприятия') return ownedShops.length > 0;
                     const items = (inventory[cat.key as keyof typeof inventory] || []) as InventoryItem[];
                     const visible = cat.key === 'питомцы' ? items.filter(i => !FAMILIARS_BY_ID[i.id as keyof typeof FAMILIARS_BY_ID]) : items;
@@ -858,6 +857,8 @@ export default function CharacterPage() {
                                     </AccordionItem>
                                 )}
                                 {section.categories.map(cat => {
+                                    if (!isAdmin && cat.key === 'услуги') return null;
+
                                     if (cat.key === 'предприятия') {
                                         if (ownedShops.length === 0) return null;
                                         return (
