@@ -11,6 +11,7 @@ import { ALL_STATIC_FAMILIARS, EVENT_FAMILIARS, MOODLETS_DATA, DEFAULT_GAME_SETT
 import { differenceInDays, differenceInMonths, isPast } from 'date-fns';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { ALL_ITEMS_FOR_ALCHEMY } from '@/lib/alchemy-data';
+import { useToast } from '@/hooks/use-toast';
 
 interface AuthContextType {
     user: FirebaseUser | null;
@@ -224,6 +225,7 @@ const sanitizeObjectForFirestore = (obj: any): any => {
 
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
+    const { toast } = useToast();
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
     const [gameSettings, setGameSettings] = useState<GameSettings>(DEFAULT_GAME_SETTINGS);
@@ -2668,7 +2670,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const recipeRef = doc(db, "alchemy_recipes", recipeId);
         await deleteDoc(recipeRef);
     }, []);
-
+    
     const addFamiliarToDb = useCallback(async (familiar: Omit<FamiliarCard, 'id'>) => {
         const familiarsCollection = collection(db, "familiars");
         await addDoc(familiarsCollection, familiar);
@@ -2760,6 +2762,25 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const startHunt = useCallback(async (characterId: string, familiarId: string, locationId: string) => {
         if (!currentUser) throw new Error("Пользователь не авторизован.");
         
+        const allUsers = await fetchUsersForAdmin();
+        const location = gameSettings.huntingLocations?.find(l => l.id === locationId);
+        if (!location) throw new Error("Локация не найдена.");
+
+        let currentHuntsInLocation = 0;
+        allUsers.forEach(user => {
+            (user.characters || []).forEach(char => {
+                (char.ongoingHunts || []).forEach(hunt => {
+                    if (hunt.locationId === locationId) {
+                        currentHuntsInLocation++;
+                    }
+                });
+            });
+        });
+
+        if (currentHuntsInLocation >= (location.limit ?? 10)) {
+            throw new Error(`В этой локации нет свободных мест. Попробуйте обновить страницу. (${currentHuntsInLocation}/${location.limit ?? 10})`);
+        }
+
         await runTransaction(db, async (transaction) => {
             const userRef = doc(db, "users", currentUser.id);
             const userDoc = await transaction.get(userRef);
@@ -2772,8 +2793,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const character = userData.characters[charIndex];
             const familiar = familiarsById[familiarId];
             if (!familiar) throw new Error("Фамильяр не найден.");
-            const location = gameSettings.huntingLocations?.find(l => l.id === locationId);
-            if (!location) throw new Error("Локация не найдена.");
+
+            const isFamiliarBusy = (character.ongoingHunts || []).some(h => h.familiarId === familiarId);
+            if (isFamiliarBusy) {
+                throw new Error("Этот фамильяр уже на охоте.");
+            }
 
             const startedAt = new Date();
             const endsAt = new Date(startedAt.getTime() + location.durationMinutes * 60000);
@@ -2802,10 +2826,45 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const updatedUser = await fetchUserById(currentUser.id);
         if(updatedUser) setCurrentUser(updatedUser);
 
-    }, [currentUser, familiarsById, gameSettings, fetchUserById, grantAchievementToUser]);
+    }, [currentUser, familiarsById, gameSettings, fetchUserById, grantAchievementToUser, setCurrentUser, fetchUsersForAdmin]);
 
      const startMultipleHunts = useCallback(async (characterId: string, familiarIds: string[], locationId: string) => {
         if (!currentUser) throw new Error("Пользователь не авторизован.");
+        
+        const allUsers = await fetchUsersForAdmin();
+        const location = gameSettings.huntingLocations?.find(l => l.id === locationId);
+        if (!location) throw new Error("Локация не найдена.");
+
+        let currentHuntsInLocation = 0;
+        allUsers.forEach(user => {
+            (user.characters || []).forEach(char => {
+                (char.ongoingHunts || []).forEach(hunt => {
+                    if (hunt.locationId === locationId) {
+                        currentHuntsInLocation++;
+                    }
+                });
+            });
+        });
+
+        const availableSlots = (location.limit ?? 10) - currentHuntsInLocation;
+
+        if (availableSlots <= 0) {
+            throw new Error("В этой локации нет свободных мест. Попробуйте обновить страницу.");
+        }
+        
+        const familiarIdsToSend = familiarIds.slice(0, availableSlots);
+        
+        if (familiarIdsToSend.length < familiarIds.length) {
+            toast({
+                title: "Недостаточно мест",
+                description: `Отправлено только ${familiarIdsToSend.length} фамильяров, так как в локации было ${availableSlots} свободных мест.`,
+                variant: 'default',
+            });
+        }
+        
+        if (familiarIdsToSend.length === 0) {
+            throw new Error("Нет доступных фамильяров для отправки или нет мест.");
+        }
         
         await runTransaction(db, async (transaction) => {
             const userRef = doc(db, "users", currentUser.id);
@@ -2818,23 +2877,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             
             const character = userData.characters[charIndex];
 
-            const location = gameSettings.huntingLocations?.find(l => l.id === locationId);
-            if (!location) throw new Error("Локация не найдена.");
-
-            const currentHuntsInLocation = (character.ongoingHunts || []).filter(h => h.locationId === locationId).length;
-            const availableSlots = (location.limit || 10) - currentHuntsInLocation;
-
-            if (familiarIds.length > availableSlots) {
-                throw new Error(`Можно отправить не более ${availableSlots} фамильяров в эту локацию.`);
-            }
-            
             const newHunts: OngoingHunt[] = [];
             const startedAt = new Date();
             const endsAt = new Date(startedAt.getTime() + location.durationMinutes * 60000);
 
             const busyFamiliarIds = new Set((character.ongoingHunts || []).map(h => h.familiarId));
 
-            for (const familiarId of familiarIds) {
+            for (const familiarId of familiarIdsToSend) {
                 const familiar = familiarsById[familiarId];
                 if (!familiar) {
                     console.warn(`Familiar with id ${familiarId} not found, skipping.`);
@@ -2872,8 +2921,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const updatedUser = await fetchUserById(currentUser.id);
         if(updatedUser) setCurrentUser(updatedUser);
 
-    }, [currentUser, gameSettings.huntingLocations, familiarsById, fetchUserById, setCurrentUser, grantAchievementToUser]);
-
+    }, [currentUser, gameSettings.huntingLocations, familiarsById, fetchUserById, setCurrentUser, grantAchievementToUser, fetchUsersForAdmin, toast]);
 
     const claimHuntReward = useCallback(async (characterId: string, huntId: string): Promise<InventoryItem[]> => {
         if (!currentUser) throw new Error("Пользователь не авторизован.");
@@ -3205,16 +3253,3 @@ export const useUser = () => {
     }
     return context;
 };
-
-    
-
-    
-
-
-
-
-
-
-
-
-
