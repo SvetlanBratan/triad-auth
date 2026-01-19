@@ -27,7 +27,11 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: '**.userapi.com',
-      }
+      },
+      {
+        protocol: 'https',
+        hostname: '*.storage.yandex.net',
+      },
     ],
   },
 };
