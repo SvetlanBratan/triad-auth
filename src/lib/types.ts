@@ -513,6 +513,7 @@ export interface HuntingLocation {
     durationMinutes: number;
     requiredRank: FamiliarRank;
     rewards: HuntReward[];
+    limit?: number;
 }
 
 // --- END ALCHEMY & HUNTING TYPES ---

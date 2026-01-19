@@ -2107,10 +2107,14 @@ export default function AdminTab() {
                                         <Label htmlFor="loc-image">URL изображения</Label>
                                         <Input id="loc-image" value={editingHuntLocation.image || ''} onChange={(e) => handleLocationChange(0, 'image', e.target.value)} placeholder="https://..." />
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-3 gap-4">
                                         <div>
                                             <Label htmlFor="loc-duration">Длительность (в минутах)</Label>
                                             <Input id="loc-duration" type="number" value={editingHuntLocation.durationMinutes || 60} onChange={(e) => handleLocationChange(0, 'durationMinutes', parseInt(e.target.value, 10))} />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="loc-limit">Лимит мест</Label>
+                                            <Input id="loc-limit" type="number" value={editingHuntLocation.limit ?? 10} onChange={(e) => handleLocationChange(0, 'limit', parseInt(e.target.value, 10))} placeholder="10"/>
                                         </div>
                                         <div>
                                             <Label htmlFor="loc-rank">Мин. ранг</Label>
@@ -2179,7 +2183,7 @@ export default function AdminTab() {
                             </div>
                         ) : (
                             <div className="space-y-4">
-                                <Button onClick={() => setEditingHuntLocation({ name: '', description: '', image: '', durationMinutes: 60, requiredRank: 'обычный', rewards: [] })}>
+                                <Button onClick={() => setEditingHuntLocation({ name: '', description: '', image: '', durationMinutes: 60, requiredRank: 'обычный', rewards: [], limit: 10 })}>
                                     <PlusCircle className="mr-2 h-4 w-4" /> Добавить новую локацию
                                 </Button>
                                 <div className="space-y-3">

@@ -151,7 +151,7 @@ export default function HuntingTab() {
     if (!selectedCharacterId || !selectedLocation || !character) return;
     
     const currentHuntsInLocation = huntsByLocation[selectedLocation.id] || 0;
-    const availableSlots = 10 - currentHuntsInLocation;
+    const availableSlots = (selectedLocation.limit ?? 10) - currentHuntsInLocation;
     if (availableSlots <= 0) {
         toast({
             variant: "destructive",
@@ -279,7 +279,7 @@ export default function HuntingTab() {
 
   const isLocationFull = useMemo(() => {
     if (!selectedLocation) return false;
-    return (huntsByLocation[selectedLocation.id] || 0) >= 10;
+    return (huntsByLocation[selectedLocation.id] || 0) >= (selectedLocation.limit ?? 10);
 }, [selectedLocation, huntsByLocation]);
   
   return (
@@ -385,7 +385,7 @@ export default function HuntingTab() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {(gameSettings.huntingLocations || []).map(loc => {
                                         const currentHunts = huntsByLocation[loc.id] || 0;
-                                        return <LocationCard key={loc.id} location={loc} onSelect={setSelectedLocation} currentHunts={currentHunts} limit={10} />
+                                        return <LocationCard key={loc.id} location={loc} onSelect={setSelectedLocation} currentHunts={currentHunts} limit={loc.limit ?? 10} />
                                 })}
                             </div>
                         </div>
@@ -420,8 +420,8 @@ export default function HuntingTab() {
                             <Separator />
                             <div>
                                 <Label>Отправить нескольких</Label>
-                                <Button onClick={handleStartMaxHunts} disabled={isSending || !availableFamiliars || availableFamiliars.length === 0 || (10 - (huntsByLocation[selectedLocation?.id ?? ''] || 0)) <= 0} variant="secondary" className="w-full">
-                                    <Users className="mr-2 h-4 w-4" /> {isSending ? 'Отправка...' : `Отправить всех доступных (${Math.min(availableFamiliars?.length || 0, 10 - (huntsByLocation[selectedLocation?.id ?? ''] || 0))})`}
+                                <Button onClick={handleStartMaxHunts} disabled={isSending || !availableFamiliars || availableFamiliars.length === 0 || ((selectedLocation?.limit ?? 10) - (huntsByLocation[selectedLocation?.id ?? ''] || 0)) <= 0} variant="secondary" className="w-full">
+                                    <Users className="mr-2 h-4 w-4" /> {isSending ? 'Отправка...' : `Отправить всех доступных (${Math.min(availableFamiliars?.length || 0, (selectedLocation?.limit ?? 10) - (huntsByLocation[selectedLocation?.id ?? ''] || 0))})`}
                                 </Button>
                             </div>
                         </div>
@@ -429,7 +429,7 @@ export default function HuntingTab() {
                     </>
                 )}
                 <div className="pt-4 space-y-2">
-                    <h4 className="font-semibold flex items-center gap-2 text-muted-foreground"><Users className="w-4 w-4" /> Сейчас на охоте ({huntsInSelectedLocation.length} / 10)</h4>
+                    <h4 className="font-semibold flex items-center gap-2 text-muted-foreground"><Users className="w-4 w-4" /> Сейчас на охоте ({huntsInSelectedLocation.length} / {selectedLocation?.limit ?? 10})</h4>
                     {huntsInSelectedLocation.length > 0 ? (
                         <ScrollArea className="h-40">
                             <div className="space-y-2 pr-4">
@@ -458,4 +458,5 @@ export default function HuntingTab() {
     </div>
   );
 }
+
 
