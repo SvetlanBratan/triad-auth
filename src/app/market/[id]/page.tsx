@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React from 'react';
@@ -319,7 +318,7 @@ export default function ShopPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                 {filteredItems.map(item => {
                                     return (
-                                    <Card key={item.id} className={cn("flex flex-col group overflow-hidden max-w-sm mx-auto", item.isHidden && "opacity-60")}>
+                                    <Card key={item.id} className={cn("flex flex-col group overflow-hidden max-w-sm mx-auto h-full", item.isHidden && "opacity-60")}>
                                         {item.image && (
                                             <div className="relative w-full aspect-square bg-muted">
                                                  <Image
@@ -360,11 +359,11 @@ export default function ShopPage() {
                                                 )}
                                             </div>
                                             {item.description && 
-                                                <ScrollArea className="h-32 w-full pr-4 mt-2">
+                                                <div className="min-h-12 w-full pr-4 mt-2">
                                                     <CardDescription className="text-sm">
                                                         <FormattedTextRenderer text={item.description} />
                                                     </CardDescription>
-                                                </ScrollArea>
+                                                </div>
                                             }
                                         </CardHeader>
                                         <CardFooter className="flex-col items-start gap-4 pt-0 mt-auto">
