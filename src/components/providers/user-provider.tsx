@@ -152,6 +152,7 @@ const EXTRA_CHARACTER_REWARD_ID = 'r-extra-char';
 const AI_ART_REWARD_ID = 'r-ai-art';
 const ERA_FACE_ACHIEVEMENT_ID = 'ach-era-face';
 const CUSTOM_STATUS_REWARD_ID = 'r-custom-status';
+const VIP_ACHIEVEMENT_ID = 'ach-vip';
 const QUESTIONNAIRE_ACHIEVEMENT_ID = 'ach-questionnaire';
 const FIRST_HUNT_ACHIEVEMENT_ID = 'ach-hunting';
 const FAVORITE_PLAYER_ACHIEVEMENT_ID = 'ach-favorites';
@@ -763,9 +764,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             let updatesForUser: Partial<User> = {};
 
             if (newStatus === 'одобрено') {
-                if (request.rewardId === CUSTOM_STATUS_REWARD_ID) {
+                 if (request.rewardId === CUSTOM_STATUS_REWARD_ID) {
                     updatesForUser.statusEmoji = request.statusEmoji;
                     updatesForUser.statusText = request.statusText;
+                    const currentAchievements = user.achievementIds || [];
+                    if (!currentAchievements.includes(VIP_ACHIEVEMENT_ID)) {
+                        updatesForUser.achievementIds = [...currentAchievements, VIP_ACHIEVEMENT_ID];
+                    }
                 } else {
                     let characterToUpdateIndex = -1;
                     if (request.characterId) {
@@ -3200,6 +3205,7 @@ export const useUser = () => {
     
 
     
+
 
 
 
