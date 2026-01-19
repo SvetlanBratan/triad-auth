@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -397,8 +396,8 @@ export default function HuntingTab() {
         <Dialog open={!!selectedLocation} onOpenChange={(isOpen) => { if (!isOpen) setSelectedLocation(null) }}>
             <DialogContent className="max-w-2xl">
                 <DialogHeader>
-                    <DialogTitle>{isLocationFull ? `Локация: ${selectedLocation?.name}`: `Отправить в: ${selectedLocation?.name}`}</DialogTitle>
-                    <DialogDescription>
+                    <DialogTitle>Локация: {selectedLocation?.name}</DialogTitle>
+                     <DialogDescription>
                          {isLocationFull ? "В этой локации нет свободных мест." : "Выберите фамильяра или отправьте всех доступных."}
                     </DialogDescription>
                 </DialogHeader>
@@ -431,7 +430,7 @@ export default function HuntingTab() {
                 <div className="pt-4 space-y-2">
                     <h4 className="font-semibold flex items-center gap-2 text-muted-foreground"><Users className="w-4 w-4" /> Сейчас на охоте ({huntsInSelectedLocation.length} / {selectedLocation?.limit ?? 10})</h4>
                     {huntsInSelectedLocation.length > 0 ? (
-                        <ScrollArea className="h-80">
+                        <ScrollArea className="h-96">
                             <div className="space-y-2 pr-4">
                                 {huntsInSelectedLocation.map(hunt => {
                                     const familiar = familiarsById[hunt.familiarId];
@@ -465,3 +464,4 @@ export default function HuntingTab() {
     </div>
   );
 }
+    
