@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -18,6 +17,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogTrigger,
 } from '@/components/ui/dialog';
 import { DEFAULT_GAME_SETTINGS } from '@/lib/data';
 import { ScrollArea, ScrollBar } from '../ui/scroll-area';
