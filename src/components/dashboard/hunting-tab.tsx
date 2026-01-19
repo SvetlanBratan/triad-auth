@@ -20,7 +20,6 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { DEFAULT_GAME_SETTINGS } from '@/lib/data';
-import { isPast } from 'date-fns';
 import { ScrollArea } from '../ui/scroll-area';
 
 
@@ -64,25 +63,6 @@ const LocationCard = ({ location, onSelect, currentHunts = 0, limit = 10 }: { lo
     )
 }
 
-const Timer = ({ endsAt }: { endsAt: string }) => {
-    const [timeLeft, setTimeLeft] = useState(formatHuntTimeLeft(endsAt));
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            const newTimeLeft = formatHuntTimeLeft(endsAt);
-            setTimeLeft(newTimeLeft);
-            if (newTimeLeft === "00:00:00") {
-                clearInterval(interval);
-            }
-        }, 1000);
-
-        return () => clearInterval(interval);
-    }, [endsAt]);
-
-    return <span>{timeLeft}</span>;
-}
-
-
 export default function HuntingTab() {
   const { currentUser, gameSettings = DEFAULT_GAME_SETTINGS, startHunt, claimHuntReward, recallHunt, familiarsById, claimAllHuntRewards } = useUser();
   const { toast } = useToast();
@@ -94,6 +74,13 @@ export default function HuntingTab() {
   const [isSending, setIsSending] = useState(false);
   const [isProcessingId, setIsProcessingId] = useState<string | null>(null);
   const [isClaimingAll, setIsClaimingAll] = useState(false);
+  
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const character = useMemo(() => currentUser?.characters.find(c => c.id === selectedCharacterId), [currentUser, selectedCharacterId]);
 
@@ -182,8 +169,8 @@ export default function HuntingTab() {
   }, [character]);
   
   const finishedHunts = useMemo(() => {
-      return ongoingHunts.filter(hunt => isPast(new Date(hunt.endsAt)));
-  }, [ongoingHunts]);
+      return ongoingHunts.filter(hunt => new Date(hunt.endsAt) <= now);
+  }, [ongoingHunts, now]);
 
   const handleClaimAll = async () => {
       if (!character || finishedHunts.length === 0) return;
@@ -232,7 +219,7 @@ export default function HuntingTab() {
                     {ongoingHunts.map(hunt => {
                         const location = gameSettings.huntingLocations?.find(l => l.id === hunt.locationId);
                         const familiar = familiarsById[hunt.familiarId];
-                        const isFinished = new Date(hunt.endsAt) <= new Date();
+                        const isFinished = new Date(hunt.endsAt) <= now;
                         
                         return (
                             <Dialog key={hunt.huntId}>
@@ -245,7 +232,7 @@ export default function HuntingTab() {
                                             </div>
                                         ) : (
                                             <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs text-center p-1 rounded-b-lg">
-                                                <Timer endsAt={hunt.endsAt} />
+                                                <span>{formatHuntTimeLeft(hunt.endsAt)}</span>
                                             </div>
                                         )}
                                         <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/60 to-transparent p-1 rounded-t-lg">
@@ -260,7 +247,7 @@ export default function HuntingTab() {
                                     </DialogHeader>
                                     <div className="py-4 text-center">
                                         <div className="text-2xl font-mono font-bold text-primary">
-                                            {isFinished ? 'Завершено!' : <Timer endsAt={hunt.endsAt} />}
+                                            {isFinished ? 'Завершено!' : <span>{formatHuntTimeLeft(hunt.endsAt)}</span>}
                                         </div>
                                          <p className="text-sm text-muted-foreground">{isFinished ? 'Можно забрать добычу.' : 'Осталось времени.'}</p>
                                     </div>
