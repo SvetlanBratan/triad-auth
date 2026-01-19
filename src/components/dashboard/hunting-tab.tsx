@@ -5,11 +5,11 @@ import { useUser } from '@/hooks/use-user';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Compass, Send, Hourglass, CheckCircle, Bone, X } from 'lucide-react';
+import { Compass, Send, Hourglass, CheckCircle, Bone, X, Users } from 'lucide-react';
 import type { Character, FamiliarCard, FamiliarRank, HuntingLocation, OngoingHunt, InventoryItem } from '@/lib/types';
 import Image from 'next/image';
 import { SearchableSelect } from '../ui/searchable-select';
-import { formatHuntTimeLeft, cn } from '@/lib/utils';
+import { formatHuntTimeLeft, cn, getPlural } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -21,6 +21,8 @@ import {
 } from '@/components/ui/dialog';
 import { DEFAULT_GAME_SETTINGS } from '@/lib/data';
 import { ScrollArea } from '../ui/scroll-area';
+import { Label } from '../ui/label';
+import { Separator } from '../ui/separator';
 
 
 const rankOrder: FamiliarRank[] = ['мифический', 'легендарный', 'редкий', 'обычный'];
@@ -64,7 +66,7 @@ const LocationCard = ({ location, onSelect, currentHunts = 0, limit = 10 }: { lo
 }
 
 export default function HuntingTab() {
-  const { currentUser, gameSettings = DEFAULT_GAME_SETTINGS, startHunt, claimHuntReward, recallHunt, familiarsById, claimAllHuntRewards } = useUser();
+  const { currentUser, gameSettings = DEFAULT_GAME_SETTINGS, startHunt, claimHuntReward, recallHunt, familiarsById, claimAllHuntRewards, startMultipleHunts } = useUser();
   const { toast } = useToast();
   
   const [selectedLocation, setSelectedLocation] = useState<HuntingLocation | null>(null);
@@ -123,6 +125,48 @@ export default function HuntingTab() {
         setIsSending(false);
     }
   }
+
+  const handleStartMaxHunts = async () => {
+    if (!selectedCharacterId || !selectedLocation || !character) return;
+    
+    const currentHuntsInLocation = huntsByLocation[selectedLocation.id] || 0;
+    const availableSlots = 10 - currentHuntsInLocation;
+    if (availableSlots <= 0) {
+        toast({
+            variant: "destructive",
+            title: "Локация заполнена",
+            description: "В этой локации уже максимум фамильяров.",
+        });
+        return;
+    }
+    
+    const familiarsToSend = availableFamiliars.slice(0, availableSlots).map(f => f.value);
+
+    if (familiarsToSend.length === 0) {
+        toast({
+            title: "Нет доступных фамильяров",
+            description: "Все подходящие фамильяры уже на охоте.",
+        });
+        return;
+    }
+
+    setIsSending(true);
+    try {
+        await startMultipleHunts(selectedCharacterId, familiarsToSend, selectedLocation.id);
+        toast({ 
+            title: 'Экспедиция началась!', 
+            description: `${familiarsToSend.length} ${getPlural(familiarsToSend.length, 'фамильяр', 'фамильяра', 'фамильяров')} отправлено на охоту.`
+        });
+        setSelectedLocation(null);
+        setSelectedFamiliarId('');
+    } catch(e) {
+        const msg = e instanceof Error ? e.message : 'Произошла ошибка';
+        toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+    } finally {
+        setIsSending(false);
+    }
+  };
+
 
   const handleClaimReward = async (hunt: OngoingHunt) => {
     if (!character) return;
@@ -296,39 +340,51 @@ export default function HuntingTab() {
                      />
                     
                     {selectedCharacterId && (
-                        <>
-                            {selectedLocation ? (
-                                <div className="p-4 border rounded-lg space-y-4">
-                                    <h3 className="font-semibold">Выбрана локация: {selectedLocation.name}</h3>
-                                    <SearchableSelect
-                                        options={availableFamiliars}
-                                        value={selectedFamiliarId}
-                                        onValueChange={setSelectedFamiliarId}
-                                        placeholder="Выберите фамильяра..."
-                                    />
-                                    <div className="flex gap-2">
-                                        <Button variant="ghost" onClick={() => setSelectedLocation(null)}>Назад к локациям</Button>
-                                        <Button onClick={handleStartHunt} disabled={!selectedFamiliarId || isSending}>
-                                            <Send className="mr-2 h-4 w-4"/>{isSending ? 'Отправка...' : 'Отправить'}
-                                        </Button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div>
-                                    <h3 className="font-semibold mb-2">Доступные локации:</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {(gameSettings.huntingLocations || []).map(loc => {
-                                             const currentHunts = huntsByLocation[loc.id] || 0;
-                                             return <LocationCard key={loc.id} location={loc} onSelect={setSelectedLocation} currentHunts={currentHunts} limit={10} />
-                                        })}
-                                    </div>
-                                </div>
-                            )}
-                        </>
+                        <div>
+                            <h3 className="font-semibold mb-2">Доступные локации:</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {(gameSettings.huntingLocations || []).map(loc => {
+                                        const currentHunts = huntsByLocation[loc.id] || 0;
+                                        return <LocationCard key={loc.id} location={loc} onSelect={setSelectedLocation} currentHunts={currentHunts} limit={10} />
+                                })}
+                            </div>
+                        </div>
                     )}
                 </div>
             </CardContent>
         </Card>
+
+        <Dialog open={!!selectedLocation} onOpenChange={(isOpen) => { if (!isOpen) setSelectedLocation(null) }}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Отправить в: {selectedLocation?.name}</DialogTitle>
+                    <DialogDescription>
+                        Выберите фамильяра или отправьте всех доступных.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4 space-y-4">
+                    <div>
+                        <Label>Один фамильяр</Label>
+                        <SearchableSelect
+                            options={availableFamiliars}
+                            value={selectedFamiliarId}
+                            onValueChange={setSelectedFamiliarId}
+                            placeholder="Выберите фамильяра..."
+                        />
+                        <Button onClick={handleStartHunt} disabled={!selectedFamiliarId || isSending} className="w-full mt-2">
+                            <Send className="mr-2 h-4 w-4"/>{isSending ? 'Отправка...' : 'Отправить выбранного'}
+                        </Button>
+                    </div>
+                    <Separator />
+                     <div>
+                        <Label>Отправить нескольких</Label>
+                        <Button onClick={handleStartMaxHunts} disabled={isSending || availableFamiliars.length === 0 || (10 - (huntsByLocation[selectedLocation?.id ?? ''] || 0)) <= 0} variant="secondary" className="w-full">
+                            <Users className="mr-2 h-4 w-4" /> {isSending ? 'Отправка...' : `Отправить всех доступных (${Math.min(availableFamiliars.length, 10 - (huntsByLocation[selectedLocation?.id ?? ''] || 0))})`}
+                        </Button>
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
     </div>
   );
 }
