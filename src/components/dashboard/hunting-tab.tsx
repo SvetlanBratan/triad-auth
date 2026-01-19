@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Compass, Send, Hourglass, CheckCircle, Bone, X } from 'lucide-react';
-import type { Character, FamiliarCard, FamiliarRank, HuntingLocation, OngoingHunt } from '@/lib/types';
+import type { Character, FamiliarCard, FamiliarRank, HuntingLocation, OngoingHunt, InventoryItem } from '@/lib/types';
 import Image from 'next/image';
 import { SearchableSelect } from '../ui/searchable-select';
 import { formatHuntTimeLeft, cn } from '@/lib/utils';
@@ -22,6 +22,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { DEFAULT_GAME_SETTINGS } from '@/lib/data';
+import { isPast } from 'date-fns';
 
 
 const rankOrder: FamiliarRank[] = ['мифический', 'легендарный', 'редкий', 'обычный'];
@@ -87,6 +88,7 @@ export default function HuntingTab() {
 
   const [isSending, setIsSending] = useState(false);
   const [isProcessingId, setIsProcessingId] = useState<string | null>(null);
+  const [isClaimingAll, setIsClaimingAll] = useState(false);
 
   const character = useMemo(() => currentUser?.characters.find(c => c.id === selectedCharacterId), [currentUser, selectedCharacterId]);
 
@@ -166,12 +168,69 @@ export default function HuntingTab() {
     return character.ongoingHunts || [];
   }, [character]);
   
+  const finishedHunts = useMemo(() => {
+      return ongoingHunts.filter(hunt => isPast(new Date(hunt.endsAt)));
+  }, [ongoingHunts]);
+
+  const handleClaimAll = async () => {
+      if (!character || finishedHunts.length === 0) return;
+
+      setIsClaimingAll(true);
+      const allRewards: InventoryItem[] = [];
+      let successCount = 0;
+
+      for (const hunt of finishedHunts) {
+          try {
+              const rewards = await claimHuntReward(character.id, hunt.huntId);
+              allRewards.push(...rewards);
+              successCount++;
+          } catch(e) {
+              const msg = e instanceof Error ? e.message : 'Произошла ошибка';
+              toast({ variant: 'destructive', title: `Ошибка сбора добычи с ${familiarsById[hunt.familiarId]?.name}`, description: msg });
+          }
+      }
+
+      if (successCount > 0) {
+          if (allRewards.length > 0) {
+              const rewardSummary = allRewards
+                  .reduce((acc, reward) => {
+                      const existing = acc.find(r => r.name === reward.name);
+                      if (existing) {
+                          existing.quantity += reward.quantity;
+                      } else {
+                          acc.push({ ...reward });
+                      }
+                      return acc;
+                  }, [] as InventoryItem[])
+                  .map(r => `${r.name} (x${r.quantity})`)
+                  .join(', ');
+              
+              toast({
+                  title: `Добыча собрана с ${successCount} экспедиций!`,
+                  description: `Получено: ${rewardSummary}`
+              });
+          } else {
+              toast({
+                  title: `Экспедиции завершены`,
+                  description: `${successCount} фамильяров вернулись с пустыми лапами.`
+              });
+          }
+      }
+      
+      setIsClaimingAll(false);
+  }
+  
   return (
     <div className="space-y-8">
         {ongoingHunts.length > 0 && (
             <Card>
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle>Текущие экспедиции</CardTitle>
+                    {finishedHunts.length > 0 && (
+                        <Button onClick={handleClaimAll} disabled={isClaimingAll}>
+                           {isClaimingAll ? "Сбор..." : <><Bone className="mr-2 h-4 w-4" /> Забрать всё</>}
+                        </Button>
+                    )}
                 </CardHeader>
                 <CardContent className="flex flex-wrap gap-4">
                     {ongoingHunts.map(hunt => {
