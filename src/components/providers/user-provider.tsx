@@ -2937,14 +2937,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const character = currentUser.characters.find(c => c.id === characterId);
         if (!character) throw new Error("Персонаж не найден.");
 
-        const finishedHunts = (character.ongoingHunts || []).filter(h => isPast(new Date(h.endsAt)));
+        const finishedHunts = (character.ongoingHunts || []).filter((h: OngoingHunt) => isPast(new Date(h.endsAt)));
         if (finishedHunts.length === 0) return [];
 
         const allItems = [...(await fetchAllShops())].flatMap(shop => shop.items || []);
         const allItemsMap = new Map(allItems.map(item => [item.id, item]));
 
         const totalRewardsMap = new Map<string, InventoryItem>();
-        const updatedCharacter = JSON.parse(JSON.stringify(character)); // Deep copy to avoid mutation issues
+        const updatedCharacter: Character = JSON.parse(JSON.stringify(character)); // Deep copy to avoid mutation issues
         
         for (const hunt of finishedHunts) {
             const familiar = familiarsById[hunt.familiarId];
@@ -2991,8 +2991,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             }
         });
         
-        const finishedHuntIds = new Set(finishedHunts.map(h => h.huntId));
-        updatedCharacter.ongoingHunts = (updatedCharacter.ongoingHunts || []).filter(h => !finishedHuntIds.has(h.huntId));
+        const finishedHuntIds = new Set(finishedHunts.map((h: OngoingHunt) => h.huntId));
+        updatedCharacter.ongoingHunts = (updatedCharacter.ongoingHunts || []).filter((h: OngoingHunt) => !finishedHuntIds.has(h.huntId));
 
         await updateCharacterInUser(currentUser.id, updatedCharacter);
         return totalRewards;
@@ -3205,6 +3205,7 @@ export const useUser = () => {
     
 
     
+
 
 
 
