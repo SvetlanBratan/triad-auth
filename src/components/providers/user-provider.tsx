@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
@@ -7,7 +8,7 @@ import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut, reauthenticateWithCredential, EmailAuthProvider, updatePassword, updateEmail } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter, increment, FieldValue, arrayUnion, arrayRemove, deleteField } from "firebase/firestore";
 import { ALL_STATIC_FAMILIARS, EVENT_FAMILIARS, MOODLETS_DATA, DEFAULT_GAME_SETTINGS, WEALTH_LEVELS, ALL_SHOPS, SHOPS_BY_ID, POPULARITY_EVENTS, ALL_ACHIEVEMENTS, INVENTORY_CATEGORIES } from '@/lib/data';
-import { differenceInDays, differenceInMonths } from 'date-fns';
+import { differenceInDays, differenceInMonths, isPast } from 'date-fns';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { ALL_ITEMS_FOR_ALCHEMY } from '@/lib/alchemy-data';
 
@@ -120,6 +121,7 @@ export interface UserContextType {
   familiarsById: Record<string, FamiliarCard>;
   startHunt: (characterId: string, familiarId: string, locationId: string) => Promise<void>;
   claimHuntReward: (characterId: string, huntId: string) => Promise<InventoryItem[]>;
+  claimAllHuntRewards: (characterId: string) => Promise<InventoryItem[]>;
   recallHunt: (characterId: string, huntId: string) => Promise<void>;
   changeUserPassword: (currentPassword: string, newPassword: string) => Promise<void>;
   changeUserEmail: (currentPassword: string, newEmail: string) => Promise<void>;
@@ -1515,7 +1517,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }, [fetchUsersForAdmin]);
 
 
-    const createExchangeRequest = useCallback(async (creatorUserId: string, creatorCharacterId: string, fromCurrency: Currency, fromAmount: number, toCurrency: Currency, toAmount: number) => {
+  const createExchangeRequest = useCallback(async (creatorUserId: string, creatorCharacterId: string, fromCurrency: Currency, fromAmount: number, toCurrency: Currency, toAmount: number) => {
         await runTransaction(db, async (transaction) => {
             const userRef = doc(db, "users", creatorUserId);
             const userDoc = await transaction.get(userRef);
@@ -2735,6 +2737,71 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     }, [currentUser, familiarsById, gameSettings, updateCharacterInUser, fetchAllShops]);
 
+    const claimAllHuntRewards = useCallback(async (characterId: string): Promise<InventoryItem[]> => {
+        if (!currentUser) throw new Error("Пользователь не авторизован.");
+
+        const character = currentUser.characters.find(c => c.id === characterId);
+        if (!character) throw new Error("Персонаж не найден.");
+
+        const finishedHunts = (character.ongoingHunts || []).filter(h => isPast(new Date(h.endsAt)));
+        if (finishedHunts.length === 0) return [];
+
+        const allItems = [...(await fetchAllShops())].flatMap(shop => shop.items || []);
+        const allItemsMap = new Map(allItems.map(item => [item.id, item]));
+
+        const totalRewards: InventoryItem[] = [];
+        const updatedCharacter = JSON.parse(JSON.stringify(character)); // Deep copy to avoid mutation issues
+        
+        for (const hunt of finishedHunts) {
+            const familiar = familiarsById[hunt.familiarId];
+            const location = gameSettings.huntingLocations?.find(l => l.id === hunt.locationId);
+            if (!familiar || !location) continue;
+
+            (location.rewards || []).forEach(rewardRule => {
+                const rewardData = rewardRule.rewardsByRank[familiar.rank];
+                if (rewardData && Math.random() * 100 < rewardData.chance) {
+                    const itemData = allItemsMap.get(rewardRule.itemId);
+                    if (itemData) {
+                        const existingReward = totalRewards.find(r => r.name === (itemData.inventoryItemName || itemData.name));
+                        if (existingReward) {
+                            existingReward.quantity += rewardData.quantity;
+                        } else {
+                            totalRewards.push({
+                                id: `inv-item-${Date.now()}-${Math.random()}`,
+                                name: itemData.inventoryItemName || itemData.name,
+                                description: itemData.inventoryItemDescription || itemData.description,
+                                image: itemData.inventoryItemImage || itemData.image,
+                                quantity: rewardData.quantity,
+                            });
+                        }
+                    }
+                }
+            });
+        }
+
+        // Add rewards to inventory
+        const inventory = updatedCharacter.inventory;
+        totalRewards.forEach(reward => {
+            const category = 'ингредиенты' as const;
+            if (!inventory[category]) (inventory as any)[category] = [];
+            const categoryItems = inventory[category] as InventoryItem[];
+            const existingItemIndex = categoryItems.findIndex(i => i.name === reward.name);
+            if (existingItemIndex > -1) {
+                categoryItems[existingItemIndex].quantity += reward.quantity;
+            } else {
+                categoryItems.push(reward);
+            }
+        });
+        
+        // Remove all finished hunts
+        const finishedHuntIds = new Set(finishedHunts.map(h => h.huntId));
+        updatedCharacter.ongoingHunts = (updatedCharacter.ongoingHunts || []).filter(h => !finishedHuntIds.has(h.huntId));
+
+        await updateCharacterInUser(currentUser.id, updatedCharacter);
+        return totalRewards;
+    }, [currentUser, familiarsById, gameSettings, updateCharacterInUser, fetchAllShops]);
+    
+
     const recallHunt = useCallback(async (characterId: string, huntId: string) => {
         if (!currentUser) throw new Error("Пользователь не авторизован.");
         const character = currentUser.characters.find(c => c.id === characterId);
@@ -2991,12 +3058,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       familiarsById,
       startHunt,
       claimHuntReward,
+      claimAllHuntRewards,
       recallHunt,
       changeUserPassword,
       changeUserEmail,
       mergeUserData,
     }),
-    [currentUser, setCurrentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, fetchAlchemyRecipes, updateAlchemyRecipe, deleteAlchemyRecipe, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, allFamiliars, familiarsById, startHunt, claimHuntReward, recallHunt, changeUserPassword, changeUserEmail, mergeUserData]
+    [currentUser, setCurrentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, fetchAlchemyRecipes, updateAlchemyRecipe, deleteAlchemyRecipe, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, allFamiliars, familiarsById, startHunt, claimHuntReward, claimAllHuntRewards, recallHunt, changeUserPassword, changeUserEmail, mergeUserData]
   );
     
     return (
@@ -3015,5 +3083,7 @@ export const useUser = () => {
     }
     return context;
 };
+
+    
 
     

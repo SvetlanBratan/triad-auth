@@ -79,7 +79,7 @@ const Timer = ({ endsAt }: { endsAt: string }) => {
 
 
 export default function HuntingTab() {
-  const { currentUser, gameSettings = DEFAULT_GAME_SETTINGS, startHunt, claimHuntReward, recallHunt, familiarsById } = useUser();
+  const { currentUser, gameSettings = DEFAULT_GAME_SETTINGS, startHunt, claimHuntReward, recallHunt, familiarsById, claimAllHuntRewards } = useUser();
   const { toast } = useToast();
   
   const [selectedLocation, setSelectedLocation] = useState<HuntingLocation | null>(null);
@@ -176,48 +176,31 @@ export default function HuntingTab() {
       if (!character || finishedHunts.length === 0) return;
 
       setIsClaimingAll(true);
-      const allRewards: InventoryItem[] = [];
-      let successCount = 0;
-
-      for (const hunt of finishedHunts) {
-          try {
-              const rewards = await claimHuntReward(character.id, hunt.huntId);
-              allRewards.push(...rewards);
-              successCount++;
-          } catch(e) {
-              const msg = e instanceof Error ? e.message : 'Произошла ошибка';
-              toast({ variant: 'destructive', title: `Ошибка сбора добычи с ${familiarsById[hunt.familiarId]?.name}`, description: msg });
-          }
-      }
-
-      if (successCount > 0) {
+      
+      try {
+          const allRewards = await claimAllHuntRewards(character.id);
+          
           if (allRewards.length > 0) {
               const rewardSummary = allRewards
-                  .reduce((acc, reward) => {
-                      const existing = acc.find(r => r.name === reward.name);
-                      if (existing) {
-                          existing.quantity += reward.quantity;
-                      } else {
-                          acc.push({ ...reward });
-                      }
-                      return acc;
-                  }, [] as InventoryItem[])
                   .map(r => `${r.name} (x${r.quantity})`)
                   .join(', ');
               
               toast({
-                  title: `Добыча собрана с ${successCount} экспедиций!`,
+                  title: `Добыча собрана с ${finishedHunts.length} экспедиций!`,
                   description: `Получено: ${rewardSummary}`
               });
           } else {
               toast({
                   title: `Экспедиции завершены`,
-                  description: `${successCount} фамильяров вернулись с пустыми лапами.`
+                  description: `${finishedHunts.length} фамильяров вернулись с пустыми лапами.`
               });
           }
+      } catch (e) {
+          const msg = e instanceof Error ? e.message : 'Произошла ошибка при сборе всей добычи.';
+          toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+      } finally {
+          setIsClaimingAll(false);
       }
-      
-      setIsClaimingAll(false);
   }
   
   return (
@@ -350,5 +333,7 @@ export default function HuntingTab() {
 }
 
 
+
+    
 
     
