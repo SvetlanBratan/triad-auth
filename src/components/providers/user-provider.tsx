@@ -1,9 +1,8 @@
 
-
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
-import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage, Cooldowns, PopularityLog, CharacterPopularityUpdate, OwnedFamiliarCard, AlchemyRecipe, AlchemyRecipeComponent, PlayerStatus, PlayerPing, SocialLink, OngoingHunt, HuntReward, PlayPlatform, Potion, AlchemyIngredient } from '@/lib/types';
+import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage, Cooldowns, PopularityLog, CharacterPopularityUpdate, OwnedFamiliarCard, AlchemyRecipe, Potion, AlchemyIngredient } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut, reauthenticateWithCredential, EmailAuthProvider, updatePassword, updateEmail } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter, increment, FieldValue, arrayUnion, arrayRemove, deleteField } from "firebase/firestore";
@@ -2830,8 +2829,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const inventory = character.inventory || initialFormData.inventory;
             const ingredientsInv = (inventory.ингредиенты || []) as InventoryItem[];
 
-            const allItems = [...ALL_ITEMS_FOR_ALCHEMY, ...ALL_SHOPS.flatMap(s => s.items || [])];
-            const allItemsMap = new Map(allItems.map(item => item && [item.id, item]).filter(Boolean) as [string, ShopItem | AlchemyIngredient | Potion][]);
+            const allItems = [...(await fetchAllShops())].flatMap(shop => shop.items || []);
+            const allItemsMap = new Map(allItems.map(item => [item.id, item]));
+
 
             for (const component of recipe.components) {
                 const requiredIngredient = allItemsMap.get(component.ingredientId);
@@ -2889,13 +2889,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const updatedUser = await fetchUserById(userId);
             if(updatedUser) setCurrentUser(updatedUser);
         }
-    }, [currentUser, fetchUserById, initialFormData]);
+    }, [currentUser, fetchUserById, initialFormData, fetchAllShops]);
 
     const userContextValue = useMemo(() => ({
         currentUser,
         setCurrentUser,
         gameDate: gameSettings.gameDate,
         gameDateString: gameSettings.gameDateString,
+        gameSettings,
         lastWeeklyBonusAwardedAt: gameSettings.lastWeeklyBonusAwardedAt,
         fetchUserById,
         fetchCharacterById,
@@ -2969,9 +2970,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         withdrawFromShopTill,
         brewPotion,
         addAlchemyRecipe,
+        fetchAlchemyRecipes,
         updateAlchemyRecipe,
         deleteAlchemyRecipe,
-        fetchAlchemyRecipes,
         fetchDbFamiliars,
         addFamiliarToDb,
         deleteFamiliarFromDb,
@@ -2987,7 +2988,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         changeUserPassword,
         changeUserEmail,
         mergeUserData,
-    }), [currentUser, setCurrentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateGameDate, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, addAlchemyRecipe, fetchAlchemyRecipes, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, allFamiliars, familiarsById, startHunt, claimHuntReward, recallHunt, changeUserPassword, changeUserEmail, mergeUserData, brewPotion, updateUserAvatar]);
+    }), [currentUser, setCurrentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, fetchAlchemyRecipes, updateAlchemyRecipe, deleteAlchemyRecipe, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, allFamiliars, familiarsById, startHunt, claimHuntReward, recallHunt, changeUserPassword, changeUserEmail, mergeUserData]);
     
     const authValue = useMemo(() => ({
         user: firebaseUser,
@@ -3012,5 +3013,4 @@ export const useUser = () => {
     return context;
 };
 
-
-
+    
