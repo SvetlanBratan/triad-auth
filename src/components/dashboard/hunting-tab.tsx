@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/dialog';
 import { DEFAULT_GAME_SETTINGS } from '@/lib/data';
 import { isPast } from 'date-fns';
+import { ScrollArea } from '../ui/scroll-area';
 
 
 const rankOrder: FamiliarRank[] = ['мифический', 'легендарный', 'редкий', 'обычный'];
@@ -50,9 +51,9 @@ const LocationCard = ({ location, onSelect, currentHunts = 0, limit = 10 }: { lo
             <div className="flex flex-col flex-1 p-4 justify-between">
                 <div>
                     <CardTitle className="text-lg">{location.name}</CardTitle>
-                     <div className="h-20 mt-2">
+                    <ScrollArea className="h-20 mt-2">
                         <p className="text-xs text-muted-foreground pr-4">{location.description}</p>
-                    </div>
+                    </ScrollArea>
                 </div>
                 <div className="text-xs text-muted-foreground flex justify-between items-center mt-2">
                     <span>{location.durationMinutes} мин. / Ранг: {rankNames[location.requiredRank]}</span>
