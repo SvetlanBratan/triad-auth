@@ -1711,7 +1711,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const ranksAreDifferent = initiatorFamiliar.rank !== targetFamiliar.rank;
         const isMythicEventTrade =
           (initiatorFamiliar.rank === 'мифический' && targetFamiliar.rank === 'ивентовый') ||
-          (initiatorFamiliar.rank === 'ивентовый' && initiatorFamiliar.rank === 'мифический');
+          (initiatorFamiliar.rank === 'ивентовый' && targetFamiliar.rank === 'мифический');
 
         if (ranksAreDifferent && !isMythicEventTrade) {
             throw new Error("Обмен возможен только между фамильярами одного ранга, или между мифическим и ивентовым.");
@@ -2822,7 +2822,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             if (!location) throw new Error("Локация не найдена.");
 
             const currentHuntsInLocation = (character.ongoingHunts || []).filter(h => h.locationId === locationId).length;
-            const availableSlots = 10 - currentHuntsInLocation;
+            const availableSlots = (location.limit || 10) - currentHuntsInLocation;
 
             if (familiarIds.length > availableSlots) {
                 throw new Error(`Можно отправить не более ${availableSlots} фамильяров в эту локацию.`);
@@ -2996,7 +2996,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         });
         
         const finishedHuntIds = new Set(finishedHunts.map((h: OngoingHunt) => h.huntId));
-        updatedCharacter.ongoingHunts = (updatedCharacter.ongoingHunts || []).filter((h: OngoingHunt) => !finishedHuntIds.has(h.huntId));
+        updatedCharacter.ongoingHunts = (updatedCharacter.ongoingHunts || []).filter((h) => !finishedHuntIds.has(h.huntId));
 
         await updateCharacterInUser(currentUser.id, updatedCharacter);
         return totalRewards;
@@ -3209,6 +3209,7 @@ export const useUser = () => {
     
 
     
+
 
 
 
