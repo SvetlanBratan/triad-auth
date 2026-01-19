@@ -115,7 +115,7 @@ export default function AuthPage() {
                     <Terminal className="h-4 w-4" />
                     <AlertTitle>Внимание!</AlertTitle>
                     <AlertDescription>
-                        Пожалуйста, не используйте реальные пароли от социальных сетей и др. ресурсов. Вы можете повторно использовать имя и пароль, как на <a href="https://pumpkin-pandemonium.vercel.app/" target="_blank" rel="noopener noreferrer" className="underline">Сайте Тыквенного Переполоха</a>, чтобы не запутаться. Проект не несет ответственности за сохранность ваших данных.
+                        Пожалуйста, не используйте реальные пароли от социальных сетей. Проект не несет ответственности за сохранность ваших данных. Запишите их, так как пароль восстановлению не подлежит.
                     </AlertDescription>
                 </Alert>
             )}
