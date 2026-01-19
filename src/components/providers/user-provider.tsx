@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
@@ -151,6 +152,9 @@ const EXTRA_CHARACTER_REWARD_ID = 'r-extra-char';
 const AI_ART_REWARD_ID = 'r-ai-art';
 const ERA_FACE_ACHIEVEMENT_ID = 'ach-era-face';
 const CUSTOM_STATUS_REWARD_ID = 'r-custom-status';
+const QUESTIONNAIRE_ACHIEVEMENT_ID = 'ach-questionnaire';
+const FIRST_HUNT_ACHIEVEMENT_ID = 'ach-hunting';
+const FAVORITE_PLAYER_ACHIEVEMENT_ID = 'ach-favorites';
 
 
 const RELATIONSHIP_POINTS_CONFIG: Record<RelationshipActionType, number> = {
@@ -645,14 +649,21 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
             const updatedCharacters = [...sourceUserData.characters];
             const characterIndex = updatedCharacters.findIndex(char => char.id === sanitizedCharacterToUpdate.id);
+            const isNewCharacter = characterIndex === -1;
 
-            if (characterIndex > -1) {
-                updatedCharacters[characterIndex] = sanitizedCharacterToUpdate;
-            } else {
+            const updatesToApply: Partial<User> = {};
+
+            if (isNewCharacter) {
                 updatedCharacters.push(sanitizedCharacterToUpdate);
+                if (!(sourceUserData.achievementIds || []).includes(QUESTIONNAIRE_ACHIEVEMENT_ID)) {
+                    updatesToApply.achievementIds = [...(sourceUserData.achievementIds || []), QUESTIONNAIRE_ACHIEVEMENT_ID];
+                }
+            } else {
+                updatedCharacters[characterIndex] = sanitizedCharacterToUpdate;
             }
-            
-            transaction.update(userRef, { ...sourceUserData, characters: updatedCharacters, favoritePlayerIds: sourceUserData.favoritePlayerIds || [] });
+            updatesToApply.characters = updatedCharacters;
+
+            transaction.update(userRef, updatesToApply);
         });
 
         const updatedUser = await fetchUserById(userId);
@@ -2718,8 +2729,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         await updateDoc(userRef, {
             favoritePlayerIds: arrayUnion(targetUserId)
         });
+        
+        if (!(currentUser.achievementIds || []).includes(FAVORITE_PLAYER_ACHIEVEMENT_ID)) {
+             await grantAchievementToUser(currentUser.id, FAVORITE_PLAYER_ACHIEVEMENT_ID);
+        }
+
         setCurrentUser(prev => prev ? { ...prev, favoritePlayerIds: [...(prev.favoritePlayerIds || []), targetUserId] } : null);
-    }, [currentUser, setCurrentUser]);
+    }, [currentUser, setCurrentUser, grantAchievementToUser]);
 
     const removeFavoritePlayer = useCallback(async (targetUserId: string) => {
         if (!currentUser) return;
@@ -2738,34 +2754,48 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     
     const startHunt = useCallback(async (characterId: string, familiarId: string, locationId: string) => {
         if (!currentUser) throw new Error("Пользователь не авторизован.");
-        const character = currentUser.characters.find(c => c.id === characterId);
-        if (!character) throw new Error("Персонаж не найден.");
-        const familiar = familiarsById[familiarId];
-        if (!familiar) throw new Error("Фамильяр не найден.");
-        const location = gameSettings.huntingLocations?.find(l => l.id === locationId);
-        if (!location) throw new Error("Локация не найдена.");
-
-        const currentHuntsInLocation = (character.ongoingHunts || []).filter(h => h.locationId === locationId).length;
-        if (currentHuntsInLocation >= 10) {
-            throw new Error("В эту локацию нельзя отправить больше 10 фамильяров.");
-        }
-
-        const startedAt = new Date();
-        const endsAt = new Date(startedAt.getTime() + location.durationMinutes * 60000);
-
-        const newHunt: OngoingHunt = {
-            huntId: `hunt-${Date.now()}-${familiarId.slice(0, 5)}`,
-            familiarId,
-            locationId,
-            startedAt: startedAt.toISOString(),
-            endsAt: endsAt.toISOString(),
-        };
         
-        const updatedOngoingHunts = [...(character.ongoingHunts || []), newHunt];
-        const updatedCharacter = { ...character, ongoingHunts: updatedOngoingHunts };
-        
-        await updateCharacterInUser(currentUser.id, updatedCharacter);
-    }, [currentUser, familiarsById, gameSettings, updateCharacterInUser]);
+        await runTransaction(db, async (transaction) => {
+            const userRef = doc(db, "users", currentUser.id);
+            const userDoc = await transaction.get(userRef);
+            if (!userDoc.exists()) throw new Error("Пользователь не найден.");
+
+            const userData = userDoc.data() as User;
+            const charIndex = userData.characters.findIndex(c => c.id === characterId);
+            if (charIndex === -1) throw new Error("Персонаж не найден.");
+            
+            const character = userData.characters[charIndex];
+            const familiar = familiarsById[familiarId];
+            if (!familiar) throw new Error("Фамильяр не найден.");
+            const location = gameSettings.huntingLocations?.find(l => l.id === locationId);
+            if (!location) throw new Error("Локация не найдена.");
+
+            const startedAt = new Date();
+            const endsAt = new Date(startedAt.getTime() + location.durationMinutes * 60000);
+
+            const newHunt: OngoingHunt = {
+                huntId: `hunt-${Date.now()}-${familiarId.slice(0, 5)}`,
+                familiarId,
+                locationId,
+                startedAt: startedAt.toISOString(),
+                endsAt: endsAt.toISOString(),
+            };
+            
+            character.ongoingHunts = [...(character.ongoingHunts || []), newHunt];
+            userData.characters[charIndex] = character;
+            
+            let achievementIds = userData.achievementIds || [];
+            if (!achievementIds.includes(FIRST_HUNT_ACHIEVEMENT_ID)) {
+                achievementIds = [...achievementIds, FIRST_HUNT_ACHIEVEMENT_ID];
+            }
+            
+            transaction.update(userRef, { characters: userData.characters, achievementIds });
+        });
+
+        const updatedUser = await fetchUserById(currentUser.id);
+        if(updatedUser) setCurrentUser(updatedUser);
+
+    }, [currentUser, familiarsById, gameSettings, fetchUserById, grantAchievementToUser]);
 
      const startMultipleHunts = useCallback(async (characterId: string, familiarIds: string[], locationId: string) => {
         if (!currentUser) throw new Error("Пользователь не авторизован.");
@@ -2821,13 +2851,19 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             character.ongoingHunts = [...(character.ongoingHunts || []), ...newHunts];
             
             userData.characters[charIndex] = character;
-            transaction.update(userRef, { characters: userData.characters });
+            
+            let achievementIds = userData.achievementIds || [];
+            if (!achievementIds.includes(FIRST_HUNT_ACHIEVEMENT_ID)) {
+                achievementIds = [...achievementIds, FIRST_HUNT_ACHIEVEMENT_ID];
+            }
+            
+            transaction.update(userRef, { characters: userData.characters, achievementIds });
         });
         
         const updatedUser = await fetchUserById(currentUser.id);
         if(updatedUser) setCurrentUser(updatedUser);
 
-    }, [currentUser, gameSettings.huntingLocations, familiarsById, fetchUserById, setCurrentUser]);
+    }, [currentUser, gameSettings.huntingLocations, familiarsById, fetchUserById, setCurrentUser, grantAchievementToUser]);
 
 
     const claimHuntReward = useCallback(async (characterId: string, huntId: string): Promise<InventoryItem[]> => {
@@ -3164,6 +3200,7 @@ export const useUser = () => {
     
 
     
+
 
 
 

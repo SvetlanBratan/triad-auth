@@ -345,6 +345,15 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
   { id: 'ach-landless', name: 'Безземельный', description: 'Он пятый брат вашего троюродного соседа. Беден, но горд!', iconName: 'Home' },
   { id: 'ach-beta-tester', name: 'Бета-тестер', description: 'За активное участие в бета-тестировании системы начисления баллов.', iconName: 'FlaskConical' },
   { id: 'ach-bug-hunter', name: 'Охотник за ошибками', description: 'За нахождение и своевременный репорт критической ошибки или бага в системе.', iconName: 'Bug' },
+  { id: 'ach-winner', name: 'Победитель конкурса', description: 'Занял первое место в конкурсе, обойдя всех соперников.', iconName: 'ach-winner' },
+  { id: 'ach-winner2', name: 'Второе место', description: 'Дошёл до финала и занял почётное второе место.', iconName: 'ach-winner2' },
+  { id: 'ach-winner3', name: 'Третье место', description: 'Вошёл в тройку лучших участников конкурса.', iconName: 'ach-winner3' },
+  { id: 'ach-participant', name: 'Участник конкурса', description: 'Принял участие в конкурсе и проявил себя.', iconName: 'ach-participant' },
+  { id: 'ach-writer', name: 'Искра сюжета', description: 'Предложил идею, ставшую основой или частью игрового сюжета.', iconName: 'ach-writer' },
+  { id: 'ach-questionnaire', name: 'Сделал первый шаг', description: 'Отправил анкету персонажа через сайт.', iconName: 'ach-questionnaire' },
+  { id: 'ach-hunting', name: 'Первая охота', description: 'Впервые отправил фамильяра на охоту.', iconName: 'ach-hunting' },
+  { id: 'ach-favorites', name: 'В поле зрения', description: 'Добавил другого игрока в избранное.', iconName: 'ach-favorites' },
+  { id: 'ach-vip', name: 'VIP персона', description: 'Установка особенного статуса. Такой только у избранных!', iconName: 'ach-vip' },
 ];
 
 export const ACHIEVEMENTS_BY_ID: Record<string, Achievement> = ALL_ACHIEVEMENTS.reduce((acc, ach) => {
@@ -625,7 +634,6 @@ const addHint = (card: Omit<FamiliarCard, 'data-ai-hint'>): FamiliarCard => {
     else if (lowerCaseName.includes('лотль')) hint = 'lotl';
     else if (lowerCaseName.includes('олигр')) hint = 'oligr';
     else if (lowerCaseName.includes('пупурита')) hint = 'pupurita';
-    else if (lowerCaseName.includes('моралия')) hint = 'moralia beast';
     return { ...card, 'data-ai-hint': hint };
 };
 
