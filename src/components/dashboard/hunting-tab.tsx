@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -81,7 +82,7 @@ export default function HuntingTab() {
   
   const [now, setNow] = useState(new Date());
 
-  const { data: allUsers = [] } = useQuery<User[]>({
+  const { data: allUsers = [], refetch: refetchAllUsers } = useQuery<User[]>({
     queryKey: ['allUsersForHunting'],
     queryFn: fetchUsersForAdmin,
   });
@@ -136,6 +137,7 @@ export default function HuntingTab() {
         toast({ title: 'Охота началась!', description: 'Ваш фамильяр отправился на добычу ингредиентов.' });
         setSelectedLocation(null);
         setSelectedFamiliarId('');
+        refetchAllUsers();
     } catch(e) {
         const msg = e instanceof Error ? e.message : 'Произошла ошибка';
         toast({ variant: 'destructive', title: 'Ошибка', description: msg });
@@ -158,7 +160,7 @@ export default function HuntingTab() {
         return;
     }
     
-    const familiarsToSend = availableFamiliars.slice(0, availableSlots).map(f => f.value);
+    const familiarsToSend = (availableFamiliars || []).slice(0, availableSlots).map(f => f.value);
 
     if (familiarsToSend.length === 0) {
         toast({
@@ -177,6 +179,7 @@ export default function HuntingTab() {
         });
         setSelectedLocation(null);
         setSelectedFamiliarId('');
+        refetchAllUsers();
     } catch(e) {
         const msg = e instanceof Error ? e.message : 'Произошла ошибка';
         toast({ variant: 'destructive', title: 'Ошибка', description: msg });
@@ -203,6 +206,7 @@ export default function HuntingTab() {
                 description: 'К сожалению, фамильяр вернулся с пустыми лапами.',
             });
         }
+        refetchAllUsers();
     } catch(e) {
         const msg = e instanceof Error ? e.message : 'Произошла ошибка';
         toast({ variant: 'destructive', title: 'Ошибка', description: msg });
@@ -217,6 +221,7 @@ export default function HuntingTab() {
     try {
         await recallHunt(character.id, hunt.huntId);
         toast({ title: 'Фамильяр отозван', description: 'Экспедиция отменена, добыча не получена.' });
+        refetchAllUsers();
     } catch(e) {
         const msg = e instanceof Error ? e.message : 'Произошла ошибка';
         toast({ variant: 'destructive', title: 'Ошибка', description: msg });
@@ -257,6 +262,7 @@ export default function HuntingTab() {
                   description: `${finishedHunts.length} фамильяров вернулись с пустыми лапами.`
               });
           }
+          refetchAllUsers();
       } catch (e) {
           const msg = e instanceof Error ? e.message : 'Произошла ошибка при сборе всей добычи.';
           toast({ variant: 'destructive', title: 'Ошибка', description: msg });
@@ -406,14 +412,14 @@ export default function HuntingTab() {
                     <Separator />
                      <div>
                         <Label>Отправить нескольких</Label>
-                        <Button onClick={handleStartMaxHunts} disabled={isSending || availableFamiliars.length === 0 || (10 - (huntsByLocation[selectedLocation?.id ?? ''] || 0)) <= 0} variant="secondary" className="w-full">
-                            <Users className="mr-2 h-4 w-4" /> {isSending ? 'Отправка...' : `Отправить всех доступных (${Math.min(availableFamiliars.length, 10 - (huntsByLocation[selectedLocation?.id ?? ''] || 0))})`}
+                        <Button onClick={handleStartMaxHunts} disabled={isSending || !availableFamiliars || availableFamiliars.length === 0 || (10 - (huntsByLocation[selectedLocation?.id ?? ''] || 0)) <= 0} variant="secondary" className="w-full">
+                            <Users className="mr-2 h-4 w-4" /> {isSending ? 'Отправка...' : `Отправить всех доступных (${Math.min(availableFamiliars?.length || 0, 10 - (huntsByLocation[selectedLocation?.id ?? ''] || 0))})`}
                         </Button>
                     </div>
                 </div>
                 <Separator />
                 <div className="pt-4 space-y-2">
-                    <h4 className="font-semibold flex items-center gap-2 text-muted-foreground"><Users className="w-4 h-4" /> Сейчас на охоте ({huntsInSelectedLocation.length} / 10)</h4>
+                    <h4 className="font-semibold flex items-center gap-2 text-muted-foreground"><Users className="w-4 w-4" /> Сейчас на охоте ({huntsInSelectedLocation.length} / 10)</h4>
                     {huntsInSelectedLocation.length > 0 ? (
                         <ScrollArea className="h-40">
                             <div className="space-y-2 pr-4">
