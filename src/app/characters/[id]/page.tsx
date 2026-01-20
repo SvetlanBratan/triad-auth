@@ -893,18 +893,18 @@ export default function CharacterPage() {
                                                 <cat.icon className="mr-2 w-4 h-4" />{cat.label} ({visibleItems.length})
                                             </AccordionTrigger>
                                             <AccordionContent>
-                                                <div className="sm:columns-2 lg:columns-2 gap-x-4 text-sm pt-2">
+                                                <ul className="sm:columns-2 gap-x-6 text-sm pt-2">
                                                     {visibleItems.map(item => (
-                                                        <div key={item.id} className="break-inside-avoid-column pb-2">
+                                                        <li key={item.id} className="break-inside-avoid-column pb-1">
                                                             <button 
-                                                                className="w-full text-left p-2 border rounded-md hover:bg-muted/50 transition-colors break-words"
+                                                                className="w-full text-left p-1.5 rounded-md hover:bg-muted/50 transition-colors"
                                                                 onClick={() => setSelectedItem({ ...item, category: cat.key as InventoryCategory })}
                                                             >
-                                                                <span>{item.name}{item.quantity > 1 && ` (${item.quantity})`}</span>
+                                                                <span className="break-words">{item.name}{item.quantity > 1 && ` (${item.quantity})`}</span>
                                                             </button>
-                                                        </div>
+                                                        </li>
                                                     ))}
-                                                </div>
+                                                </ul>
                                             </AccordionContent>
                                         </AccordionItem>
                                     );
