@@ -434,7 +434,7 @@ export default function CharacterPage() {
                 <div className="flex justify-between items-center mb-1">
                     <h4 className="font-semibold text-muted-foreground">{title}</h4>
                     {isOwnerOrAdmin && (
-                        <Button variant="ghost" size="icon" onClick={()={() => setEditingState({ type: 'section', section })} className="h-7 w-7">
+                        <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'section', section })} className="h-7 w-7">
                             {isEmpty ? <PlusCircle className="w-4 h-4 text-muted-foreground" /> : <Edit className="w-4 h-4" />}
                         </Button>
                     )}
@@ -781,7 +781,7 @@ export default function CharacterPage() {
                                 return (
                                 <div key={rel.id || `${rel.targetCharacterId}-${rel.type}-${index}`} className="relative group">
                                     {isOwnerOrAdmin && (
-                                        <Button variant="ghost" size="icon" onClick={()={() => setEditingState({ type: 'relationship', mode: 'edit', relationship: rel })} className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'relationship', mode: 'edit', relationship: rel })} className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <Edit className="w-4 h-4" />
                                         </Button>
                                     )}
@@ -808,7 +808,7 @@ export default function CharacterPage() {
                 <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <CardTitle className="flex items-center gap-2"><Users /> Семейное положение</CardTitle>
                     {isOwnerOrAdmin && (
-                            <Button variant="ghost" size="icon" onClick={()={() => setEditingState({ type: 'section', section: 'marriage' })} className="shrink-0 h-8 w-8 self-start sm:self-center">
+                            <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'section', section: 'marriage' })} className="shrink-0 h-8 w-8 self-start sm:self-center">
                             <Edit className="w-4 h-4" />
                         </Button>
                     )}
@@ -923,7 +923,7 @@ export default function CharacterPage() {
                                                             <li key={item.id} className="break-inside-avoid-column pb-1">
                                                                 <button 
                                                                     className="w-full text-left p-1.5 rounded-md hover:bg-muted/50 transition-colors"
-                                                                    onClick={()={() => setSelectedItem({ ...item, category: cat.key as InventoryCategory })}
+                                                                    onClick={() => setSelectedItem({ ...item, category: cat.key as InventoryCategory })}
                                                                 >
                                                                     <span className="break-words">{item.name}{item.quantity > 1 && ` (${item.quantity})`}</span>
                                                                 </button>
@@ -996,7 +996,7 @@ export default function CharacterPage() {
                             data-ai-hint="character banner"
                         />
                          {isAdmin && (
-                            <Button variant="ghost" size="icon" onClick={()={() => setEditingState({ type: 'section', section: 'gallery' })} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/50 hover:bg-background/80">
+                            <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'section', section: 'gallery' })} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/50 hover:bg-background/80">
                                 <Edit className="w-4 h-4" />
                             </Button>
                         )}
@@ -1031,7 +1031,7 @@ export default function CharacterPage() {
                                                 {accomplishments.map(acc => (
                                                     <div key={acc.id} className="text-sm p-2 bg-muted/50 rounded-md group relative">
                                                         {isOwnerOrAdmin && (
-                                                            <Button variant="ghost" size="icon" onClick={()={() => setEditingState({ type: 'accomplishment', mode: 'edit', accomplishment: acc })} className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7">
+                                                            <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'accomplishment', mode: 'edit', accomplishment: acc })} className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7">
                                                                 <Edit className="w-4 h-4" />
                                                             </Button>
                                                         )}
@@ -1210,7 +1210,7 @@ export default function CharacterPage() {
                                                 {accomplishments.map(acc => (
                                                     <div key={acc.id} className="text-sm p-2 bg-muted/50 rounded-md group relative">
                                                         {isOwnerOrAdmin && (
-                                                            <Button variant="ghost" size="icon" onClick={()={() => setEditingState({ type: 'accomplishment', mode: 'edit', accomplishment: acc })} className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7">
+                                                            <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'accomplishment', mode: 'edit', accomplishment: acc })} className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7">
                                                                 <Edit className="w-4 h-4" />
                                                             </Button>
                                                         )}
