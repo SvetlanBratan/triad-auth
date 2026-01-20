@@ -1713,7 +1713,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const ranksAreDifferent = initiatorFamiliar.rank !== targetFamiliar.rank;
         const isMythicEventTrade =
           (initiatorFamiliar.rank === 'мифический' && targetFamiliar.rank === 'ивентовый') ||
-          (initiatorFamiliar.rank === 'ивентовый' && initiatorFamiliar.rank === 'мифический');
+          (initiatorFamiliar.rank === 'ивентовый' && targetFamiliar.rank === 'мифический');
 
         if (ranksAreDifferent && !isMythicEventTrade) {
             throw new Error("Обмен возможен только между фамильярами одного ранга, или между мифическим и ивентовым.");
@@ -1810,7 +1810,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             targetChar.familiarCards.splice(targetCardIndex, 1);
 
             initiatorChar.familiarCards.push({ id: request.targetFamiliarId });
-            targetChar.familiarCards.push({ id: request.initiatorFamiliarId });
+            targetChar.familiarCards.push({ id: request.targetFamiliarId });
 
             transaction.update(initiatorUserRef, { characters: initiatorData.characters });
             transaction.update(targetUserRef, { characters: targetData.characters });
@@ -2577,6 +2577,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         let createdItem: InventoryItem | null = null;
         let recipeName: string = '';
     
+        const allRecipes = await fetchAlchemyRecipes();
         await runTransaction(db, async (transaction) => {
             const userRef = doc(db, "users", userId);
             const userDoc = await transaction.get(userRef);
@@ -2585,7 +2586,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const charIndex = userData.characters.findIndex(c => c.id === characterId);
             if (charIndex === -1) throw new Error("Персонаж не найден.");
     
-            const allRecipes = await fetchAlchemyRecipes();
+            
             const recipe = allRecipes.find(r => r.id === recipeId);
             if (!recipe) throw new Error("Рецепт не найден.");
             
@@ -2639,10 +2640,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     
             if (existingItemIndex > -1) {
                 categoryInventory[existingItemIndex].quantity += recipe.outputQty;
-                createdItem = { ...categoryInventory[existingItemIndex] }; // Capture the updated item
+                createdItem = { ...categoryInventory[existingItemIndex] };
             } else {
                 categoryInventory.push(newOrUpdatedItem);
-                createdItem = newOrUpdatedItem; // Capture the new item
+                createdItem = newOrUpdatedItem;
             }
             (inventory as any)[resultCategory] = categoryInventory;
             character.inventory = inventory;
@@ -3269,3 +3270,4 @@ export const useUser = () => {
 
 
     
+
