@@ -4,11 +4,11 @@
 
 import React, { useState, useMemo } from 'react';
 import { useUser } from '@/hooks/use-user';
-import type { AlchemyRecipe, Character, Shop, ShopItem } from '@/lib/types';
+import type { AlchemyRecipe, Character, Shop, ShopItem, InventoryItem } from '@/lib/types';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FlaskConical } from 'lucide-react';
+import { FlaskConical, Edit } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -21,9 +21,19 @@ import { SearchableSelect } from '@/components/ui/searchable-select';
 import { CustomIcon } from '../ui/custom-icon';
 import { ScrollArea } from '../ui/scroll-area';
 import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
 
-
-const RecipeCard = ({ recipe, character, allItemsMap, isCraftingId, handleCraft }: { recipe: AlchemyRecipe, character: Character, allItemsMap: Map<string, ShopItem>, isCraftingId: string | null, handleCraft: (recipe: AlchemyRecipe) => void }) => {
+const RecipeCard = ({ recipe, character, allItemsMap, isCraftingId, handleCraft, onEdit }: { recipe: AlchemyRecipe, character: Character, allItemsMap: Map<string, ShopItem>, isCraftingId: string | null, handleCraft: (recipe: AlchemyRecipe) => void, onEdit: (recipe: AlchemyRecipe) => void }) => {
+    const { currentUser } = useUser();
+    const isAdmin = currentUser?.role === 'admin';
     const outputItem = allItemsMap.get(recipe.resultPotionId);
     const recipeTitle = recipe.name || outputItem?.name || 'Неизвестный рецепт';
 
@@ -35,7 +45,14 @@ const RecipeCard = ({ recipe, character, allItemsMap, isCraftingId, handleCraft 
     });
 
     return (
-        <Card className="flex flex-col">
+        <Card className="flex flex-col relative group">
+            {isAdmin && (
+                <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => onEdit(recipe)}>
+                        <Edit className="h-4 w-4" />
+                    </Button>
+                </div>
+            )}
             <CardHeader>
                 {outputItem?.image && (
                     <div className="relative w-full aspect-square bg-muted rounded-md mb-4">
@@ -43,7 +60,6 @@ const RecipeCard = ({ recipe, character, allItemsMap, isCraftingId, handleCraft 
                     </div>
                 )}
                 <CardTitle>{recipeTitle}</CardTitle>
-                <CardDescription>Сложность: {recipe.difficulty}</CardDescription>
             </CardHeader>
             <CardContent className="flex-grow space-y-3">
                 <h4 className="text-sm font-semibold text-muted-foreground">Ингредиенты:</h4>
@@ -111,6 +127,7 @@ export default function AlchemyTab() {
     });
 
     const [isCraftingId, setIsCraftingId] = useState<string | null>(null);
+    const [craftResult, setCraftResult] = useState<{item: InventoryItem, recipeName: string} | null>(null);
 
     const characterOptions = useMemo(() => {
         return (currentUser?.characters || []).map(char => ({
@@ -155,11 +172,9 @@ export default function AlchemyTab() {
         if (!character || !currentUser) return;
         setIsCraftingId(recipe.id);
         try {
-            await brewPotion(currentUser.id, character.id, recipe.id);
-            toast({
-                title: "Предмет создан!",
-                description: `Вы успешно создали предмет.`
-            });
+            const { createdItem, recipeName } = await brewPotion(currentUser.id, character.id, recipe.id);
+            setCraftResult({ item: createdItem, recipeName });
+            
         } catch (error) {
             const message = error instanceof Error ? error.message : "Произошла неизвестная ошибка";
             toast({ variant: 'destructive', title: "Ошибка крафта", description: message });
@@ -167,6 +182,27 @@ export default function AlchemyTab() {
             setIsCraftingId(null);
         }
     };
+    
+    const handleResultDialogClose = () => {
+        if (craftResult) {
+            toast({
+                title: "Предмет создан!",
+                description: `Вы успешно создали: ${craftResult.item.name}.`
+            });
+        }
+        setCraftResult(null);
+    }
+
+    const handleEditRecipe = (recipe: AlchemyRecipe) => {
+        // This function will be handled by the admin tab, which is now separate.
+        // We can navigate the user there or open a specific dialog if needed.
+        // For now, we'll just log it.
+        console.log("Editing recipe:", recipe.id);
+        // Maybe switch to admin tab and pass the recipe ID?
+        // Or use a global state management solution.
+        toast({ title: "Редактирование", description: "Перейдите в админ-панель для редактирования рецептов."})
+    };
+
 
     const selectedRecipe = useMemo(() => {
         if (!selectedRecipeId) return null;
@@ -202,6 +238,7 @@ export default function AlchemyTab() {
     };
 
     return (
+        <>
         <div className="min-h-screen bg-fixed dark:bg-[url('/Backgroundblack.png')] bg-[url('/Lightbackground.png')] dark:bg-[length:400px_400px] bg-[length:400px_400px] p-4 md:p-8">
             <div className="container mx-auto space-y-6 bg-background/80 backdrop-blur-sm min-h-screen rounded-lg border p-4 md:p-8">
                 <header className="text-center">
@@ -256,6 +293,7 @@ export default function AlchemyTab() {
                                         allItemsMap={allItemsMap}
                                         isCraftingId={isCraftingId}
                                         handleCraft={handleCraft}
+                                        onEdit={handleEditRecipe}
                                     />
                                ) : (
                                     <div className="flex items-center justify-center h-96 border-2 border-dashed rounded-lg">
@@ -270,5 +308,20 @@ export default function AlchemyTab() {
                 )}
             </div>
         </div>
+        <Dialog open={!!craftResult} onOpenChange={(isOpen) => !isOpen && handleResultDialogClose()}>
+            <DialogContent className="max-w-md p-0 overflow-hidden">
+                 {craftResult && (
+                    <div className="relative aspect-square w-full animate-in fade-in zoom-in-90 duration-500">
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent z-10" />
+                        <Image src={craftResult.item.image || ''} alt={craftResult.item.name} fill style={{objectFit:"contain"}} />
+                        <div className="absolute bottom-4 left-4 right-4 z-20 text-center">
+                            <p className="text-sm text-white/80">Создан предмет:</p>
+                            <h2 className="text-2xl font-bold text-white font-headline">{craftResult.recipeName}</h2>
+                        </div>
+                    </div>
+                )}
+            </DialogContent>
+        </Dialog>
+        </>
     );
 }

@@ -496,7 +496,6 @@ export interface AlchemyRecipe {
   components: AlchemyRecipeComponent[];
   resultPotionId: string;
   outputQty: number;
-  difficulty: number; // 1-10
   createdAt: string; // ISO string
 }
 

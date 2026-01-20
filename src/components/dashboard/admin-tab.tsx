@@ -238,7 +238,7 @@ export default function AdminTab() {
   
   // Alchemy State
   const [editingRecipeId, setEditingRecipeId] = useState<string | null>(null);
-  const [newRecipe, setNewRecipe] = useState<Omit<AlchemyRecipe, 'id' | 'createdAt'>>({ name: '', components: [], resultPotionId: '', outputQty: 1, difficulty: 1 });
+  const [newRecipe, setNewRecipe] = useState<Omit<AlchemyRecipe, 'id' | 'createdAt'>>({ name: '', components: [], resultPotionId: '', outputQty: 1 });
   const [isAddingRecipe, setIsAddingRecipe] = useState(false);
   
    // Hunting state
@@ -931,7 +931,7 @@ export default function AdminTab() {
         setNewRecipe(prev => ({ ...prev, components }));
     };
 
-    const handleAddRecipe = async (e: React.FormEvent) => {
+    const handleRecipeSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newRecipe.resultPotionId || newRecipe.components.length === 0) {
             toast({ variant: 'destructive', title: 'Ошибка', description: 'Выберите итоговое зелье и хотя бы один ингредиент.' });
@@ -939,15 +939,42 @@ export default function AdminTab() {
         }
         setIsAddingRecipe(true);
         try {
-            await addAlchemyRecipe(newRecipe);
-            toast({ title: 'Рецепт добавлен!' });
-            setNewRecipe({ name: '', components: [], resultPotionId: '', outputQty: 1, difficulty: 1 });
+            if (editingRecipeId) {
+                await updateAlchemyRecipe(editingRecipeId, newRecipe);
+                toast({ title: 'Рецепт обновлен!' });
+            } else {
+                await addAlchemyRecipe(newRecipe);
+                toast({ title: 'Рецепт добавлен!' });
+            }
+            setNewRecipe({ name: '', components: [], resultPotionId: '', outputQty: 1 });
+            setEditingRecipeId(null);
             queryClient.invalidateQueries({ queryKey: ['alchemyRecipes'] });
         } catch (error) {
             const message = error instanceof Error ? error.message : "Произошла неизвестная ошибка";
             toast({ variant: 'destructive', title: 'Ошибка', description: message });
         } finally {
             setIsAddingRecipe(false);
+        }
+    };
+
+    const handleEditRecipeClick = (recipe: AlchemyRecipe) => {
+        setEditingRecipeId(recipe.id);
+        setNewRecipe({
+            name: recipe.name || '',
+            components: recipe.components,
+            resultPotionId: recipe.resultPotionId,
+            outputQty: recipe.outputQty,
+        });
+    }
+
+    const handleDeleteRecipeClick = async (recipeId: string) => {
+        try {
+            await deleteAlchemyRecipe(recipeId);
+            toast({ title: "Рецепт удален" });
+            refetchRecipes();
+        } catch(e) {
+            const msg = e instanceof Error ? e.message : 'Не удалось удалить рецепт.';
+            toast({ variant: 'destructive', title: 'Ошибка', description: msg });
         }
     };
   
@@ -1838,70 +1865,108 @@ export default function AdminTab() {
       </TabsContent>
 
        <TabsContent value="alchemy" className="mt-4">
-        <Card className="max-w-2xl mx-auto">
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2"><FlaskConical /> Создание рецептов</CardTitle>
-                <CardDescription>Создайте новый алхимический рецепт, который станет доступен игрокам.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <form onSubmit={handleAddRecipe} className="space-y-4">
-                     <div>
-                        <Label htmlFor="recipe-name">Название рецепта (необязательно)</Label>
-                        <Input id="recipe-name" value={newRecipe.name} onChange={e => setNewRecipe(p => ({ ...p, name: e.target.value }))} placeholder="Напр., Простое зелье лечения"/>
-                    </div>
-                     <div>
-                        <Label htmlFor="result-potion">Итоговое зелье/артефакт</Label>
-                        <SearchableSelect
-                            options={alchemyResultOptions}
-                            value={newRecipe.resultPotionId}
-                            onValueChange={val => setNewRecipe(p => ({...p, resultPotionId: val}))}
-                            placeholder="Выберите зелье..."
-                         />
-                    </div>
-                     <div>
-                        <Label htmlFor="output-qty">Количество на выходе</Label>
-                        <Input id="output-qty" type="number" min="1" value={newRecipe.outputQty} onChange={e => setNewRecipe(p => ({ ...p, outputQty: parseInt(e.target.value, 10) || 1 }))} />
-                    </div>
-                     <div>
-                        <Label htmlFor="difficulty">Сложность (1-10)</Label>
-                        <Input id="difficulty" type="number" min="1" max="10" value={newRecipe.difficulty} onChange={e => setNewRecipe(p => ({ ...p, difficulty: parseInt(e.target.value, 10) || 1 }))} />
-                    </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><FlaskConical /> {editingRecipeId ? 'Редактировать' : 'Создать'} рецепт</CardTitle>
+                    <CardDescription>
+                        {editingRecipeId ? 'Измените детали существующего рецепта.' : 'Создайте новый алхимический рецепт.'}
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleRecipeSubmit} className="space-y-4">
+                         <div>
+                            <Label htmlFor="recipe-name">Название рецепта (необязательно)</Label>
+                            <Input id="recipe-name" value={newRecipe.name} onChange={e => setNewRecipe(p => ({ ...p, name: e.target.value }))} placeholder="Напр., Простое зелье лечения"/>
+                        </div>
+                         <div>
+                            <Label htmlFor="result-potion">Итоговое зелье/артефакт</Label>
+                            <SearchableSelect
+                                options={alchemyResultOptions}
+                                value={newRecipe.resultPotionId}
+                                onValueChange={val => setNewRecipe(p => ({...p, resultPotionId: val}))}
+                                placeholder="Выберите зелье..."
+                             />
+                        </div>
+                         <div>
+                            <Label htmlFor="output-qty">Количество на выходе</Label>
+                            <Input id="output-qty" type="number" min="1" value={newRecipe.outputQty} onChange={e => setNewRecipe(p => ({ ...p, outputQty: parseInt(e.target.value, 10) || 1 }))} />
+                        </div>
 
-                    <div className="space-y-2 pt-2">
-                        <Label>Ингредиенты</Label>
-                        {newRecipe.components.map((comp, index) => (
-                             <div key={index} className="flex items-center gap-2 p-2 border rounded-md">
-                                 <div className="flex-1">
-                                    <SearchableSelect
-                                        options={alchemyIngredientOptions}
-                                        value={comp.ingredientId}
-                                        onValueChange={val => handleNewRecipeComponentChange(index, 'ingredientId', val)}
-                                        placeholder="Выберите ингредиент..."
-                                    />
+                        <div className="space-y-2 pt-2">
+                            <Label>Ингредиенты</Label>
+                            {newRecipe.components.map((comp, index) => (
+                                 <div key={index} className="flex items-center gap-2 p-2 border rounded-md">
+                                     <div className="flex-1">
+                                        <SearchableSelect
+                                            options={alchemyIngredientOptions}
+                                            value={comp.ingredientId}
+                                            onValueChange={val => handleNewRecipeComponentChange(index, 'ingredientId', val)}
+                                            placeholder="Выберите ингредиент..."
+                                        />
+                                     </div>
+                                     <Input 
+                                        type="number" 
+                                        min="1" 
+                                        value={comp.qty} 
+                                        onChange={e => handleNewRecipeComponentChange(index, 'qty', parseInt(e.target.value, 10) || 1)} 
+                                        className="w-20"
+                                     />
+                                     <Button type="button" variant="ghost" size="icon" onClick={() => removeRecipeComponent(index)}>
+                                        <Trash2 className="w-4 h-4 text-destructive" />
+                                     </Button>
                                  </div>
-                                 <Input 
-                                    type="number" 
-                                    min="1" 
-                                    value={comp.qty} 
-                                    onChange={e => handleNewRecipeComponentChange(index, 'qty', parseInt(e.target.value, 10) || 1)} 
-                                    className="w-20"
-                                 />
-                                 <Button type="button" variant="ghost" size="icon" onClick={() => removeRecipeComponent(index)}>
-                                    <Trash2 className="w-4 h-4 text-destructive" />
-                                 </Button>
-                             </div>
-                        ))}
-                         <Button type="button" variant="outline" size="sm" onClick={addRecipeComponent}>
-                            <PlusCircle className="mr-2 h-4 w-4" /> Добавить ингредиент
-                        </Button>
-                    </div>
+                            ))}
+                             <Button type="button" variant="outline" size="sm" onClick={addRecipeComponent}>
+                                <PlusCircle className="mr-2 h-4 w-4" /> Добавить ингредиент
+                            </Button>
+                        </div>
 
-                    <Button type="submit" className="w-full" disabled={isAddingRecipe}>
-                        {isAddingRecipe ? 'Добавление...' : 'Добавить рецепт'}
-                    </Button>
-                </form>
-            </CardContent>
-        </Card>
+                        <Button type="submit" className="w-full" disabled={isAddingRecipe}>
+                            {isAddingRecipe ? (editingRecipeId ? 'Сохранение...' : 'Добавление...') : (editingRecipeId ? 'Сохранить рецепт' : 'Добавить рецепт')}
+                        </Button>
+                        {editingRecipeId && (
+                            <Button type="button" variant="ghost" className="w-full" onClick={() => { setEditingRecipeId(null); setNewRecipe({ name: '', components: [], resultPotionId: '', outputQty: 1 }); }}>Отмена</Button>
+                        )}
+                    </form>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Существующие рецепты</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-2">
+                        {allRecipes?.map(recipe => (
+                            <div key={recipe.id} className="flex items-center justify-between p-2 border rounded-md">
+                                <span>{recipe.name || allItemsMap.get(recipe.resultPotionId)?.name || 'Неизвестный рецепт'}</span>
+                                <div className="flex gap-1">
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditRecipeClick(recipe)}><Edit className="h-4 w-4" /></Button>
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Вы уверены?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    Это действие необратимо удалит рецепт.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Отмена</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => handleDeleteRecipeClick(recipe.id)} className="bg-destructive text-destructive-foreground">Удалить</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </div>
+                            </div>
+                        ))}
+                         {allRecipes?.length === 0 && <p className="text-sm text-muted-foreground text-center">Рецептов пока нет.</p>}
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
       </TabsContent>
       
       <TabsContent value="familiars" className="mt-4">
@@ -2761,7 +2826,7 @@ export default function AdminTab() {
                             {isSendingMail ? 'Отправка...' : 'Отправить'}
                         </Button>
                     </form>
-                    <Separator />
+                    <Separator className="my-6" />
                     <div className="p-4 border border-destructive/50 rounded-lg">
                         <h4 className="font-semibold text-destructive mb-2 flex items-center gap-2"><ShieldAlert /> Опасная зона</h4>
                          <AlertDialog>
@@ -2794,5 +2859,3 @@ export default function AdminTab() {
     
 
     
-
-
