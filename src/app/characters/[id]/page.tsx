@@ -227,11 +227,11 @@ export default function CharacterPage() {
     });
 
     const isMobile = useIsMobile();
-    const [editingState, setEditingState] = useState<EditingState | null>(null);
-    const [selectedItem, setSelectedItem] = useState<(InventoryItem & { category: InventoryCategory }) | null>(null);
-    const [isConsuming, setIsConsuming] = useState(false);
-    const [selectedGalleryItem, setSelectedGalleryItem] = useState<GalleryImage | null>(null);
-    const [inventorySearch, setInventorySearch] = useState('');
+    const [editingState, setEditingState = useState<EditingState | null>(null);
+    const [selectedItem, setSelectedItem = useState<(InventoryItem & { category: InventoryCategory }) | null>(null);
+    const [isConsuming, setIsConsuming = useState(false);
+    const [selectedGalleryItem, setSelectedGalleryItem = useState<GalleryImage | null>(null);
+    const [inventorySearch, setInventorySearch = useState('');
 
     const { toast } = useToast();
 
@@ -918,14 +918,17 @@ export default function CharacterPage() {
                                                     <cat.icon className="mr-2 w-4 h-4" />{cat.label} ({(items as InventoryItem[]).length})
                                                 </AccordionTrigger>
                                                 <AccordionContent>
-                                                    <ul className="sm:columns-2 gap-x-6 text-sm pt-2">
+                                                    <ul className="sm:columns-2 gap-x-6 text-xs pt-2">
                                                         {(items as InventoryItem[]).map(item => (
                                                             <li key={item.id} className="break-inside-avoid-column pb-1">
                                                                 <button 
                                                                     className="w-full text-left p-1.5 rounded-md hover:bg-muted/50 transition-colors"
                                                                     onClick={() => setSelectedItem({ ...item, category: cat.key as InventoryCategory })}
                                                                 >
-                                                                    <span className="break-words">{item.name}{item.quantity > 1 && ` (${item.quantity})`}</span>
+                                                                    <span className="break-words">
+                                                                        {item.name}
+                                                                        {item.quantity > 1 && <span className="whitespace-nowrap">{` (${item.quantity})`}</span>}
+                                                                    </span>
                                                                 </button>
                                                             </li>
                                                         ))}
@@ -1403,5 +1406,7 @@ export default function CharacterPage() {
         </div>
     );
 }
+
+    
 
     
