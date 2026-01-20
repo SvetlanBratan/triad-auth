@@ -893,14 +893,14 @@ export default function CharacterPage() {
                                                 <cat.icon className="mr-2 w-4 h-4" />{cat.label} ({visibleItems.length})
                                             </AccordionTrigger>
                                             <AccordionContent>
-                                                <div className="sm:columns-2 lg:columns-3 gap-x-4 text-sm pt-2">
+                                                <div className="sm:columns-2 lg:columns-2 gap-x-4 text-sm pt-2">
                                                     {visibleItems.map(item => (
                                                         <div key={item.id} className="break-inside-avoid-column pb-2">
                                                             <button 
-                                                                className="w-full text-left p-2 border rounded-md hover:bg-muted/50 transition-colors"
+                                                                className="w-full text-left p-2 border rounded-md hover:bg-muted/50 transition-colors break-words"
                                                                 onClick={() => setSelectedItem({ ...item, category: cat.key as InventoryCategory })}
                                                             >
-                                                                <span className="break-words">{item.name}{item.quantity > 1 && ` (${item.quantity})`}</span>
+                                                                <span>{item.name}{item.quantity > 1 && ` (${item.quantity})`}</span>
                                                             </button>
                                                         </div>
                                                     ))}
@@ -1387,6 +1387,8 @@ export default function CharacterPage() {
     
 
 
+
+    
 
     
 
