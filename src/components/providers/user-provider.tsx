@@ -167,7 +167,7 @@ const drawFamiliarCard = (allCardPool: FamiliarCard[], hasBlessing: boolean, una
     const chances = hasBlessing ? gachaChances.blessed : gachaChances.normal;
     const availableCards = allCardPool;
 
-    const availableMythicAndEvent = availableCards.filter(c => (c.rank === 'мифический' && !unavailableMythicIds.has(c.id)) || c.rank === 'ивентовый');
+    const availableMythic = availableCards.filter(c => c.rank === 'мифический' && !unavailableMythicIds.has(c.id));
     const availableLegendary = availableCards.filter(c => c.rank === 'легендарный');
     const availableRare = availableCards.filter(c => c.rank === 'редкий');
     const availableCommon = availableCards.filter(c => c.rank === 'обычный');
@@ -178,8 +178,8 @@ const drawFamiliarCard = (allCardPool: FamiliarCard[], hasBlessing: boolean, una
 
     let chosenPool: FamiliarCard[] = [];
 
-    if (rand <= cumulativeMythic && availableMythicAndEvent.length > 0) {
-        chosenPool = availableMythicAndEvent;
+    if (rand <= cumulativeMythic && availableMythic.length > 0) {
+        chosenPool = availableMythic;
     } else if (rand <= cumulativeLegendary && availableLegendary.length > 0) {
         chosenPool = availableLegendary;
     } else if (rand <= cumulativeRare && availableRare.length > 0) {
@@ -192,7 +192,7 @@ const drawFamiliarCard = (allCardPool: FamiliarCard[], hasBlessing: boolean, una
         if (availableCommon.length > 0) chosenPool = availableCommon;
         else if (availableRare.length > 0) chosenPool = availableRare;
         else if (availableLegendary.length > 0) chosenPool = availableLegendary;
-        else if (availableMythicAndEvent.length > 0) chosenPool = availableMythicAndEvent;
+        else if (availableMythic.length > 0) chosenPool = availableMythic;
         else chosenPool = allCardPool.filter(c => c.rank !== 'ивентовый');
     }
 
@@ -292,7 +292,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             accomplishments: char.accomplishments || [],
             training: Array.isArray(char.training) ? char.training : [],
             marriedTo: Array.isArray(char.marriedTo) ? char.marriedTo : [],
-            relationships: (Array.isArray(char.relationships) ? char.relationships : []).map(r => ({ ...r, id: r.id || `rel-${Math.random()}` })),
+            relationships: (Array.isArray(char.relationships) ? char.relationships : []).map(r => ({...r, id: r.id || `rel-${Math.random()}`})),
             moodlets: char.moodlets || [],
             popularity: char.popularity ?? 0,
             popularityHistory: char.popularityHistory || [],
@@ -3286,3 +3286,4 @@ export const useUser = () => {
 
 
     
+
