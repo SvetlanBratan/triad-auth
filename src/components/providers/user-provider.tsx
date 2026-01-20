@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
@@ -165,7 +166,7 @@ const RELATIONSHIP_POINTS_CONFIG: Record<RelationshipActionType, number> = {
 const drawFamiliarCard = (allCardPool: FamiliarCard[], hasBlessing: boolean, unavailableMythicIds: Set<string>, gachaChances: GameSettings['gachaChances']): FamiliarCard => {
     let rand = Math.random() * 100;
     const chances = hasBlessing ? gachaChances.blessed : gachaChances.normal;
-    const availableCards = allCardPool;
+    const availableCards = allCardPool.filter(c => c.rank !== 'ивентовый');
 
     const availableMythic = availableCards.filter(c => c.rank === 'мифический' && !unavailableMythicIds.has(c.id));
     const availableLegendary = availableCards.filter(c => c.rank === 'легендарный');
@@ -1711,7 +1712,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const ranksAreDifferent = initiatorFamiliar.rank !== targetFamiliar.rank;
         const isMythicEventTrade =
           (initiatorFamiliar.rank === 'мифический' && targetFamiliar.rank === 'ивентовый') ||
-          (initiatorFamiliar.rank === 'ивентовый' && initiatorFamiliar.rank === 'мифический');
+          (initiatorFamiliar.rank === 'ивентовый' && targetFamiliar.rank === 'мифический');
 
         if (ranksAreDifferent && !isMythicEventTrade) {
             throw new Error("Обмен возможен только между фамильярами одного ранга, или между мифическим и ивентовым.");
@@ -3286,4 +3287,5 @@ export const useUser = () => {
 
 
     
+
 
