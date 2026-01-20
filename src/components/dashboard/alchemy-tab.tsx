@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/dialog';
 import { ALL_ITEMS_FOR_ALCHEMY } from '@/lib/alchemy-data';
 
-const RecipeCard = ({ recipe, character, allItemsMap, isCraftingId, handleCraft, onEdit }: { recipe: AlchemyRecipe, character: Character, allItemsMap: Map<string, ShopItem | AlchemyIngredient | Potion>, isCraftingId: string | null, handleCraft: (recipe: AlchemyRecipe) => void, onEdit: (recipe: AlchemyRecipe) => void }) => {
+const RecipeCard = ({ recipe, character, allItemsMap, isCraftingId, handleCraft }: { recipe: AlchemyRecipe, character: Character, allItemsMap: Map<string, ShopItem | AlchemyIngredient | Potion>, isCraftingId: string | null, handleCraft: (recipe: AlchemyRecipe) => void }) => {
     const { currentUser } = useUser();
     const isAdmin = currentUser?.role === 'admin';
     const outputItem = allItemsMap.get(recipe.resultPotionId);
@@ -49,13 +49,6 @@ const RecipeCard = ({ recipe, character, allItemsMap, isCraftingId, handleCraft,
 
     return (
         <Card className="flex flex-col relative group">
-            {isAdmin && (
-                <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => onEdit(recipe)}>
-                        <Edit className="h-4 w-4" />
-                    </Button>
-                </div>
-            )}
             <CardHeader>
                 {outputItem?.image && (
                     <div className={cn(
@@ -190,11 +183,6 @@ export default function AlchemyTab() {
             setIsCraftingId(null);
         }
     };
-    
-    const handleEditRecipe = (recipe: AlchemyRecipe) => {
-        toast({ title: "Редактирование", description: "Перейдите в админ-панель для редактирования рецептов."})
-    };
-
 
     const selectedRecipe = useMemo(() => {
         if (!selectedRecipeId) return null;
@@ -284,7 +272,6 @@ export default function AlchemyTab() {
                                         allItemsMap={allItemsMap}
                                         isCraftingId={isCraftingId}
                                         handleCraft={handleCraft}
-                                        onEdit={handleEditRecipe}
                                     />
                                ) : (
                                     <div className="flex items-center justify-center h-96 border-2 border-dashed rounded-lg">
