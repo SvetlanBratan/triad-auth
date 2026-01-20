@@ -4,13 +4,13 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, notFound } from 'next/navigation';
 import { useUser } from '@/hooks/use-user';
-import { User, Character, FamiliarCard, FamiliarRank, Moodlet, Relationship, RelationshipType, WealthLevel, BankAccount, Accomplishment, BankTransaction, OwnedFamiliarCard, InventoryCategory, InventoryItem, CitizenshipStatus, TaxpayerStatus, PopularityLog, GalleryImage } from '@/lib/types';
+import { User, Character, FamiliarCard, FamiliarRank, Moodlet, Relationship, RelationshipType, WealthLevel, BankAccount, Accomplishment, BankTransaction, OwnedFamiliarCard, InventoryCategory, InventoryItem, CitizenshipStatus, TaxpayerStatus, PopularityLog, GalleryImage, Shop } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FAMILIARS_BY_ID, MOODLETS_DATA, TRAINING_OPTIONS, CRIME_LEVELS, INVENTORY_CATEGORIES, POPULARITY_LEVELS } from '@/lib/data';
 import FamiliarCardDisplay from '@/components/dashboard/familiar-card';
-import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users, HeartHandshake, Wallet, Coins, Award, Zap, ShieldOff, History, Info, PlusCircle, BookUser, Gavel, Group, Building, Package, LandPlot, ShieldCheck, FileQuestion, BadgeCheck, BadgeAlert, Landmark, Eye, Lock, Cat, Handshake, FileText, ChevronDown, Camera } from 'lucide-react';
+import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users, HeartHandshake, Wallet, Coins, Award, Zap, ShieldOff, History, Info, PlusCircle, BookUser, Gavel, Group, Building, Package, LandPlot, ShieldCheck, FileQuestion, BadgeCheck, BadgeAlert, Landmark, Eye, Lock, Cat, Handshake, FileText, ChevronDown, Camera, Search } from 'lucide-react';
 import Link from 'next/link';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -29,6 +29,7 @@ import FormattedTextRenderer from '@/components/dashboard/formatted-text-rendere
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useIsMobile } from '@/hooks/use-mobile';
 import CharacterPageSkeleton from '@/components/dashboard/character-page-skeleton';
+import { Input } from '@/components/ui/input';
 
 
 const CustomIcon = ({ src, className }: { src: string, className?: string }) => (
@@ -230,6 +231,7 @@ export default function CharacterPage() {
     const [selectedItem, setSelectedItem] = useState<(InventoryItem & { category: InventoryCategory }) | null>(null);
     const [isConsuming, setIsConsuming] = useState(false);
     const [selectedGalleryItem, setSelectedGalleryItem] = useState<GalleryImage | null>(null);
+    const [inventorySearch, setInventorySearch] = useState('');
 
     const { toast } = useToast();
 
@@ -432,7 +434,7 @@ export default function CharacterPage() {
                 <div className="flex justify-between items-center mb-1">
                     <h4 className="font-semibold text-muted-foreground">{title}</h4>
                     {isOwnerOrAdmin && (
-                        <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'section', section })} className="h-7 w-7">
+                        <Button variant="ghost" size="icon" onClick={()={() => setEditingState({ type: 'section', section })} className="h-7 w-7">
                             {isEmpty ? <PlusCircle className="w-4 h-4 text-muted-foreground" /> : <Edit className="w-4 h-4" />}
                         </Button>
                     )}
@@ -779,7 +781,7 @@ export default function CharacterPage() {
                                 return (
                                 <div key={rel.id || `${rel.targetCharacterId}-${rel.type}-${index}`} className="relative group">
                                     {isOwnerOrAdmin && (
-                                        <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'relationship', mode: 'edit', relationship: rel })} className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Button variant="ghost" size="icon" onClick={()={() => setEditingState({ type: 'relationship', mode: 'edit', relationship: rel })} className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <Edit className="w-4 h-4" />
                                         </Button>
                                     )}
@@ -806,7 +808,7 @@ export default function CharacterPage() {
                 <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <CardTitle className="flex items-center gap-2"><Users /> Семейное положение</CardTitle>
                     {isOwnerOrAdmin && (
-                            <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'section', section: 'marriage' })} className="shrink-0 h-8 w-8 self-start sm:self-center">
+                            <Button variant="ghost" size="icon" onClick={()={() => setEditingState({ type: 'section', section: 'marriage' })} className="shrink-0 h-8 w-8 self-start sm:self-center">
                             <Edit className="w-4 h-4" />
                         </Button>
                     )}
@@ -827,95 +829,119 @@ export default function CharacterPage() {
         </Accordion>
     );
 
-    const renderInventory = () => (
-         <div className="space-y-6">
-            {inventoryLayout.map(section => {
-                const hasContent = section.categories.some(cat => {
-                    if (isAdmin === false && cat.key === 'услуги') return false;
-                    if (cat.key === 'предприятия') return ownedShops.length > 0;
-                    const items = (inventory[cat.key as keyof typeof inventory] || []) as InventoryItem[];
-                    const visible = cat.key === 'питомцы' ? items.filter(i => !FAMILIARS_BY_ID[i.id as keyof typeof FAMILIARS_BY_ID]) : items;
-                    return visible.length > 0;
-                }) || (section.title === 'Инвентарь' && character.familiarCards?.length > 0);
+    const renderInventory = () => {
+        const lowercasedSearch = inventorySearch.toLowerCase();
+    
+        return (
+            <div className="space-y-6">
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Поиск в инвентаре..."
+                        className="pl-9"
+                        value={inventorySearch}
+                        onChange={(e) => setInventorySearch(e.target.value)}
+                    />
+                </div>
+                {inventoryLayout.map(section => {
+                    const filteredCategories = section.categories
+                        .map(cat => {
+                            if (cat.key === 'предприятия') {
+                                const filteredShops = ownedShops.filter(shop => shop.title.toLowerCase().includes(lowercasedSearch));
+                                return { cat, items: filteredShops, hasContent: filteredShops.length > 0 };
+                            }
+    
+                            if (!isAdmin && cat.key === 'услуги') {
+                                return { cat, items: [], hasContent: false };
+                            }
+    
+                            const items = (inventory[cat.key as keyof typeof inventory] || []) as InventoryItem[];
+                            let visibleItems = cat.key === 'питомцы' ? items.filter(i => !FAMILIARS_BY_ID[i.id as keyof typeof FAMILIARS_BY_ID]) : items;
+    
+                            if (lowercasedSearch) {
+                                visibleItems = visibleItems.filter(item => item.name.toLowerCase().includes(lowercasedSearch));
+                            }
+    
+                            return { cat, items: visibleItems, hasContent: visibleItems.length > 0 };
+                        })
+                        .filter(c => c.hasContent);
+    
+                    const hasFamiliars = section.title === 'Инвентарь' && character.familiarCards?.length > 0;
+                    
+                    const shouldRenderSection = filteredCategories.length > 0 || hasFamiliars;
 
-                if (!hasContent) return null;
-
-                return (
-                    <Card key={section.title}>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <section.icon className="w-5 h-5" /> {section.title}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <Accordion type="multiple" className="w-full">
-                                {section.title === 'Инвентарь' && character.familiarCards?.length > 0 && (
-                                    <AccordionItem value="familiars">
-                                        <AccordionTrigger><ShieldAlert className="mr-2 w-4 h-4" />Фамильяры ({character.familiarCards.length})</AccordionTrigger>
-                                        <AccordionContent>
-                                            <FamiliarsSection character={character} />
-                                        </AccordionContent>
-                                    </AccordionItem>
-                                )}
-                                {section.categories.map(cat => {
-                                    if (!isAdmin && cat.key === 'услуги') return null;
-
-                                    if (cat.key === 'предприятия') {
-                                        if (ownedShops.length === 0) return null;
+                    if (!shouldRenderSection) {
+                        return null;
+                    }
+    
+                    return (
+                        <Card key={section.title}>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <section.icon className="w-5 h-5" /> {section.title}
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <Accordion type="multiple" className="w-full" defaultValue={inventorySearch ? filteredCategories.map(c => c.cat.key) : undefined}>
+                                    {hasFamiliars && (
+                                        <AccordionItem value="familiars">
+                                            <AccordionTrigger><ShieldAlert className="mr-2 w-4 h-4" />Фамильяры ({character.familiarCards.length})</AccordionTrigger>
+                                            <AccordionContent>
+                                                <FamiliarsSection character={character} />
+                                            </AccordionContent>
+                                        </AccordionItem>
+                                    )}
+                                    {filteredCategories.map(({ cat, items }) => {
+                                        if (cat.key === 'предприятия') {
+                                            return (
+                                                <AccordionItem key={cat.key} value={cat.key}>
+                                                    <AccordionTrigger>
+                                                        <Building className="mr-2 w-4 h-4" />
+                                                        {cat.label} ({(items as Shop[]).length})
+                                                    </AccordionTrigger>
+                                                    <AccordionContent>
+                                                        <ul className="space-y-1 text-sm pt-2">
+                                                            {(items as Shop[]).map(shop => (
+                                                                <li key={shop.id}>
+                                                                    <Link href={`/market/${shop.id}`} className="hover:underline">{shop.title}</Link>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </AccordionContent>
+                                                </AccordionItem>
+                                            );
+                                        }
+    
                                         return (
-                                            <AccordionItem key="businesses" value="businesses">
+                                            <AccordionItem key={cat.key} value={cat.key}>
                                                 <AccordionTrigger>
-                                                <Building className="mr-2 w-4 h-4" />
-                                                Предприятия ({ownedShops.length})
+                                                    <cat.icon className="mr-2 w-4 h-4" />{cat.label} ({(items as InventoryItem[]).length})
                                                 </AccordionTrigger>
                                                 <AccordionContent>
-                                                <ul className="space-y-1 text-sm pt-2">
-                                                    {ownedShops.map(shop => (
-                                                    <li key={shop.id}>
-                                                        <Link href={`/market/${shop.id}`} className="hover:underline">{shop.title}</Link>
-                                                    </li>
-                                                    ))}
-                                                </ul>
+                                                    <ul className="sm:columns-2 gap-x-6 text-sm pt-2">
+                                                        {(items as InventoryItem[]).map(item => (
+                                                            <li key={item.id} className="break-inside-avoid-column pb-1">
+                                                                <button 
+                                                                    className="w-full text-left p-1.5 rounded-md hover:bg-muted/50 transition-colors"
+                                                                    onClick={()={() => setSelectedItem({ ...item, category: cat.key as InventoryCategory })}
+                                                                >
+                                                                    <span className="break-words">{item.name}{item.quantity > 1 && ` (${item.quantity})`}</span>
+                                                                </button>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
                                                 </AccordionContent>
                                             </AccordionItem>
                                         );
-                                    }
-
-                                    const items = (inventory[cat.key as keyof typeof inventory] || []) as InventoryItem[];
-                                    
-                                    const visibleItems = cat.key === 'питомцы' ? items.filter(i => !FAMILIARS_BY_ID[i.id as keyof typeof FAMILIARS_BY_ID]) : items;
-
-                                    if (visibleItems.length === 0) return null;
-
-                                    return (
-                                        <AccordionItem key={cat.key} value={cat.key}>
-                                            <AccordionTrigger>
-                                                <cat.icon className="mr-2 w-4 h-4" />{cat.label} ({visibleItems.length})
-                                            </AccordionTrigger>
-                                            <AccordionContent>
-                                                <ul className="sm:columns-2 gap-x-6 text-sm pt-2">
-                                                    {visibleItems.map(item => (
-                                                        <li key={item.id} className="break-inside-avoid-column pb-1">
-                                                            <button 
-                                                                className="w-full text-left p-1.5 rounded-md hover:bg-muted/50 transition-colors"
-                                                                onClick={() => setSelectedItem({ ...item, category: cat.key as InventoryCategory })}
-                                                            >
-                                                                <span className="break-words">{item.name}{item.quantity > 1 && ` (${item.quantity})`}</span>
-                                                            </button>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </AccordionContent>
-                                        </AccordionItem>
-                                    );
-                                })}
-                            </Accordion>
-                        </CardContent>
-                    </Card>
-                );
-            })}
-        </div>
-    );
+                                    })}
+                                </Accordion>
+                            </CardContent>
+                        </Card>
+                    );
+                })}
+            </div>
+        );
+    };
 
     return (
         <div className="container mx-auto p-4 md:p-8 space-y-6">
@@ -970,7 +996,7 @@ export default function CharacterPage() {
                             data-ai-hint="character banner"
                         />
                          {isAdmin && (
-                            <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'section', section: 'gallery' })} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/50 hover:bg-background/80">
+                            <Button variant="ghost" size="icon" onClick={()={() => setEditingState({ type: 'section', section: 'gallery' })} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/50 hover:bg-background/80">
                                 <Edit className="w-4 h-4" />
                             </Button>
                         )}
@@ -1005,7 +1031,7 @@ export default function CharacterPage() {
                                                 {accomplishments.map(acc => (
                                                     <div key={acc.id} className="text-sm p-2 bg-muted/50 rounded-md group relative">
                                                         {isOwnerOrAdmin && (
-                                                            <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'accomplishment', mode: 'edit', accomplishment: acc })} className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7">
+                                                            <Button variant="ghost" size="icon" onClick={()={() => setEditingState({ type: 'accomplishment', mode: 'edit', accomplishment: acc })} className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7">
                                                                 <Edit className="w-4 h-4" />
                                                             </Button>
                                                         )}
@@ -1184,7 +1210,7 @@ export default function CharacterPage() {
                                                 {accomplishments.map(acc => (
                                                     <div key={acc.id} className="text-sm p-2 bg-muted/50 rounded-md group relative">
                                                         {isOwnerOrAdmin && (
-                                                            <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'accomplishment', mode: 'edit', accomplishment: acc })} className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7">
+                                                            <Button variant="ghost" size="icon" onClick={()={() => setEditingState({ type: 'accomplishment', mode: 'edit', accomplishment: acc })} className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7">
                                                                 <Edit className="w-4 h-4" />
                                                             </Button>
                                                         )}
@@ -1377,19 +1403,5 @@ export default function CharacterPage() {
         </div>
     );
 }
-
-    
-
-    
-
-    
-
-    
-
-
-
-    
-
-    
 
     
