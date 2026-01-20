@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -897,11 +898,10 @@ export default function CharacterPage() {
                                                     {visibleItems.map(item => (
                                                         <div key={item.id} className="break-inside-avoid-column pb-2">
                                                             <button 
-                                                                className="w-full text-left p-2 border rounded-md hover:bg-muted/50 transition-colors flex justify-between items-center gap-2"
+                                                                className="w-full text-left p-2 border rounded-md hover:bg-muted/50 transition-colors"
                                                                 onClick={() => setSelectedItem({ ...item, category: cat.key as InventoryCategory })}
                                                             >
-                                                                <span className="flex-1">{item.name}</span>
-                                                                {item.quantity > 1 && <Badge variant="secondary" className="shrink-0">{item.quantity}</Badge>}
+                                                                <span>{item.name}{item.quantity > 1 && ` (${item.quantity})`}</span>
                                                             </button>
                                                         </div>
                                                     ))}
