@@ -35,7 +35,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import ImageKitUploader from './imagekit-uploader';
 import { SearchableMultiSelect } from '../ui/searchable-multi-select';
 import AdminFamiliarsTab from './admin-familiars-tab';
-import { ALL_ITEMS_FOR_ALCHEMY } from '@/lib/alchemy-data';
+import { ALCHEMY_POTIONS, ALL_ITEMS_FOR_ALCHEMY } from '@/lib/alchemy-data';
 
 const rankNames: Record<FamiliarRank, string> = {
     'мифический': 'Мифический',
@@ -1283,8 +1283,19 @@ export default function AdminTab() {
         label: `${event.label} (+${event.value})`,
     })), []);
     
-    const alchemyResultOptions = useMemo(() => ALL_ITEMS_FOR_ALCHEMY.filter(item => 'inventoryTag' in item && (item.inventoryTag === 'зелья' || item.inventoryTag === 'артефакты')).map(p => ({ value: p.id, label: p.name })), []);
-    
+    const alchemyResultOptions = useMemo(() => {
+        const itemsFromShops = allShops.flatMap(shop => shop.items || [])
+            .filter(item => item.inventoryTag === 'зелья' || item.inventoryTag === 'артефакты')
+            .map(item => ({ value: item.id, label: item.name }));
+
+        const staticPotions = ALCHEMY_POTIONS.map(p => ({ value: p.id, label: p.name }));
+        
+        const combined = [...itemsFromShops, ...staticPotions];
+        const uniqueItems = Array.from(new Map(combined.map(item => [item.label, item])).values());
+        
+        return uniqueItems.sort((a, b) => a.label.localeCompare(b.label));
+    }, [allShops]);
+
     const alchemyIngredientOptions = useMemo(() => {
         const ingredients = new Map<string, { label: string, value: string }>();
         allShops.forEach(shop => {
@@ -2783,4 +2794,5 @@ export default function AdminTab() {
     
 
     
+
 
