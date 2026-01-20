@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -127,7 +125,6 @@ export default function AlchemyTab() {
     });
 
     const [isCraftingId, setIsCraftingId] = useState<string | null>(null);
-    const [craftResult, setCraftResult] = useState<{item: InventoryItem, recipeName: string} | null>(null);
 
     const characterOptions = useMemo(() => {
         return (currentUser?.characters || []).map(char => ({
@@ -173,26 +170,18 @@ export default function AlchemyTab() {
         setIsCraftingId(recipe.id);
         try {
             const { createdItem, recipeName } = await brewPotion(currentUser.id, character.id, recipe.id);
-            setCraftResult({ item: createdItem, recipeName });
-            
+            toast({
+                title: "Предмет создан!",
+                description: `Вы успешно создали: ${createdItem.name}.`
+            });
         } catch (error) {
             const message = error instanceof Error ? error.message : "Произошла неизвестная ошибка";
-            toast({ variant: 'destructive', title: "Ошибка крафта", description: message });
+            toast({ variant: "destructive", title: "Ошибка крафта", description: message });
         } finally {
             setIsCraftingId(null);
         }
     };
     
-    const handleResultDialogClose = () => {
-        if (craftResult) {
-            toast({
-                title: "Предмет создан!",
-                description: `Вы успешно создали: ${craftResult.item.name}.`
-            });
-        }
-        setCraftResult(null);
-    }
-
     const handleEditRecipe = (recipe: AlchemyRecipe) => {
         // This function will be handled by the admin tab, which is now separate.
         // We can navigate the user there or open a specific dialog if needed.
@@ -238,8 +227,7 @@ export default function AlchemyTab() {
     };
 
     return (
-        <>
-        <div className="min-h-screen bg-fixed dark:bg-[url('/Backgroundblack.png')] bg-[url('/Lightbackground.png')] dark:bg-[length:400px_400px] bg-[length:400px_400px] p-4 md:p-8">
+        <div className="min-h-screen bg-fixed dark:bg-[url('/Backgroundblack.png')] bg-[url('/Lightbackground.png')] dark:bg-[length:400px_400px] p-4 md:p-8">
             <div className="container mx-auto space-y-6 bg-background/80 backdrop-blur-sm min-h-screen rounded-lg border p-4 md:p-8">
                 <header className="text-center">
                     <h1 className="text-3xl font-bold font-headline text-primary flex items-center justify-center gap-4">
@@ -308,20 +296,5 @@ export default function AlchemyTab() {
                 )}
             </div>
         </div>
-        <Dialog open={!!craftResult} onOpenChange={(isOpen) => !isOpen && handleResultDialogClose()}>
-            <DialogContent className="max-w-md p-0 overflow-hidden">
-                 {craftResult && (
-                    <div className="relative aspect-square w-full animate-in fade-in zoom-in-90 duration-500">
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent z-10" />
-                        <Image src={craftResult.item.image || ''} alt={craftResult.item.name} fill style={{objectFit:"contain"}} />
-                        <div className="absolute bottom-4 left-4 right-4 z-20 text-center">
-                            <p className="text-sm text-white/80">Создан предмет:</p>
-                            <h2 className="text-2xl font-bold text-white font-headline">{craftResult.recipeName}</h2>
-                        </div>
-                    </div>
-                )}
-            </DialogContent>
-        </Dialog>
-        </>
     );
 }
