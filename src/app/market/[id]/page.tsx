@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -318,7 +317,7 @@ export default function ShopPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                 {filteredItems.map(item => {
                                     return (
-                                    <Card key={item.id} className={cn("flex flex-col group overflow-hidden max-w-sm w-full mx-auto h-full", item.isHidden && "opacity-60")}>
+                                    <Card key={item.id} className={cn("flex flex-col group overflow-hidden w-full h-full", item.isHidden && "opacity-60")}>
                                         {item.image && (
                                             <div className="relative w-full aspect-square bg-muted">
                                                  <Image
@@ -358,16 +357,17 @@ export default function ShopPage() {
                                                     </div>
                                                 )}
                                             </div>
+                                        </CardHeader>
+                                        <CardContent className="pt-0 flex-grow">
                                             {item.description && 
-                                                <div className="min-h-12 w-full pr-4 mt-2">
+                                                <ScrollArea className="h-24 pr-2">
                                                     <CardDescription className="text-sm">
                                                         <FormattedTextRenderer text={item.description} />
                                                     </CardDescription>
-                                                </div>
+                                                </ScrollArea>
                                             }
-                                        </CardHeader>
-                                        <div className="flex-grow" />
-                                        <CardFooter className="flex-col items-start gap-4 pt-0">
+                                        </CardContent>
+                                        <CardFooter className="flex-col items-start gap-4 pt-4">
                                              {item.quantity !== undefined && item.quantity >= 0 && (
                                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                                     <Package className="h-4 w-4" />
