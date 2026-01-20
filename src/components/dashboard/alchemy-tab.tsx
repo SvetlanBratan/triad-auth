@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -38,13 +39,19 @@ const RecipeCard = ({ recipe, character, allItemsMap, isCraftingId, handleCraft 
     const isArtifact = outputItem?.inventoryTag === 'артефакты';
 
     const canCraft = recipe.components.every(component => {
-        const requiredIngredient = allItemsMap.get(component.ingredientId);
-        if (!requiredIngredient) return false;
-        
-        const inventoryItemName = 'inventoryItemName' in requiredIngredient && requiredIngredient.inventoryItemName ? requiredIngredient.inventoryItemName : requiredIngredient.name;
+        const requiredItemData = allItemsMap.get(component.ingredientId);
+        if (!requiredItemData) return false;
 
-        const playerIngredient = character.inventory.ингредиенты?.find(i => i.name === inventoryItemName);
-        return playerIngredient && playerIngredient.quantity >= component.qty;
+        const category = (requiredItemData as ShopItem).inventoryTag;
+        if (!category || (category !== 'ингредиенты' && category !== 'драгоценности')) {
+             return false;
+        }
+
+        const categoryInventory = character.inventory[category] || [];
+        const inventoryItemName = 'inventoryItemName' in requiredItemData && requiredItemData.inventoryItemName ? requiredItemData.inventoryItemName : requiredItemData.name;
+        
+        const playerItem = categoryInventory.find(i => i.name === inventoryItemName);
+        return playerItem && playerItem.quantity >= component.qty;
     });
 
     return (
@@ -64,12 +71,19 @@ const RecipeCard = ({ recipe, character, allItemsMap, isCraftingId, handleCraft 
                 <h4 className="text-sm font-semibold text-muted-foreground">Ингредиенты:</h4>
                 <ul className="space-y-2">
                     {recipe.components.map(comp => {
-                        const ingredient = allItemsMap.get(comp.ingredientId);
-                        if (!ingredient) return null;
+                        const itemData = allItemsMap.get(comp.ingredientId);
+                        if (!itemData) return null;
                         
-                        const inventoryItemName = 'inventoryItemName' in ingredient && ingredient.inventoryItemName ? ingredient.inventoryItemName : ingredient.name;
-                        const playerIngredient = character.inventory.ингредиенты?.find(i => i.name === inventoryItemName);
-                        const playerQty = playerIngredient?.quantity || 0;
+                        const category = (itemData as ShopItem).inventoryTag;
+                        if (!category || (category !== 'ингредиенты' && category !== 'драгоценности')) {
+                            return null;
+                        }
+
+                        const categoryInventory = character.inventory[category] || [];
+                        const inventoryItemName = 'inventoryItemName' in itemData && itemData.inventoryItemName ? itemData.inventoryItemName : itemData.name;
+                        const playerItem = categoryInventory.find(i => i.name === inventoryItemName);
+
+                        const playerQty = playerItem?.quantity || 0;
                         const hasEnough = playerQty >= comp.qty;
 
                         return (
@@ -79,15 +93,15 @@ const RecipeCard = ({ recipe, character, allItemsMap, isCraftingId, handleCraft 
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <div className="relative w-8 h-8">
-                                                    <Image src={(ingredient as any).image || "/Ingredient.png"} alt="Ingredient" fill style={{ objectFit: "contain" }} />
+                                                    <Image src={(itemData as any).image || "/Ingredient.png"} alt="Ingredient" fill style={{ objectFit: "contain" }} />
                                                 </div>
                                             </TooltipTrigger>
                                             <TooltipContent>
-                                                <p>{ingredient?.name || 'Неизвестный ингредиент'}</p>
+                                                <p>{itemData?.name || 'Неизвестный ингредиент'}</p>
                                             </TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>
-                                    <span>{ingredient.name}</span>
+                                    <span>{itemData.name}</span>
                                 </div>
                                 <span className={hasEnough ? 'text-green-600' : 'text-destructive'}>
                                     {playerQty} / {comp.qty}
@@ -288,3 +302,5 @@ export default function AlchemyTab() {
         </div>
     );
 }
+
+    

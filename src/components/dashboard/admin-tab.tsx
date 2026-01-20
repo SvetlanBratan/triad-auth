@@ -1338,17 +1338,39 @@ export default function AdminTab() {
 
     const alchemyIngredientOptions = useMemo(() => {
         const ingredients = new Map<string, { label: string, value: string }>();
+        const jewelry = new Map<string, { label: string, value: string }>();
+
         allShops.forEach(shop => {
             (shop.items || []).forEach(item => {
+                const name = item.inventoryItemName || item.name;
                 if (item.inventoryTag === 'ингредиенты') {
-                    const name = item.inventoryItemName || item.name;
                     if (!ingredients.has(name)) {
                         ingredients.set(name, { value: item.id, label: name });
+                    }
+                } else if (item.inventoryTag === 'драгоценности') {
+                     if (!jewelry.has(name)) {
+                        jewelry.set(name, { value: item.id, label: name });
                     }
                 }
             });
         });
-        return Array.from(ingredients.values());
+        
+        const groups: ({label: string; options: {value: string, label: string}[]})[] = [];
+
+        if(ingredients.size > 0) {
+            groups.push({
+                label: 'Ингредиенты',
+                options: Array.from(ingredients.values()).sort((a, b) => a.label.localeCompare(b.label))
+            });
+        }
+        if(jewelry.size > 0) {
+            groups.push({
+                label: 'Драгоценности',
+                options: Array.from(jewelry.values()).sort((a, b) => a.label.localeCompare(b.label))
+            });
+        }
+
+        return groups;
     }, [allShops]);
 
 
@@ -2868,6 +2890,8 @@ export default function AdminTab() {
     </Tabs>
   );
 }
+
+    
 
     
 

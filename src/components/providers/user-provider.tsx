@@ -1,6 +1,6 @@
 
 
-"use client";
+'use client';
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
 import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage, Cooldowns, PopularityLog, CharacterPopularityUpdate, OwnedFamiliarCard, AlchemyRecipe, Potion, AlchemyIngredient, PlayerPing, OngoingHunt, PlayerStatus, PlayPlatform, SocialLink } from '@/lib/types';
@@ -1713,7 +1713,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const ranksAreDifferent = initiatorFamiliar.rank !== targetFamiliar.rank;
         const isMythicEventTrade =
           (initiatorFamiliar.rank === 'мифический' && targetFamiliar.rank === 'ивентовый') ||
-          (initiatorFamiliar.rank === 'ивентовый' && targetFamiliar.rank === 'мифический');
+          (initiatorFamiliar.rank === 'ивентовый' && initiatorFamiliar.rank === 'мифический');
 
         if (ranksAreDifferent && !isMythicEventTrade) {
             throw new Error("Обмен возможен только между фамильярами одного ранга, или между мифическим и ивентовым.");
@@ -2578,6 +2578,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         let recipeName: string = '';
     
         const allRecipes = await fetchAlchemyRecipes();
+        const allItemsFromShops = (await fetchAllShops()).flatMap(shop => shop.items || []);
+        const allItemsMap = new Map<string, ShopItem | AlchemyIngredient | Potion>();
+        [...allItemsFromShops, ...ALL_ITEMS_FOR_ALCHEMY].forEach(item => {
+            if (item) allItemsMap.set(item.id, item);
+        });
+
         await runTransaction(db, async (transaction) => {
             const userRef = doc(db, "users", userId);
             const userDoc = await transaction.get(userRef);
@@ -2586,41 +2592,40 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const charIndex = userData.characters.findIndex(c => c.id === characterId);
             if (charIndex === -1) throw new Error("Персонаж не найден.");
     
-            
             const recipe = allRecipes.find(r => r.id === recipeId);
             if (!recipe) throw new Error("Рецепт не найден.");
             
-            const allItems = [...(await fetchAllShops())].flatMap(shop => shop.items || []);
-            const allItemsMap = new Map<string, ShopItem | AlchemyIngredient | Potion>();
-            [...ALL_ITEMS_FOR_ALCHEMY, ...allItems].forEach(item => {
-                if (item) allItemsMap.set(item.id, item);
-            });
             const resultItemData = allItemsMap.get(recipe.resultPotionId);
-
             recipeName = recipe.name || resultItemData?.name ||'Неизвестный рецепт';
     
             const character = userData.characters[charIndex];
             const inventory = character.inventory || initialFormData.inventory;
-            const ingredientsInv = (inventory.ингредиенты || []) as InventoryItem[];
-    
+            
             for (const component of recipe.components) {
-                const requiredIngredient = allItemsMap.get(component.ingredientId);
-                if (!requiredIngredient) {
-                    throw new Error(`Required ingredient with ID ${component.ingredientId} not found.`);
+                const requiredItemData = allItemsMap.get(component.ingredientId);
+                if (!requiredItemData) {
+                     throw new Error(`Required ingredient with ID ${component.ingredientId} not found.`);
                 }
-                const playerIngIndex = ingredientsInv.findIndex(i => i.name === requiredIngredient.name);
-    
-                if (playerIngIndex === -1 || ingredientsInv[playerIngIndex].quantity < component.qty) {
-                    throw new Error(`Недостаточно ингредиента: ${requiredIngredient.name}`);
+                const category = (requiredItemData as ShopItem).inventoryTag;
+                if (!category || (category !== 'ингредиенты' && category !== 'драгоценности')) {
+                    throw new Error(`Invalid inventory category for item ${requiredItemData.name}`);
+                }
+
+                const categoryInventory = (inventory[category] || []) as InventoryItem[];
+                const inventoryItemName = 'inventoryItemName' in requiredItemData && requiredItemData.inventoryItemName ? requiredItemData.inventoryItemName : requiredItemData.name;
+                const playerItemIndex = categoryInventory.findIndex(i => i.name === inventoryItemName);
+
+                if (playerItemIndex === -1 || categoryInventory[playerItemIndex].quantity < component.qty) {
+                    throw new Error(`Недостаточно: ${inventoryItemName}`);
                 }
     
-                if (ingredientsInv[playerIngIndex].quantity > component.qty) {
-                    ingredientsInv[playerIngIndex].quantity -= component.qty;
+                if (categoryInventory[playerItemIndex].quantity > component.qty) {
+                    categoryInventory[playerItemIndex].quantity -= component.qty;
                 } else {
-                    ingredientsInv.splice(playerIngIndex, 1);
+                    categoryInventory.splice(playerItemIndex, 1);
                 }
+                (inventory as any)[category] = categoryInventory;
             }
-            inventory.ингредиенты = ingredientsInv;
     
             if (!resultItemData) {
                 throw new Error("Resulting item not found in data.");
@@ -2636,6 +2641,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 description: (resultItemData as ShopItem).inventoryItemDescription || (resultItemData as ShopItem).description || (resultItemData as Potion).note || '',
                 image: (resultItemData as ShopItem).inventoryItemImage || resultItemData.image || '',
                 quantity: recipe.outputQty,
+                inventoryTag: resultCategory,
             };
     
             if (existingItemIndex > -1) {
@@ -3271,3 +3277,6 @@ export const useUser = () => {
 
     
 
+
+
+    
