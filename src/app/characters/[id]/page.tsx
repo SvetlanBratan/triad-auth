@@ -918,7 +918,7 @@ export default function CharacterPage() {
                                                     <cat.icon className="mr-2 w-4 h-4" />{cat.label} ({(items as InventoryItem[]).length})
                                                 </AccordionTrigger>
                                                 <AccordionContent>
-                                                    <ul className="sm:columns-2 gap-x-6 text-xs pt-2">
+                                                    <ul className="sm:columns-2 gap-x-6 text-[13px] pt-2">
                                                         {(items as InventoryItem[]).map(item => (
                                                             <li key={item.id} className="break-inside-avoid-column pb-1">
                                                                 <button 
@@ -1203,7 +1203,7 @@ export default function CharacterPage() {
                                         </AccordionTrigger>
                                         {isOwnerOrAdmin && (
                                             <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setEditingState({ type: 'accomplishment', mode: 'add' })}} className="shrink-0 self-center ml-2 h-8 w-8">
-                                                <PlusCircle className="h-4 w-4" />
+                                                <PlusCircle className="h-4 h-4" />
                                             </Button>
                                         )}
                                     </div>
@@ -1406,6 +1406,8 @@ export default function CharacterPage() {
         </div>
     );
 }
+
+    
 
     
 
