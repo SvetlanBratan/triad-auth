@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
@@ -169,7 +167,7 @@ const drawFamiliarCard = (allCardPool: FamiliarCard[], hasBlessing: boolean, una
     const chances = hasBlessing ? gachaChances.blessed : gachaChances.normal;
     const availableCards = allCardPool;
 
-    const availableMythic = availableCards.filter(c => c.rank === 'мифический' && !unavailableMythicIds.has(c.id));
+    const availableMythicAndEvent = availableCards.filter(c => (c.rank === 'мифический' && !unavailableMythicIds.has(c.id)) || c.rank === 'ивентовый');
     const availableLegendary = availableCards.filter(c => c.rank === 'легендарный');
     const availableRare = availableCards.filter(c => c.rank === 'редкий');
     const availableCommon = availableCards.filter(c => c.rank === 'обычный');
@@ -180,8 +178,8 @@ const drawFamiliarCard = (allCardPool: FamiliarCard[], hasBlessing: boolean, una
 
     let chosenPool: FamiliarCard[] = [];
 
-    if (rand <= cumulativeMythic && availableMythic.length > 0) {
-        chosenPool = availableMythic;
+    if (rand <= cumulativeMythic && availableMythicAndEvent.length > 0) {
+        chosenPool = availableMythicAndEvent;
     } else if (rand <= cumulativeLegendary && availableLegendary.length > 0) {
         chosenPool = availableLegendary;
     } else if (rand <= cumulativeRare && availableRare.length > 0) {
@@ -194,7 +192,7 @@ const drawFamiliarCard = (allCardPool: FamiliarCard[], hasBlessing: boolean, una
         if (availableCommon.length > 0) chosenPool = availableCommon;
         else if (availableRare.length > 0) chosenPool = availableRare;
         else if (availableLegendary.length > 0) chosenPool = availableLegendary;
-        else if (availableMythic.length > 0) chosenPool = availableMythic;
+        else if (availableMythicAndEvent.length > 0) chosenPool = availableMythicAndEvent;
         else chosenPool = allCardPool.filter(c => c.rank !== 'ивентовый');
     }
 
@@ -2966,7 +2964,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         const rewards: InventoryItem[] = [];
         (location.rewards || []).forEach(rewardRule => {
-            const rewardData = rewardRule.rewardsByRank[familiar.rank];
+            let rankForReward = familiar.rank;
+            if (rankForReward === 'ивентовый') {
+                rankForReward = 'мифический';
+            }
+            const rewardData = rewardRule.rewardsByRank[rankForReward];
             if (rewardData && Math.random() * 100 < rewardData.chance) {
                 const itemData = allItemsMap.get(rewardRule.itemId);
                 if (itemData) {
@@ -3024,7 +3026,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             if (!familiar || !location) continue;
 
             (location.rewards || []).forEach(rewardRule => {
-                const rewardData = rewardRule.rewardsByRank[familiar.rank];
+                let rankForReward = familiar.rank;
+                if (rankForReward === 'ивентовый') {
+                    rankForReward = 'мифический';
+                }
+                const rewardData = rewardRule.rewardsByRank[rankForReward];
                 if (rewardData && Math.random() * 100 < rewardData.chance) {
                     const itemData = allItemsMap.get(rewardRule.itemId);
                     if (itemData) {

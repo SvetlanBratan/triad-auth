@@ -116,7 +116,13 @@ export default function HuntingTab() {
         .map(owned => familiarsById[owned.id])
         .filter((fam): fam is FamiliarCard => {
             if (!fam || busyFamiliarIds.has(fam.id)) return false;
-            const famRankIndex = rankOrder.indexOf(fam.rank);
+            
+            let effectiveRank = fam.rank;
+            if (effectiveRank === 'ивентовый') {
+                effectiveRank = 'мифический';
+            }
+
+            const famRankIndex = rankOrder.indexOf(effectiveRank);
             return famRankIndex !== -1 && famRankIndex <= requiredRankIndex;
         })
         .map(fam => ({ value: fam.id, label: `${fam.name} (${rankNames[fam.rank]})`}));
