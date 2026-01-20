@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
@@ -106,7 +105,7 @@ export interface UserContextType {
   updatePopularity: (updates: CharacterPopularityUpdate[]) => Promise<void>;
   clearAllPopularityHistories: () => Promise<void>;
   withdrawFromShopTill: (shopId: string) => Promise<void>;
-  brewPotion: (userId: string, characterId: string, recipeId: string) => Promise<void>;
+  brewPotion: (userId: string, characterId: string, recipeId: string) => Promise<{ createdItem: InventoryItem; recipeName: string; }>;
   addAlchemyRecipe: (recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => Promise<void>;
   updateAlchemyRecipe: (recipeId: string, recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => Promise<void>;
   deleteAlchemyRecipe: (recipeId: string) => Promise<void>;
@@ -1388,7 +1387,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (characterIndex === -1) return;
 
         const updatedCharacters = [...user.characters];
-        updatedCharacters[characterIndex] = { ...updatedCharacters[characterIndex], wealthLevel };
+        updatedCharacters[characterIndex] = { ...updatedCharacters[characterToUpdateIndex], wealthLevel };
         
         await updateUser(userId, { characters: updatedCharacters });
     }, [fetchUserById, updateUser]);
@@ -1713,7 +1712,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const ranksAreDifferent = initiatorFamiliar.rank !== targetFamiliar.rank;
         const isMythicEventTrade =
           (initiatorFamiliar.rank === 'мифический' && targetFamiliar.rank === 'ивентовый') ||
-          (initiatorFamiliar.rank === 'ивентовый' && targetFamiliar.rank === 'мифический');
+          (initiatorFamiliar.rank === 'ивентовый' && initiatorFamiliar.rank === 'мифический');
 
         if (ranksAreDifferent && !isMythicEventTrade) {
             throw new Error("Обмен возможен только между фамильярами одного ранга, или между мифическим и ивентовым.");
@@ -1985,8 +1984,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 const list = inv[tag]!;
                 
                 const inventoryItemName = item.inventoryItemName || item.name;
-                const inventoryItemDescription = item.inventoryItemDescription || item.description;
-                const inventoryItemImage = item.inventoryItemImage || item.image;
+                const inventoryItemDescription = item.inventoryItemDescription || item.description || '';
+                const inventoryItemImage = item.inventoryItemImage || item.image || '';
 
                 const existingItemIndex = list.findIndex(invItem => invItem.name === inventoryItemName);
 
@@ -2046,8 +2045,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const newInventoryItem: InventoryItem = {
             id: `inv-item-admin-${Date.now()}`,
             name: itemData.name,
-            description: itemData.description,
-            image: itemData.image,
+            description: itemData.description || '',
+            image: itemData.image || '',
             quantity: itemData.quantity || 1,
         };
 
@@ -2573,7 +2572,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AlchemyRecipe));
     }, []);
 
-    const brewPotion = useCallback(async (userId: string, characterId: string, recipeId: string): Promise<void> => {
+    const brewPotion = useCallback(async (userId: string, characterId: string, recipeId: string): Promise<{ createdItem: InventoryItem, recipeName: string }> => {
+        let createdItem: InventoryItem | null = null;
+        let recipeName: string = '';
+    
         await runTransaction(db, async (transaction) => {
             const userRef = doc(db, "users", userId);
             const userDoc = await transaction.get(userRef);
@@ -2581,81 +2583,90 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const userData = userDoc.data() as User;
             const charIndex = userData.characters.findIndex(c => c.id === characterId);
             if (charIndex === -1) throw new Error("Персонаж не найден.");
-
-            const recipeRef = doc(db, "alchemy_recipes", recipeId);
-            const recipeDoc = await transaction.get(recipeRef);
-            if (!recipeDoc.exists()) throw new Error("Рецепт не найден.");
-            const recipe = recipeDoc.data() as AlchemyRecipe;
-
+    
+            const allRecipes = await fetchAlchemyRecipes();
+            const recipe = allRecipes.find(r => r.id === recipeId);
+            if (!recipe) throw new Error("Рецепт не найден.");
+            recipeName = recipe.name || 'Неизвестный рецепт';
+    
             const character = userData.characters[charIndex];
             const inventory = character.inventory || initialFormData.inventory;
             const ingredientsInv = (inventory.ингредиенты || []) as InventoryItem[];
-
+    
             const allItems = [...(await fetchAllShops())].flatMap(shop => shop.items || []);
             const allItemsMap = new Map<string, ShopItem | AlchemyIngredient | Potion>();
             [...ALL_ITEMS_FOR_ALCHEMY, ...allItems].forEach(item => {
                 if (item) allItemsMap.set(item.id, item);
             });
-
-
+    
             for (const component of recipe.components) {
                 const requiredIngredient = allItemsMap.get(component.ingredientId);
                 if (!requiredIngredient) {
                     throw new Error(`Required ingredient with ID ${component.ingredientId} not found.`);
                 }
                 const playerIngIndex = ingredientsInv.findIndex(i => i.name === requiredIngredient.name);
-
+    
                 if (playerIngIndex === -1 || ingredientsInv[playerIngIndex].quantity < component.qty) {
                     throw new Error(`Недостаточно ингредиента: ${requiredIngredient.name}`);
                 }
-
+    
                 if (ingredientsInv[playerIngIndex].quantity > component.qty) {
                     ingredientsInv[playerIngIndex].quantity -= component.qty;
                 } else {
                     ingredientsInv.splice(playerIngIndex, 1);
                 }
             }
-
             inventory.ингредиенты = ingredientsInv;
-
-            const resultItem = allItemsMap.get(recipe.resultPotionId);
-            if (!resultItem) {
+    
+            const resultItemData = allItemsMap.get(recipe.resultPotionId);
+            if (!resultItemData) {
                 throw new Error("Resulting item not found in data.");
             }
-
-            const resultCategory = (resultItem as ShopItem).inventoryTag || 'зелья';
-            const potionsInv = (inventory[resultCategory] || []) as InventoryItem[];
-            const existingPotionIndex = potionsInv.findIndex(p => p.name === resultItem.name);
-
-            if (existingPotionIndex > -1) {
-                potionsInv[existingPotionIndex].quantity += recipe.outputQty;
+    
+            const resultCategory = (resultItemData as ShopItem).inventoryTag || 'зелья';
+            const categoryInventory = (inventory[resultCategory] || []) as InventoryItem[];
+            const existingItemIndex = categoryInventory.findIndex(p => p.name === resultItemData.name);
+    
+            const newOrUpdatedItem: InventoryItem = {
+                id: `inv-item-${Date.now()}`,
+                name: (resultItemData as ShopItem).inventoryItemName || resultItemData.name,
+                description: (resultItemData as ShopItem).inventoryItemDescription || (resultItemData as Potion).note || '',
+                image: (resultItemData as ShopItem).inventoryItemImage || resultItemData.image || '',
+                quantity: recipe.outputQty,
+            };
+    
+            if (existingItemIndex > -1) {
+                categoryInventory[existingItemIndex].quantity += recipe.outputQty;
+                createdItem = { ...categoryInventory[existingItemIndex] }; // Capture the updated item
             } else {
-                potionsInv.push({
-                    id: `inv-item-${Date.now()}`,
-                    name: (resultItem as ShopItem).inventoryItemName || resultItem.name,
-                    description: (resultItem as ShopItem).inventoryItemDescription || (resultItem as Potion).note,
-                    image: (resultItem as ShopItem).inventoryItemImage || resultItem.image,
-                    quantity: recipe.outputQty,
-                });
+                categoryInventory.push(newOrUpdatedItem);
+                createdItem = newOrUpdatedItem; // Capture the new item
             }
-            (inventory as any)[resultCategory] = potionsInv;
+            (inventory as any)[resultCategory] = categoryInventory;
             character.inventory = inventory;
             
             const hasFirstBrewAchievement = (userData.achievementIds || []).includes(FIRST_BREW_ACHIEVEMENT_ID);
             if (!hasFirstBrewAchievement) {
                 userData.achievementIds = [...(userData.achievementIds || []), FIRST_BREW_ACHIEVEMENT_ID];
             }
-
+    
             userData.characters[charIndex] = character;
+            
             transaction.update(userRef, { characters: userData.characters, achievementIds: userData.achievementIds });
         });
-
+    
+        if (!createdItem) {
+            throw new Error("Не удалось создать предмет.");
+        }
+        
         if (currentUser && currentUser.id === userId) {
             const updatedUser = await fetchUserById(userId);
             if(updatedUser) setCurrentUser(updatedUser);
         }
-    }, [currentUser, fetchUserById, initialFormData, fetchAllShops, grantAchievementToUser]);
     
+        return { createdItem, recipeName };
+    }, [currentUser, fetchUserById, initialFormData, fetchAllShops, grantAchievementToUser, setCurrentUser, fetchAlchemyRecipes]);
+
     const addAlchemyRecipe = useCallback(async (recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
         const recipesCollection = collection(db, "alchemy_recipes");
         await addDoc(recipesCollection, { ...recipe, createdAt: new Date().toISOString() });
@@ -2953,8 +2964,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                     rewards.push({
                         id: `inv-item-${Date.now()}-${Math.random()}`,
                         name: itemData.inventoryItemName || itemData.name,
-                        description: itemData.inventoryItemDescription || itemData.description,
-                        image: itemData.inventoryItemImage || itemData.image,
+                        description: itemData.inventoryItemDescription || itemData.description || '',
+                        image: itemData.inventoryItemImage || itemData.image || '',
                         quantity: rewardData.quantity,
                     });
                 }
@@ -3017,8 +3028,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                             totalRewardsMap.set(itemName, {
                                 id: `inv-item-${Date.now()}-${Math.random()}`,
                                 name: itemName,
-                                description: itemData.inventoryItemDescription || itemData.description,
-                                image: itemData.inventoryItemImage || itemData.image,
+                                description: itemData.inventoryItemDescription || itemData.description || '',
+                                image: itemData.inventoryItemImage || itemData.image || '',
                                 quantity: rewardData.quantity,
                             });
                         }
@@ -3213,9 +3224,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       withdrawFromShopTill,
       brewPotion,
       addAlchemyRecipe,
-      fetchAlchemyRecipes,
       updateAlchemyRecipe,
       deleteAlchemyRecipe,
+      fetchAlchemyRecipes,
       fetchDbFamiliars,
       addFamiliarToDb,
       deleteFamiliarFromDb,
@@ -3234,7 +3245,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       changeUserEmail,
       mergeUserData,
     }),
-    [currentUser, setCurrentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, fetchAlchemyRecipes, updateAlchemyRecipe, deleteAlchemyRecipe, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, allFamiliars, familiarsById, startHunt, startMultipleHunts, claimHuntReward, claimAllHuntRewards, recallHunt, changeUserPassword, changeUserEmail, mergeUserData]
+    [currentUser, setCurrentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, allFamiliars, familiarsById, startHunt, startMultipleHunts, claimHuntReward, claimAllHuntRewards, recallHunt, changeUserPassword, changeUserEmail, mergeUserData]
   );
     
     return (
@@ -3253,3 +3264,6 @@ export const useUser = () => {
     }
     return context;
 };
+
+
+    
