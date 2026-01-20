@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -901,7 +900,7 @@ export default function CharacterPage() {
                                                                 className="w-full text-left p-2 border rounded-md hover:bg-muted/50 transition-colors"
                                                                 onClick={() => setSelectedItem({ ...item, category: cat.key as InventoryCategory })}
                                                             >
-                                                                <span>{item.name}{item.quantity > 1 && ` (${item.quantity})`}</span>
+                                                                <span className="break-words">{item.name}{item.quantity > 1 && ` (${item.quantity})`}</span>
                                                             </button>
                                                         </div>
                                                     ))}
