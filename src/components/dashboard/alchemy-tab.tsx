@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useUser } from '@/hooks/use-user';
-import type { AlchemyRecipe, Character, Shop, ShopItem, InventoryItem } from '@/lib/types';
+import type { AlchemyRecipe, Character, Shop, ShopItem, InventoryItem, Potion, AlchemyIngredient } from '@/lib/types';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,17 +28,22 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
+import { ALL_ITEMS_FOR_ALCHEMY } from '@/lib/alchemy-data';
 
-const RecipeCard = ({ recipe, character, allItemsMap, isCraftingId, handleCraft, onEdit }: { recipe: AlchemyRecipe, character: Character, allItemsMap: Map<string, ShopItem>, isCraftingId: string | null, handleCraft: (recipe: AlchemyRecipe) => void, onEdit: (recipe: AlchemyRecipe) => void }) => {
+const RecipeCard = ({ recipe, character, allItemsMap, isCraftingId, handleCraft, onEdit }: { recipe: AlchemyRecipe, character: Character, allItemsMap: Map<string, ShopItem | AlchemyIngredient | Potion>, isCraftingId: string | null, handleCraft: (recipe: AlchemyRecipe) => void, onEdit: (recipe: AlchemyRecipe) => void }) => {
     const { currentUser } = useUser();
     const isAdmin = currentUser?.role === 'admin';
     const outputItem = allItemsMap.get(recipe.resultPotionId);
     const recipeTitle = recipe.name || outputItem?.name || 'Неизвестный рецепт';
+    const isArtifact = outputItem?.inventoryTag === 'артефакты';
 
     const canCraft = recipe.components.every(component => {
         const requiredIngredient = allItemsMap.get(component.ingredientId);
         if (!requiredIngredient) return false;
-        const playerIngredient = character.inventory.ингредиенты?.find(i => i.name === requiredIngredient.name);
+        
+        const inventoryItemName = 'inventoryItemName' in requiredIngredient && requiredIngredient.inventoryItemName ? requiredIngredient.inventoryItemName : requiredIngredient.name;
+
+        const playerIngredient = character.inventory.ингредиенты?.find(i => i.name === inventoryItemName);
         return playerIngredient && playerIngredient.quantity >= component.qty;
     });
 
@@ -53,8 +58,11 @@ const RecipeCard = ({ recipe, character, allItemsMap, isCraftingId, handleCraft,
             )}
             <CardHeader>
                 {outputItem?.image && (
-                    <div className="relative w-full aspect-square bg-muted rounded-md mb-4">
-                        <Image src={outputItem.image} alt={outputItem.name || 'Предмет'} fill style={{ objectFit: "contain" }} data-ai-hint="alchemy potion" />
+                    <div className={cn(
+                        "relative bg-muted rounded-md mb-4 mx-auto",
+                        isArtifact ? "w-64 h-64" : "w-full aspect-square"
+                    )}>
+                        <Image src={outputItem.image} alt={outputItem.name || 'Предмет'} fill style={{ objectFit: "contain" }} data-ai-hint={isArtifact ? "artifact" : "alchemy potion"} />
                     </div>
                 )}
                 <CardTitle>{recipeTitle}</CardTitle>
@@ -65,7 +73,9 @@ const RecipeCard = ({ recipe, character, allItemsMap, isCraftingId, handleCraft,
                     {recipe.components.map(comp => {
                         const ingredient = allItemsMap.get(comp.ingredientId);
                         if (!ingredient) return null;
-                        const playerIngredient = character.inventory.ингредиенты?.find(i => i.name === ingredient.name);
+                        
+                        const inventoryItemName = 'inventoryItemName' in ingredient && ingredient.inventoryItemName ? ingredient.inventoryItemName : ingredient.name;
+                        const playerIngredient = character.inventory.ингредиенты?.find(i => i.name === inventoryItemName);
                         const playerQty = playerIngredient?.quantity || 0;
                         const hasEnough = playerQty >= comp.qty;
 
@@ -76,7 +86,7 @@ const RecipeCard = ({ recipe, character, allItemsMap, isCraftingId, handleCraft,
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <div className="relative w-8 h-8">
-                                                    <Image src="/Ingredient.png" alt="Ingredient" fill style={{ objectFit: "contain" }} />
+                                                    <Image src={(ingredient as any).image || "/Ingredient.png"} alt="Ingredient" fill style={{ objectFit: "contain" }} />
                                                 </div>
                                             </TooltipTrigger>
                                             <TooltipContent>
@@ -138,12 +148,11 @@ export default function AlchemyTab() {
     }, [currentUser, selectedCharacterId]);
 
     const allItemsMap = useMemo(() => {
-        const map = new Map<string, ShopItem>();
+        const map = new Map<string, ShopItem | AlchemyIngredient | Potion>();
         if (isLoadingShops) return map;
-        allShops.forEach(shop => {
-            (shop.items || []).forEach(item => {
-                map.set(item.id, item);
-            });
+        const allItemsFromShops = allShops.flatMap(shop => shop.items || []);
+        [...allItemsFromShops, ...ALL_ITEMS_FOR_ALCHEMY].forEach(item => {
+            if (item) map.set(item.id, item);
         });
         return map;
     }, [allShops, isLoadingShops]);
@@ -183,12 +192,6 @@ export default function AlchemyTab() {
     };
     
     const handleEditRecipe = (recipe: AlchemyRecipe) => {
-        // This function will be handled by the admin tab, which is now separate.
-        // We can navigate the user there or open a specific dialog if needed.
-        // For now, we'll just log it.
-        console.log("Editing recipe:", recipe.id);
-        // Maybe switch to admin tab and pass the recipe ID?
-        // Or use a global state management solution.
         toast({ title: "Редактирование", description: "Перейдите в админ-панель для редактирования рецептов."})
     };
 
