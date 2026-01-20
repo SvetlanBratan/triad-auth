@@ -893,11 +893,15 @@ export default function CharacterPage() {
                                                 <cat.icon className="mr-2 w-4 h-4" />{cat.label} ({visibleItems.length})
                                             </AccordionTrigger>
                                             <AccordionContent>
-                                                <div className="sm:columns-2 lg:columns-3 gap-x-8 text-sm pt-2">
+                                                <div className="sm:columns-2 lg:columns-3 gap-x-4 text-sm pt-2">
                                                     {visibleItems.map(item => (
-                                                        <div key={item.id} className="break-inside-avoid-column pb-1">
-                                                            <button className="text-left hover:underline" onClick={() => setSelectedItem({ ...item, category: cat.key as InventoryCategory })}>
-                                                                {item.name} {item.quantity > 1 ? `(x${item.quantity})` : ''}
+                                                        <div key={item.id} className="break-inside-avoid-column pb-2">
+                                                            <button 
+                                                                className="w-full text-left p-2 border rounded-md hover:bg-muted/50 transition-colors flex justify-between items-center gap-2"
+                                                                onClick={() => setSelectedItem({ ...item, category: cat.key as InventoryCategory })}
+                                                            >
+                                                                <span className="flex-1">{item.name}</span>
+                                                                {item.quantity > 1 && <Badge variant="secondary" className="shrink-0">{item.quantity}</Badge>}
                                                             </button>
                                                         </div>
                                                     ))}
@@ -1384,5 +1388,7 @@ export default function CharacterPage() {
     
 
 
+
+    
 
     
