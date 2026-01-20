@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -892,9 +893,9 @@ export default function CharacterPage() {
                                                 <cat.icon className="mr-2 w-4 h-4" />{cat.label} ({visibleItems.length})
                                             </AccordionTrigger>
                                             <AccordionContent>
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1 text-sm pt-2">
+                                                <div className="sm:columns-2 lg:columns-3 gap-x-8 text-sm pt-2">
                                                     {visibleItems.map(item => (
-                                                        <div key={item.id}>
+                                                        <div key={item.id} className="break-inside-avoid-column pb-1">
                                                             <button className="text-left hover:underline" onClick={() => setSelectedItem({ ...item, category: cat.key as InventoryCategory })}>
                                                                 {item.name} {item.quantity > 1 ? `(x${item.quantity})` : ''}
                                                             </button>
