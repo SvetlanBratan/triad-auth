@@ -227,11 +227,11 @@ export default function CharacterPage() {
     });
 
     const isMobile = useIsMobile();
-    const [editingState, setEditingState = useState<EditingState | null>(null);
-    const [selectedItem, setSelectedItem = useState<(InventoryItem & { category: InventoryCategory }) | null>(null);
-    const [isConsuming, setIsConsuming = useState(false);
-    const [selectedGalleryItem, setSelectedGalleryItem = useState<GalleryImage | null>(null);
-    const [inventorySearch, setInventorySearch = useState('');
+    const [editingState, setEditingState] = useState<EditingState | null>(null);
+    const [selectedItem, setSelectedItem] = useState<(InventoryItem & { category: InventoryCategory }) | null>(null);
+    const [isConsuming, setIsConsuming] = useState(false);
+    const [selectedGalleryItem, setSelectedGalleryItem] = useState<GalleryImage | null>(null);
+    const [inventorySearch, setInventorySearch] = useState('');
 
     const { toast } = useToast();
 
@@ -442,7 +442,7 @@ export default function CharacterPage() {
                 {!isEmpty ? content : <p className="text-sm text-muted-foreground italic">Информация отсутствует.</p>}
             </div>
         );
-    };
+     };
     
      const InfoRow = ({ label, value, field, section, isVisible = true, icon, children }: { label: string, value?: React.ReactNode, field: keyof Character, section: EditableSection | 'mainInfo', isVisible?: boolean, icon?: React.ReactNode, children?: React.ReactNode }) => {
         if (!isVisible && !isOwnerOrAdmin) return null;
@@ -1024,7 +1024,7 @@ export default function CharacterPage() {
                                         </AccordionTrigger>
                                         {isOwnerOrAdmin && (
                                             <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setEditingState({ type: 'accomplishment', mode: 'add' })}} className="shrink-0 self-center ml-2 h-8 w-8">
-                                                <PlusCircle className="h-4 w-4" />
+                                                <PlusCircle className="h-4 h-4" />
                                             </Button>
                                         )}
                                     </div>
@@ -1406,6 +1406,8 @@ export default function CharacterPage() {
         </div>
     );
 }
+
+    
 
     
 
