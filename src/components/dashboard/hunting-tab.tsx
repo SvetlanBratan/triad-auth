@@ -400,44 +400,44 @@ export default function HuntingTab() {
         </Card>
 
         <Dialog open={!!selectedLocation} onOpenChange={(isOpen) => { if (!isOpen) setSelectedLocation(null) }}>
-            <DialogContent className="max-w-2xl">
-                <DialogHeader>
+            <DialogContent className="max-w-2xl p-0 flex flex-col max-h-[90vh]">
+                <DialogHeader className="p-6 pb-0">
                     <DialogTitle>Локация: {selectedLocation?.name}</DialogTitle>
                      <DialogDescription>
                          {isLocationFull ? "В этой локации нет свободных мест." : "Выберите фамильяра или отправьте всех доступных."}
                     </DialogDescription>
                 </DialogHeader>
-                 {!isLocationFull && (
-                    <>
-                        <div className="py-4 space-y-4">
-                            <div>
-                                <Label>Один фамильяр</Label>
-                                <SearchableSelect
-                                    options={availableFamiliars}
-                                    value={selectedFamiliarId}
-                                    onValueChange={setSelectedFamiliarId}
-                                    placeholder="Выберите фамильяра..."
-                                />
-                                <Button onClick={handleStartHunt} disabled={!selectedFamiliarId || isSending} className="w-full mt-2">
-                                    <Send className="mr-2 h-4 w-4"/>{isSending ? 'Отправка...' : 'Отправить выбранного'}
-                                </Button>
+                <div className="flex-1 overflow-y-auto p-6">
+                    {!isLocationFull && (
+                        <>
+                            <div className="pb-4 space-y-4">
+                                <div>
+                                    <Label>Один фамильяр</Label>
+                                    <SearchableSelect
+                                        options={availableFamiliars}
+                                        value={selectedFamiliarId}
+                                        onValueChange={setSelectedFamiliarId}
+                                        placeholder="Выберите фамильяра..."
+                                    />
+                                    <Button onClick={handleStartHunt} disabled={!selectedFamiliarId || isSending} className="w-full mt-2">
+                                        <Send className="mr-2 h-4 w-4"/>{isSending ? 'Отправка...' : 'Отправить выбранного'}
+                                    </Button>
+                                </div>
+                                <Separator />
+                                <div>
+                                    <Label>Отправить нескольких</Label>
+                                    <Button onClick={handleStartMaxHunts} disabled={isSending || !availableFamiliars || availableFamiliars.length === 0 || ((selectedLocation?.limit ?? 10) - (huntsByLocation[selectedLocation?.id ?? ''] || 0)) <= 0} variant="secondary" className="w-full">
+                                        <Users className="mr-2 h-4 w-4" /> {isSending ? 'Отправка...' : `Отправить всех доступных (${Math.min(availableFamiliars?.length || 0, (selectedLocation?.limit ?? 10) - (huntsByLocation[selectedLocation?.id ?? ''] || 0))})`}
+                                    </Button>
+                                </div>
                             </div>
                             <Separator />
-                            <div>
-                                <Label>Отправить нескольких</Label>
-                                <Button onClick={handleStartMaxHunts} disabled={isSending || !availableFamiliars || availableFamiliars.length === 0 || ((selectedLocation?.limit ?? 10) - (huntsByLocation[selectedLocation?.id ?? ''] || 0)) <= 0} variant="secondary" className="w-full">
-                                    <Users className="mr-2 h-4 w-4" /> {isSending ? 'Отправка...' : `Отправить всех доступных (${Math.min(availableFamiliars?.length || 0, (selectedLocation?.limit ?? 10) - (huntsByLocation[selectedLocation?.id ?? ''] || 0))})`}
-                                </Button>
-                            </div>
-                        </div>
-                        <Separator />
-                    </>
-                )}
-                <div className="pt-4 space-y-2">
-                    <h4 className="font-semibold flex items-center gap-2 text-muted-foreground"><Users className="w-4 w-4" /> Сейчас на охоте ({huntsInSelectedLocation.length} / {selectedLocation?.limit ?? 10})</h4>
-                    {huntsInSelectedLocation.length > 0 ? (
-                        <ScrollArea className="h-96">
-                            <div className="space-y-2 pr-4">
+                        </>
+                    )}
+                    <div className="pt-4 space-y-2">
+                        <h4 className="font-semibold flex items-center gap-2 text-muted-foreground"><Users className="w-4 w-4" /> Сейчас на охоте ({huntsInSelectedLocation.length} / {selectedLocation?.limit ?? 10})</h4>
+                        {huntsInSelectedLocation.length > 0 ? (
+                             <div className="space-y-2">
                                 {huntsInSelectedLocation.map(hunt => {
                                     const familiar = familiarsById[hunt.familiarId];
                                     if (!familiar) return null;
@@ -460,14 +460,16 @@ export default function HuntingTab() {
                                     )
                                 })}
                             </div>
-                        </ScrollArea>
-                    ) : (
-                        <p className="text-sm text-muted-foreground text-center pt-4">В этой локации сейчас никого нет.</p>
-                    )}
+                        ) : (
+                            <p className="text-sm text-muted-foreground text-center pt-4">В этой локации сейчас никого нет.</p>
+                        )}
+                    </div>
                 </div>
             </DialogContent>
         </Dialog>
     </div>
   );
 }
+    
+
     
