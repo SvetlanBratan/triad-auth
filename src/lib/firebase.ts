@@ -31,3 +31,4 @@ export const auth = initializeAuth(app, {
 if (typeof window !== 'undefined') {
   getAnalytics(app);
 }
+

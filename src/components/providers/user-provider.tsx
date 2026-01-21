@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
@@ -324,6 +323,27 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return null;
     }, [processUserDoc]);
 
+    const fetchCharacterById = useCallback(async (characterId: string): Promise<{ character: Character; owner: User } | null> => {
+      try {
+          const usersCollection = collection(db, "users");
+          const usersSnapshot = await getDocs(usersCollection);
+
+          for (const userDoc of usersSnapshot.docs) {
+              const user = await fetchUserById(userDoc.id); 
+              if (user && user.characters) {
+                  const character = user.characters.find(c => c.id === characterId);
+                  if (character) {
+                      return { character, owner: user };
+                  }
+              }
+          }
+          return null; 
+      } catch (error) {
+          console.error("Error fetching character by ID:", error);
+          return null;
+      }
+    }, [fetchUserById]);
+
     const updateUser = useCallback(async (userId: string, updates: Partial<User>) => {
         const userRef = doc(db, "users", userId);
         await updateDoc(userRef, sanitizeObjectForFirestore(updates));
@@ -333,10 +353,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
     }, [currentUser?.id, processUserDoc]);
 
-    const updateUserAvatar = useCallback(async (userId: string, avatarUrl: string) => {
-      await updateUser(userId, { avatar: avatarUrl });
-    }, [updateUser]);
-    
     const fetchUsersForAdmin = useCallback(async (): Promise<User[]> => {
         try {
             const usersCollection = collection(db, "users");
@@ -348,24 +364,59 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
     }, [processUserDoc]);
   
-    const fetchCharacterById = useCallback(async (characterId: string): Promise<{ character: Character; owner: User } | null> => {
-        try {
-            const allUsers = await fetchUsersForAdmin();
-            for (const user of allUsers) {
-                if (user && user.characters) {
-                    const character = user.characters.find(c => c.id === characterId);
-                    if (character) {
-                        return { character, owner: user };
-                    }
-                }
+    const fetchLeaderboardUsers = useCallback(async (): Promise<User[]> => {
+        const usersCollection = collection(db, "users");
+        const userSnapshot = await getDocs(query(usersCollection, orderBy("points", "desc")));
+        const users = await Promise.all(userSnapshot.docs.map(doc => processUserDoc(doc.data() as User)));
+        return users.filter((user): user is User => user !== null);
+    }, [processUserDoc]);
+
+    const grantAchievementToUser = useCallback(async (userId: string, achievementId: string) => {
+        const user = await fetchUserById(userId);
+        if (!user) return;
+
+        const achievementIds = user.achievementIds || [];
+        if (!achievementIds.includes(achievementId)) {
+            const updatedAchievementIds = [...achievementIds, achievementId];
+            await updateUser(userId, { achievementIds: updatedAchievementIds });
+            
+            const allUsers = await fetchLeaderboardUsers(); 
+            const top3Users = allUsers.slice(0, 3);
+            
+            for (const topUser of top3Users) {
+              if (topUser.id === userId && !topUser.achievementIds?.includes(FORBES_LIST_ACHIEVEMENT_ID)) {
+                 await grantAchievementToUser(topUser.id, FORBES_LIST_ACHIEVEMENT_ID);
+              }
             }
-            return null; // Not found
-        } catch (error) {
-            console.error("Error fetching character by ID:", error);
-            return null;
         }
-    }, [fetchUsersForAdmin]);
-  
+    }, [fetchUserById, updateUser, fetchLeaderboardUsers]);
+
+    const addPointsToUser = useCallback(async (userId: string, amount: number, reason: string, characterId?: string): Promise<User | null> => {
+        const user = await fetchUserById(userId);
+        if (!user) return null;
+
+        const newPointLog: PointLog = {
+          id: `h-${Date.now()}`,
+          date: new Date().toISOString(),
+          amount,
+          reason,
+          ...(characterId && { characterId }),
+        };
+        const newPoints = user.points + amount;
+        const newHistory = [newPointLog, ...user.pointHistory].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        
+        const updates: Partial<User> = { points: newPoints, pointHistory: newHistory };
+        
+        const userRef = doc(db, "users", userId);
+        await updateDoc(userRef, updates);
+        
+        const finalUser = { ...user, points: newPoints, pointHistory: newHistory };
+        if(currentUser?.id === userId) {
+          setCurrentUser(finalUser);
+        }
+        return finalUser;
+    }, [fetchUserById, currentUser?.id]);
+    
     const fetchGameSettings = useCallback(async () => {
         try {
             const settingsRef = doc(db, 'game_settings', 'main');
@@ -399,78 +450,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             console.error("Error fetching game settings. Using default.", error);
         }
     }, []);
-  
-    const fetchDbFamiliars = useCallback(async (): Promise<FamiliarCard[]> => {
-        const familiarsCollection = collection(db, "familiars");
-        const snapshot = await getDocs(familiarsCollection);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FamiliarCard));
-    }, []);
-
-    const fetchAndCombineFamiliars = useCallback(async () => {
-        const dbFamiliars = await fetchDbFamiliars();
-        const combined = [...ALL_STATIC_FAMILIARS, ...EVENT_FAMILIARS, ...dbFamiliars];
-        setAllFamiliars(combined);
-        
-        const byId = combined.reduce((acc, card) => {
-            acc[card.id] = card;
-            return acc;
-        }, {} as Record<string, FamiliarCard>);
-        setFamiliarsById(byId);
-    }, [fetchDbFamiliars]);
-
-    const addPointsToUser = useCallback(async (userId: string, amount: number, reason: string, characterId?: string): Promise<User | null> => {
-        const user = await fetchUserById(userId);
-        if (!user) return null;
-
-        const newPointLog: PointLog = {
-          id: `h-${Date.now()}`,
-          date: new Date().toISOString(),
-          amount,
-          reason,
-          ...(characterId && { characterId }),
-        };
-        const newPoints = user.points + amount;
-        const newHistory = [newPointLog, ...user.pointHistory].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        
-        const updates: Partial<User> = { points: newPoints, pointHistory: newHistory };
-        
-        const userRef = doc(db, "users", userId);
-        await updateDoc(userRef, updates);
-        
-        const finalUser = { ...user, points: newPoints, pointHistory: newHistory };
-        if(currentUser?.id === userId) {
-          setCurrentUser(finalUser);
-        }
-        return finalUser;
-    }, [fetchUserById, currentUser?.id]);
-    
-    const fetchLeaderboardUsers = useCallback(async (): Promise<User[]> => {
-        const usersCollection = collection(db, "users");
-        const userSnapshot = await getDocs(query(usersCollection, orderBy("points", "desc")));
-        const users = await Promise.all(userSnapshot.docs.map(doc => processUserDoc(doc.data() as User)));
-        return users.filter((user): user is User => user !== null);
-    }, [processUserDoc]);
-
-    const grantAchievementToUser = useCallback(async (userId: string, achievementId: string) => {
-        const user = await fetchUserById(userId);
-        if (!user) return;
-
-        const achievementIds = user.achievementIds || [];
-        if (!achievementIds.includes(achievementId)) {
-            const updatedAchievementIds = [...achievementIds, achievementId];
-            await updateUser(userId, { achievementIds: updatedAchievementIds });
-            
-            // Check for Forbes list achievement after granting another
-            const allUsers = await fetchLeaderboardUsers(); 
-            const top3Users = allUsers.slice(0, 3);
-            
-            for (const topUser of top3Users) {
-              if (topUser.id === userId && !topUser.achievementIds?.includes(FORBES_LIST_ACHIEVEMENT_ID)) {
-                 await grantAchievementToUser(topUser.id, FORBES_LIST_ACHIEVEMENT_ID);
-              }
-            }
-        }
-    }, [fetchUserById, updateUser, fetchLeaderboardUsers]);
 
     const processWeeklyBonus = useCallback(async () => {
         const settingsRef = doc(db, 'game_settings', 'main');
@@ -517,6 +496,24 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return { awardedCount };
     }, [fetchUsersForAdmin, fetchGameSettings, addPointsToUser, fetchLeaderboardUsers, grantAchievementToUser]);
     
+    const fetchDbFamiliars = useCallback(async (): Promise<FamiliarCard[]> => {
+        const familiarsCollection = collection(db, "familiars");
+        const snapshot = await getDocs(familiarsCollection);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FamiliarCard));
+    }, []);
+
+    const fetchAndCombineFamiliars = useCallback(async () => {
+        const dbFamiliars = await fetchDbFamiliars();
+        const combined = [...ALL_STATIC_FAMILIARS, ...EVENT_FAMILIARS, ...dbFamiliars];
+        setAllFamiliars(combined);
+        
+        const byId = combined.reduce((acc, card) => {
+            acc[card.id] = card;
+            return acc;
+        }, {} as Record<string, FamiliarCard>);
+        setFamiliarsById(byId);
+    }, [fetchDbFamiliars]);
+    
     const createNewUser = useCallback(async (uid: string, nickname: string): Promise<User> => {
         const formattedNickname = nickname
             .split(' ')
@@ -528,7 +525,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             id: uid,
             name: formattedNickname,
             email: `${nickname.toLowerCase().replace(/\s/g, '')}@pumpkin.com`,
-            avatar: `https://placehold.co/100x100/A050A0/FFFFFF.png?text=${nickname.charAt(0)}`,
+            avatar: `https://placehold.co/100x100/A050A0/FFFFFF.png?text=${formattedNickname.charAt(0)}`,
             role: ADMIN_UIDS.includes(uid) ? 'admin' : 'user',
             points: 1000,
             status: 'активный',
@@ -553,13 +550,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         try {
           await setDoc(doc(db, "users", uid), newUser);
           
-          const rtDb = getDatabase();
-          const userEntry = { email: newUser.email, nickname: formattedNickname };
-          await set(ref(rtDb, 'users/' + uid), userEntry);
-
           return newUser;
         } catch(error) {
-          console.error("Error creating user:", error);
+          console.error("Error creating user in Firestore:", error);
           throw error;
         }
     }, []);
@@ -604,6 +597,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         return () => unsubscribe();
     }, [createNewUser, fetchUserById, fetchGameSettings, processWeeklyBonus, fetchAndCombineFamiliars]);
+    
+    const signOutUser = useCallback(() => {
+        signOut(auth);
+    }, []);
+
+    const authValue = useMemo(() => ({
+        user: firebaseUser,
+        loading,
+        signOutUser,
+    }), [firebaseUser, loading, signOutUser]);
     
     const addPointsToAllUsers = useCallback(async (amount: number, reason: string) => {
         const allUsers = await fetchUsersForAdmin();
@@ -3312,15 +3315,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         });
     }, []);
 
-    const signOutUser = useCallback(() => {
-        signOut(auth);
-    }, []);
-  
-    const authValue = useMemo(() => ({
-        user: firebaseUser,
-        loading,
-        signOutUser,
-    }), [firebaseUser, loading, signOutUser]);
+    const updateUserAvatar = useCallback(async (userId: string, avatarUrl: string) => {
+      await updateUser(userId, { avatar: avatarUrl });
+    }, [updateUser]);
   
     const userContextValue: UserContextType = useMemo(
     () => ({
@@ -3402,9 +3399,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       withdrawFromShopTill,
       brewPotion,
       addAlchemyRecipe,
+      fetchAlchemyRecipes,
       updateAlchemyRecipe,
       deleteAlchemyRecipe,
-      fetchAlchemyRecipes,
       fetchDbFamiliars,
       addFamiliarToDb,
       deleteFamiliarFromDb,
@@ -3424,7 +3421,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       changeUserEmail,
       mergeUserData,
     }),
-    [currentUser, setCurrentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, allFamiliars, familiarsById, startHunt, startMultipleHunts, claimHuntReward, claimAllHuntRewards, recallHunt, claimRewardsForOtherPlayer, changeUserPassword, changeUserEmail, mergeUserData, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer]
+    [currentUser, setCurrentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, fetchAlchemyRecipes, updateAlchemyRecipe, deleteAlchemyRecipe, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, allFamiliars, familiarsById, startHunt, startMultipleHunts, claimHuntReward, claimAllHuntRewards, recallHunt, claimRewardsForOtherPlayer, changeUserPassword, changeUserEmail, mergeUserData, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer]
   );
     
     return (
@@ -3443,22 +3440,3 @@ export const useUser = () => {
     }
     return context;
 };
-<<<<<<< HEAD
-=======
-
-
-    
-
-
-
-    
-
-
-
-
-
-
-
-
-
->>>>>>> c8f9673 (The app isn't starting. Please investigate what could be wrong based on)
