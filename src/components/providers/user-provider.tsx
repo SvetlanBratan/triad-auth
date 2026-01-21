@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
@@ -2980,6 +2981,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                         description: itemData.inventoryItemDescription || itemData.description || '',
                         image: itemData.inventoryItemImage || itemData.image || '',
                         quantity: rewardData.quantity,
+                        inventoryTag: itemData.inventoryTag || 'ингредиенты',
                     });
                 }
             }
@@ -2990,7 +2992,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         const inventory = { ...updatedCharacter.inventory };
         rewards.forEach(reward => {
-            const category = 'ингредиенты' as const;
+            const category = reward.inventoryTag || 'ингредиенты';
             if (!inventory[category]) (inventory as any)[category] = [];
             const categoryItems = inventory[category] as InventoryItem[];
             const existingItemIndex = categoryItems.findIndex(i => i.name === reward.name);
@@ -3036,7 +3038,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 if (rewardData && Math.random() * 100 < rewardData.chance) {
                     const itemData = allItemsMap.get(rewardRule.itemId);
                     if (itemData) {
-                        const itemName = itemData.inventoryItemName || itemData.name;
+                        const itemName = (itemData as ShopItem).inventoryItemName || itemData.name;
                         const existingReward = totalRewardsMap.get(itemName);
 
                         if (existingReward) {
@@ -3045,9 +3047,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                             totalRewardsMap.set(itemName, {
                                 id: `inv-item-${Date.now()}-${Math.random()}`,
                                 name: itemName,
-                                description: itemData.inventoryItemDescription || itemData.description || '',
-                                image: itemData.inventoryItemImage || itemData.image || '',
+                                description: (itemData as ShopItem).inventoryItemDescription || (itemData as ShopItem).description || '',
+                                image: (itemData as ShopItem).inventoryItemImage || itemData.image || '',
                                 quantity: rewardData.quantity,
+                                inventoryTag: (itemData as ShopItem).inventoryTag || 'ингредиенты',
                             });
                         }
                     }
@@ -3060,7 +3063,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         // Add rewards to inventory
         const inventory = updatedCharacter.inventory;
         totalRewards.forEach(reward => {
-            const category = 'ингредиенты' as const;
+            const category = reward.inventoryTag || 'ингредиенты';
             if (!inventory[category]) (inventory as any)[category] = [];
             const categoryItems = inventory[category] as InventoryItem[];
             const existingItemIndex = categoryItems.findIndex(i => i.name === reward.name);
@@ -3336,6 +3339,7 @@ export const useUser = () => {
 
 
     
+
 
 
 
