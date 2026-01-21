@@ -1,10 +1,9 @@
 
-
 'use client';
 
 import { useUser } from '@/hooks/use-user';
 import { rewards } from '@/lib/data';
-import type { Reward } from '@/lib/types';
+import type { Reward, RewardRequest } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -84,7 +83,7 @@ export default function RewardsTab() {
     const character = currentUser.characters.find(c => c.id === selectedCharacterId);
 
     try {
-        await createRewardRequest({
+        const rewardRequestData: Omit<RewardRequest, 'id' | 'status' | 'createdAt'> = {
             userId: currentUser.id,
             userName: currentUser.name,
             rewardId: selectedReward.id,
@@ -92,9 +91,15 @@ export default function RewardsTab() {
             rewardCost: selectedReward.cost,
             characterId: character?.id || '',
             characterName: character?.name || '',
-            statusEmoji: selectedReward.id === 'r-custom-status' ? statusEmoji : undefined,
-            statusText: selectedReward.id === 'r-custom-status' ? statusText : undefined,
-        });
+        };
+
+        if (selectedReward.id === 'r-custom-status') {
+            rewardRequestData.statusEmoji = statusEmoji;
+            rewardRequestData.statusText = statusText;
+        }
+        
+        await createRewardRequest(rewardRequestData);
+        
         toast({
             title: "Запрос отправлен!",
             description: `Ваш запрос на "${selectedReward.title}" отправлен на рассмотрение. Баллы списаны.`,
