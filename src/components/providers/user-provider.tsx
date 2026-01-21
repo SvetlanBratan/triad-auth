@@ -353,6 +353,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
     }, [currentUser?.id, processUserDoc]);
 
+    const updateUserAvatar = useCallback(async (userId: string, avatarUrl: string) => {
+      await updateUser(userId, { avatar: avatarUrl });
+    }, [updateUser]);
+
     const fetchUsersForAdmin = useCallback(async (): Promise<User[]> => {
         try {
             const usersCollection = collection(db, "users");
@@ -363,7 +367,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             throw error;
         }
     }, [processUserDoc]);
-  
+
     const fetchLeaderboardUsers = useCallback(async (): Promise<User[]> => {
         const usersCollection = collection(db, "users");
         const userSnapshot = await getDocs(query(usersCollection, orderBy("points", "desc")));
@@ -999,7 +1003,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return { updatedUser: finalUser, newCard: newCard!, isDuplicate };
     }, [fetchUsersForAdmin, allFamiliars, familiarsById, gameSettings.gachaChances]);
   
-
     const giveAnyFamiliarToCharacter = useCallback(async (userId: string, characterId: string, familiarId: string) => {
         const user = await fetchUserById(userId);
         if (!user) return;
@@ -1696,7 +1699,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   }, [currentUser, fetchUserById]);
 
-
   const createFamiliarTradeRequest = useCallback(async (initiatorCharacterId: string, initiatorFamiliarId: string, targetCharacterId: string, targetFamiliarId: string) => {
         if (!currentUser) throw new Error("Пользователь не авторизован.");
         
@@ -1727,7 +1729,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const ranksAreDifferent = initiatorFamiliar.rank !== targetFamiliar.rank;
         const isMythicEventTrade =
           (initiatorFamiliar.rank === 'мифический' && targetFamiliar.rank === 'ивентовый') ||
-          (initiatorFamiliar.rank === 'ивентовый' && initiatorFamiliar.rank === 'мифический');
+          (initiatorFamiliar.rank === 'ивентовый' && targetFamiliar.rank === 'мифический');
 
         if (ranksAreDifferent && !isMythicEventTrade) {
             throw new Error("Обмен возможен только между фамильярами одного ранга, или между мифическим и ивентовым.");
@@ -2586,7 +2588,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const snapshot = await getDocs(recipesCollection);
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AlchemyRecipe));
     }, []);
-    
+
     const brewPotion = useCallback(async (userId: string, characterId: string, recipeId: string): Promise<{ createdItem: InventoryItem; recipeName: string; }> => {
         let createdItem: InventoryItem | null = null;
         let recipeName: string = '';
@@ -2729,7 +2731,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     
         return { createdItem, recipeName };
     }, [currentUser, fetchUserById, initialFormData, fetchAllShops, grantAchievementToUser, setCurrentUser, fetchAlchemyRecipes]);
-
+    
     const addAlchemyRecipe = useCallback(async (recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
         const recipesCollection = collection(db, "alchemy_recipes");
         await addDoc(recipesCollection, { ...recipe, createdAt: new Date().toISOString() });
@@ -3314,10 +3316,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             });
         });
     }, []);
-
-    const updateUserAvatar = useCallback(async (userId: string, avatarUrl: string) => {
-      await updateUser(userId, { avatar: avatarUrl });
-    }, [updateUser]);
   
     const userContextValue: UserContextType = useMemo(
     () => ({
@@ -3440,3 +3438,5 @@ export const useUser = () => {
     }
     return context;
 };
+
+    
