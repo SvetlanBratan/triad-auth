@@ -71,8 +71,7 @@ const LocationCard = ({ location, onSelect, currentHunts = 0, limit = 10 }: { lo
 }
 
 export default function HuntingTab() {
-  const { currentUser, gameSettings = DEFAULT_GAME_SETTINGS, startHunt, claimHuntReward, recallHunt, familiarsById, claimAllHuntRewards, startMultipleHunts, fetchUsersForAdmin, adminClaimAllFinishedHuntsForCharacter } = useUser();
-  const isAdmin = currentUser?.role === 'admin';
+  const { currentUser, gameSettings = DEFAULT_GAME_SETTINGS, startHunt, claimHuntReward, recallHunt, familiarsById, claimAllHuntRewards, startMultipleHunts, fetchUsersForAdmin, claimRewardsForOtherPlayer } = useUser();
   const { toast } = useToast();
   
   const [selectedLocation, setSelectedLocation] = useState<HuntingLocation | null>(null);
@@ -82,7 +81,7 @@ export default function HuntingTab() {
   const [isSending, setIsSending] = useState(false);
   const [isProcessingId, setIsProcessingId] = useState<string | null>(null);
   const [isClaimingAll, setIsClaimingAll] = useState(false);
-  const [isKickingCharId, setIsKickingCharId] = useState<string | null>(null);
+  const [isProcessingForCharId, setIsProcessingForCharId] = useState<string | null>(null);
   
   const [now, setNow] = useState(new Date());
 
@@ -123,7 +122,7 @@ export default function HuntingTab() {
             if (!fam || busyFamiliarIds.has(fam.id)) return false;
             
             let effectiveRank = fam.rank;
-            if (effectiveRank === 'ивентовый' && rankOrder.includes('мифический')) {
+            if (effectiveRank === 'ивентовый') {
                 effectiveRank = 'мифический';
             }
 
@@ -241,11 +240,11 @@ export default function HuntingTab() {
     }
   }
 
-  const handleAdminClaim = async (hunt: OngoingHunt & { userId: string }) => {
-    if (!isAdmin) return;
-    setIsKickingCharId(hunt.characterId);
+  const handleClaimForOther = async (hunt: OngoingHunt & { userId: string }) => {
+    if (!currentUser) return;
+    setIsProcessingForCharId(hunt.characterId);
     try {
-      await adminClaimAllFinishedHuntsForCharacter(hunt.userId, hunt.characterId);
+      await claimRewardsForOtherPlayer(hunt.userId, hunt.characterId);
       toast({
         title: "Добыча собрана",
         description: `Добыча для персонажа ${hunt.characterName} была собрана и отправлена ему на почту.`,
@@ -255,7 +254,7 @@ export default function HuntingTab() {
       const msg = e instanceof Error ? e.message : "Произошла ошибка";
       toast({ variant: 'destructive', title: 'Ошибка', description: msg });
     } finally {
-      setIsKickingCharId(null);
+      setIsProcessingForCharId(null);
     }
   };
 
@@ -481,7 +480,7 @@ export default function HuntingTab() {
                                                             <span>Готово</span>
                                                         </div>
                                                     )}
-                                                    {isAdmin && !isOwn && isFinished && (
+                                                    {!isOwn && isFinished && (
                                                         <TooltipProvider>
                                                             <Tooltip>
                                                                 <TooltipTrigger asChild>
@@ -489,8 +488,8 @@ export default function HuntingTab() {
                                                                         variant="outline"
                                                                         size="icon"
                                                                         className="h-7 w-7"
-                                                                        onClick={() => handleAdminClaim(hunt)}
-                                                                        disabled={isKickingCharId === hunt.characterId}
+                                                                        onClick={() => handleClaimForOther(hunt)}
+                                                                        disabled={isProcessingForCharId === hunt.characterId}
                                                                     >
                                                                         <Bone className="w-4 h-4" />
                                                                     </Button>
@@ -520,4 +519,5 @@ export default function HuntingTab() {
     
 
     
+
 

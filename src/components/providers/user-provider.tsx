@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
@@ -124,7 +125,7 @@ export interface UserContextType {
   claimHuntReward: (characterId: string, huntId: string) => Promise<InventoryItem[]>;
   claimAllHuntRewards: (characterId: string) => Promise<InventoryItem[]>;
   recallHunt: (characterId: string, huntId: string) => Promise<void>;
-  adminClaimAllFinishedHuntsForCharacter: (ownerUserId: string, characterId: string) => Promise<void>;
+  claimRewardsForOtherPlayer: (ownerUserId: string, characterId: string) => Promise<void>;
   changeUserPassword: (currentPassword: string, newPassword: string) => Promise<void>;
   changeUserEmail: (currentPassword: string, newEmail: string) => Promise<void>;
   mergeUserData: (sourceUserId: string, targetUserId: string) => Promise<void>;
@@ -2612,7 +2613,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 }
                 const inventoryItemName = 'inventoryItemName' in requiredItemData && requiredItemData.inventoryItemName ? requiredItemData.inventoryItemName : requiredItemData.name;
 
-                // Check total quantity first
                 let totalAvailable = 0;
                 const mainCategoryItems = (inventory[category] || []) as InventoryItem[];
                 const mainPlayerItem = mainCategoryItems.find(i => i.name === inventoryItemName);
@@ -2632,7 +2632,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                     throw new Error(`Недостаточно: ${inventoryItemName}`);
                 }
 
-                // Now deduct
                 let qtyToDeduct = component.qty;
 
                 if (category === 'драгоценности') {
@@ -2653,13 +2652,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                     if (qtyToDeduct > 0) {
                         const ingredientInv = (inventory['ингредиенты'] || []) as InventoryItem[];
                         const jewelInIngrIndex = ingredientInv.findIndex(i => i.name === inventoryItemName);
-                        // We already checked for total quantity, so this item must exist and have enough
                         ingredientInv[jewelInIngrIndex].quantity -= qtyToDeduct;
                         if (ingredientInv[jewelInIngrIndex].quantity <= 0) {
                             ingredientInv.splice(jewelInIngrIndex, 1);
                         }
                     }
-                } else { // It's an ingredient, deduct from 'ингредиенты'
+                } else {
                     const ingredientInv = (inventory['ингредиенты'] || []) as InventoryItem[];
                     const playerItemIndex = ingredientInv.findIndex(i => i.name === inventoryItemName);
                     
@@ -3132,9 +3130,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         await updateCharacterInUser(currentUser.id, updatedCharacter);
     }, [currentUser, updateCharacterInUser]);
     
-    const adminClaimAllFinishedHuntsForCharacter = useCallback(async (ownerUserId: string, characterId: string) => {
-        if (!currentUser || currentUser.role !== 'admin') {
-            throw new Error("Только администраторы могут выполнять это действие.");
+    const claimRewardsForOtherPlayer = useCallback(async (ownerUserId: string, characterId: string) => {
+        if (!currentUser) {
+            throw new Error("Пользователь не авторизован.");
         }
     
         const userToUpdate = await fetchUserById(ownerUserId);
@@ -3215,12 +3213,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             ? totalRewards.map(r => `${r.name} (x${r.quantity})`).join(', ')
             : 'Ничего (не повезло)';
     
-        const mailContent = `Администратор собрал добычу для вашего персонажа "${character.name}" из ${finishedHunts.length} завершенных экспедиций. Ваша добыча:\n\n${rewardListString}`;
+        const mailContent = `Игрок ${currentUser.name} собрал добычу для вашего персонажа "${character.name}" из ${finishedHunts.length} завершенных экспедиций. Ваша добыча:\n\n${rewardListString}`;
     
         const mail: MailMessage = {
-            id: `mail-admin-claim-${Date.now()}`,
-            senderUserId: 'admin',
-            senderCharacterName: 'Администрация',
+            id: `mail-other-claim-${Date.now()}`,
+            senderUserId: currentUser.id,
+            senderCharacterName: currentUser.name,
             recipientUserId: ownerUserId,
             recipientCharacterId: characterId,
             recipientCharacterName: character.name,
@@ -3408,12 +3406,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       claimHuntReward,
       claimAllHuntRewards,
       recallHunt,
-      adminClaimAllFinishedHuntsForCharacter,
+      claimRewardsForOtherPlayer,
       changeUserPassword,
       changeUserEmail,
       mergeUserData,
     }),
-    [currentUser, setCurrentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, fetchAlchemyRecipes, updateAlchemyRecipe, deleteAlchemyRecipe, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, allFamiliars, familiarsById, startHunt, startMultipleHunts, claimHuntReward, claimAllHuntRewards, recallHunt, adminClaimAllFinishedHuntsForCharacter, changeUserPassword, changeUserEmail, mergeUserData]
+    [currentUser, setCurrentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, fetchAlchemyRecipes, updateAlchemyRecipe, deleteAlchemyRecipe, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, allFamiliars, familiarsById, startHunt, startMultipleHunts, claimHuntReward, claimAllHuntRewards, recallHunt, claimRewardsForOtherPlayer, changeUserPassword, changeUserEmail, mergeUserData]
   );
     
     return (
@@ -3439,6 +3437,7 @@ export const useUser = () => {
 
 
     
+
 
 
 
