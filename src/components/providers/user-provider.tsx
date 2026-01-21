@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
@@ -2611,21 +2610,64 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 if (!category || (category !== 'ингредиенты' && category !== 'драгоценности')) {
                     throw new Error(`Invalid inventory category for item ${requiredItemData.name}`);
                 }
-
-                const categoryInventory = (inventory[category] || []) as InventoryItem[];
                 const inventoryItemName = 'inventoryItemName' in requiredItemData && requiredItemData.inventoryItemName ? requiredItemData.inventoryItemName : requiredItemData.name;
-                const playerItemIndex = categoryInventory.findIndex(i => i.name === inventoryItemName);
 
-                if (playerItemIndex === -1 || categoryInventory[playerItemIndex].quantity < component.qty) {
+                // Check total quantity first
+                let totalAvailable = 0;
+                const mainCategoryItems = (inventory[category] || []) as InventoryItem[];
+                const mainPlayerItem = mainCategoryItems.find(i => i.name === inventoryItemName);
+                if (mainPlayerItem) {
+                    totalAvailable += mainPlayerItem.quantity;
+                }
+
+                if (category === 'драгоценности') {
+                    const ingredientItems = (inventory['ингредиенты'] || []) as InventoryItem[];
+                    const jewelInIngredients = ingredientItems.find(i => i.name === inventoryItemName);
+                    if (jewelInIngredients) {
+                        totalAvailable += jewelInIngredients.quantity;
+                    }
+                }
+
+                if (totalAvailable < component.qty) {
                     throw new Error(`Недостаточно: ${inventoryItemName}`);
                 }
-    
-                if (categoryInventory[playerItemIndex].quantity > component.qty) {
-                    categoryInventory[playerItemIndex].quantity -= component.qty;
-                } else {
-                    categoryInventory.splice(playerItemIndex, 1);
+
+                // Now deduct
+                let qtyToDeduct = component.qty;
+
+                if (category === 'драгоценности') {
+                    const jewelInv = (inventory['драгоценности'] || []) as InventoryItem[];
+                    const jewelIndex = jewelInv.findIndex(i => i.name === inventoryItemName);
+                    if (jewelIndex > -1) {
+                        const available = jewelInv[jewelIndex].quantity;
+                        const deductFromHere = Math.min(qtyToDeduct, available);
+                        
+                        jewelInv[jewelIndex].quantity -= deductFromHere;
+                        qtyToDeduct -= deductFromHere;
+                        
+                        if (jewelInv[jewelIndex].quantity <= 0) {
+                            jewelInv.splice(jewelIndex, 1);
+                        }
+                    }
+
+                    if (qtyToDeduct > 0) {
+                        const ingredientInv = (inventory['ингредиенты'] || []) as InventoryItem[];
+                        const jewelInIngrIndex = ingredientInv.findIndex(i => i.name === inventoryItemName);
+                        // We already checked for total quantity, so this item must exist and have enough
+                        ingredientInv[jewelInIngrIndex].quantity -= qtyToDeduct;
+                        if (ingredientInv[jewelInIngrIndex].quantity <= 0) {
+                            ingredientInv.splice(jewelInIngrIndex, 1);
+                        }
+                    }
+                } else { // It's an ingredient, deduct from 'ингредиенты'
+                    const ingredientInv = (inventory['ингредиенты'] || []) as InventoryItem[];
+                    const playerItemIndex = ingredientInv.findIndex(i => i.name === inventoryItemName);
+                    
+                    ingredientInv[playerItemIndex].quantity -= qtyToDeduct;
+                    if (ingredientInv[playerItemIndex].quantity <= 0) {
+                        ingredientInv.splice(playerItemIndex, 1);
+                    }
                 }
-                (inventory as any)[category] = categoryInventory;
             }
     
             if (!resultItemData) {
@@ -3397,6 +3439,7 @@ export const useUser = () => {
 
 
     
+
 
 
 

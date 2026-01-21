@@ -38,21 +38,37 @@ const RecipeCard = ({ recipe, character, allItemsMap, isCraftingId, handleCraft 
     const recipeTitle = recipe.name || outputItem?.name || 'Неизвестный рецепт';
     const isArtifact = outputItem?.inventoryTag === 'артефакты';
 
-    const canCraft = recipe.components.every(component => {
-        const requiredItemData = allItemsMap.get(component.ingredientId);
-        if (!requiredItemData) return false;
+    const canCraft = useMemo(() => {
+        return recipe.components.every(component => {
+            const requiredItemData = allItemsMap.get(component.ingredientId);
+            if (!requiredItemData) return false;
 
-        const category = (requiredItemData as ShopItem).inventoryTag;
-        if (!category || (category !== 'ингредиенты' && category !== 'драгоценности')) {
-             return false;
-        }
+            const category = (requiredItemData as ShopItem).inventoryTag;
+            if (!category || (category !== 'ингредиенты' && category !== 'драгоценности')) {
+                 return false;
+            }
 
-        const categoryInventory = character.inventory[category] || [];
-        const inventoryItemName = 'inventoryItemName' in requiredItemData && requiredItemData.inventoryItemName ? requiredItemData.inventoryItemName : requiredItemData.name;
-        
-        const playerItem = categoryInventory.find(i => i.name === inventoryItemName);
-        return playerItem && playerItem.quantity >= component.qty;
-    });
+            const inventoryItemName = 'inventoryItemName' in requiredItemData && requiredItemData.inventoryItemName ? requiredItemData.inventoryItemName : requiredItemData.name;
+            
+            let totalPlayerQty = 0;
+            const mainCategoryItems = (character.inventory[category] || []) as InventoryItem[];
+            const mainPlayerItem = mainCategoryItems.find(i => i.name === inventoryItemName);
+            if (mainPlayerItem) {
+                totalPlayerQty += mainPlayerItem.quantity;
+            }
+
+            // If it's a jewel, also check the ingredients category
+            if (category === 'драгоценности') {
+                const ingredientItems = (character.inventory['ингредиенты'] || []) as InventoryItem[];
+                const jewelInIngredients = ingredientItems.find(i => i.name === inventoryItemName);
+                if (jewelInIngredients) {
+                    totalPlayerQty += jewelInIngredients.quantity;
+                }
+            }
+            
+            return totalPlayerQty >= component.qty;
+        });
+    }, [recipe.components, allItemsMap, character.inventory]);
 
     return (
         <Card className="flex flex-col relative group">
@@ -79,11 +95,23 @@ const RecipeCard = ({ recipe, character, allItemsMap, isCraftingId, handleCraft 
                             return null;
                         }
 
-                        const categoryInventory = character.inventory[category] || [];
                         const inventoryItemName = 'inventoryItemName' in itemData && itemData.inventoryItemName ? itemData.inventoryItemName : itemData.name;
-                        const playerItem = categoryInventory.find(i => i.name === inventoryItemName);
+                        
+                        let playerQty = 0;
+                        const mainCategoryItems = (character.inventory[category] || []) as InventoryItem[];
+                        const mainPlayerItem = mainCategoryItems.find(i => i.name === inventoryItemName);
+                        if (mainPlayerItem) {
+                            playerQty += mainPlayerItem.quantity;
+                        }
 
-                        const playerQty = playerItem?.quantity || 0;
+                        if (category === 'драгоценности') {
+                            const ingredientItems = (character.inventory['ингредиенты'] || []) as InventoryItem[];
+                            const jewelInIngredients = ingredientItems.find(i => i.name === inventoryItemName);
+                            if (jewelInIngredients) {
+                                playerQty += jewelInIngredients.quantity;
+                            }
+                        }
+
                         const hasEnough = playerQty >= comp.qty;
 
                         return (
@@ -302,5 +330,3 @@ export default function AlchemyTab() {
         </div>
     );
 }
-
-    
