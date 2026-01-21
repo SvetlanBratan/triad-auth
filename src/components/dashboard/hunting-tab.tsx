@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -25,6 +26,7 @@ import { ScrollArea, ScrollBar } from '../ui/scroll-area';
 import { Label } from '../ui/label';
 import { Separator } from '../ui/separator';
 import { useQuery } from '@tanstack/react-query';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 
 const rankOrder: FamiliarRank[] = ['мифический', 'легендарный', 'редкий', 'обычный'];
@@ -68,7 +70,8 @@ const LocationCard = ({ location, onSelect, currentHunts = 0, limit = 10 }: { lo
 }
 
 export default function HuntingTab() {
-  const { currentUser, gameSettings = DEFAULT_GAME_SETTINGS, startHunt, claimHuntReward, recallHunt, familiarsById, claimAllHuntRewards, startMultipleHunts, fetchUsersForAdmin } = useUser();
+  const { currentUser, gameSettings = DEFAULT_GAME_SETTINGS, startHunt, claimHuntReward, recallHunt, familiarsById, claimAllHuntRewards, startMultipleHunts, fetchUsersForAdmin, kickPlayerFromHunt } = useUser();
+  const isAdmin = currentUser?.role === 'admin';
   const { toast } = useToast();
   
   const [selectedLocation, setSelectedLocation] = useState<HuntingLocation | null>(null);
@@ -78,6 +81,7 @@ export default function HuntingTab() {
   const [isSending, setIsSending] = useState(false);
   const [isProcessingId, setIsProcessingId] = useState<string | null>(null);
   const [isClaimingAll, setIsClaimingAll] = useState(false);
+  const [isKickingId, setIsKickingId] = useState<string | null>(null);
   
   const [now, setNow] = useState(new Date());
 
@@ -118,7 +122,7 @@ export default function HuntingTab() {
             if (!fam || busyFamiliarIds.has(fam.id)) return false;
             
             let effectiveRank = fam.rank;
-            if (effectiveRank === 'ивентовый') {
+            if (effectiveRank === 'ивентовый' && rankOrder.includes('мифический')) {
                 effectiveRank = 'мифический';
             }
 
@@ -235,6 +239,24 @@ export default function HuntingTab() {
         setIsProcessingId(null);
     }
   }
+
+  const handleKickPlayer = async (hunt: OngoingHunt & { userId: string }) => {
+    if (!isAdmin) return;
+    setIsKickingId(hunt.huntId);
+    try {
+      await kickPlayerFromHunt(hunt.userId, hunt.characterId, hunt.huntId);
+      toast({
+        title: "Фамильяр отозван",
+        description: `Фамильяр ${familiarsById[hunt.familiarId]?.name} был отозван с охоты.`,
+      });
+      refetchAllUsers();
+    } catch(e) {
+      const msg = e instanceof Error ? e.message : "Произошла ошибка";
+      toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+    } finally {
+      setIsKickingId(null);
+    }
+  };
 
   const ongoingHunts = useMemo(() => {
     if (!character) return [];
@@ -407,7 +429,7 @@ export default function HuntingTab() {
                          {isLocationFull ? "В этой локации нет свободных мест." : "Выберите фамильяра или отправьте всех доступных."}
                     </DialogDescription>
                 </DialogHeader>
-                <div className="flex-1 overflow-y-auto p-6">
+                <div className="flex-1 overflow-y-auto px-6 pt-4">
                     {!isLocationFull && (
                         <>
                             <div className="pb-4 space-y-4">
@@ -434,32 +456,56 @@ export default function HuntingTab() {
                             <Separator />
                         </>
                     )}
-                    <div className="pt-4 space-y-2">
+                    <div className="py-4 space-y-2">
                         <h4 className="font-semibold flex items-center gap-2 text-muted-foreground"><Users className="w-4 w-4" /> Сейчас на охоте ({huntsInSelectedLocation.length} / {selectedLocation?.limit ?? 10})</h4>
                         {huntsInSelectedLocation.length > 0 ? (
-                             <div className="space-y-2">
-                                {huntsInSelectedLocation.map(hunt => {
-                                    const familiar = familiarsById[hunt.familiarId];
-                                    if (!familiar) return null;
-                                    const isOwn = hunt.characterId === selectedCharacterId;
-                                    const isFinished = new Date(hunt.endsAt) <= now;
-                                    return (
-                                        <div key={hunt.huntId} className={cn("flex items-center gap-3 text-sm p-2 rounded-md", isOwn ? "bg-primary/10" : "bg-muted")}>
-                                            <Image src={familiar.imageUrl} alt={familiar.name} width={40} height={60} className="rounded-md object-cover" data-ai-hint={familiar['data-ai-hint']}/>
-                                            <div className="truncate flex-1">
-                                                <p className="font-semibold truncate">{familiar.name}</p>
-                                                <p className="text-xs text-muted-foreground truncate">Владелец: {hunt.characterName}</p>
-                                            </div>
-                                             {isFinished && (
-                                                <div className="flex items-center gap-1 text-xs text-green-600 shrink-0">
-                                                    <CheckCircle className="w-3.5 h-3.5" />
-                                                    <span>Готово</span>
+                             <ScrollArea className="h-64 pr-3">
+                                <div className="space-y-2">
+                                    {huntsInSelectedLocation.map(hunt => {
+                                        const familiar = familiarsById[hunt.familiarId];
+                                        if (!familiar) return null;
+                                        const isOwn = hunt.userId === currentUser?.id;
+                                        const isFinished = new Date(hunt.endsAt) <= now;
+                                        return (
+                                            <div key={hunt.huntId} className={cn("flex items-center gap-3 text-sm p-2 rounded-md", isOwn ? "bg-primary/10" : "bg-muted")}>
+                                                <Image src={familiar.imageUrl} alt={familiar.name} width={40} height={60} className="rounded-md object-cover" data-ai-hint={familiar['data-ai-hint']}/>
+                                                <div className="truncate flex-1">
+                                                    <p className="font-semibold truncate">{familiar.name}</p>
+                                                    <p className="text-xs text-muted-foreground truncate">Владелец: {hunt.characterName}</p>
                                                 </div>
-                                            )}
-                                        </div>
-                                    )
-                                })}
-                            </div>
+                                                <div className="flex items-center shrink-0 gap-2">
+                                                    {isFinished && (
+                                                        <div className="flex items-center gap-1 text-xs text-green-600">
+                                                            <CheckCircle className="w-3.5 h-3.5" />
+                                                            <span>Готово</span>
+                                                        </div>
+                                                    )}
+                                                    {isAdmin && !isOwn && isFinished && (
+                                                        <TooltipProvider>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        className="h-6 w-6 text-destructive"
+                                                                        onClick={() => handleKickPlayer(hunt)}
+                                                                        disabled={isKickingId === hunt.huntId}
+                                                                    >
+                                                                        <X className="w-4 h-4" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>
+                                                                    <p>Выгнать (без добычи)</p>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </ScrollArea>
                         ) : (
                             <p className="text-sm text-muted-foreground text-center pt-4">В этой локации сейчас никого нет.</p>
                         )}
