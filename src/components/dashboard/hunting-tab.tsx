@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -70,7 +71,7 @@ const LocationCard = ({ location, onSelect, currentHunts = 0, limit = 10 }: { lo
 }
 
 export default function HuntingTab() {
-  const { currentUser, gameSettings = DEFAULT_GAME_SETTINGS, startHunt, claimHuntReward, recallHunt, familiarsById, claimAllHuntRewards, startMultipleHunts, fetchUsersForAdmin, kickPlayerFromHunt } = useUser();
+  const { currentUser, gameSettings = DEFAULT_GAME_SETTINGS, startHunt, claimHuntReward, recallHunt, familiarsById, claimAllHuntRewards, startMultipleHunts, fetchUsersForAdmin, adminClaimAllFinishedHuntsForCharacter } = useUser();
   const isAdmin = currentUser?.role === 'admin';
   const { toast } = useToast();
   
@@ -81,7 +82,7 @@ export default function HuntingTab() {
   const [isSending, setIsSending] = useState(false);
   const [isProcessingId, setIsProcessingId] = useState<string | null>(null);
   const [isClaimingAll, setIsClaimingAll] = useState(false);
-  const [isKickingId, setIsKickingId] = useState<string | null>(null);
+  const [isKickingCharId, setIsKickingCharId] = useState<string | null>(null);
   
   const [now, setNow] = useState(new Date());
 
@@ -240,21 +241,21 @@ export default function HuntingTab() {
     }
   }
 
-  const handleKickPlayer = async (hunt: OngoingHunt & { userId: string }) => {
+  const handleAdminClaim = async (hunt: OngoingHunt & { userId: string }) => {
     if (!isAdmin) return;
-    setIsKickingId(hunt.huntId);
+    setIsKickingCharId(hunt.characterId);
     try {
-      await kickPlayerFromHunt(hunt.userId, hunt.characterId, hunt.huntId);
+      await adminClaimAllFinishedHuntsForCharacter(hunt.userId, hunt.characterId);
       toast({
-        title: "Фамильяр отозван",
-        description: `Фамильяр ${familiarsById[hunt.familiarId]?.name} был отозван с охоты.`,
+        title: "Добыча собрана",
+        description: `Добыча для персонажа ${hunt.characterName} была собрана и отправлена ему на почту.`,
       });
       refetchAllUsers();
     } catch(e) {
       const msg = e instanceof Error ? e.message : "Произошла ошибка";
       toast({ variant: 'destructive', title: 'Ошибка', description: msg });
     } finally {
-      setIsKickingId(null);
+      setIsKickingCharId(null);
     }
   };
 
@@ -431,7 +432,7 @@ export default function HuntingTab() {
                 </DialogHeader>
                 <div className="flex-1 overflow-y-auto px-6 pt-4">
                     {!isLocationFull && (
-                        <>
+                        <div className="space-y-6">
                             <div className="pb-4 space-y-4">
                                 <div>
                                     <Label>Один фамильяр</Label>
@@ -454,7 +455,7 @@ export default function HuntingTab() {
                                 </div>
                             </div>
                             <Separator />
-                        </>
+                        </div>
                     )}
                     <div className="py-4 space-y-2">
                         <h4 className="font-semibold flex items-center gap-2 text-muted-foreground"><Users className="w-4 w-4" /> Сейчас на охоте ({huntsInSelectedLocation.length} / {selectedLocation?.limit ?? 10})</h4>
@@ -485,17 +486,17 @@ export default function HuntingTab() {
                                                             <Tooltip>
                                                                 <TooltipTrigger asChild>
                                                                     <Button
-                                                                        variant="ghost"
+                                                                        variant="outline"
                                                                         size="icon"
-                                                                        className="h-6 w-6 text-destructive"
-                                                                        onClick={() => handleKickPlayer(hunt)}
-                                                                        disabled={isKickingId === hunt.huntId}
+                                                                        className="h-7 w-7"
+                                                                        onClick={() => handleAdminClaim(hunt)}
+                                                                        disabled={isKickingCharId === hunt.characterId}
                                                                     >
-                                                                        <X className="w-4 h-4" />
+                                                                        <Bone className="w-4 h-4" />
                                                                     </Button>
                                                                 </TooltipTrigger>
                                                                 <TooltipContent>
-                                                                    <p>Выгнать (без добычи)</p>
+                                                                    <p>Забрать всю готовую добычу для этого игрока</p>
                                                                 </TooltipContent>
                                                             </Tooltip>
                                                         </TooltipProvider>
@@ -519,3 +520,4 @@ export default function HuntingTab() {
     
 
     
+
