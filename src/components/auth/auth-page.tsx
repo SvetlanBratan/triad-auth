@@ -45,12 +45,15 @@ export default function AuthPage() {
   const handleAuth = async (data: FormData) => {
     setIsLoading(true);
     
-    const formattedNickname = data.nickname
+    const trimmedNickname = data.nickname.trim();
+
+    const formattedNickname = trimmedNickname
         .split(' ')
+        .filter(word => word.length > 0)
         .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
         .join(' ');
 
-    const fakeEmailForAuth = `${data.nickname.toLowerCase().replace(/\s/g, '')}@pumpkin.com`;
+    const fakeEmailForAuth = `${trimmedNickname.toLowerCase().replace(/\s/g, '')}@pumpkin.com`;
 
     try {
       if (isLogin) {
