@@ -945,7 +945,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             }
             
             const hasBlessing = character.blessingExpires ? new Date(character.blessingExpires) > new Date() : false;
-            newCard = drawFamiliarCard(allFamiliars, hasBlessing, claimedMythicIds, gameSettings.gachaChances);
+            newCard = drawFamiliarCard(allFamiliars.filter(c => c.rank !== 'ивентовый'), hasBlessing, claimedMythicIds, gameSettings.gachaChances);
             
             const ownedCardIds = new Set((character.familiarCards || []).map(c => c.id));
             isDuplicate = ownedCardIds.has(newCard.id);
@@ -3042,7 +3042,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         const inventory = { ...updatedCharacter.inventory };
         rewards.forEach(reward => {
-            const category = reward.inventoryTag || 'ингредиенты';
+            const category = reward.inventoryTag;
+            if (!category) return;
             if (!inventory[category]) (inventory as any)[category] = [];
             const categoryItems = inventory[category] as InventoryItem[];
             const existingItemIndex = categoryItems.findIndex(i => i.name === reward.name);
@@ -3113,7 +3114,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         // Add rewards to inventory
         const inventory = updatedCharacter.inventory;
         totalRewards.forEach(reward => {
-            const category = reward.inventoryTag || 'ингредиенты';
+            const category = reward.inventoryTag;
+            if (!category) return;
             if (!inventory[category]) (inventory as any)[category] = [];
             const categoryItems = inventory[category] as InventoryItem[];
             const existingItemIndex = categoryItems.findIndex(i => i.name === reward.name);
@@ -3202,7 +3204,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const totalRewards = Array.from(totalRewardsMap.values());
         const inventory = updatedCharacter.inventory;
         totalRewards.forEach(reward => {
-            const category = reward.inventoryTag || 'ингредиенты';
+            const category = reward.inventoryTag;
+            if (!category) return;
             if (!inventory[category]) (inventory as any)[category] = [];
             const categoryItems = inventory[category] as InventoryItem[];
             const existingItemIndex = categoryItems.findIndex(i => i.name === reward.name);
@@ -3440,3 +3443,22 @@ export const useUser = () => {
     }
     return context;
 };
+<<<<<<< HEAD
+=======
+
+
+    
+
+
+
+    
+
+
+
+
+
+
+
+
+
+>>>>>>> c8f9673 (The app isn't starting. Please investigate what could be wrong based on)
