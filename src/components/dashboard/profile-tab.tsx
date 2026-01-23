@@ -3,7 +3,7 @@
 'use client';
 
 import { useUser } from '@/hooks/use-user';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -211,6 +211,7 @@ export default function ProfileTab() {
   const [socials, setSocials] = React.useState<SocialLink[]>([]);
   const [isSavingSocials, setIsSavingSocials] = React.useState(false);
   const [isAchievementsOpen, setIsAchievementsOpen] = useState(false);
+  const [showAllPointsHistory, setShowAllPointsHistory] = React.useState(false);
 
   const { data: allUsers = [], refetch } = useQuery<User[]>({
     queryKey: ['allUsersForProfile'],
@@ -334,6 +335,7 @@ export default function ProfileTab() {
   };
   
   const sortedPointHistory = currentUser.pointHistory.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const displayedPointHistory = showAllPointsHistory ? sortedPointHistory : sortedPointHistory.slice(0, 5);
   const userAchievements = (currentUser.achievementIds || []).map(id => ACHIEVEMENTS_BY_ID[id]).filter(Boolean);
 
     const allAchievementsSorted = useMemo(() => {
@@ -564,7 +566,7 @@ export default function ProfileTab() {
             <CardTitle>История баллов</CardTitle>
             <CardDescription>Журнал ваших заработанных и потраченных баллов.</CardDescription>
           </CardHeader>
-          <CardContent className="max-h-[40vh] overflow-y-auto">
+          <CardContent className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -574,7 +576,7 @@ export default function ProfileTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedPointHistory.length > 0 ? sortedPointHistory.map((log: PointLog) => (
+                {displayedPointHistory.length > 0 ? displayedPointHistory.map((log: PointLog) => (
                   <TableRow key={log.id}>
                     <TableCell className="text-muted-foreground">{formatDate(log.date)}</TableCell>
                     <TableCell>
@@ -595,6 +597,13 @@ export default function ProfileTab() {
               </TableBody>
             </Table>
           </CardContent>
+           {sortedPointHistory.length > 5 && (
+            <CardFooter>
+              <Button variant="link" onClick={() => setShowAllPointsHistory(!showAllPointsHistory)} className="p-0 h-auto text-xs">
+                {showAllPointsHistory ? 'Скрыть' : `Показать все (${sortedPointHistory.length})`}
+              </Button>
+            </CardFooter>
+          )}
         </Card>
         <RewardRequestsHistory />
      </div>

@@ -1,21 +1,24 @@
 
+
 "use client";
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useUser } from '@/hooks/use-user';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import type { RewardRequest, RewardRequestStatus } from '@/lib/types';
 import { CheckCircle, XCircle, Clock, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
+import { Button } from '../ui/button';
 
 export default function RewardRequestsHistory() {
     const { fetchRewardRequestsForUser, currentUser } = useUser();
     const [requests, setRequests] = useState<RewardRequest[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const { toast } = useToast();
+    const [showAll, setShowAll] = useState(false);
 
     const loadRequests = useCallback(async () => {
         if (!currentUser) return;
@@ -34,6 +37,8 @@ export default function RewardRequestsHistory() {
     useEffect(() => {
         loadRequests();
     }, [loadRequests, currentUser?.pointHistory]); // Re-fetch if point history changes (new request)
+    
+    const displayedRequests = showAll ? requests : requests.slice(0, 5);
 
     const getStatusProps = (status: RewardRequestStatus) => {
         switch (status) {
@@ -73,9 +78,9 @@ export default function RewardRequestsHistory() {
                 <ScrollArea className="h-64 pr-3">
                     {isLoading ? (
                         <p className="text-sm text-muted-foreground">Загрузка истории...</p>
-                    ) : requests.length > 0 ? (
+                    ) : displayedRequests.length > 0 ? (
                         <div className="space-y-3">
-                            {requests.map(request => {
+                            {displayedRequests.map(request => {
                                 const statusProps = getStatusProps(request.status);
                                 return (
                                     <div key={request.id} className="p-3 bg-muted/50 rounded-md">
@@ -106,6 +111,13 @@ export default function RewardRequestsHistory() {
                     )}
                 </ScrollArea>
             </CardContent>
+            {requests.length > 5 && (
+                <CardFooter>
+                    <Button variant="link" onClick={() => setShowAll(!showAll)} className="p-0 h-auto text-xs">
+                        {showAll ? 'Скрыть' : `Показать все (${requests.length})`}
+                    </Button>
+                </CardFooter>
+            )}
         </Card>
     );
 }
