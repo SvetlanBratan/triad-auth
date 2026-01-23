@@ -50,7 +50,7 @@ const LeaderboardTable = () => {
     } = useInfiniteQuery({
         queryKey: ['leaderboard'],
         queryFn: ({ pageParam }) => fetchLeaderboardUsers(pageParam),
-        initialPageParam: undefined,
+        initialPageParam: null,
         getNextPageParam: (lastPage) => lastPage.lastVisible,
     });
     

@@ -39,7 +39,7 @@ export interface UserContextType {
   fetchUserById: (userId: string) => Promise<User | null>;
   fetchCharacterById: (characterId: string) => Promise<{ character: Character; owner: User } | null>;
   fetchUsersForAdmin: () => Promise<User[]>;
-  fetchLeaderboardUsers: (lastVisible?: DocumentSnapshot<DocumentData>) => Promise<{ users: User[], lastVisible?: DocumentSnapshot<DocumentData> }>;
+  fetchLeaderboardUsers: (lastVisible?: DocumentSnapshot<DocumentData> | null) => Promise<{ users: User[], lastVisible?: DocumentSnapshot<DocumentData> }>;
   fetchAllRewardRequests: () => Promise<RewardRequest[]>;
   fetchRewardRequestsForUser: (userId: string, fetchLimit?: number) => Promise<RewardRequest[]>;
   fetchAvailableMythicCardsCount: () => Promise<number>;
@@ -336,7 +336,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
     }, [processUserDoc]);
     
-    const fetchLeaderboardUsers = useCallback(async (lastVisible?: DocumentSnapshot<DocumentData>): Promise<{ users: User[], lastVisible?: DocumentSnapshot<DocumentData> }> => {
+    const fetchLeaderboardUsers = useCallback(async (lastVisible?: DocumentSnapshot<DocumentData> | null): Promise<{ users: User[], lastVisible?: DocumentSnapshot<DocumentData> }> => {
         const usersCollection = collection(db, "users");
         const q = lastVisible 
             ? query(usersCollection, orderBy("points", "desc"), startAfter(lastVisible), limit(20))
@@ -513,7 +513,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         
         await fetchGameSettings();
         
-        const allUsersWithLeaderboard = await fetchLeaderboardUsers(); 
+        const allUsersWithLeaderboard = await fetchLeaderboardUsers(null); 
         const top3Users = allUsersWithLeaderboard.users.slice(0, 3);
         
         for (const topUser of top3Users) {
@@ -2904,11 +2904,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 if (itemData) {
                     rewards.push({
                         id: `inv-item-${Date.now()}-${Math.random()}`,
-                        name: itemData.inventoryItemName || itemData.name,
-                        description: itemData.inventoryItemDescription || itemData.description || '',
-                        image: itemData.inventoryItemImage || itemData.image || '',
+                        name: (itemData as ShopItem).inventoryItemName || itemData.name,
+                        description: (itemData as ShopItem).inventoryItemDescription || itemData.description || '',
+                        image: (itemData as ShopItem).inventoryItemImage || itemData.image || '',
                         quantity: rewardData.quantity,
-                        inventoryTag: itemData.inventoryTag || 'ингредиенты',
+                        inventoryTag: (itemData as ShopItem).inventoryTag || 'ингредиенты',
                     });
                 }
             }
@@ -3354,6 +3354,7 @@ export const useUser = () => {
 };
 
     
+
 
 
 
