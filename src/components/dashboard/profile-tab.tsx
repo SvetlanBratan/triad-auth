@@ -566,36 +566,38 @@ export default function ProfileTab() {
             <CardTitle>История баллов</CardTitle>
             <CardDescription>Журнал ваших заработанных и потраченных баллов.</CardDescription>
           </CardHeader>
-          <CardContent className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Дата</TableHead>
-                  <TableHead>Причина</TableHead>
-                  <TableHead className="text-right">Сумма</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {displayedPointHistory.length > 0 ? displayedPointHistory.map((log: PointLog) => (
-                  <TableRow key={log.id}>
-                    <TableCell className="text-muted-foreground">{formatDate(log.date)}</TableCell>
-                    <TableCell>
-                      <p>{log.reason}</p>
-                      {log.characterId && <p className="text-xs text-muted-foreground">Персонаж: {characterMap.get(log.characterId) || 'Неизвестно'}</p>}
-                    </TableCell>
-                    <TableCell className={`text-right font-semibold ${log.amount > 0 ? 'text-green-600' : 'text-destructive'}`}>
-                      {log.amount > 0 ? '+' : ''}{log.amount.toLocaleString()}
-                    </TableCell>
-                  </TableRow>
-                )) : (
-                  <TableRow>
-                    <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
-                      Истории баллов пока нет.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+          <CardContent className="overflow-x-auto p-0">
+             <ScrollArea className={cn("px-6", showAllPointsHistory && sortedPointHistory.length > 5 ? "h-96" : "h-auto")}>
+                <Table>
+                <TableHeader>
+                    <TableRow>
+                    <TableHead>Дата</TableHead>
+                    <TableHead>Причина</TableHead>
+                    <TableHead className="text-right">Сумма</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {displayedPointHistory.length > 0 ? displayedPointHistory.map((log: PointLog) => (
+                    <TableRow key={log.id}>
+                        <TableCell className="text-muted-foreground">{formatDate(log.date)}</TableCell>
+                        <TableCell>
+                        <p>{log.reason}</p>
+                        {log.characterId && <p className="text-xs text-muted-foreground">Персонаж: {characterMap.get(log.characterId) || 'Неизвестно'}</p>}
+                        </TableCell>
+                        <TableCell className={`text-right font-semibold ${log.amount > 0 ? 'text-green-600' : 'text-destructive'}`}>
+                        {log.amount > 0 ? '+' : ''}{log.amount.toLocaleString()}
+                        </TableCell>
+                    </TableRow>
+                    )) : (
+                    <TableRow>
+                        <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                        Истории баллов пока нет.
+                        </TableCell>
+                    </TableRow>
+                    )}
+                </TableBody>
+                </Table>
+            </ScrollArea>
           </CardContent>
            {sortedPointHistory.length > 5 && (
             <CardFooter>
