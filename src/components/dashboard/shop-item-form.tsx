@@ -42,11 +42,15 @@ const initialFormData: Omit<ShopItem, 'id'> = {
 };
 
 export default function ShopItemForm({ shopId, item, closeDialog, defaultCategory }: ShopItemFormProps) {
-    const { addShopItem, updateShopItem, fetchAllShops } = useUser();
+    const { addShopItem, updateShopItem, fetchAllShops, currentUser } = useUser();
     const { toast } = useToast();
     const [formData, setFormData] = useState<Omit<ShopItem, 'id'>>(initialFormData);
     const [isLoading, setIsLoading] = useState(false);
     const [showInventoryFields, setShowInventoryFields] = useState(false);
+    const [useImageUrl, setUseImageUrl] = React.useState(false);
+    const [useInventoryImageUrl, setUseInventoryImageUrl] = React.useState(false);
+
+    const isAdmin = currentUser?.role === 'admin';
 
     const { data: allShops = [] } = useQuery({
       queryKey: ['allShops'],
@@ -140,10 +144,34 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
             <div className="flex-1 overflow-y-auto pr-6 space-y-4">
                 <h4 className="font-semibold text-muted-foreground">Витрина магазина</h4>
                 <div className="p-4 border rounded-md space-y-4">
-                    <ImageKitUploader
-                        currentImageUrl={formData.image}
-                        onUpload={(url) => setFormData(p => ({...p, image: url}))}
-                    />
+                     <div>
+                        {isAdmin && (
+                            <div className="flex items-center space-x-2 my-2">
+                                <Switch
+                                    id="image-url-switch"
+                                    checked={useImageUrl}
+                                    onCheckedChange={setUseImageUrl}
+                                />
+                                <Label htmlFor="image-url-switch">Вставить ссылку на изображение</Label>
+                            </div>
+                        )}
+                        {useImageUrl && isAdmin ? (
+                             <div>
+                                <Label htmlFor="image-url">URL изображения (витрина)</Label>
+                                <Input
+                                    id="image-url"
+                                    placeholder="https://example.com/image.png"
+                                    value={formData.image || ''}
+                                    onChange={(e) => setFormData(p => ({ ...p, image: e.target.value }))}
+                                />
+                            </div>
+                        ) : (
+                            <ImageKitUploader
+                                currentImageUrl={formData.image}
+                                onUpload={(url) => setFormData(p => ({...p, image: url}))}
+                            />
+                        )}
+                    </div>
                     <div>
                         <Label htmlFor="name">Название товара (на витрине)</Label>
                         <Input
@@ -180,10 +208,34 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
                     <>
                         <h4 className="font-semibold text-muted-foreground">Данные в инвентаре</h4>
                         <div className="p-4 border rounded-md space-y-4">
-                            <ImageKitUploader
-                                currentImageUrl={formData.inventoryItemImage}
-                                onUpload={(url) => setFormData(p => ({...p, inventoryItemImage: url}))}
-                            />
+                             <div>
+                                {isAdmin && (
+                                    <div className="flex items-center space-x-2 my-2">
+                                        <Switch
+                                            id="inventory-image-url-switch"
+                                            checked={useInventoryImageUrl}
+                                            onCheckedChange={setUseInventoryImageUrl}
+                                        />
+                                        <Label htmlFor="inventory-image-url-switch">Вставить ссылку на изображение</Label>
+                                    </div>
+                                )}
+                                {useInventoryImageUrl && isAdmin ? (
+                                    <div>
+                                        <Label htmlFor="inventory-image-url">URL изображения (инвентарь)</Label>
+                                        <Input
+                                            id="inventory-image-url"
+                                            placeholder="https://example.com/image.png"
+                                            value={formData.inventoryItemImage || ''}
+                                            onChange={(e) => setFormData(p => ({...p, inventoryItemImage: e.target.value}))}
+                                        />
+                                    </div>
+                                ) : (
+                                    <ImageKitUploader
+                                        currentImageUrl={formData.inventoryItemImage}
+                                        onUpload={(url) => setFormData(p => ({...p, inventoryItemImage: url}))}
+                                    />
+                                )}
+                            </div>
                             <div>
                                 <Label htmlFor="inventory-item-name">Название в инвентаре</Label>
                                 <Input
@@ -295,3 +347,4 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
         </form>
     );
 }
+
