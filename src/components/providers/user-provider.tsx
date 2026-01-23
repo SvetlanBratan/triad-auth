@@ -462,35 +462,55 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     const processWeeklyBonus = useCallback(async () => {
         const settingsRef = doc(db, 'game_settings', 'main');
-        const settingsDoc = await getDoc(settingsRef);
-        const settings = settingsDoc.data() as GameSettings;
-
-        const now = new Date();
-        const lastAwarded = settings.lastWeeklyBonusAwardedAt ? new Date(settings.lastWeeklyBonusAwardedAt) : new Date(0);
-        const daysSinceLast = differenceInDays(now, lastAwarded);
-        
-        if (daysSinceLast < 7) {
+        let shouldAward = false;
+    
+        try {
+            await runTransaction(db, async (transaction) => {
+                const settingsDoc = await transaction.get(settingsRef);
+                if (!settingsDoc.exists()) {
+                    // If settings don't exist, create them and assume it's okay to award.
+                    transaction.set(settingsRef, DEFAULT_GAME_SETTINGS);
+                    shouldAward = true;
+                    return;
+                }
+                
+                const settings = settingsDoc.data() as GameSettings;
+                const now = new Date();
+                const lastAwarded = settings.lastWeeklyBonusAwardedAt ? new Date(settings.lastWeeklyBonusAwardedAt) : new Date(0);
+                const daysSinceLast = differenceInDays(now, lastAwarded);
+    
+                if (daysSinceLast >= 7) {
+                    transaction.update(settingsRef, { lastWeeklyBonusAwardedAt: now.toISOString() });
+                    shouldAward = true;
+                }
+            });
+        } catch (e) {
+            console.error("Weekly bonus transaction failed: ", e);
+            // Don't award if the transaction fails for any reason.
             return { awardedCount: 0 };
         }
-
+    
+        if (!shouldAward) {
+            await fetchGameSettings(); 
+            return { awardedCount: 0 };
+        }
+    
+        // If transaction was successful, proceed with awarding points.
         const allUsers = await fetchUsersForAdmin();
         let awardedCount = 0;
-
+    
         for (const user of allUsers) {
-            let needsUpdate = false;
-            
             const lastLogin = user.lastLogin ? new Date(user.lastLogin) : new Date(0);
-            if (differenceInMonths(now, lastLogin) >= 1 && user.status !== 'отпуск' && user.status !== 'неактивный') {
+            if (differenceInMonths(new Date(), lastLogin) >= 1 && user.status !== 'отпуск' && user.status !== 'неактивный') {
                  await updateDoc(doc(db, "users", user.id), { status: 'неактивный' });
             }
-
+    
             if (user.status === 'активный') {
                 await addPointsToUser(user.id, 800, 'Еженедельный бонус за активность');
                 awardedCount++;
             }
         }
-
-        await updateDoc(settingsRef, { lastWeeklyBonusAwardedAt: now.toISOString() });
+        
         await fetchGameSettings();
         
         const allUsersWithLeaderboard = await fetchLeaderboardUsers(); 
@@ -501,7 +521,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             await grantAchievementToUser(topUser.id, FORBES_LIST_ACHIEVEMENT_ID);
           }
         }
-
+    
         return { awardedCount };
     }, [fetchUsersForAdmin, fetchGameSettings, addPointsToUser, fetchLeaderboardUsers, grantAchievementToUser]);
     
@@ -1741,7 +1761,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const ranksAreDifferent = initiatorFamiliar.rank !== targetFamiliar.rank;
         const isMythicEventTrade =
           (initiatorFamiliar.rank === 'мифический' && targetFamiliar.rank === 'ивентовый') ||
-          (initiatorFamiliar.rank === 'ивентовый' && targetFamiliar.rank === 'мифический');
+          (initiatorFamiliar.rank === 'ивентовый' && initiatorFamiliar.rank === 'мифический');
 
         if (ranksAreDifferent && !isMythicEventTrade) {
             throw new Error("Обмен возможен только между фамильярами одного ранга, или между мифическим и ивентовым.");
@@ -1883,7 +1903,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
               return { ...baseShop, ...docSnap.data() };
           }
           return baseShop;
-    }, []);
+  }, []);
 
   const updateShopOwner = useCallback(async (shopId: string, ownerUserId: string, ownerCharacterId: string, ownerCharacterName: string) => {
           const shopRef = doc(db, "shops", shopId);
@@ -3334,6 +3354,7 @@ export const useUser = () => {
 };
 
     
+
 
 
 
