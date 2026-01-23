@@ -1,8 +1,9 @@
 
+
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
-import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage, Cooldowns, PopularityLog, CharacterPopularityUpdate, OwnedFamiliarCard, AlchemyRecipe, Potion, AlchemyIngredient, PlayerPing, OngoingHunt, PlayerStatus, PlayPlatform, SocialLink, HuntingLocation } from '@/lib/types';
+import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage, Cooldowns, PopularityLog, CharacterPopularityUpdate, OwnedFamiliarCard, AlchemyRecipe, Potion, AlchemyIngredient, PlayerPing, OngoingHunt, PlayerStatus, PlayPlatform, SocialLink, HuntingLocation, HuntReward } from '@/lib/types';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut, reauthenticateWithCredential, EmailAuthProvider, updatePassword, updateEmail } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter, increment, FieldValue, arrayUnion, arrayRemove, deleteField } from "firebase/firestore";
@@ -40,7 +41,7 @@ export interface UserContextType {
   fetchUsersForAdmin: () => Promise<User[]>;
   fetchLeaderboardUsers: () => Promise<User[]>;
   fetchAllRewardRequests: () => Promise<RewardRequest[]>;
-  fetchRewardRequestsForUser: (userId: string) => Promise<RewardRequest[]>;
+  fetchRewardRequestsForUser: (userId: string, fetchLimit?: number) => Promise<RewardRequest[]>;
   fetchAvailableMythicCardsCount: () => Promise<number>;
   addPointsToUser: (userId: string, amount: number, reason: string, characterId?: string) => Promise<User | null>;
   addPointsToAllUsers: (amount: number, reason: string) => Promise<void>;
@@ -323,13 +324,21 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return null;
     }, [processUserDoc]);
 
+    const fetchUsersForAdmin = useCallback(async (): Promise<User[]> => {
+        try {
+            const usersCollection = collection(db, "users");
+            const userSnapshot = await getDocs(query(usersCollection));
+            return Promise.all(userSnapshot.docs.map(doc => processUserDoc(doc.data() as User)));
+        } catch (error) {
+            console.error("Error fetching users for admin.", error);
+            throw error;
+        }
+    }, [processUserDoc]);
+
     const fetchCharacterById = useCallback(async (characterId: string): Promise<{ character: Character; owner: User } | null> => {
       try {
-          const usersCollection = collection(db, "users");
-          const usersSnapshot = await getDocs(usersCollection);
-
-          for (const userDoc of usersSnapshot.docs) {
-              const user = await fetchUserById(userDoc.id); 
+          const allUsers = await fetchUsersForAdmin();
+          for (const user of allUsers) {
               if (user && user.characters) {
                   const character = user.characters.find(c => c.id === characterId);
                   if (character) {
@@ -342,7 +351,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           console.error("Error fetching character by ID:", error);
           return null;
       }
-    }, [fetchUserById]);
+    }, [fetchUsersForAdmin]);
 
     const updateUser = useCallback(async (userId: string, updates: Partial<User>) => {
         const userRef = doc(db, "users", userId);
@@ -352,22 +361,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             setCurrentUser(prev => prev ? processUserDoc({ ...prev, ...updates }) : null);
         }
     }, [currentUser?.id, processUserDoc]);
-
-    const updateUserAvatar = useCallback(async (userId: string, avatarUrl: string) => {
-      await updateUser(userId, { avatar: avatarUrl });
-    }, [updateUser]);
-
-    const fetchUsersForAdmin = useCallback(async (): Promise<User[]> => {
-        try {
-            const usersCollection = collection(db, "users");
-            const userSnapshot = await getDocs(query(usersCollection));
-            return Promise.all(userSnapshot.docs.map(doc => processUserDoc(doc.data() as User)));
-        } catch (error) {
-            console.error("Error fetching users for admin.", error);
-            throw error;
-        }
-    }, [processUserDoc]);
-
+    
     const fetchLeaderboardUsers = useCallback(async (): Promise<User[]> => {
         const usersCollection = collection(db, "users");
         const userSnapshot = await getDocs(query(usersCollection, orderBy("points", "desc")));
@@ -520,6 +514,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     
     const createNewUser = useCallback(async (uid: string, nickname: string): Promise<User> => {
         const formattedNickname = nickname
+            .trim()
             .split(' ')
             .filter(word => word.length > 0)
             .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
@@ -553,7 +548,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         };
         try {
           await setDoc(doc(db, "users", uid), newUser);
-          
           return newUser;
         } catch(error) {
           console.error("Error creating user in Firestore:", error);
@@ -727,7 +721,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         };
 
         const requestRef = doc(db, "users", user.id, "reward_requests", requestId);
-        batch.set(requestRef, newRequest);
+        batch.set(requestRef, sanitizeObjectForFirestore(newRequest));
 
         const newPointLog: PointLog = {
           id: `h-${Date.now()}-req`,
@@ -881,11 +875,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
     }, []);
 
-    const fetchRewardRequestsForUser = useCallback(async (userId: string): Promise<RewardRequest[]> => {
+    const fetchRewardRequestsForUser = useCallback(async (userId: string, fetchLimit?: number): Promise<RewardRequest[]> => {
         const requests: RewardRequest[] = [];
         try {
             const requestsRef = collection(db, 'users', userId, 'reward_requests');
-            const q = query(requestsRef, orderBy('createdAt', 'desc'));
+            const q = fetchLimit 
+              ? query(requestsRef, orderBy('createdAt', 'desc'), limit(fetchLimit))
+              : query(requestsRef, orderBy('createdAt', 'desc'));
             const querySnapshot = await getDocs(q);
             querySnapshot.forEach((doc) => {
                 requests.push(doc.data() as RewardRequest);
@@ -2583,170 +2579,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if(updatedUser) setCurrentUser(updatedUser);
     }, [currentUser, fetchUserById]);
 
-    const fetchAlchemyRecipes = useCallback(async (): Promise<AlchemyRecipe[]> => {
-        const recipesCollection = collection(db, "alchemy_recipes");
-        const snapshot = await getDocs(recipesCollection);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AlchemyRecipe));
-    }, []);
+    const updateUserAvatar = useCallback(async (userId: string, avatarUrl: string) => {
+        await updateUser(userId, { avatar: avatarUrl });
+    }, [updateUser]);
 
-    const brewPotion = useCallback(async (userId: string, characterId: string, recipeId: string): Promise<{ createdItem: InventoryItem; recipeName: string; }> => {
-        let createdItem: InventoryItem | null = null;
-        let recipeName: string = '';
-    
-        const allRecipes = await fetchAlchemyRecipes();
-        const allItemsFromShops = (await fetchAllShops()).flatMap(shop => shop.items || []);
-        const allItemsMap = new Map<string, ShopItem | AlchemyIngredient | Potion>();
-        [...allItemsFromShops, ...ALL_ITEMS_FOR_ALCHEMY].forEach(item => {
-            if (item) allItemsMap.set(item.id, item);
-        });
-
-        await runTransaction(db, async (transaction) => {
-            const userRef = doc(db, "users", userId);
-            const userDoc = await transaction.get(userRef);
-            if (!userDoc.exists()) throw new Error("Пользователь не найден.");
-            const userData = userDoc.data() as User;
-            const charIndex = userData.characters.findIndex(c => c.id === characterId);
-            if (charIndex === -1) throw new Error("Персонаж не найден.");
-    
-            const recipe = allRecipes.find(r => r.id === recipeId);
-            if (!recipe) throw new Error("Рецепт не найден.");
-            
-            const resultItemData = allItemsMap.get(recipe.resultPotionId);
-            recipeName = recipe.name || resultItemData?.name ||'Неизвестный рецепт';
-    
-            const character = userData.characters[charIndex];
-            const inventory = character.inventory || initialFormData.inventory;
-            
-            for (const component of recipe.components) {
-                const requiredItemData = allItemsMap.get(component.ingredientId);
-                if (!requiredItemData) {
-                     throw new Error(`Required ingredient with ID ${component.ingredientId} not found.`);
-                }
-                const category = (requiredItemData as ShopItem).inventoryTag;
-                if (!category || (category !== 'ингредиенты' && category !== 'драгоценности')) {
-                    throw new Error(`Invalid inventory category for item ${requiredItemData.name}`);
-                }
-                const inventoryItemName = 'inventoryItemName' in requiredItemData && requiredItemData.inventoryItemName ? requiredItemData.inventoryItemName : requiredItemData.name;
-
-                let totalAvailable = 0;
-                const mainCategoryItems = (inventory[category] || []) as InventoryItem[];
-                const mainPlayerItem = mainCategoryItems.find(i => i.name === inventoryItemName);
-                if (mainPlayerItem) {
-                    totalAvailable += mainPlayerItem.quantity;
-                }
-
-                if (category === 'драгоценности') {
-                    const ingredientItems = (inventory['ингредиенты'] || []) as InventoryItem[];
-                    const jewelInIngredients = ingredientItems.find(i => i.name === inventoryItemName);
-                    if (jewelInIngredients) {
-                        totalAvailable += jewelInIngredients.quantity;
-                    }
-                }
-
-                if (totalAvailable < component.qty) {
-                    throw new Error(`Недостаточно: ${inventoryItemName}`);
-                }
-
-                let qtyToDeduct = component.qty;
-
-                if (category === 'драгоценности') {
-                    const jewelInv = (inventory['драгоценности'] || []) as InventoryItem[];
-                    const jewelIndex = jewelInv.findIndex(i => i.name === inventoryItemName);
-                    if (jewelIndex > -1) {
-                        const available = jewelInv[jewelIndex].quantity;
-                        const deductFromHere = Math.min(qtyToDeduct, available);
-                        
-                        jewelInv[jewelIndex].quantity -= deductFromHere;
-                        qtyToDeduct -= deductFromHere;
-                        
-                        if (jewelInv[jewelIndex].quantity <= 0) {
-                            jewelInv.splice(jewelIndex, 1);
-                        }
-                    }
-
-                    if (qtyToDeduct > 0) {
-                        const ingredientInv = (inventory['ингредиенты'] || []) as InventoryItem[];
-                        const jewelInIngrIndex = ingredientInv.findIndex(i => i.name === inventoryItemName);
-                        ingredientInv[jewelInIngrIndex].quantity -= qtyToDeduct;
-                        if (ingredientInv[jewelInIngrIndex].quantity <= 0) {
-                            ingredientInv.splice(jewelInIngrIndex, 1);
-                        }
-                    }
-                } else {
-                    const ingredientInv = (inventory['ингредиенты'] || []) as InventoryItem[];
-                    const playerItemIndex = ingredientInv.findIndex(i => i.name === inventoryItemName);
-                    
-                    ingredientInv[playerItemIndex].quantity -= qtyToDeduct;
-                    if (ingredientInv[playerItemIndex].quantity <= 0) {
-                        ingredientInv.splice(playerItemIndex, 1);
-                    }
-                }
-            }
-    
-            if (!resultItemData) {
-                throw new Error("Resulting item not found in data.");
-            }
-    
-            const resultCategory = (resultItemData as ShopItem).inventoryTag || 'зелья';
-            const categoryInventory = (inventory[resultCategory] || []) as InventoryItem[];
-            const existingItemIndex = categoryInventory.findIndex(p => p.name === resultItemData.name);
-    
-            const newOrUpdatedItem: InventoryItem = {
-                id: `inv-item-${Date.now()}`,
-                name: (resultItemData as ShopItem).inventoryItemName || resultItemData.name || '',
-                description: (resultItemData as ShopItem).inventoryItemDescription || (resultItemData as ShopItem).description || (resultItemData as Potion).note || '',
-                image: (resultItemData as ShopItem).inventoryItemImage || resultItemData.image || '',
-                quantity: recipe.outputQty,
-                inventoryTag: resultCategory,
-            };
-    
-            if (existingItemIndex > -1) {
-                categoryInventory[existingItemIndex].quantity += recipe.outputQty;
-                createdItem = { ...categoryInventory[existingItemIndex] };
-            } else {
-                categoryInventory.push(newOrUpdatedItem);
-                createdItem = newOrUpdatedItem;
-            }
-            (inventory as any)[resultCategory] = categoryInventory;
-            character.inventory = inventory;
-            
-            const hasFirstBrewAchievement = (userData.achievementIds || []).includes(FIRST_BREW_ACHIEVEMENT_ID);
-            if (!hasFirstBrewAchievement) {
-                userData.achievementIds = [...(userData.achievementIds || []), FIRST_BREW_ACHIEVEMENT_ID];
-            }
-    
-            userData.characters[charIndex] = character;
-            
-            transaction.update(userRef, { characters: userData.characters, achievementIds: userData.achievementIds });
-        });
-    
-        if (!createdItem) {
-            throw new Error("Не удалось создать предмет.");
-        }
-        
-        if (currentUser && currentUser.id === userId) {
-            const updatedUser = await fetchUserById(userId);
-            if(updatedUser) setCurrentUser(updatedUser);
-        }
-    
-        return { createdItem, recipeName };
-    }, [currentUser, fetchUserById, initialFormData, fetchAllShops, grantAchievementToUser, setCurrentUser, fetchAlchemyRecipes]);
-    
-    const addAlchemyRecipe = useCallback(async (recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
-        const recipesCollection = collection(db, "alchemy_recipes");
-        await addDoc(recipesCollection, { ...recipe, createdAt: new Date().toISOString() });
-    }, []);
-
-    const updateAlchemyRecipe = useCallback(async (recipeId: string, recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
-        const recipeRef = doc(db, "alchemy_recipes", recipeId);
-        await setDoc(recipeRef, recipe, { merge: true });
-    }, []);
-    
-    const deleteAlchemyRecipe = useCallback(async (recipeId: string) => {
-        const recipeRef = doc(db, "alchemy_recipes", recipeId);
-        await deleteDoc(recipeRef);
-    }, []);
-    
     const addFamiliarToDb = useCallback(async (familiar: Omit<FamiliarCard, 'id'>) => {
         const familiarsCollection = collection(db, "familiars");
         await addDoc(familiarsCollection, familiar);
@@ -3116,7 +2952,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         
         const totalRewards = Array.from(totalRewardsMap.values());
 
-        // Add rewards to inventory
         const inventory = updatedCharacter.inventory;
         totalRewards.forEach(reward => {
             const category = reward.inventoryTag;
@@ -3317,6 +3152,34 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         });
     }, []);
   
+    const functions = useMemo(() => getFunctions(), []);
+    const brewPotion = useCallback(async (userId: string, characterId: string, recipeId: string): Promise<{ createdItem: InventoryItem; recipeName: string; }> => {
+        const callable = httpsCallable(functions, 'brewPotion');
+        const result = await callable({ userId, characterId, recipeId });
+        return result.data as { createdItem: InventoryItem; recipeName: string; };
+    }, [functions]);
+
+    const addAlchemyRecipe = useCallback(async (recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
+        const callable = httpsCallable(functions, 'addAlchemyRecipe');
+        await callable(recipe);
+    }, [functions]);
+
+    const updateAlchemyRecipe = useCallback(async (recipeId: string, recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
+        const callable = httpsCallable(functions, 'updateAlchemyRecipe');
+        await callable({ recipeId, ...recipe });
+    }, [functions]);
+
+    const deleteAlchemyRecipe = useCallback(async (recipeId: string) => {
+        const callable = httpsCallable(functions, 'deleteAlchemyRecipe');
+        await callable({ recipeId });
+    }, [functions]);
+
+    const fetchAlchemyRecipes = useCallback(async (): Promise<AlchemyRecipe[]> => {
+        const recipesCollection = collection(db, "alchemy_recipes");
+        const snapshot = await getDocs(recipesCollection);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AlchemyRecipe));
+    }, []);
+
     const userContextValue: UserContextType = useMemo(
     () => ({
       currentUser,
@@ -3440,3 +3303,6 @@ export const useUser = () => {
 };
 
     
+
+
+

@@ -18,14 +18,22 @@ export default function RewardRequestsHistory() {
     const [requests, setRequests] = useState<RewardRequest[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const { toast } = useToast();
-    const [showAll, setShowAll] = useState(false);
+    const [hasMore, setHasMore] = useState(false);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-    const loadRequests = useCallback(async () => {
+    const loadInitialRequests = useCallback(async () => {
         if (!currentUser) return;
         setIsLoading(true);
+        setHasMore(false);
         try {
-            const fetchedRequests = await fetchRewardRequestsForUser(currentUser.id);
-            setRequests(fetchedRequests);
+            const fetchedRequests = await fetchRewardRequestsForUser(currentUser.id, 6);
+            if (fetchedRequests.length > 5) {
+                setHasMore(true);
+                setRequests(fetchedRequests.slice(0, 5));
+            } else {
+                setHasMore(false);
+                setRequests(fetchedRequests);
+            }
         } catch (error) {
             console.error("Failed to load reward requests history", error);
             toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось загрузить историю запросов.' });
@@ -35,11 +43,24 @@ export default function RewardRequestsHistory() {
     }, [fetchRewardRequestsForUser, currentUser, toast]);
 
     useEffect(() => {
-        loadRequests();
-    }, [loadRequests, currentUser?.pointHistory]); // Re-fetch if point history changes (new request)
-    
-    const displayedRequests = showAll ? requests : requests.slice(0, 5);
+        loadInitialRequests();
+    }, [loadInitialRequests]);
 
+    const handleShowAll = async () => {
+        if (!currentUser) return;
+        setIsLoadingMore(true);
+        try {
+            const allRequests = await fetchRewardRequestsForUser(currentUser.id);
+            setRequests(allRequests);
+            setHasMore(false);
+        } catch (error) {
+            console.error("Failed to load all reward requests", error);
+            toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось загрузить всю историю.' });
+        } finally {
+            setIsLoadingMore(false);
+        }
+    };
+    
     const getStatusProps = (status: RewardRequestStatus) => {
         switch (status) {
             case 'в ожидании':
@@ -78,9 +99,9 @@ export default function RewardRequestsHistory() {
                 <ScrollArea className="h-64 pr-3">
                     {isLoading ? (
                         <p className="text-sm text-muted-foreground">Загрузка истории...</p>
-                    ) : displayedRequests.length > 0 ? (
+                    ) : requests.length > 0 ? (
                         <div className="space-y-3">
-                            {displayedRequests.map(request => {
+                            {requests.map(request => {
                                 const statusProps = getStatusProps(request.status);
                                 return (
                                     <div key={request.id} className="p-3 bg-muted/50 rounded-md">
@@ -111,10 +132,10 @@ export default function RewardRequestsHistory() {
                     )}
                 </ScrollArea>
             </CardContent>
-            {requests.length > 5 && (
+            {hasMore && (
                 <CardFooter>
-                    <Button variant="link" onClick={() => setShowAll(!showAll)} className="p-0 h-auto text-xs">
-                        {showAll ? 'Скрыть' : `Показать все (${requests.length})`}
+                    <Button variant="link" onClick={handleShowAll} disabled={isLoadingMore} className="p-0 h-auto text-xs">
+                        {isLoadingMore ? 'Загрузка...' : 'Показать все'}
                     </Button>
                 </CardFooter>
             )}
