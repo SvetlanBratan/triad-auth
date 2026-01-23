@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React from 'react';
@@ -11,7 +12,7 @@ import { Trophy, Users, Search, Send, Trash2, Link as LinkIcon, Gamepad2 } from 
 import type { User, UserStatus, PlayerPing } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import Image from 'next/image';
 import { CustomIcon } from '../ui/custom-icon';
@@ -39,29 +40,40 @@ const LeaderboardTable = () => {
     const { toast } = useToast();
     const [statusFilter, setStatusFilter] = React.useState<UserStatus | 'all'>('активный');
 
-    const { data: users = [], isLoading: isLeaderboardLoading, isError: isLeaderboardError } = useQuery<User[], Error>({
+    const {
+        data,
+        isLoading,
+        isError,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+    } = useInfiniteQuery({
         queryKey: ['leaderboard'],
-        queryFn: fetchLeaderboardUsers,
+        queryFn: ({ pageParam }) => fetchLeaderboardUsers(pageParam),
+        initialPageParam: undefined,
+        getNextPageParam: (lastPage) => lastPage.lastVisible,
     });
     
     React.useEffect(() => {
-        if (isLeaderboardError) {
+        if (isError) {
         toast({
             variant: 'destructive',
             title: 'Ошибка',
             description: 'Не удалось загрузить таблицу лидеров. Возможно, требуется создать индекс в Firestore. Ссылка для создания должна быть в консоли браузера (F12).'
         });
         }
-    }, [isLeaderboardError, toast]);
+    }, [isError, toast]);
+
+    const allUsers = React.useMemo(() => data?.pages.flatMap(page => page.users) || [], [data]);
 
     const filteredUsers = React.useMemo(() => {
       if (statusFilter === 'all') {
-        return users;
+        return allUsers;
       }
-      return users.filter(user => user.status === statusFilter);
-    }, [users, statusFilter]);
+      return allUsers.filter(user => user.status === statusFilter);
+    }, [allUsers, statusFilter]);
 
-    if (isLeaderboardLoading) {
+    if (isLoading && !data) {
         return <div className="flex justify-center items-center h-64"><p>Загрузка...</p></div>
     }
 
@@ -135,6 +147,13 @@ const LeaderboardTable = () => {
                     ))}
                 </TableBody>
             </Table>
+            {hasNextPage && (
+                <div className="mt-4 text-center">
+                    <Button onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
+                        {isFetchingNextPage ? 'Загрузка...' : 'Загрузить ещё'}
+                    </Button>
+                </div>
+            )}
         </>
     );
 };
