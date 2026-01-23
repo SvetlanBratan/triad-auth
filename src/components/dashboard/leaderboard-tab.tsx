@@ -49,7 +49,7 @@ const LeaderboardTable = () => {
         queryKey: ['leaderboard'],
         queryFn: (context) => fetchLeaderboardUsers(context.pageParam),
         initialPageParam: null,
-        getNextPageParam: (lastPage) => lastPage.lastVisible,
+        getNextPageParam: (lastPage) => lastPage.lastVisible ?? null,
     });
     
     React.useEffect(() => {
