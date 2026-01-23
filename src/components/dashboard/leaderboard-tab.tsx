@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React from 'react';
@@ -49,7 +47,7 @@ const LeaderboardTable = () => {
         isFetchingNextPage,
     } = useInfiniteQuery({
         queryKey: ['leaderboard'],
-        queryFn: ({ pageParam }) => fetchLeaderboardUsers(pageParam),
+        queryFn: (context) => fetchLeaderboardUsers(context.pageParam),
         initialPageParam: null,
         getNextPageParam: (lastPage) => lastPage.lastVisible,
     });
