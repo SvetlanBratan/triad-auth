@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
@@ -387,6 +386,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
     }, [currentUser?.id, processUserDoc]);
 
+    const updateUserAvatar = useCallback(async (userId: string, avatarUrl: string) => {
+        await updateUser(userId, { avatar: avatarUrl });
+    }, [updateUser]);
+
     const grantAchievementToUser = useCallback(async (userId: string, achievementId: string) => {
         const user = await fetchUserById(userId);
         if (!user) return;
@@ -608,7 +611,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (!firebaseUser) return;
 
         const dateRef = rtdbRef(database, 'calendar/currentDate');
+        const connectionTimeout = setTimeout(() => {
+            setGameDateString((current) => {
+                if (current === "Загрузка даты...") {
+                    console.error("Realtime Database connection timed out. Check security rules and database path: /calendar/currentDate");
+                    return "Ошибка: нет доступа к базе дат";
+                }
+                return current;
+            });
+        }, 8000); 
+
         const unsubscribe = onValue(dateRef, (snapshot) => {
+            clearTimeout(connectionTimeout);
             const rtdbDateString = snapshot.val();
             
             if (!rtdbDateString) {
@@ -629,11 +643,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             setGameDateString("Неверный формат даты");
 
         }, (error) => {
+            clearTimeout(connectionTimeout);
             console.error("Error fetching game date from Realtime DB:", error);
-            setGameDateString("Ошибка загрузки даты");
+            setGameDateString("Ошибка: нет доступа к дате");
         });
 
-        return () => unsubscribe();
+        return () => {
+            clearTimeout(connectionTimeout);
+            unsubscribe();
+        };
     }, [firebaseUser]);
 
     const signOutUser = useCallback(() => {
@@ -760,7 +778,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
 
         const requestRef = doc(db, "users", user.id, "reward_requests", requestId);
-        batch.set(requestRef, sanitizeObjectForFirestore(newRequestData));
+        batch.set(sanitizeObjectForFirestore(newRequestData), requestRef);
 
         const newPointLog: PointLog = {
           id: `h-${Date.now()}-req`,
@@ -2754,10 +2772,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return { createdItem, recipeName };
     }, [fetchAllShops, fetchUserById, setCurrentUser]);
 
-    const updateUserAvatar = useCallback(async (userId: string, avatarUrl: string) => {
-        await updateUser(userId, { avatar: avatarUrl });
-    }, [updateUser]);
-
     const addAlchemyRecipe = useCallback(async (recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
         const recipesCollection = collection(db, "alchemy_recipes");
         await addDoc(recipesCollection, { ...recipe, createdAt: new Date().toISOString() });
@@ -2853,12 +2867,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }, [currentUser, setCurrentUser, grantAchievementToUser]);
 
     const removeFavoritePlayer = useCallback(async (targetUserId: string) => {
-        if (!currentUser) return;
-        const userRef = doc(db, 'users', currentUser.id);
-        await updateDoc(userRef, {
-            favoritePlayerIds: arrayRemove(targetUserId)
-        });
-        setCurrentUser(prev => prev ? { ...prev, favoritePlayerIds: (prev.favoritePlayerIds || []).filter(id => id !== targetUserId) } : null);
+      if (!currentUser) return;
+      const userRef = doc(db, 'users', currentUser.id);
+      await updateDoc(userRef, {
+        favoritePlayerIds: arrayRemove(targetUserId)
+      });
+      setCurrentUser(prev => prev ? { ...prev, favoritePlayerIds: (prev.favoritePlayerIds || []).filter(id => id !== targetUserId) } : null);
     }, [currentUser, setCurrentUser]);
 
     const updateGameSettings = useCallback(async (updates: Partial<GameSettings>) => {
@@ -3440,6 +3454,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       fetchDbFamiliars,
       addFamiliarToDb,
       deleteFamiliarFromDb,
+      sendPlayerPing,
+      deletePlayerPing,
+      addFavoritePlayer,
+      removeFavoritePlayer,
       allFamiliars,
       familiarsById,
       startHunt,
@@ -3451,10 +3469,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       changeUserPassword,
       changeUserEmail,
       mergeUserData,
-      sendPlayerPing,
-      deletePlayerPing,
-      addFavoritePlayer,
-      removeFavoritePlayer,
       imageGeneration
     }),
     [currentUser, setCurrentUser, gameDateString, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, fetchAlchemyRecipes, updateAlchemyRecipe, deleteAlchemyRecipe, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, allFamiliars, familiarsById, startHunt, startMultipleHunts, claimHuntReward, claimAllHuntRewards, recallHunt, claimRewardsForOtherPlayer, changeUserPassword, changeUserEmail, mergeUserData, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, imageGeneration]
@@ -3477,3 +3491,4 @@ export const useUser = () => {
     return context;
 };
 
+    
