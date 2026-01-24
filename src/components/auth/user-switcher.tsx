@@ -22,7 +22,7 @@ export function UserSwitcher() {
          </div>
          <div className="text-current/80 flex items-center gap-1.5">
             <CalendarDays className="w-3.5 h-3.5" />
-            <span>{gameDateString}</span>
+            <span>{gameDateString === null ? 'Загрузка даты...' : gameDateString}</span>
          </div>
       </div>
       <Button onClick={signOutUser} variant="outline" size="sm" className="shrink-0 text-foreground">Выйти</Button>

@@ -1,64 +1,143 @@
-
-rules_version = '2';
-
-service cloud.firestore {
-  match /databases/{database}/documents {
-
-    // Default deny all reads and writes
-    match /{document=**} {
-      allow read, write: if false;
-    }
-
-    // Allow authenticated users to read user profiles for leaderboards, etc.
-    // Allow users to update ONLY their own document.
-    // Allow admins to update ANY user document.
-    match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && (request.auth.uid == userId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
-
-      // Rules for the 'reward_requests' subcollection
-      match /reward_requests/{requestId} {
-        // Users can create and read their own requests
-        allow create, read: if request.auth != null && request.auth.uid == userId;
-        // Admins can update/delete any request
-        allow update, delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+{
+  "rules": {
+    ".read": true,
+    "users": {
+      ".indexOn": "nickname",
+      "$uid": {
+        ".write": "auth != null && $uid === auth.uid"
       }
-    }
-
-    // This is a more efficient way for admins to list all requests
-    // It requires a composite index on the collection group 'reward_requests'
-    match /{path=**}/reward_requests/{requestId} {
-      allow read: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-
-    // Allow any authenticated user to read/create exchange requests.
-    // Allow users to close/delete their own requests. Admins can do anything.
-    match /exchange_requests/{requestId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && request.resource.data.creatorUserId == request.auth.uid;
-      allow update, delete: if request.auth != null && (resource.data.creatorUserId == request.auth.uid || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
-    }
-
-    // Allow any authenticated user to read/create familiar trade requests.
-    // Only the target user can accept/decline. Only initiator can cancel.
-    match /familiar_trade_requests/{requestId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && request.resource.data.initiatorUserId == request.auth.uid;
-      allow update: if request.auth != null && (
-        // Allow initiator to cancel if pending
-        (resource.data.initiatorUserId == request.auth.uid && request.resource.data.status == 'отменено') ||
-        // Allow target to accept/decline if pending
-        (resource.data.targetUserId == request.auth.uid && (request.resource.data.status == 'принято' || request.resource.data.status == 'отклонено')) ||
-        // Allow admins to do anything
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
-      );
-    }
-
-
-    // Allow anyone to read game settings, but only admins to write.
-    match /game_settings/{settingId} {
-      allow read: if true;
-      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    },
+    "admins": {
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true"
+    },
+    "applications": {
+      ".indexOn": "userId",
+      "$appId": {
+        ".write": "auth != null"
+      }
+    },
+    "posts": {
+      ".read": "auth != null",
+      "$postId": {
+        ".write": "auth != null && ((newData.exists() && !data.exists() && newData.child('userId').val() === auth.uid) || (data.exists() && data.child('userId').val() === auth.uid))"
+      }
+    },
+    "prayers": {
+      ".write": "auth != null"
+    },
+    "transport": {
+      ".write": "auth != null"
+    },
+    "maps": {
+       ".write": "auth != null"
+    },
+    "rules": {
+       ".write": "auth != null"
+    },
+    "magic": {
+        ".write": "auth != null && (auth.uid === 'yawuIwXKVbNhsBQSqWfGZyAzZ3A3' || auth.uid === 'DH3G5YCIR5WsAljrQBEw3zK0jw12' || auth.uid === 'ZMzJOQ4X5QYajS9vIEiPgrwr5g72' || auth.uid === 'Bt3DidqzFkaAlyNuILctdRxNytH2')"
+    },
+    "races": {
+        ".write": "auth != null"
+    },
+    "race_details": {
+        ".write": "auth != null"
+    },
+    "library": {
+       ".write": "auth != null"
+    },
+     "history": {
+       ".write": "auth != null"
+    },
+    "aristocracy_titles": {
+      ".write": "auth != null"
+    },
+     "feudal_territories": {
+      ".write": "auth != null"
+    },
+     "celebrities": {
+      ".write": "auth != null"
+    },
+    "flora_fauna": {
+       ".write": "auth != null"
+    },
+    "newspapers": {
+        ".write": "auth != null"
+    },
+    "world_status": {
+       ".write": "auth != null && (root.child('users').child(auth.uid).child('isAdmin').val() === true || auth.uid === 'yawuIwXKVbNhsBQSqWfGZyAzZ3A3' || auth.uid === 'DH3G5YCIR5WsAljrQBEw3zK0jw12' || auth.uid === 'ZMzJOQ4X5QYajS9vIEiPgrwr5g72' || auth.uid === 'Bt3DidqzFkaAlyNuILctdRxNytH2')"
+    },
+    "spiritWorld": {
+       ".write": "auth != null && (auth.uid === 'yawuIwXKVbNhsBQSqWfGZyAzZ3A3' || root.child('users').child(auth.uid).child('isAdmin').val() === true || auth.uid === 'DH3G5YCIR5WsAljrQBEw3zK0jw12' || auth.uid === 'ZMzJOQ4X5QYajS9vIEiPgrwr5g72' || auth.uid === 'Bt3DidqzFkaAlyNuILctdRxNytH2')"
+    },
+    "science": {
+       ".write": "auth != null"
+    },
+    "professions": {
+      ".write": "auth != null"
+    },
+    "guilds": {
+        ".write": "auth != null"
+    },
+    "calendar": {
+      ".read": true,
+      ".write": "auth != null"
+    },
+    "economy": {
+        ".write": "auth != null"
+    },
+    "faq": {
+        ".write": "auth != null"
+    },
+    "social_links": {
+        ".write": "auth != null"
+    },
+    "locations": {
+        ".write": "auth != null"
+    },
+    "news_links": {
+        ".write": "auth != null"
+    },
+    "laws": {
+      ".write": "auth != null"
+    },
+    "radio_status": {
+        ".write": "auth != null && (auth.uid === 'yawuIwXKVbNhsBQSqWfGZyAzZ3A3' || auth.uid === 'DH3G5YCIR5WsAljrQBEw3zK0jw12' || auth.uid === 'ZMzJOQ4X5QYajS9vIEiPgrwr5g72' || auth.uid === 'Bt3DidqzFkaAlyNuILctdRxNytH2')"
+    },
+     "advertising": {
+      ".write": "auth != null"
+    },
+    "stories": {
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('isAdmin').val() === true || auth.uid === 'yawuIwXKVbNhsBQSqWfGZyAzZ3A3' || auth.uid === 'DH3G5YCIR5WsAljrQBEw3zK0jw12' || auth.uid === 'ZMzJOQ4X5QYajS9vIEiPgrwr5g72' || auth.uid === 'Bt3DidqzFkaAlyNuILctdRxNytH2')",
+      "$storyId": {
+        "roles": {
+          "$roleId": {
+            "participants": {
+              ".write": "auth != null",
+              "$participantIndex": {
+                // Allow users to remove themselves, or admin to remove anyone
+                ".write": "(root.child('users').child(auth.uid).child('isAdmin').val() === true) || (data.exists() && data.child('participantId').val() === auth.uid && !newData.exists())"
+              }
+            },
+            "status": {
+              // Allow any authenticated user to change the role status (e.g. from 'taken' to 'open')
+              ".write": "auth != null"
+            }
+          }
+        }
+      }
+    },
+    "storyApplications": {
+      ".write": "auth != null"
+    },
+    "story_suggestions": {
+      ".write": "auth != null"
+    },
+    "bulletin_board": {
+      ".write": "auth != null",
+      "$noteId": {
+        ".write": "newData.exists() && !data.exists() && newData.child('authorId').val() === auth.uid || (data.exists() && data.child('authorId').val() === auth.uid) || root.child('users').child(auth.uid).child('isAdmin').val() === true"
+      }
     }
   }
 }

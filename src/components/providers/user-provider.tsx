@@ -229,7 +229,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
     const [gameSettings, setGameSettings] = useState<GameSettings>(DEFAULT_GAME_SETTINGS);
-    const [gameDateString, setGameDateString] = useState<string | null>("Загрузка даты...");
+    const [gameDateString, setGameDateString] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [allFamiliars, setAllFamiliars] = useState<FamiliarCard[]>([...ALL_STATIC_FAMILIARS, ...EVENT_FAMILIARS]);
     const [familiarsById, setFamiliarsById] = useState<Record<string, FamiliarCard>>({});
@@ -613,9 +613,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const dateRef = rtdbRef(database, 'calendar/currentDate');
         const connectionTimeout = setTimeout(() => {
             setGameDateString((current) => {
-                if (current === "Загрузка даты...") {
+                if (current === null) { // Check if it's still in the initial loading state
                     console.error("Realtime Database connection timed out. Check security rules and database path: /calendar/currentDate");
-                    return "Ошибка: нет доступа к базе дат";
+                    return "Ошибка: нет доступа к базе данных. Проверьте правила безопасности Realtime Database в консоли Firebase.";
                 }
                 return current;
             });
@@ -625,27 +625,22 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             clearTimeout(connectionTimeout);
             const rtdbDateString = snapshot.val();
             
-            if (!rtdbDateString) {
-                setGameDateString("Дата не установлена");
-                return;
+            if (rtdbDateString && typeof rtdbDateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(rtdbDateString)) {
+                 const [year, month, day] = rtdbDateString.split('-').map(Number);
+                const months = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
+                setGameDateString(`${day} ${months[month - 1]} ${year} год`);
+            } else if (rtdbDateString) {
+                console.warn(`Invalid date format from Realtime DB: "${rtdbDateString}". Expected YYYY-MM-DD.`);
+                setGameDateString("Ошибка: неверный формат даты");
+            } else {
+                 console.warn("Date from Realtime DB is null or undefined.");
+                 setGameDateString("Дата не установлена");
             }
-
-            if (/^\d{4}-\d{2}-\d{2}$/.test(rtdbDateString)) {
-                const [year, month, day] = rtdbDateString.split('-').map(Number);
-                if (year && month && day) {
-                    const months = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
-                    const formattedDateString = `${day} ${months[month - 1]} ${year} год`;
-                    setGameDateString(formattedDateString);
-                    return;
-                }
-            }
-            
-            setGameDateString("Неверный формат даты");
 
         }, (error) => {
             clearTimeout(connectionTimeout);
             console.error("Error fetching game date from Realtime DB:", error);
-            setGameDateString("Ошибка: нет доступа к дате");
+            setGameDateString("Ошибка: нет доступа к базе дат");
         });
 
         return () => {
