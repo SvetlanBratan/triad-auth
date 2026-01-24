@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -10,7 +11,8 @@ import { Trophy, Users, Search, Send, Trash2, Link as LinkIcon, Gamepad2 } from 
 import type { User, UserStatus, PlayerPing } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery, type InfiniteData, type QueryClient } from '@tanstack/react-query';
+import type { DocumentSnapshot, DocumentData } from 'firebase/firestore';
 import Link from 'next/link';
 import Image from 'next/image';
 import { CustomIcon } from '../ui/custom-icon';
@@ -33,6 +35,13 @@ const getStatusClass = (status: UserStatus) => {
     }
   };
 
+type LeaderboardPage = {
+    users: User[];
+    lastVisible?: DocumentSnapshot<DocumentData, DocumentData>;
+};
+
+type PageParam = DocumentSnapshot<DocumentData> | null;
+
 const LeaderboardTable = () => {
     const { fetchLeaderboardUsers } = useUser();
     const { toast } = useToast();
@@ -45,9 +54,15 @@ const LeaderboardTable = () => {
         fetchNextPage,
         hasNextPage,
         isFetchingNextPage,
-    } = useInfiniteQuery({
+    } = useInfiniteQuery<
+        LeaderboardPage,
+        Error,
+        InfiniteData<LeaderboardPage>,
+        string[],
+        PageParam
+      >({
         queryKey: ['leaderboard'],
-        queryFn: (context) => fetchLeaderboardUsers(context.pageParam),
+        queryFn: ({ pageParam }) => fetchLeaderboardUsers(pageParam),
         initialPageParam: null,
         getNextPageParam: (lastPage) => lastPage.lastVisible ?? null,
     });
