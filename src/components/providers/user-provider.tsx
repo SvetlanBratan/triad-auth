@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
@@ -458,6 +457,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
     }, []);
 
+    const updateGameDate = useCallback(async (newDateString: string) => {
+        const settingsRef = doc(db, 'game_settings', 'main');
+        await updateDoc(settingsRef, { gameDateString: newDateString });
+        await fetchGameSettings();
+    }, [fetchGameSettings]);
+
     const processWeeklyBonus = useCallback(async () => {
         const settingsRef = doc(db, 'game_settings', 'main');
     
@@ -482,7 +487,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                     const lastLogin = user.lastLogin ? new Date(user.lastLogin) : new Date(0);
                     let updates: Partial<User> = {};
 
-                    if (differenceInMonths(new Date(), lastLogin) >= 1 && user.status !== 'отпуск' && user.status !== 'неактивный') {
+                    if (differenceInMonths(new Date, lastLogin) >= 1 && user.status !== 'отпуск' && user.status !== 'неактивный') {
                         updates.status = 'неактивный';
                     }
             
@@ -1017,11 +1022,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             transaction.set(userRef, updatedUser);
         });
 
-        if (!finalUser || !newCard!) {
+        if (!finalUser || !newCard) {
           throw new Error("Транзакция не удалась, попробуйте еще раз.");
         }
 
-        return { updatedUser: finalUser, newCard: newCard!, isDuplicate };
+        return { updatedUser: finalUser, newCard: newCard, isDuplicate };
     }, [fetchUsersForAdmin, allFamiliars, familiarsById, gameSettings.gachaChances]);
   
     const giveAnyFamiliarToCharacter = useCallback(async (userId: string, characterId: string, familiarId: string) => {
@@ -1728,7 +1733,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const initiatorChar = currentUser.characters.find(c => c.id === initiatorCharacterId);
         if (!initiatorChar) throw new Error("Персонаж-инициатор не найден.");
 
-        const initiatorFamiliar = familiarsById[initiatorFamiliarId];
+        const initiatorFamiliar = FAMILIARS_BY_ID[initiatorFamiliarId];
         if (!initiatorFamiliar) throw new Error("Фамильяр инициатора не найден.");
 
         let targetUser: User | undefined;
@@ -1744,7 +1749,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
         if (!targetUser || !targetChar) throw new Error("Целевой персонаж или его владелец не найдены.");
         
-        const targetFamiliar = familiarsById[targetFamiliarId];
+        const targetFamiliar = FAMILIARS_BY_ID[targetFamiliarId];
         if (!targetFamiliar) throw new Error("Целевой фамильяр не найден.");
 
         const ranksAreDifferent = initiatorFamiliar.rank !== targetFamiliar.rank;
@@ -1775,7 +1780,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const requestsCollection = collection(db, "familiar_trade_requests");
         await addDoc(requestsCollection, newRequest);
 
-    }, [currentUser, fetchUsersForAdmin, familiarsById]);
+    }, [currentUser, fetchUsersForAdmin]);
 
   const fetchFamiliarTradeRequestsForUser = useCallback(async (): Promise<FamiliarTradeRequest[]> => {
         if (!currentUser) return [];
@@ -1973,7 +1978,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             
             const itemIndex = (shopData.items || []).findIndex(i => i.id === itemId);
             if (itemIndex === -1) throw new Error("Товар не найден.");
-            const item = shopData.items![itemIndex];
+            const item = shopData.items[itemIndex];
 
             if (item.quantity !== undefined && item.quantity < quantity) {
                 throw new Error("Недостаточно товара в наличии.");
@@ -2019,7 +2024,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 const inv = (buyerChar.inventory ??= {} as Partial<Inventory>);
                 const tag = item.inventoryTag as keyof Inventory;
                 (inv[tag] ??= []);
-                const list = inv[tag]!;
+                const list = inv[tag];
                 
                 const inventoryItemName = item.inventoryItemName || item.name;
                 const inventoryItemDescription = item.inventoryItemDescription || item.description || '';
@@ -2053,7 +2058,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             transaction.update(buyerUserRef, { characters: buyerUserData.characters });
 
             const updatedShopData: Partial<Shop> = { bankAccount: shopBankAccount };
-            const updatedItems = [...shopData.items!];
+            const updatedItems = [...shopData.items];
             if (item.quantity !== undefined) {
                 updatedItems[itemIndex].quantity = item.quantity - quantity;
             }
@@ -2082,7 +2087,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         
         const newInventoryItem: InventoryItem = {
             id: `inv-item-admin-${Date.now()}`,
-            name: itemData.name || '',
+            name: itemData.name,
             description: itemData.description || '',
             image: itemData.image || '',
             quantity: itemData.quantity || 1,
@@ -2090,7 +2095,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         const tag = itemData.inventoryTag as keyof Inventory;
         (inventory[tag] ??= []);
-        const list = inventory[tag]!;
+        const list = inventory[tag];
         list.push(newInventoryItem);
 
         const updatedCharacters = [...user.characters];
@@ -2185,7 +2190,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             
             const itemIndex = (shopData.items || []).findIndex(i => i.id === itemId);
             if (itemIndex === -1) throw new Error("Товар не найден.");
-            const item = shopData.items![itemIndex];
+            const item = shopData.items[itemIndex];
 
             if (item.quantity !== 0) throw new Error("Этот товар еще есть в наличии.");
             
@@ -2214,7 +2219,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const restockTx: BankTransaction = { id: `txn-restock-${Date.now()}`, date: new Date().toISOString(), reason: `Пополнение товара: ${item.name}`, amount: { platinum: -restockCost.platinum, gold: -restockCost.gold, silver: -restockCost.silver, copper: -restockCost.copper } };
             shopTill.history = [restockTx, ...(shopTill.history || [])];
 
-            const updatedItems = [...shopData.items!];
+            const updatedItems = [...shopData.items];
             updatedItems[itemIndex].quantity = 10;
 
             transaction.set(shopRef, { items: updatedItems, bankAccount: shopTill }, { merge: true });
@@ -2504,7 +2509,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             });
 
             if (userHasChanges) {
-                 const userToUpdate = usersToUpdate.get(user.id)!;
+                 const userToUpdate = usersToUpdate.get(user.id);
                  userToUpdate.characters = updatedCharacters;
             }
         }
@@ -2744,6 +2749,27 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         await updateUser(userId, { avatar: avatarUrl });
     }, [updateUser]);
 
+    const addAlchemyRecipe = useCallback(async (recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
+        const recipesCollection = collection(db, "alchemy_recipes");
+        await addDoc(recipesCollection, { ...recipe, createdAt: new Date().toISOString() });
+    }, []);
+
+    const fetchAlchemyRecipes = useCallback(async (): Promise<AlchemyRecipe[]> => {
+        const recipesCollection = collection(db, "alchemy_recipes");
+        const snapshot = await getDocs(recipesCollection);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AlchemyRecipe));
+    }, []);
+
+    const updateAlchemyRecipe = useCallback(async (recipeId: string, recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
+        const recipeRef = doc(db, "alchemy_recipes", recipeId);
+        await updateDoc(recipeRef, recipe);
+    }, []);
+    
+    const deleteAlchemyRecipe = useCallback(async (recipeId: string) => {
+        const recipeRef = doc(db, "alchemy_recipes", recipeId);
+        await deleteDoc(recipeRef);
+    }, []);
+
     const addFamiliarToDb = useCallback(async (familiar: Omit<FamiliarCard, 'id'>) => {
         const familiarsCollection = collection(db, "familiars");
         await addDoc(familiarsCollection, familiar);
@@ -2961,7 +2987,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 if (!familiar) {
                     console.warn(`Familiar with id ${familiarId} not found, skipping.`);
                     continue;
-                };
+                }
                 if (busyFamiliarIds.has(familiarId)) {
                     console.warn(`Familiar with id ${familiarId} is already on a hunt, skipping.`);
                     continue;
@@ -3005,7 +3031,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const huntIndex = (character.ongoingHunts || []).findIndex(h => h.huntId === huntId);
         if (huntIndex === -1) throw new Error("Охота не найдена.");
         
-        const hunt = character.ongoingHunts![huntIndex];
+        const hunt = character.ongoingHunts[huntIndex];
         if (new Date(hunt.endsAt) > new Date()) {
             throw new Error("Охота еще не завершена.");
         }
@@ -3235,7 +3261,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             senderCharacterName: currentUser.name,
             recipientUserId: ownerUserId,
             recipientCharacterId: characterId,
-            recipientCharacterName: character.name,
             subject: 'Добыча с охоты была собрана',
             content: mailContent,
             sentAt: new Date().toISOString(),
@@ -3314,12 +3339,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }, []);
   
     const functions = useMemo(() => getFunctions(), []);
-    
-    const fetchAlchemyRecipes = useCallback(async (): Promise<AlchemyRecipe[]> => {
-        const recipesCollection = collection(db, "alchemy_recipes");
-        const snapshot = await getDocs(recipesCollection);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AlchemyRecipe));
-    }, []);
     
     const imageGeneration = useCallback(async (prompt: string): Promise<{url: string} | {error: string}> => {
         const callable = httpsCallable(functions, 'imageGeneration');
