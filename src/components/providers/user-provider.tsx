@@ -33,7 +33,6 @@ export const useAuth = () => {
 export interface UserContextType {
   currentUser: User | null;
   setCurrentUser: (user: User | null) => void;
-  gameDate: Date | null;
   gameDateString: string | null;
   gameSettings: GameSettings;
   lastWeeklyBonusAwardedAt: string | undefined;
@@ -64,7 +63,6 @@ export interface UserContextType {
   removeFamiliarFromCharacter: (userId: string, characterId: string, cardId: string) => Promise<void>;
   updateUser: (userId: string, updates: Partial<User>) => Promise<void>;
   updateUserAvatar: (userId: string, avatarUrl: string) => Promise<void>;
-  updateGameDate: (newDateString: string) => Promise<void>;
   updateGameSettings: (updates: Partial<GameSettings>) => Promise<void>;
   processWeeklyBonus: () => Promise<{ awardedCount: number }>;
   checkExtraCharacterSlots: (userId: string) => Promise<number>;
@@ -232,7 +230,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
     const [gameSettings, setGameSettings] = useState<GameSettings>(DEFAULT_GAME_SETTINGS);
-    const [gameDate, setGameDate] = useState<Date | null>(null);
     const [gameDateString, setGameDateString] = useState<string | null>("Загрузка даты...");
     const [loading, setLoading] = useState(true);
     const [allFamiliars, setAllFamiliars] = useState<FamiliarCard[]>([...ALL_STATIC_FAMILIARS, ...EVENT_FAMILIARS]);
@@ -390,11 +387,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
     }, [currentUser?.id, processUserDoc]);
 
-    const updateGameDate = useCallback(async (newDateString: string) => {
-      const dateRef = rtdbRef(database, 'calendar/currentDate');
-      await rtdbSet(dateRef, newDateString);
-    }, []);
-    
     const grantAchievementToUser = useCallback(async (userId: string, achievementId: string) => {
         const user = await fetchUserById(userId);
         if (!user) return;
@@ -620,7 +612,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const rtdbDateString = snapshot.val();
             
             if (!rtdbDateString) {
-                setGameDate(null);
                 setGameDateString("Дата не установлена");
                 return;
             }
@@ -628,37 +619,17 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             if (/^\d{4}-\d{2}-\d{2}$/.test(rtdbDateString)) {
                 const [year, month, day] = rtdbDateString.split('-').map(Number);
                 if (year && month && day) {
-                    const newGameDate = new Date(year, month - 1, day);
                     const months = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
                     const formattedDateString = `${day} ${months[month - 1]} ${year} год`;
-                    setGameDate(newGameDate);
                     setGameDateString(formattedDateString);
                     return;
                 }
             }
-
-            const parts = rtdbDateString.match(/(\d+)\s(\S+)\s(\d+)/);
-            if (parts) {
-                const months: { [key: string]: number } = { "января":0, "февраля":1, "марта":2, "апреля":3, "мая":4, "июня":5, "июля":6, "августа":7, "сентября":8, "октября":9, "ноября":10, "декабря":11 };
-                const day = parseInt(parts[1], 10);
-                const month = months[parts[2].toLowerCase()];
-                const year = parseInt(parts[3], 10);
-                if (!isNaN(day) && month !== undefined && !isNaN(year)) {
-                    const newGameDate = new Date(year, month, day);
-                     if (!isNaN(newGameDate.getTime())) {
-                        setGameDate(newGameDate);
-                        setGameDateString(rtdbDateString);
-                        return;
-                    }
-                }
-            }
             
-            setGameDate(null);
             setGameDateString("Неверный формат даты");
 
         }, (error) => {
             console.error("Error fetching game date from Realtime DB:", error);
-            setGameDate(null);
             setGameDateString("Ошибка загрузки даты");
         });
 
@@ -3389,7 +3360,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     () => ({
       currentUser,
       setCurrentUser,
-      gameDate,
       gameDateString,
       gameSettings,
       lastWeeklyBonusAwardedAt: gameSettings.lastWeeklyBonusAwardedAt,
@@ -3420,7 +3390,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       removeFamiliarFromCharacter,
       updateUser,
       updateUserAvatar,
-      updateGameDate,
       updateGameSettings,
       processWeeklyBonus,
       checkExtraCharacterSlots,
@@ -3471,10 +3440,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       fetchDbFamiliars,
       addFamiliarToDb,
       deleteFamiliarFromDb,
-      sendPlayerPing,
-      deletePlayerPing,
-      addFavoritePlayer,
-      removeFavoritePlayer,
       allFamiliars,
       familiarsById,
       startHunt,
@@ -3486,9 +3451,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       changeUserPassword,
       changeUserEmail,
       mergeUserData,
+      sendPlayerPing,
+      deletePlayerPing,
+      addFavoritePlayer,
+      removeFavoritePlayer,
       imageGeneration
     }),
-    [currentUser, setCurrentUser, gameDate, gameDateString, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, fetchAlchemyRecipes, updateAlchemyRecipe, deleteAlchemyRecipe, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, allFamiliars, familiarsById, startHunt, startMultipleHunts, claimHuntReward, claimAllHuntRewards, recallHunt, claimRewardsForOtherPlayer, changeUserPassword, changeUserEmail, mergeUserData, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, imageGeneration]
+    [currentUser, setCurrentUser, gameDateString, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, fetchAlchemyRecipes, updateAlchemyRecipe, deleteAlchemyRecipe, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, allFamiliars, familiarsById, startHunt, startMultipleHunts, claimHuntReward, claimAllHuntRewards, recallHunt, claimRewardsForOtherPlayer, changeUserPassword, changeUserEmail, mergeUserData, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, imageGeneration]
   );
     
     return (

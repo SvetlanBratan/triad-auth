@@ -3,8 +3,6 @@
 import type { Reward, FamiliarCard, Achievement, GameSettings, WealthLevel, BankAccount, CapitalLevel, CrimeLevel, Shop, InventoryCategory, PopularityEvent, HuntingLocation } from './types';
 import type { OptionType } from '@/components/ui/multi-select';
 
-// Game Date is now fetched from Firestore. See UserProvider.
-// This is a fallback/default value if nothing is in the database.
 export const DEFAULT_GAME_SETTINGS: GameSettings = {
     lastWeeklyBonusAwardedAt: new Date(0).toISOString(), // Initialize with a very old date
     gachaChances: {
@@ -853,3 +851,4 @@ export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) =>
 
 
     
+

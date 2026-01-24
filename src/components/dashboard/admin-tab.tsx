@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '../ui/textarea';
-import { Label } from '@/components/ui/label';
+import { Label } from '../ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
 import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info, AlertTriangle, Bell, CheckCircle, Store, PackagePlus, Edit, BadgeCheck, FileText, Send, Gavel, Eye, UserMinus, FlaskConical, Compass, Save, Merge } from 'lucide-react';
@@ -87,8 +87,6 @@ export default function AdminTab() {
     addMoodletToCharacter, 
     removeMoodletFromCharacter, 
     removeFamiliarFromCharacter,
-    updateGameDate,
-    gameDateString: initialGameDate,
     lastWeeklyBonusAwardedAt,
     processWeeklyBonus,
     recoverFamiliarsFromHistory,
@@ -197,10 +195,6 @@ export default function AdminTab() {
   const [removeFamiliarCharId, setRemoveFamiliarCharId] = useState<string>('');
   const [removeFamiliarCardId, setRemoveFamiliarCardId] = useState<string>('');
   
-  // Game date state
-  const [newGameDateString, setNewGameDateString] = useState(initialGameDate || '');
-  const [isUpdatingDate, setIsUpdatingDate] = useState(false);
-
   // Economy state
   const [ecoUserId, setEcoUserId] = useState('');
   const [ecoCharId, setEcoCharId] = useState('');
@@ -278,10 +272,6 @@ export default function AdminTab() {
     await queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
   }, [queryClient]);
   
-
-  useEffect(() => {
-      setNewGameDateString(initialGameDate || '');
-  }, [initialGameDate]);
 
   useEffect(() => {
     if (selectedInventoryItem) {
@@ -384,20 +374,6 @@ export default function AdminTab() {
         setIsRecoveringAll(false);
     }
   }
-
-  const handleUpdateGameDate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsUpdatingDate(true);
-    try {
-        await updateGameDate(newGameDateString);
-        toast({ title: 'Игровая дата обновлена', description: `Новая дата: ${newGameDateString}` });
-    } catch(error) {
-        console.error('Failed to update game date', error);
-        toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось обновить игровую дату.' });
-    } finally {
-        setIsUpdatingDate(false);
-    }
-  };
 
   const handleAwardPoints = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1509,32 +1485,6 @@ export default function AdminTab() {
 
       <TabsContent value="general" className="mt-4">
          <div className="gap-6 column-1 md:column-2 lg:column-3">
-           <div className="break-inside-avoid mb-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><CalendarClock /> Управление игровой датой</CardTitle>
-                    <CardDescription>Измените текущую дату в игровом мире.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form onSubmit={handleUpdateGameDate} className="space-y-4">
-                        <div>
-                            <Label htmlFor="game-date-input">Текущая дата</Label>
-                            <Input
-                            id="game-date-input"
-                            type="text"
-                            value={newGameDateString}
-                            onChange={(e) => setNewGameDateString(e.target.value)}
-                            placeholder="например, 21 марта 2709 год"
-                            disabled={isUpdatingDate}
-                            />
-                        </div>
-                        <Button type="submit" disabled={isUpdatingDate || newGameDateString === initialGameDate}>
-                            {isUpdatingDate ? 'Сохранение...' : 'Сохранить дату'}
-                        </Button>
-                    </form>
-                </CardContent>
-            </Card>
-            </div>
             <div className="break-inside-avoid mb-6">
             <Card>
                 <CardHeader>
@@ -2890,9 +2840,3 @@ export default function AdminTab() {
     </Tabs>
   );
 }
-
-    
-
-    
-
-    

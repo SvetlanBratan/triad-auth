@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -211,7 +212,7 @@ const FamiliarsSection = ({ character }: { character: Character }) => {
 
 export default function CharacterPage() {
     const { id } = useParams();
-    const { currentUser, updateCharacterInUser, gameDate, consumeInventoryItem, setCurrentUser, fetchCharacterById, fetchUsersForAdmin } = useUser();
+    const { currentUser, updateCharacterInUser, gameDateString, consumeInventoryItem, setCurrentUser, fetchCharacterById, fetchUsersForAdmin } = useUser();
     const queryClient = useQueryClient();
     
     const charId = Array.isArray(id) ? id[0] : id;
@@ -406,7 +407,7 @@ export default function CharacterPage() {
     
     const isBlessed = character.blessingExpires && new Date(character.blessingExpires) > new Date();
     const activeMoodlets = (character.moodlets || []).filter(m => new Date(m.expiresAt) > new Date());
-    const age = gameDate ? calculateAge(character.birthDate, gameDate) : null;
+    const age = gameDateString ? calculateAge(character.birthDate, gameDateString) : null;
     const canViewHistory = isOwnerOrAdmin;
     const accomplishments = character.accomplishments || [];
     const isBiographyVisible = !character.biographyIsHidden || isOwnerOrAdmin;
@@ -1406,11 +1407,3 @@ export default function CharacterPage() {
         </div>
     );
 }
-
-    
-
-    
-
-    
-
-    
