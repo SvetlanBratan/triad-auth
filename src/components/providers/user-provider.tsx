@@ -391,34 +391,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }, [currentUser?.id, processUserDoc]);
 
     const updateGameDate = useCallback(async (newDateString: string) => {
-        let rtdbDateString: string | null = null;
-        
-        const parts = newDateString.match(/(\d+)\s(\S+)\s(\d+)/);
-        if (parts) {
-            const months: { [key: string]: string } = { "января":"01", "февраля":"02", "марта":"03", "апреля":"04", "мая":"05", "июня":"06", "июля":"07", "августа":"08", "сентября":"09", "октября":"10", "ноября":"11", "декабря":"12" };
-            const day = parts[1].padStart(2, '0');
-            const monthStr = parts[2].toLowerCase();
-            const month = months[monthStr];
-            const year = parts[3];
-            if (day && month && year) {
-                rtdbDateString = `${year}-${month}-${day}`;
-            }
-        } else if (/^\d{4}-\d{2}-\d{2}$/.test(newDateString)) {
-            rtdbDateString = newDateString;
-        }
-
-        if (rtdbDateString) {
-            const dateRef = rtdbRef(database, 'calendar/currentDate');
-            await rtdbSet(dateRef, rtdbDateString);
-        } else {
-            console.error("Invalid date format provided to updateGameDate:", newDateString);
-            toast({
-                variant: "destructive",
-                title: "Ошибка формата даты",
-                description: "Пожалуйста, используйте формат 'ДД месяца ГГГГ год' или 'YYYY-MM-DD'.",
-            });
-        }
-    }, [toast]);
+      const dateRef = rtdbRef(database, 'calendar/currentDate');
+      await rtdbSet(dateRef, newDateString);
+    }, []);
     
     const grantAchievementToUser = useCallback(async (userId: string, achievementId: string) => {
         const user = await fetchUserById(userId);
@@ -643,7 +618,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const dateRef = rtdbRef(database, 'calendar/currentDate');
         const unsubscribe = onValue(dateRef, (snapshot) => {
             const rtdbDateString = snapshot.val();
-            if (rtdbDateString && /^\d{4}-\d{2}-\d{2}$/.test(rtdbDateString)) {
+            
+            if (!rtdbDateString) {
+                setGameDate(null);
+                setGameDateString("Дата не установлена");
+                return;
+            }
+
+            if (/^\d{4}-\d{2}-\d{2}$/.test(rtdbDateString)) {
                 const [year, month, day] = rtdbDateString.split('-').map(Number);
                 if (year && month && day) {
                     const newGameDate = new Date(year, month - 1, day);
@@ -651,24 +633,33 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                     const formattedDateString = `${day} ${months[month - 1]} ${year} год`;
                     setGameDate(newGameDate);
                     setGameDateString(formattedDateString);
+                    return;
                 }
-            } else if (rtdbDateString) { 
-                 const parts = rtdbDateString.match(/(\d+)\s(\S+)\s(\d+)/);
-                 if (parts) {
-                    const months: { [key: string]: number } = { "января":0, "февраля":1, "марта":2, "апреля":3, "мая":4, "июня":5, "июля":6, "августа":7, "сентября":8, "октября":9, "ноября":10, "декабря":11 };
-                    const day = parseInt(parts[1]);
-                    const month = months[parts[2].toLowerCase()];
-                    const year = parseInt(parts[3]);
+            }
+
+            const parts = rtdbDateString.match(/(\d+)\s(\S+)\s(\d+)/);
+            if (parts) {
+                const months: { [key: string]: number } = { "января":0, "февраля":1, "марта":2, "апреля":3, "мая":4, "июня":5, "июля":6, "августа":7, "сентября":8, "октября":9, "ноября":10, "декабря":11 };
+                const day = parseInt(parts[1], 10);
+                const month = months[parts[2].toLowerCase()];
+                const year = parseInt(parts[3], 10);
+                if (!isNaN(day) && month !== undefined && !isNaN(year)) {
                     const newGameDate = new Date(year, month, day);
-                    if (!isNaN(newGameDate.getTime())) {
-                       setGameDate(newGameDate);
-                       setGameDateString(rtdbDateString);
+                     if (!isNaN(newGameDate.getTime())) {
+                        setGameDate(newGameDate);
+                        setGameDateString(rtdbDateString);
+                        return;
                     }
                 }
-            } else {
-                setGameDate(null);
-                setGameDateString("Дата не установлена");
             }
+            
+            setGameDate(null);
+            setGameDateString("Неверный формат даты");
+
+        }, (error) => {
+            console.error("Error fetching game date from Realtime DB:", error);
+            setGameDate(null);
+            setGameDateString("Ошибка загрузки даты");
         });
 
         return () => unsubscribe();
@@ -3516,3 +3507,4 @@ export const useUser = () => {
     }
     return context;
 };
+
