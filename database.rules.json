@@ -1,0 +1,16 @@
+
+{
+  "rules": {
+    "calendar": {
+      ".read": true,
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+    },
+    "users": {
+      ".indexOn": "nickname",
+      "$uid": {
+        ".read": "auth != null",
+        ".write": "$uid === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin'"
+      }
+    }
+  }
+}

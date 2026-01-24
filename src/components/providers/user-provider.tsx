@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
@@ -621,27 +622,27 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             });
         }, 8000); 
 
-        const unsubscribe = onValue(dateRef, (snapshot) => {
-            clearTimeout(connectionTimeout);
-            const rtdbDateString = snapshot.val();
-            
-            if (rtdbDateString && typeof rtdbDateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(rtdbDateString)) {
-                 const [year, month, day] = rtdbDateString.split('-').map(Number);
-                const months = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
-                setGameDateString(`${day} ${months[month - 1]} ${year} год`);
-            } else if (rtdbDateString) {
-                console.warn(`Invalid date format from Realtime DB: "${rtdbDateString}". Expected YYYY-MM-DD.`);
-                setGameDateString("Ошибка: неверный формат даты");
-            } else {
-                 console.warn("Date from Realtime DB is null or undefined.");
-                 setGameDateString("Дата не установлена");
-            }
+        const unsubscribe = onValue(dateRef, 
+            (snapshot) => {
+                clearTimeout(connectionTimeout);
+                const rtdbDateString = snapshot.val();
+                
+                if (rtdbDateString && typeof rtdbDateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(rtdbDateString)) {
+                    const [year, month, day] = rtdbDateString.split('-').map(Number);
+                    const months = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
+                    setGameDateString(`${day} ${months[month - 1]} ${year} год`);
+                } else {
+                    console.warn(`Invalid or null date from Realtime DB: "${rtdbDateString}". Expected YYYY-MM-DD.`);
+                    setGameDateString("Дата не установлена");
+                }
 
-        }, (error) => {
-            clearTimeout(connectionTimeout);
-            console.error("Error fetching game date from Realtime DB:", error);
-            setGameDateString("Ошибка: нет доступа к базе дат");
-        });
+            }, 
+            (error) => {
+                clearTimeout(connectionTimeout);
+                console.error("Firebase Realtime Database read failed:", error);
+                setGameDateString(`Ошибка RTDB: ${error.code}`);
+            }
+        );
 
         return () => {
             clearTimeout(connectionTimeout);
@@ -3487,3 +3488,4 @@ export const useUser = () => {
 };
 
     
+
