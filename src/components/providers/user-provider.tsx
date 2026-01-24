@@ -337,14 +337,21 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }, [processUserDoc]);
     
     const fetchLeaderboardUsers = useCallback(async (lastVisible?: DocumentSnapshot<DocumentData> | null): Promise<{ users: User[], lastVisible?: DocumentSnapshot<DocumentData> }> => {
+        const PAGE_SIZE = 20;
         const usersCollection = collection(db, "users");
-        const q = lastVisible 
-            ? query(usersCollection, orderBy("points", "desc"), startAfter(lastVisible), limit(20))
-            : query(usersCollection, orderBy("points", "desc"), limit(20));
+        let q;
+        if (lastVisible) {
+          q = query(usersCollection, orderBy("points", "desc"), startAfter(lastVisible), limit(PAGE_SIZE));
+        } else {
+          q = query(usersCollection, orderBy("points", "desc"), limit(PAGE_SIZE));
+        }
 
         const userSnapshot = await getDocs(q);
         const users = await Promise.all(userSnapshot.docs.map(doc => processUserDoc(doc.data() as User)));
-        const newLastVisible = userSnapshot.docs[userSnapshot.docs.length - 1];
+        
+        const newLastVisible = userSnapshot.docs.length >= PAGE_SIZE 
+            ? userSnapshot.docs[userSnapshot.docs.length - 1]
+            : undefined;
         
         return {
             users: users.filter((user): user is User => user !== null),
@@ -388,17 +395,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (!achievementIds.includes(achievementId)) {
             const updatedAchievementIds = [...achievementIds, achievementId];
             await updateUser(userId, { achievementIds: updatedAchievementIds });
-            
-            const allUsers = await fetchLeaderboardUsers(); 
-            const top3Users = allUsers.users.slice(0, 3);
-            
-            for (const topUser of top3Users) {
-              if (topUser.id === userId && !topUser.achievementIds?.includes(FORBES_LIST_ACHIEVEMENT_ID)) {
-                 await grantAchievementToUser(topUser.id, FORBES_LIST_ACHIEVEMENT_ID);
-              }
-            }
         }
-    }, [fetchUserById, updateUser, fetchLeaderboardUsers]);
+    }, [fetchUserById, updateUser]);
 
     const addPointsToUser = useCallback(async (userId: string, amount: number, reason: string, characterId?: string): Promise<User | null> => {
         const user = await fetchUserById(userId);
@@ -462,68 +460,65 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     const processWeeklyBonus = useCallback(async () => {
         const settingsRef = doc(db, 'game_settings', 'main');
-        let shouldAward = false;
     
         try {
             await runTransaction(db, async (transaction) => {
                 const settingsDoc = await transaction.get(settingsRef);
-                if (!settingsDoc.exists()) {
-                    // If settings don't exist, create them and assume it's okay to award.
-                    transaction.set(settingsRef, DEFAULT_GAME_SETTINGS);
-                    shouldAward = true;
-                    return;
-                }
-                
-                const settings = settingsDoc.data() as GameSettings;
+                const settings = (settingsDoc.data() || DEFAULT_GAME_SETTINGS) as GameSettings;
                 const now = new Date();
                 const lastAwarded = settings.lastWeeklyBonusAwardedAt ? new Date(settings.lastWeeklyBonusAwardedAt) : new Date(0);
-                const daysSinceLast = differenceInDays(now, lastAwarded);
-    
-                if (daysSinceLast >= 7) {
-                    transaction.update(settingsRef, { lastWeeklyBonusAwardedAt: now.toISOString() });
-                    shouldAward = true;
+                
+                if (differenceInDays(now, lastAwarded) < 7) {
+                  return; // Not yet time
+                }
+
+                transaction.update(settingsRef, { lastWeeklyBonusAwardedAt: now.toISOString() });
+
+                const usersSnapshot = await getDocs(query(collection(db, 'users')));
+                const allUsers = usersSnapshot.docs.map(d => ({id: d.id, ...d.data()} as User));
+
+                for (const user of allUsers) {
+                    const userRef = doc(db, "users", user.id);
+                    const lastLogin = user.lastLogin ? new Date(user.lastLogin) : new Date(0);
+                    let updates: Partial<User> = {};
+
+                    if (differenceInMonths(new Date(), lastLogin) >= 1 && user.status !== 'отпуск' && user.status !== 'неактивный') {
+                        updates.status = 'неактивный';
+                    }
+            
+                    if (user.status === 'активный') {
+                        let totalBonus = 800;
+                        let reason = "Еженедельный бонус за активность";
+                        const popularityPoints = user.characters.reduce((acc, char) => acc + (char.popularity ?? 0), 0);
+                        if (popularityPoints > 0) {
+                            totalBonus += popularityPoints;
+                            reason += ` и популярность (${popularityPoints})`;
+                        }
+                        
+                        const newPointLog: PointLog = { id: `h-weekly-${Date.now()}-${user.id.slice(0, 4)}`, date: now.toISOString(), amount: totalBonus, reason };
+                        updates.points = increment(totalBonus) as any;
+                        updates.pointHistory = arrayUnion(newPointLog) as any;
+                        
+                        if (Object.keys(updates).length > 0) {
+                            transaction.update(userRef, updates);
+                        }
+                    }
+                }
+
+                const top3Users = allUsers.sort((a,b) => b.points - a.points).slice(0, 3);
+                for (const topUser of top3Users) {
+                  if (!topUser.achievementIds?.includes(FORBES_LIST_ACHIEVEMENT_ID)) {
+                    const topUserRef = doc(db, 'users', topUser.id);
+                    transaction.update(topUserRef, { achievementIds: arrayUnion(FORBES_LIST_ACHIEVEMENT_ID) });
+                  }
                 }
             });
         } catch (e) {
             console.error("Weekly bonus transaction failed: ", e);
-            // Don't award if the transaction fails for any reason.
-            return { awardedCount: 0 };
         }
-    
-        if (!shouldAward) {
-            await fetchGameSettings(); 
-            return { awardedCount: 0 };
-        }
-    
-        // If transaction was successful, proceed with awarding points.
-        const allUsers = await fetchUsersForAdmin();
-        let awardedCount = 0;
-    
-        for (const user of allUsers) {
-            const lastLogin = user.lastLogin ? new Date(user.lastLogin) : new Date(0);
-            if (differenceInMonths(new Date(), lastLogin) >= 1 && user.status !== 'отпуск' && user.status !== 'неактивный') {
-                 await updateDoc(doc(db, "users", user.id), { status: 'неактивный' });
-            }
-    
-            if (user.status === 'активный') {
-                await addPointsToUser(user.id, 800, 'Еженедельный бонус за активность');
-                awardedCount++;
-            }
-        }
-        
         await fetchGameSettings();
-        
-        const allUsersWithLeaderboard = await fetchLeaderboardUsers(null); 
-        const top3Users = allUsersWithLeaderboard.users.slice(0, 3);
-        
-        for (const topUser of top3Users) {
-          if (!topUser.achievementIds?.includes(FORBES_LIST_ACHIEVEMENT_ID)) {
-            await grantAchievementToUser(topUser.id, FORBES_LIST_ACHIEVEMENT_ID);
-          }
-        }
-    
-        return { awardedCount };
-    }, [fetchUsersForAdmin, fetchGameSettings, addPointsToUser, fetchLeaderboardUsers, grantAchievementToUser]);
+        return { awardedCount: 0 };
+    }, [fetchGameSettings]);
     
     const fetchDbFamiliars = useCallback(async (): Promise<FamiliarCard[]> => {
         const familiarsCollection = collection(db, "familiars");
@@ -643,12 +638,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             await addPointsToUser(user.id, amount, reason);
         }
     }, [fetchUsersForAdmin, addPointsToUser]);
-    
-    const updateGameDate = useCallback(async (newDateString: string) => {
-        const settingsRef = doc(db, 'game_settings', 'main');
-        await updateDoc(settingsRef, { gameDateString: newDateString });
-        await fetchGameSettings();
-    }, [fetchGameSettings]);
     
     const updateCharacterInUser = useCallback(async (userId: string, characterToUpdate: Character): Promise<User> => {
         await runTransaction(db, async (transaction) => {
@@ -2615,6 +2604,142 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if(updatedUser) setCurrentUser(updatedUser);
     }, [currentUser, fetchUserById]);
 
+    const brewPotion = useCallback(async (userId: string, characterId: string, recipeId: string): Promise<{ createdItem: InventoryItem; recipeName: string; }> => {
+        let createdItem: InventoryItem | null = null;
+        let recipeName = '';
+    
+        await runTransaction(db, async (transaction) => {
+            const userRef = doc(db, "users", userId);
+            const userDoc = await transaction.get(userRef);
+            if (!userDoc.exists()) {
+                throw new Error("User document not found.");
+            }
+            const userData = userDoc.data() as User;
+    
+            const charIndex = userData.characters.findIndex((c) => c.id === characterId);
+            if (charIndex === -1) {
+                throw new Error("Character not found.");
+            }
+            const character = userData.characters[charIndex];
+    
+            const recipeRef = doc(db, "alchemy_recipes", recipeId);
+            const recipeDoc = await transaction.get(recipeRef);
+            if (!recipeDoc.exists()) {
+                throw new Error("Recipe not found.");
+            }
+            const recipe = recipeDoc.data() as AlchemyRecipe;
+    
+            const allItems = [...(await fetchAllShops())].flatMap(shop => shop.items || []);
+            const allItemsMap = new Map(allItems.map(item => [item.id, item]));
+            [...ALL_ITEMS_FOR_ALCHEMY].forEach(item => allItemsMap.set(item.id, item));
+    
+            const inventory = character.inventory || {};
+    
+            for (const component of recipe.components) {
+                const requiredIngredient = allItemsMap.get(component.ingredientId);
+                if (!requiredIngredient) {
+                    throw new Error(`Required ingredient with ID ${component.ingredientId} not found in game data.`);
+                }
+    
+                const categoryKey = (requiredIngredient as ShopItem).inventoryTag;
+                if (!categoryKey) {
+                    throw new Error("Ingredient category is not defined.");
+                }
+    
+                let totalPlayerQty = 0;
+                const itemsInCategory = (inventory[categoryKey] as InventoryItem[] | undefined) || [];
+    
+                itemsInCategory.forEach(item => {
+                    if (item.name === requiredIngredient.name) {
+                        totalPlayerQty += item.quantity;
+                    }
+                });
+
+                if (categoryKey === 'драгоценности') {
+                    const itemsInIngredients = (inventory['ингредиенты'] as InventoryItem[] | undefined) || [];
+                     itemsInIngredients.forEach(item => {
+                        if (item.name === requiredIngredient.name) {
+                            totalPlayerQty += item.quantity;
+                        }
+                    });
+                }
+    
+                if (totalPlayerQty < component.qty) {
+                    throw new Error(`Недостаточно ингредиента: ${requiredIngredient.name}`);
+                }
+    
+                let quantityToDeduct = component.qty;
+                const updateInventory = (catKey: InventoryCategory) => {
+                    const catItems = (inventory[catKey] as InventoryItem[] | undefined) || [];
+                    for (let i = catItems.length - 1; i >= 0; i--) {
+                        if (quantityToDeduct > 0 && catItems[i].name === requiredIngredient.name) {
+                            if (catItems[i].quantity > quantityToDeduct) {
+                                catItems[i].quantity -= quantityToDeduct;
+                                quantityToDeduct = 0;
+                            } else {
+                                quantityToDeduct -= catItems[i].quantity;
+                                catItems.splice(i, 1);
+                            }
+                        }
+                    }
+                    inventory[catKey] = catItems;
+                }
+                
+                updateInventory(categoryKey);
+                 if (quantityToDeduct > 0 && categoryKey === 'драгоценности') {
+                    updateInventory('ингредиенты');
+                }
+
+            }
+    
+            const resultItemData = allItemsMap.get(recipe.resultPotionId);
+            if (!resultItemData) {
+                throw new Error("Result potion data not found.");
+            }
+            recipeName = recipe.name || resultItemData.name;
+    
+            const potionsInv = (inventory.зелья || []) as InventoryItem[];
+            const existingPotionIndex = potionsInv.findIndex(p => p.name === resultItemData.name);
+    
+            createdItem = {
+                id: `inv-item-${Date.now()}`,
+                name: resultItemData.name,
+                description: resultItemData.description || '',
+                image: resultItemData.image || '',
+                quantity: recipe.outputQty,
+                inventoryTag: 'зелья',
+            };
+    
+            if (existingPotionIndex > -1) {
+                potionsInv[existingPotionIndex].quantity += recipe.outputQty;
+            } else {
+                potionsInv.push(createdItem);
+            }
+    
+            inventory.зелья = potionsInv;
+            character.inventory = inventory;
+    
+            const hasBrewAchievement = (userData.achievementIds || []).includes(FIRST_BREW_ACHIEVEMENT_ID);
+            if (!hasBrewAchievement) {
+                userData.achievementIds = [...(userData.achievementIds || []), FIRST_BREW_ACHIEVEMENT_ID];
+            }
+            
+            userData.characters[charIndex] = character;
+            transaction.update(userRef, { characters: userData.characters, achievementIds: userData.achievementIds });
+        });
+        
+        const updatedUser = await fetchUserById(userId);
+        if (updatedUser) {
+            setCurrentUser(updatedUser);
+        }
+    
+        if (!createdItem) {
+            throw new Error("Не удалось создать предмет.");
+        }
+    
+        return { createdItem, recipeName };
+    }, [fetchAllShops, fetchUserById, setCurrentUser]);
+
     const updateUserAvatar = useCallback(async (userId: string, avatarUrl: string) => {
         await updateUser(userId, { avatar: avatarUrl });
     }, [updateUser]);
@@ -3190,33 +3315,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   
     const functions = useMemo(() => getFunctions(), []);
     
-    const brewPotion = useCallback(async (userId: string, characterId: string, recipeId: string): Promise<{ createdItem: InventoryItem; recipeName: string; }> => {
-        const callable = httpsCallable(functions, 'brewPotion');
-        const result = await callable({ userId, characterId, recipeId });
-         if ((result.data as any).success) {
-            const updatedUser = await fetchUserById(userId);
-            if(updatedUser) setCurrentUser(updatedUser);
-            return (result.data as any).data;
-        } else {
-            throw new Error((result.data as any).error || 'Неизвестная ошибка при создании зелья.');
-        }
-    }, [functions, fetchUserById, setCurrentUser]);
-
-    const addAlchemyRecipe = useCallback(async (recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
-        const callable = httpsCallable(functions, 'addAlchemyRecipe');
-        await callable(recipe);
-    }, [functions]);
-
-    const updateAlchemyRecipe = useCallback(async (recipeId: string, recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
-        const callable = httpsCallable(functions, 'updateAlchemyRecipe');
-        await callable({ recipeId, ...recipe });
-    }, [functions]);
-
-    const deleteAlchemyRecipe = useCallback(async (recipeId: string) => {
-        const callable = httpsCallable(functions, 'deleteAlchemyRecipe');
-        await callable({ recipeId });
-    }, [functions]);
-
     const fetchAlchemyRecipes = useCallback(async (): Promise<AlchemyRecipe[]> => {
         const recipesCollection = collection(db, "alchemy_recipes");
         const snapshot = await getDocs(recipesCollection);
@@ -3352,11 +3450,3 @@ export const useUser = () => {
     }
     return context;
 };
-
-    
-
-
-
-
-
-
