@@ -3,6 +3,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, initializeAuth, indexedDBLocalPersistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getDatabase } from "firebase/database";
 import { getAnalytics } from "firebase/analytics";
 
 // Your web app's Firebase configuration
@@ -14,12 +15,14 @@ const firebaseConfig = {
   storageBucket: "triad-scoring-system.firebasestorage.app",
   messagingSenderId: "1043121641751",
   appId: "1:1043121641751:web:268ee8a85356a315eeff52",
-  measurementId: "G-FGKBLBFZ45"
+  measurementId: "G-FGKBLBFZ45",
+  databaseURL: "https://triad-scoring-system-default-rtdb.firebaseio.com",
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
+export const database = getDatabase(app);
 
 // Initialize Auth with persistence
 export const auth = initializeAuth(app, {
@@ -31,4 +34,3 @@ export const auth = initializeAuth(app, {
 if (typeof window !== 'undefined') {
   getAnalytics(app);
 }
-

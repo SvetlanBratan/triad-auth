@@ -3,9 +3,10 @@
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
 import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage, Cooldowns, PopularityLog, CharacterPopularityUpdate, OwnedFamiliarCard, AlchemyRecipe, Potion, AlchemyIngredient, PlayerPing, OngoingHunt, PlayerStatus, PlayPlatform, SocialLink, HuntingLocation, HuntReward } from '@/lib/types';
-import { auth, db } from '@/lib/firebase';
+import { auth, db, database } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut, reauthenticateWithCredential, EmailAuthProvider, updatePassword, updateEmail } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter, increment, FieldValue, arrayUnion, arrayRemove, deleteField, DocumentSnapshot, DocumentData } from "firebase/firestore";
+import { ref as rtdbRef, onValue, set as rtdbSet } from 'firebase/database';
 import { ALL_STATIC_FAMILIARS, EVENT_FAMILIARS, MOODLETS_DATA, DEFAULT_GAME_SETTINGS, WEALTH_LEVELS, ALL_SHOPS, SHOPS_BY_ID, POPULARITY_EVENTS, ALL_ACHIEVEMENTS, INVENTORY_CATEGORIES } from '@/lib/data';
 import { differenceInDays, differenceInMonths, isPast } from 'date-fns';
 import { getFunctions, httpsCallable } from 'firebase/functions';
@@ -433,20 +434,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                  if (!finalSettings.gachaChances) {
                     finalSettings.gachaChances = DEFAULT_GAME_SETTINGS.gachaChances;
                 }
-                if(data.gameDateString) {
-                    const dateStr = data.gameDateString;
-                    const dateParts = dateStr.match(/(\d+)\s(\S+)\s(\d+)/);
-                    if (dateParts) {
-                        const months: { [key: string]: number } = { "января":0, "февраля":1, "марта":2, "апреля":3, "мая":4, "июня":5, "июля":6, "августа":7, "сентября":8, "октября":9, "ноября":10, "декабря":11 };
-                        const day = parseInt(dateParts[1]);
-                        const month = months[dateParts[2].toLowerCase()];
-                        const year = parseInt(dateParts[3]);
-                        const gameDate = new Date(year, month, day);
-                         if (!isNaN(gameDate.getTime())) {
-                            finalSettings.gameDate = gameDate;
-                        }
-                    }
-                }
                 setGameSettings(finalSettings);
             } else {
                 await setDoc(doc(db, 'game_settings', 'main'), DEFAULT_GAME_SETTINGS);
@@ -457,70 +444,60 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
     }, []);
 
-    const updateGameDate = useCallback(async (newDateString: string) => {
-        const settingsRef = doc(db, 'game_settings', 'main');
-        await updateDoc(settingsRef, { gameDateString: newDateString });
-        await fetchGameSettings();
-    }, [fetchGameSettings]);
-
     const processWeeklyBonus = useCallback(async () => {
-        const settingsRef = doc(db, 'game_settings', 'main');
-    
-        try {
-            await runTransaction(db, async (transaction) => {
-                const settingsDoc = await transaction.get(settingsRef);
-                const settings = (settingsDoc.data() || DEFAULT_GAME_SETTINGS) as GameSettings;
-                const now = new Date();
-                const lastAwarded = settings.lastWeeklyBonusAwardedAt ? new Date(settings.lastWeeklyBonusAwardedAt) : new Date(0);
-                
-                if (differenceInDays(now, lastAwarded) < 7) {
-                  return; // Not yet time
-                }
-
-                transaction.update(settingsRef, { lastWeeklyBonusAwardedAt: now.toISOString() });
-
-                const usersSnapshot = await getDocs(query(collection(db, 'users')));
-                const allUsers = usersSnapshot.docs.map(d => ({id: d.id, ...d.data()} as User));
-
-                for (const user of allUsers) {
-                    const userRef = doc(db, "users", user.id);
-                    const lastLogin = user.lastLogin ? new Date(user.lastLogin) : new Date(0);
-                    let updates: Partial<User> = {};
-
-                    if (differenceInMonths(new Date, lastLogin) >= 1 && user.status !== 'отпуск' && user.status !== 'неактивный') {
-                        updates.status = 'неактивный';
-                    }
+        await runTransaction(db, async (transaction) => {
+            const settingsRef = doc(db, 'game_settings', 'main');
+            const settingsDoc = await transaction.get(settingsRef);
+            const settings = (settingsDoc.data() || DEFAULT_GAME_SETTINGS) as GameSettings;
+            const now = new Date();
+            const lastAwarded = settings.lastWeeklyBonusAwardedAt ? new Date(settings.lastWeeklyBonusAwardedAt) : new Date(0);
             
-                    if (user.status === 'активный') {
-                        let totalBonus = 800;
-                        let reason = "Еженедельный бонус за активность";
-                        const popularityPoints = user.characters.reduce((acc, char) => acc + (char.popularity ?? 0), 0);
-                        if (popularityPoints > 0) {
-                            totalBonus += popularityPoints;
-                            reason += ` и популярность (${popularityPoints})`;
-                        }
-                        
-                        const newPointLog: PointLog = { id: `h-weekly-${Date.now()}-${user.id.slice(0, 4)}`, date: now.toISOString(), amount: totalBonus, reason };
-                        updates.points = increment(totalBonus) as any;
-                        updates.pointHistory = arrayUnion(newPointLog) as any;
-                        
-                        if (Object.keys(updates).length > 0) {
-                            transaction.update(userRef, updates);
-                        }
+            if (differenceInDays(now, lastAwarded) < 7) {
+              return; // Not yet time
+            }
+
+            transaction.update(settingsRef, { lastWeeklyBonusAwardedAt: now.toISOString() });
+
+            const usersSnapshot = await getDocs(query(collection(db, 'users')));
+            const allUsers = usersSnapshot.docs.map(d => ({id: d.id, ...d.data()} as User));
+
+            for (const user of allUsers) {
+                const userRef = doc(db, "users", user.id);
+                const lastLogin = user.lastLogin ? new Date(user.lastLogin) : new Date(0);
+                let updates: Partial<User> = {};
+
+                if (differenceInMonths(new Date(), lastLogin) >= 1 && user.status !== 'отпуск' && user.status !== 'неактивный') {
+                    updates.status = 'неактивный';
+                }
+        
+                if (user.status === 'активный') {
+                    let totalBonus = 800;
+                    let reason = "Еженедельный бонус за активность";
+                    const popularityPoints = user.characters.reduce((acc, char) => acc + (char.popularity ?? 0), 0);
+                    if (popularityPoints > 0) {
+                        totalBonus += popularityPoints;
+                        reason += ` и популярность (${popularityPoints})`;
+                    }
+                    
+                    const newPointLog: PointLog = { id: `h-weekly-${Date.now()}-${user.id.slice(0, 4)}`, date: now.toISOString(), amount: totalBonus, reason };
+                    updates.points = increment(totalBonus) as any;
+                    updates.pointHistory = arrayUnion(newPointLog) as any;
+                    
+                    if (Object.keys(updates).length > 0) {
+                        transaction.update(userRef, updates);
                     }
                 }
+            }
 
-                const top3Users = allUsers.sort((a,b) => b.points - a.points).slice(0, 3);
-                for (const topUser of top3Users) {
-                  if (!topUser.achievementIds?.includes(FORBES_LIST_ACHIEVEMENT_ID)) {
-                    const topUserRef = doc(db, 'users', topUser.id);
-                    transaction.update(topUserRef, { achievementIds: arrayUnion(FORBES_LIST_ACHIEVEMENT_ID) });
-                  }
-                }
-            });
-        } catch (e) {
-            console.error("Weekly bonus transaction failed: ", e);
-        }
+            const top3Users = allUsers.sort((a,b) => b.points - a.points).slice(0, 3);
+            for (const topUser of top3Users) {
+              if (!topUser.achievementIds?.includes(FORBES_LIST_ACHIEVEMENT_ID)) {
+                const topUserRef = doc(db, 'users', topUser.id);
+                transaction.update(topUserRef, { achievementIds: arrayUnion(FORBES_LIST_ACHIEVEMENT_ID) });
+              }
+            }
+        });
+        
         await fetchGameSettings();
         return { awardedCount: 0 };
     }, [fetchGameSettings]);
@@ -627,6 +604,73 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return () => unsubscribe();
     }, [createNewUser, fetchUserById, fetchGameSettings, processWeeklyBonus, fetchAndCombineFamiliars]);
     
+    useEffect(() => {
+        if (!firebaseUser) return;
+
+        const dateRef = rtdbRef(database, 'calendar/currentDate');
+        const unsubscribe = onValue(dateRef, (snapshot) => {
+            const rtdbDateString = snapshot.val();
+            if (rtdbDateString && /^\d{4}-\d{2}-\d{2}$/.test(rtdbDateString)) {
+                const [year, month, day] = rtdbDateString.split('-').map(Number);
+                if (year && month && day) {
+                    const gameDate = new Date(year, month - 1, day);
+                    const months = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
+                    const formattedDateString = `${day} ${months[month - 1]} ${year} год`;
+
+                    setGameSettings(prev => ({
+                        ...prev,
+                        gameDateString: formattedDateString,
+                        gameDate: gameDate,
+                    }));
+                }
+            } else if (rtdbDateString) { 
+                 const parts = rtdbDateString.match(/(\d+)\s(\S+)\s(\d+)/);
+                 if (parts) {
+                    const months: { [key: string]: number } = { "января":0, "февраля":1, "марта":2, "апреля":3, "мая":4, "июня":5, "июля":6, "августа":7, "сентября":8, "октября":9, "ноября":10, "декабря":11 };
+                    const day = parseInt(parts[1]);
+                    const month = months[parts[2].toLowerCase()];
+                    const year = parseInt(parts[3]);
+                    const gameDate = new Date(year, month, day);
+                    if (!isNaN(gameDate.getTime())) {
+                       setGameSettings(prev => ({ ...prev, gameDateString: rtdbDateString, gameDate }));
+                    }
+                }
+            }
+        });
+
+        return () => unsubscribe();
+    }, [firebaseUser]);
+
+    const updateGameDate = useCallback(async (newDateString: string) => {
+        let rtdbDateString: string | null = null;
+        
+        const parts = newDateString.match(/(\d+)\s(\S+)\s(\d+)/);
+        if (parts) {
+            const months: { [key: string]: string } = { "января":"01", "февраля":"02", "марта":"03", "апреля":"04", "мая":"05", "июня":"06", "июля":"07", "августа":"08", "сентября":"09", "октября":"10", "ноября":"11", "декабря":"12" };
+            const day = parts[1].padStart(2, '0');
+            const monthStr = parts[2].toLowerCase();
+            const month = months[monthStr];
+            const year = parts[3];
+            if (day && month && year) {
+                rtdbDateString = `${year}-${month}-${day}`;
+            }
+        } else if (/^\d{4}-\d{2}-\d{2}$/.test(newDateString)) {
+            rtdbDateString = newDateString;
+        }
+
+        if (rtdbDateString) {
+            const dateRef = rtdbRef(database, 'calendar/currentDate');
+            await rtdbSet(dateRef, rtdbDateString);
+        } else {
+            console.error("Invalid date format provided to updateGameDate:", newDateString);
+            toast({
+                variant: "destructive",
+                title: "Ошибка формата даты",
+                description: "Пожалуйста, используйте формат 'ДД месяца ГГГГ год' или 'YYYY-MM-DD'.",
+            });
+        }
+    }, [toast]);
+
     const signOutUser = useCallback(() => {
         signOut(auth);
     }, []);
@@ -1733,7 +1777,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const initiatorChar = currentUser.characters.find(c => c.id === initiatorCharacterId);
         if (!initiatorChar) throw new Error("Персонаж-инициатор не найден.");
 
-        const initiatorFamiliar = FAMILIARS_BY_ID[initiatorFamiliarId];
+        const initiatorFamiliar = familiarsById[initiatorFamiliarId];
         if (!initiatorFamiliar) throw new Error("Фамильяр инициатора не найден.");
 
         let targetUser: User | undefined;
@@ -1749,7 +1793,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
         if (!targetUser || !targetChar) throw new Error("Целевой персонаж или его владелец не найдены.");
         
-        const targetFamiliar = FAMILIARS_BY_ID[targetFamiliarId];
+        const targetFamiliar = familiarsById[targetFamiliarId];
         if (!targetFamiliar) throw new Error("Целевой фамильяр не найден.");
 
         const ranksAreDifferent = initiatorFamiliar.rank !== targetFamiliar.rank;
