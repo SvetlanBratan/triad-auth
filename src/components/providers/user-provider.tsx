@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
@@ -231,6 +232,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
     const [gameSettings, setGameSettings] = useState<GameSettings>(DEFAULT_GAME_SETTINGS);
+    const [gameDate, setGameDate] = useState<Date | null>(null);
+    const [gameDateString, setGameDateString] = useState<string | null>("Загрузка даты...");
     const [loading, setLoading] = useState(true);
     const [allFamiliars, setAllFamiliars] = useState<FamiliarCard[]>([...ALL_STATIC_FAMILIARS, ...EVENT_FAMILIARS]);
     const [familiarsById, setFamiliarsById] = useState<Record<string, FamiliarCard>>({});
@@ -336,7 +339,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
     }, [processUserDoc]);
     
-    const fetchLeaderboardUsers = useCallback(async (lastVisible?: DocumentSnapshot<DocumentData> | null): Promise<{ users: User[], lastVisible?: DocumentSnapshot<DocumentData> }> => {
+    const fetchLeaderboardUsers = useCallback(async (lastVisible: DocumentSnapshot<DocumentData> | null = null): Promise<{ users: User[], lastVisible?: DocumentSnapshot<DocumentData> }> => {
         const PAGE_SIZE = 20;
         const usersCollection = collection(db, "users");
         let q;
@@ -386,6 +389,36 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             setCurrentUser(prev => prev ? processUserDoc({ ...prev, ...updates }) : null);
         }
     }, [currentUser?.id, processUserDoc]);
+
+    const updateGameDate = useCallback(async (newDateString: string) => {
+        let rtdbDateString: string | null = null;
+        
+        const parts = newDateString.match(/(\d+)\s(\S+)\s(\d+)/);
+        if (parts) {
+            const months: { [key: string]: string } = { "января":"01", "февраля":"02", "марта":"03", "апреля":"04", "мая":"05", "июня":"06", "июля":"07", "августа":"08", "сентября":"09", "октября":"10", "ноября":"11", "декабря":"12" };
+            const day = parts[1].padStart(2, '0');
+            const monthStr = parts[2].toLowerCase();
+            const month = months[monthStr];
+            const year = parts[3];
+            if (day && month && year) {
+                rtdbDateString = `${year}-${month}-${day}`;
+            }
+        } else if (/^\d{4}-\d{2}-\d{2}$/.test(newDateString)) {
+            rtdbDateString = newDateString;
+        }
+
+        if (rtdbDateString) {
+            const dateRef = rtdbRef(database, 'calendar/currentDate');
+            await rtdbSet(dateRef, rtdbDateString);
+        } else {
+            console.error("Invalid date format provided to updateGameDate:", newDateString);
+            toast({
+                variant: "destructive",
+                title: "Ошибка формата даты",
+                description: "Пожалуйста, используйте формат 'ДД месяца ГГГГ год' или 'YYYY-MM-DD'.",
+            });
+        }
+    }, [toast]);
     
     const grantAchievementToUser = useCallback(async (userId: string, achievementId: string) => {
         const user = await fetchUserById(userId);
@@ -613,15 +646,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             if (rtdbDateString && /^\d{4}-\d{2}-\d{2}$/.test(rtdbDateString)) {
                 const [year, month, day] = rtdbDateString.split('-').map(Number);
                 if (year && month && day) {
-                    const gameDate = new Date(year, month - 1, day);
+                    const newGameDate = new Date(year, month - 1, day);
                     const months = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
                     const formattedDateString = `${day} ${months[month - 1]} ${year} год`;
-
-                    setGameSettings(prev => ({
-                        ...prev,
-                        gameDateString: formattedDateString,
-                        gameDate: gameDate,
-                    }));
+                    setGameDate(newGameDate);
+                    setGameDateString(formattedDateString);
                 }
             } else if (rtdbDateString) { 
                  const parts = rtdbDateString.match(/(\d+)\s(\S+)\s(\d+)/);
@@ -630,46 +659,20 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                     const day = parseInt(parts[1]);
                     const month = months[parts[2].toLowerCase()];
                     const year = parseInt(parts[3]);
-                    const gameDate = new Date(year, month, day);
-                    if (!isNaN(gameDate.getTime())) {
-                       setGameSettings(prev => ({ ...prev, gameDateString: rtdbDateString, gameDate }));
+                    const newGameDate = new Date(year, month, day);
+                    if (!isNaN(newGameDate.getTime())) {
+                       setGameDate(newGameDate);
+                       setGameDateString(rtdbDateString);
                     }
                 }
+            } else {
+                setGameDate(null);
+                setGameDateString("Дата не установлена");
             }
         });
 
         return () => unsubscribe();
     }, [firebaseUser]);
-
-    const updateGameDate = useCallback(async (newDateString: string) => {
-        let rtdbDateString: string | null = null;
-        
-        const parts = newDateString.match(/(\d+)\s(\S+)\s(\d+)/);
-        if (parts) {
-            const months: { [key: string]: string } = { "января":"01", "февраля":"02", "марта":"03", "апреля":"04", "мая":"05", "июня":"06", "июля":"07", "августа":"08", "сентября":"09", "октября":"10", "ноября":"11", "декабря":"12" };
-            const day = parts[1].padStart(2, '0');
-            const monthStr = parts[2].toLowerCase();
-            const month = months[monthStr];
-            const year = parts[3];
-            if (day && month && year) {
-                rtdbDateString = `${year}-${month}-${day}`;
-            }
-        } else if (/^\d{4}-\d{2}-\d{2}$/.test(newDateString)) {
-            rtdbDateString = newDateString;
-        }
-
-        if (rtdbDateString) {
-            const dateRef = rtdbRef(database, 'calendar/currentDate');
-            await rtdbSet(dateRef, rtdbDateString);
-        } else {
-            console.error("Invalid date format provided to updateGameDate:", newDateString);
-            toast({
-                variant: "destructive",
-                title: "Ошибка формата даты",
-                description: "Пожалуйста, используйте формат 'ДД месяца ГГГГ год' или 'YYYY-MM-DD'.",
-            });
-        }
-    }, [toast]);
 
     const signOutUser = useCallback(() => {
         signOut(auth);
@@ -3395,8 +3398,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     () => ({
       currentUser,
       setCurrentUser,
-      gameDate: gameSettings.gameDate,
-      gameDateString: gameSettings.gameDateString,
+      gameDate,
+      gameDateString,
       gameSettings,
       lastWeeklyBonusAwardedAt: gameSettings.lastWeeklyBonusAwardedAt,
       fetchUserById,
@@ -3494,7 +3497,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       mergeUserData,
       imageGeneration
     }),
-    [currentUser, setCurrentUser, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, fetchAlchemyRecipes, updateAlchemyRecipe, deleteAlchemyRecipe, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, allFamiliars, familiarsById, startHunt, startMultipleHunts, claimHuntReward, claimAllHuntRewards, recallHunt, claimRewardsForOtherPlayer, changeUserPassword, changeUserEmail, mergeUserData, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, imageGeneration]
+    [currentUser, setCurrentUser, gameDate, gameDateString, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameDate, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, fetchAlchemyRecipes, updateAlchemyRecipe, deleteAlchemyRecipe, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, allFamiliars, familiarsById, startHunt, startMultipleHunts, claimHuntReward, claimAllHuntRewards, recallHunt, claimRewardsForOtherPlayer, changeUserPassword, changeUserEmail, mergeUserData, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, imageGeneration]
   );
     
     return (

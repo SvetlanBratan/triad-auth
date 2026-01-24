@@ -1,5 +1,4 @@
 
-
 export type UserRole = "admin" | "user";
 export type UserStatus = "активный" | "неактивный" | "отпуск";
 export type PlayerStatus =
@@ -97,8 +96,6 @@ export interface MailMessage {
 }
 
 export interface GameSettings {
-  gameDateString: string;
-  gameDate: Date;
   lastWeeklyBonusAwardedAt?: string; // ISO string date
   gachaChances: {
     normal: {
