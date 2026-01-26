@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
@@ -515,7 +516,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         
         await fetchGameSettings();
         return { awardedCount: 0 };
-    }, [fetchGameSettings, fetchUsersForAdmin]);
+    }, [fetchGameSettings]);
     
     const fetchDbFamiliars = useCallback(async (): Promise<FamiliarCard[]> => {
         const familiarsCollection = collection(db, "familiars");
@@ -2677,7 +2678,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const recipe = recipeDoc.data() as AlchemyRecipe;
     
             const allItems = [...(await fetchAllShops())].flatMap(shop => shop.items || []);
-            const allItemsMap = new Map(allItems.map(item => [item.id, item]));
+            const allItemsMap = new Map<string, ShopItem | Potion | AlchemyIngredient>(allItems.map(item => [item.id, item]));
             [...ALL_ITEMS_FOR_ALCHEMY].forEach(item => allItemsMap.set(item.id, item));
     
             const inventory = character.inventory || {};
@@ -3001,7 +3002,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const updatedUser = await fetchUserById(currentUser.id);
         if (updatedUser) setCurrentUser(updatedUser);
 
-    }, [currentUser, gameSettings.huntingLocations, fetchUserById]);
+    }, [currentUser, gameSettings.huntingLocations, fetchUserById, grantAchievementToUser, setCurrentUser]);
 
     const startMultipleHunts = useCallback(async (characterId: string, familiarIds: string[], locationId: string) => {
         if (!currentUser) throw new Error("Not authenticated");
@@ -3047,7 +3048,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const updatedUser = await fetchUserById(currentUser.id);
         if (updatedUser) setCurrentUser(updatedUser);
 
-    }, [currentUser, gameSettings.huntingLocations, fetchUserById]);
+    }, [currentUser, gameSettings.huntingLocations, fetchUserById, grantAchievementToUser, setCurrentUser]);
 
     const claimHuntReward = useCallback(async (characterId: string, huntId: string): Promise<InventoryItem[]> => {
         let rewards: InventoryItem[] = [];
@@ -3062,10 +3063,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             if (charIndex === -1) throw new Error("Character not found");
             const character = userData.characters[charIndex];
             
-            const huntIndex = character.ongoingHunts.findIndex(h => h.huntId === huntId);
+            const huntIndex = (character.ongoingHunts || []).findIndex(h => h.huntId === huntId);
             if (huntIndex === -1) throw new Error("Охота не найдена.");
             
-            const hunt = character.ongoingHunts[huntIndex];
+            const hunt = character.ongoingHunts![huntIndex];
             if (new Date(hunt.endsAt) > new Date()) {
                 throw new Error("Охота еще не завершена.");
             }
@@ -3091,14 +3092,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
             const inventory = character.inventory || {};
             const allItems = [...(await fetchAllShops())].flatMap(shop => shop.items || []);
-            const allItemsMap = new Map(allItems.map(item => [item.id, item]));
+            const allItemsMap = new Map<string, ShopItem | Potion | AlchemyIngredient>(allItems.map(item => [item.id, item]));
             [...ALL_ITEMS_FOR_ALCHEMY].forEach(item => allItemsMap.set(item.id, item));
 
             rewards.forEach(reward => {
                 const itemData = allItemsMap.get(reward.id);
                 if (!itemData) return;
                 reward.name = itemData.name;
-                const category = itemData.inventoryTag;
+                const category = (itemData as InventoryItem).inventoryTag;
                 if(category) {
                      if (!inventory[category]) inventory[category] = [];
                      const categoryInv = inventory[category] as InventoryItem[];
@@ -3117,7 +3118,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 }
             });
 
-            const updatedOngoingHunts = character.ongoingHunts.filter(h => h.huntId !== huntId);
+            const updatedOngoingHunts = (character.ongoingHunts || []).filter(h => h.huntId !== huntId);
             const updatedCharacters = [...userData.characters];
             updatedCharacters[charIndex] = { ...character, ongoingHunts: updatedOngoingHunts, inventory };
 
@@ -3127,7 +3128,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const updatedUser = await fetchUserById(currentUser!.id);
         if (updatedUser) setCurrentUser(updatedUser);
         return rewards;
-    }, [currentUser, gameSettings.huntingLocations, familiarsById, fetchAllShops, fetchUserById]);
+    }, [currentUser, gameSettings.huntingLocations, familiarsById, fetchAllShops, fetchUserById, setCurrentUser]);
 
     const claimAllHuntRewards = useCallback(async (characterId: string): Promise<InventoryItem[]> => {
         let allRewards: InventoryItem[] = [];
@@ -3146,7 +3147,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             if (finishedHunts.length === 0) return;
             
             const allItems = [...(await fetchAllShops())].flatMap(shop => shop.items || []);
-            const allItemsMap = new Map(allItems.map(item => [item.id, item]));
+            const allItemsMap = new Map<string, ShopItem | Potion | AlchemyIngredient>(allItems.map(item => [item.id, item]));
             [...ALL_ITEMS_FOR_ALCHEMY].forEach(item => allItemsMap.set(item.id, item));
             
             const inventory = character.inventory || {};
@@ -3157,8 +3158,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 if (!location || !familiar) continue;
 
                 (location.rewards || []).forEach(rewardRule => {
-                    let effectiveRank = familiar.rank;
-                    if (effectiveRank === 'ивентовый') effectiveRank = 'мифический';
+                    let effectiveRank = familiar.rank === 'ивентовый' ? 'мифический' : familiar.rank;
                     
                     const rankReward = rewardRule.rewardsByRank[effectiveRank];
                     if (rankReward && Math.random() * 100 < rankReward.chance) {
@@ -3184,7 +3184,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
              allRewards.forEach(reward => {
                 const itemData = allItemsMap.get(reward.id);
                 if (!itemData) return;
-                const category = itemData.inventoryTag;
+                const category = (itemData as InventoryItem).inventoryTag;
                 if(category) {
                      if (!inventory[category]) inventory[category] = [];
                      const categoryInv = inventory[category] as InventoryItem[];
@@ -3207,7 +3207,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const updatedUser = await fetchUserById(currentUser!.id);
         if (updatedUser) setCurrentUser(updatedUser);
         return allRewards;
-    }, [currentUser, gameSettings.huntingLocations, familiarsById, fetchAllShops, fetchUserById]);
+    }, [currentUser, gameSettings.huntingLocations, familiarsById, fetchAllShops, fetchUserById, setCurrentUser]);
 
     const recallHunt = useCallback(async (characterId: string, huntId: string) => {
         if (!currentUser) throw new Error("Not authenticated");
@@ -3277,6 +3277,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                                      id: rewardRule.itemId,
                                      name: itemData.name,
                                      quantity: rankReward.quantity,
+                                     description: itemData.description,
+                                     image: itemData.image,
                                  });
                              }
                          }
@@ -3441,3 +3443,6 @@ export const useUser = () => {
 
     
 
+
+
+    
