@@ -1792,7 +1792,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const ranksAreDifferent = initiatorFamiliar.rank !== targetFamiliar.rank;
         const isMythicEventTrade =
           (initiatorFamiliar.rank === 'мифический' && targetFamiliar.rank === 'ивентовый') ||
-          (initiatorFamiliar.rank === 'ивентовый' && targetFamiliar.rank === 'мифический');
+          (initiatorFamiliar.rank === 'ивентовый' && initiatorFamiliar.rank === 'мифический');
 
         if (ranksAreDifferent && !isMythicEventTrade) {
             throw new Error("Обмен возможен только между фамильярами одного ранга, или между мифическим и ивентовым.");
@@ -3253,7 +3253,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const finishedHunts = (character.ongoingHunts || []).filter(h => isPast(new Date(h.endsAt)));
             if (finishedHunts.length === 0) return;
 
-            const allItemsMap = new Map([...(await fetchAllShops())].flatMap(shop => shop.items || []).map(item => [item.id, item]));
+            const allItemsMap = new Map<string, ShopItem | Potion | AlchemyIngredient>([...(await fetchAllShops())].flatMap(shop => shop.items || []).map(item => [item.id, item]));
             [...ALL_ITEMS_FOR_ALCHEMY].forEach(item => allItemsMap.set(item.id, item));
             
             let totalRewards: InventoryItem[] = [];
@@ -3444,5 +3444,7 @@ export const useUser = () => {
     
 
 
+
+    
 
     
