@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -17,7 +15,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import CharacterForm, { type EditableSection, type EditingState } from '@/components/dashboard/character-form';
 import { useToast } from '@/hooks/use-toast';
-import { cn, formatTimeLeft, calculateAge, calculateRelationshipLevel, formatCurrency } from '@/lib/utils';
+import { cn, formatTimeLeft, calculateAge, formatCurrency } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import * as LucideIcons from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -212,7 +210,7 @@ const FamiliarsSection = ({ character }: { character: Character }) => {
 
 export default function CharacterPage() {
     const { id } = useParams();
-    const { currentUser, updateCharacterInUser, gameDateString, consumeInventoryItem, setCurrentUser, fetchCharacterById, fetchUsersForAdmin } = useUser();
+    const { currentUser, updateCharacterInUser, gameDate, consumeInventoryItem, setCurrentUser, fetchCharacterById, fetchUsersForAdmin } = useUser();
     const queryClient = useQueryClient();
     
     const charId = Array.isArray(id) ? id[0] : id;
@@ -407,7 +405,7 @@ export default function CharacterPage() {
     
     const isBlessed = character.blessingExpires && new Date(character.blessingExpires) > new Date();
     const activeMoodlets = (character.moodlets || []).filter(m => new Date(m.expiresAt) > new Date());
-    const age = gameDateString ? calculateAge(character.birthDate, gameDateString) : null;
+    const age = gameDate ? calculateAge(character.birthDate, gameDate) : null;
     const canViewHistory = isOwnerOrAdmin;
     const accomplishments = character.accomplishments || [];
     const isBiographyVisible = !character.biographyIsHidden || isOwnerOrAdmin;

@@ -16,7 +16,7 @@ const firebaseConfig = {
   messagingSenderId: "1043121641751",
   appId: "1:1043121641751:web:268ee8a85356a315eeff52",
   measurementId: "G-FGKBLBFZ45",
-  databaseURL: "https://triad-scoring-system-default-rtdb.firebaseio.com",
+  databaseURL: "https://triad-scoring-system-default-rtdb.europe-west1.firebasedatabase.app",
 };
 
 // Initialize Firebase
