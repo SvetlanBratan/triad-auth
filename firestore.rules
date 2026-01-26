@@ -4,53 +4,42 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper function to check if the requester is an admin.
+    // Helper functions
     function isAdmin() {
+      // Check if the user has an 'admin' role in their user document.
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // Helper function to check if the requester is the owner of the document.
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
+    
+    // --- Specific Rules from existing firestore.rules ---
 
-    // Rules for the 'users' collection.
     match /users/{userId} {
       allow read: if request.auth != null;
-
-      // Allow users to create their own document.
       allow create: if isOwner(userId);
-
-      // Admins can write to any user document.
       allow write: if isAdmin();
-      
-      // Users can update their own document, but cannot change their own points, role, or slots.
       allow update: if isOwner(userId) &&
                        request.resource.data.points == resource.data.points &&
                        request.resource.data.role == resource.data.role &&
                        request.resource.data.extraCharacterSlots == resource.data.extraCharacterSlots;
-
-      // Allows another user to update ONLY the 'characters' and 'mail' fields for actions like sending gifts.
-      // This is necessary for the app's current client-side transaction logic. Critical fields are still protected.
       allow update: if request.auth != null && !isOwner(userId) &&
                        request.resource.data.points == resource.data.points &&
                        request.resource.data.role == resource.data.role &&
                        request.resource.data.status == resource.data.status &&
                        request.resource.data.extraCharacterSlots == resource.data.extraCharacterSlots;
 
-      // Rules for the 'reward_requests' subcollection.
       match /reward_requests/{requestId} {
         allow read, create: if isOwner(userId);
         allow update, delete: if isAdmin();
       }
     }
     
-    // This allows admins to query the entire 'reward_requests' collection group.
     match /{path=**}/reward_requests/{requestId} {
       allow read: if isAdmin();
     }
 
-    // Rules for public exchange boards.
     match /exchange_requests/{requestId} {
       allow read: if request.auth != null;
       allow create: if request.auth.uid == request.resource.data.creatorUserId;
@@ -68,28 +57,53 @@ service cloud.firestore {
                     );
     }
     
-    // Rules for shops.
     match /shops/{shopId} {
         allow read: if true;
         allow write: if request.auth != null && (isAdmin() || resource.data.ownerUserId == request.auth.uid);
     }
 
-    // Rules for alchemy recipes, admin-only writes.
     match /alchemy_recipes/{recipeId} {
         allow read: if request.auth != null;
         allow write: if isAdmin();
     }
 
-    // Rules for the base familiar cards, admin-only writes.
     match /familiars/{familiarId} {
         allow read: if request.auth != null;
         allow write: if isAdmin();
     }
 
-    // Game settings are public to read, but only admins can change them.
     match /game_settings/{settingId} {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    // --- Generic Rules for other collections to prevent breakage ---
+    // These rules allow any logged-in user to perform actions, as per your request.
+    
+    match /applications/{docId} { allow read, write: if request.auth != null; }
+    match /posts/{docId} { allow read, write: if request.auth != null; }
+    match /races/{docId} { allow read, write: if request.auth != null; }
+    match /library/{docId} { allow read, write: if request.auth != null; }
+    match /history/{docId} { allow read, write: if request.auth != null; }
+    match /aristocracy_titles/{docId} { allow read, write: if request.auth != null; }
+    match /feudal_territories/{docId} { allow read, write: if request.auth != null; }
+    match /celebrities/{docId} { allow read, write: if request.auth != null; }
+    match /flora_fauna/{docId} { allow read, write: if request.auth != null; }
+    match /newspapers/{docId} { allow read, write: if request.auth != null; }
+    match /world_status/{docId} { allow read, write: if request.auth != null; }
+    match /professions/{docId} { allow read, write: if request.auth != null; }
+    match /guilds/{docId} { allow read, write: if request.auth != null; }
+    match /calendar/{docId} { allow read, write: if request.auth != null; }
+    match /economy/{docId} { allow read, write: if request.auth != null; }
+    match /faq/{docId} { allow read, write: if request.auth != null; }
+    match /social_links/{docId} { allow read, write: if request.auth != null; }
+    match /locations/{docId} { allow read, write: if request.auth != null; }
+    match /news_links/{docId} { allow read, write: if request.auth != null; }
+    match /laws/{docId} { allow read, write: if request.auth != null; }
+    match /advertising/{docId} { allow read, write: if request.auth != null; }
+    match /stories/{docId} { allow read, write: if request.auth != null; }
+    match /storyApplications/{docId} { allow read, write: if request.auth != null; }
+    match /story_suggestions/{docId} { allow read, write: if request.auth != null; }
+    match /bulletin_board/{docId} { allow read, write: if request.auth != null; }
   }
 }
