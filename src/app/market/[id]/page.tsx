@@ -35,12 +35,23 @@ import FormattedTextRenderer from '@/components/dashboard/formatted-text-rendere
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { INVENTORY_CATEGORIES } from '@/lib/data';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useAuth } from '@/components/providers/user-provider';
+import AuthPage from '@/components/auth/auth-page';
 
 export default function ShopPage() {
     const { id } = useParams();
     const router = useRouter();
     const { currentUser, deleteShopItem, purchaseShopItem, restockShopItem, fetchShopById, updateShopDetails, withdrawFromShopTill } = useUser();
+    const { loading } = useAuth();
     const { toast } = useToast();
+
+    if (loading) {
+        return <div className="container mx-auto p-8"><p>Загрузка магазина...</p></div>;
+    }
+
+    if (!currentUser) {
+        return <AuthPage />;
+    }
     
     const shopId = Array.isArray(id) ? id[0] : id;
 

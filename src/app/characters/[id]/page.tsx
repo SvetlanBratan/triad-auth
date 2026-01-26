@@ -29,6 +29,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useIsMobile } from '@/hooks/use-mobile';
 import CharacterPageSkeleton from '@/components/dashboard/character-page-skeleton';
 import { Input } from '@/components/ui/input';
+import { useAuth } from '@/components/providers/user-provider';
+import AuthPage from '@/components/auth/auth-page';
 
 
 const CustomIcon = ({ src, className }: { src: string, className?: string }) => (
@@ -211,7 +213,16 @@ const FamiliarsSection = ({ character }: { character: Character }) => {
 export default function CharacterPage() {
     const { id } = useParams();
     const { currentUser, updateCharacterInUser, gameDate, consumeInventoryItem, setCurrentUser, fetchCharacterById, fetchUsersForAdmin } = useUser();
+    const { loading } = useAuth();
     const queryClient = useQueryClient();
+
+    if (loading) {
+        return <CharacterPageSkeleton />;
+    }
+
+    if (!currentUser) {
+        return <AuthPage />;
+    }
     
     const charId = Array.isArray(id) ? id[0] : id;
     const { data: characterData, isLoading: isCharacterLoading, refetch } = useQuery({

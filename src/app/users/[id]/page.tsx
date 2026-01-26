@@ -9,10 +9,21 @@ import type { User } from '@/lib/types';
 import UserProfileDialog from '@/components/dashboard/user-profile-dialog';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { useAuth } from '@/components/providers/user-provider';
+import AuthPage from '@/components/auth/auth-page';
 
 export default function UserProfilePage() {
     const { id } = useParams();
-    const { fetchUserById } = useUser();
+    const { fetchUserById, currentUser } = useUser();
+    const { loading } = useAuth();
+
+    if (loading) {
+        return <div className="container mx-auto p-4 md:p-8"><p>Загрузка профиля...</p></div>;
+    }
+
+    if (!currentUser) {
+        return <AuthPage />;
+    }
 
     const { data: user, isLoading, isError } = useQuery<User | null, Error>({
         queryKey: ['user', id],
