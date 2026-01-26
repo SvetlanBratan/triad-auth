@@ -6,15 +6,15 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**.cloudinary.com',
+        hostname: '*.cloudinary.com',
       },
       {
         protocol: 'https',
-        hostname: '**.placehold.co',
+        hostname: '*.placehold.co',
       },
       {
         protocol: 'https',
-        hostname: '**.postimg.cc',
+        hostname: '*.postimg.cc',
       },
       {
         protocol: 'https',
@@ -22,11 +22,11 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: '**.imagekit.io',
+        hostname: '*.imagekit.io',
       },
       {
         protocol: 'https',
-        hostname: '**.userapi.com',
+        hostname: '*.userapi.com',
       },
       {
         protocol: 'https',
