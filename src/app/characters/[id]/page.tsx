@@ -15,7 +15,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import CharacterForm, { type EditableSection, type EditingState } from '@/components/dashboard/character-form';
 import { useToast } from '@/hooks/use-toast';
-import { cn, formatTimeLeft, calculateAge, formatCurrency } from '@/lib/utils';
+import { cn, formatTimeLeft, calculateAge, formatCurrency, calculateRelationshipLevel } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import * as LucideIcons from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
