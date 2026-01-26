@@ -1,6 +1,4 @@
-
-
-"use client";
+'use client';
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
 import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage, Cooldowns, PopularityLog, CharacterPopularityUpdate, OwnedFamiliarCard, AlchemyRecipe, Potion, AlchemyIngredient, PlayerPing, OngoingHunt, PlayerStatus, PlayPlatform, SocialLink, HuntingLocation, HuntReward } from '@/lib/types';
@@ -455,6 +453,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
     }, []);
 
+    const updateGameSettings = useCallback(async (updates: Partial<GameSettings>) => {
+      const settingsRef = doc(db, 'game_settings', 'main');
+      await updateDoc(settingsRef, updates);
+      await fetchGameSettings(); // Refetch settings to update state
+    }, [fetchGameSettings]);
+
     const processWeeklyBonus = useCallback(async () => {
         await runTransaction(db, async (transaction) => {
             const settingsRef = doc(db, 'game_settings', 'main');
@@ -511,7 +515,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         
         await fetchGameSettings();
         return { awardedCount: 0 };
-    }, [fetchGameSettings]);
+    }, [fetchGameSettings, fetchUsersForAdmin]);
     
     const fetchDbFamiliars = useCallback(async (): Promise<FamiliarCard[]> => {
         const familiarsCollection = collection(db, "familiars");
@@ -1812,7 +1816,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const requestsCollection = collection(db, "familiar_trade_requests");
         await addDoc(requestsCollection, newRequest);
 
-    }, [currentUser, fetchUsersForAdmin]);
+    }, [currentUser, fetchUsersForAdmin, familiarsById]);
 
   const fetchFamiliarTradeRequestsForUser = useCallback(async (): Promise<FamiliarTradeRequest[]> => {
         if (!currentUser) return [];
@@ -1884,7 +1888,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             targetChar.familiarCards.splice(targetCardIndex, 1);
 
             initiatorChar.familiarCards.push({ id: request.targetFamiliarId });
-            targetChar.familiarCards.push({ id: request.targetFamiliarId });
+            targetChar.familiarCards.push({ id: request.initiatorFamiliarId });
 
             transaction.update(initiatorUserRef, { characters: initiatorData.characters });
             transaction.update(targetUserRef, { characters: targetData.characters });
@@ -2008,9 +2012,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             if (!shopDoc.exists()) throw new Error("Магазин не найден.");
             const shopData = shopDoc.data() as Shop;
             
-            const items = shopData.items || [];
+            const items = shopData.items;
+            if (!items) throw new Error("В этом магазине нет товаров.");
+
             const itemIndex = items.findIndex(i => i.id === itemId);
             if (itemIndex === -1) throw new Error("Товар не найден.");
+            
             const item = items[itemIndex];
 
             if (item.quantity !== undefined && item.quantity < quantity) {
@@ -2057,7 +2064,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 const inv = (buyerChar.inventory ??= {} as Partial<Inventory>);
                 const tag = item.inventoryTag as keyof Inventory;
                 (inv[tag] ??= []);
-                const list = inv[tag];
+                const list = inv[tag]!;
                 
                 const inventoryItemName = item.inventoryItemName || item.name;
                 const inventoryItemDescription = item.inventoryItemDescription || item.description || '';
@@ -2128,7 +2135,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         const tag = itemData.inventoryTag as keyof Inventory;
         (inventory[tag] ??= []);
-        const list = inventory[tag];
+        const list = inventory[tag]!;
         list.push(newInventoryItem);
 
         const updatedCharacters = [...user.characters];
@@ -2221,9 +2228,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             if (!shopDoc.exists()) throw new Error("Магазин не найден.");
             const shopData = shopDoc.data() as Shop;
             
-            const itemIndex = (shopData.items || []).findIndex(i => i.id === itemId);
+            const items = shopData.items;
+            if (!items) return;
+            const itemIndex = items.findIndex(i => i.id === itemId);
             if (itemIndex === -1) throw new Error("Товар не найден.");
-            const item = shopData.items[itemIndex];
+            const item = items[itemIndex];
 
             if (item.quantity !== 0) throw new Error("Этот товар еще есть в наличии.");
             
@@ -2234,7 +2243,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 copper: Math.ceil((item.price.copper || 0) * 0.3),
             };
 
-            const shopTill = shopData.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 };
+            const shopTill = shopData.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
             if (
                 shopTill.platinum < restockCost.platinum ||
                 shopTill.gold < restockCost.gold ||
@@ -2252,7 +2261,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const restockTx: BankTransaction = { id: `txn-restock-${Date.now()}`, date: new Date().toISOString(), reason: `Пополнение товара: ${item.name}`, amount: { platinum: -restockCost.platinum, gold: -restockCost.gold, silver: -restockCost.silver, copper: -restockCost.copper } };
             shopTill.history = [restockTx, ...(shopTill.history || [])];
 
-            const updatedItems = [...shopData.items];
+            const updatedItems = [...items];
             updatedItems[itemIndex].quantity = 10;
 
             transaction.set(shopRef, { items: updatedItems, bankAccount: shopTill }, { merge: true });
@@ -2542,7 +2551,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             });
 
             if (userHasChanges) {
-                 const userToUpdate = usersToUpdate.get(user.id);
+                 const userToUpdate = usersToUpdate.get(user.id)!;
                  userToUpdate.characters = updatedCharacters;
             }
         }
@@ -2881,428 +2890,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       setCurrentUser(prev => prev ? { ...prev, favoritePlayerIds: (prev.favoritePlayerIds || []).filter(id => id !== targetUserId) } : null);
     }, [currentUser, setCurrentUser]);
 
-    const updateGameSettings = useCallback(async (updates: Partial<GameSettings>) => {
-        const settingsRef = doc(db, 'game_settings', 'main');
-        await setDoc(settingsRef, updates, { merge: true });
-        await fetchGameSettings();
-    }, [fetchGameSettings]);
-    
-    const startHunt = useCallback(async (characterId: string, familiarId: string, locationId: string) => {
-        if (!currentUser) throw new Error("Пользователь не авторизован.");
-        
-        const allUsers = await fetchUsersForAdmin();
-        const location = gameSettings.huntingLocations?.find(l => l.id === locationId);
-        if (!location) throw new Error("Локация не найдена.");
-
-        let currentHuntsInLocation = 0;
-        allUsers.forEach(user => {
-            (user.characters || []).forEach(char => {
-                (char.ongoingHunts || []).forEach(hunt => {
-                    if (hunt.locationId === locationId) {
-                        currentHuntsInLocation++;
-                    }
-                });
-            });
-        });
-
-        if (currentHuntsInLocation >= (location.limit ?? 10)) {
-            throw new Error(`В этой локации нет свободных мест. Попробуйте обновить страницу. (${currentHuntsInLocation}/${location.limit ?? 10})`);
-        }
-
-        await runTransaction(db, async (transaction) => {
-            const userRef = doc(db, "users", currentUser.id);
-            const userDoc = await transaction.get(userRef);
-            if (!userDoc.exists()) throw new Error("Пользователь не найден.");
-
-            const userData = userDoc.data() as User;
-            const charIndex = userData.characters.findIndex(c => c.id === characterId);
-            if (charIndex === -1) throw new Error("Персонаж не найден.");
-            
-            const character = userData.characters[charIndex];
-            const familiar = familiarsById[familiarId];
-            if (!familiar) throw new Error("Фамильяр не найден.");
-
-            const isFamiliarBusy = (character.ongoingHunts || []).some(h => h.familiarId === familiarId);
-            if (isFamiliarBusy) {
-                throw new Error("Этот фамильяр уже на охоте.");
-            }
-
-            const startedAt = new Date();
-            const endsAt = new Date(startedAt.getTime() + location.durationMinutes * 60000);
-
-            const newHunt: OngoingHunt = {
-                huntId: `hunt-${Date.now()}-${familiarId.slice(0, 5)}`,
-                characterId: character.id,
-                characterName: character.name,
-                familiarId,
-                locationId,
-                startedAt: startedAt.toISOString(),
-                endsAt: endsAt.toISOString(),
-            };
-            
-            character.ongoingHunts = [...(character.ongoingHunts || []), newHunt];
-            userData.characters[charIndex] = character;
-            
-            let achievementIds = userData.achievementIds || [];
-            if (!achievementIds.includes(FIRST_HUNT_ACHIEVEMENT_ID)) {
-                achievementIds = [...achievementIds, FIRST_HUNT_ACHIEVEMENT_ID];
-            }
-            
-            transaction.update(userRef, { characters: userData.characters, achievementIds });
-        });
-
-        const updatedUser = await fetchUserById(currentUser.id);
-        if(updatedUser) setCurrentUser(updatedUser);
-
-    }, [currentUser, familiarsById, gameSettings, fetchUserById, grantAchievementToUser, setCurrentUser, fetchUsersForAdmin]);
-
-     const startMultipleHunts = useCallback(async (characterId: string, familiarIds: string[], locationId: string) => {
-        if (!currentUser) throw new Error("Пользователь не авторизован.");
-        
-        const allUsers = await fetchUsersForAdmin();
-        const location = gameSettings.huntingLocations?.find(l => l.id === locationId);
-        if (!location) throw new Error("Локация не найдена.");
-
-        let currentHuntsInLocation = 0;
-        allUsers.forEach(user => {
-            (user.characters || []).forEach(char => {
-                (char.ongoingHunts || []).forEach(hunt => {
-                    if (hunt.locationId === locationId) {
-                        currentHuntsInLocation++;
-                    }
-                });
-            });
-        });
-
-        const availableSlots = (location.limit ?? 10) - currentHuntsInLocation;
-
-        if (availableSlots <= 0) {
-            throw new Error("В этой локации нет свободных мест. Попробуйте обновить страницу.");
-        }
-        
-        const familiarIdsToSend = familiarIds.slice(0, availableSlots);
-        
-        if (familiarIdsToSend.length < familiarIds.length) {
-            toast({
-                title: "Недостаточно мест",
-                description: `Отправлено только ${familiarIdsToSend.length} фамильяров, так как в локации было ${availableSlots} свободных мест.`,
-                variant: 'default',
-            });
-        }
-        
-        if (familiarIdsToSend.length === 0) {
-            throw new Error("Нет доступных фамильяров для отправки или нет мест.");
-        }
-        
-        await runTransaction(db, async (transaction) => {
-            const userRef = doc(db, "users", currentUser.id);
-            const userDoc = await transaction.get(userRef);
-            if (!userDoc.exists()) throw new Error("Пользователь не найден.");
-            
-            const userData = userDoc.data() as User;
-            const charIndex = userData.characters.findIndex(c => c.id === characterId);
-            if (charIndex === -1) throw new Error("Персонаж не найден.");
-            
-            const character = userData.characters[charIndex];
-
-            const newHunts: OngoingHunt[] = [];
-            const startedAt = new Date();
-            const endsAt = new Date(startedAt.getTime() + location.durationMinutes * 60000);
-
-            const busyFamiliarIds = new Set((character.ongoingHunts || []).map(h => h.familiarId));
-
-            for (const familiarId of familiarIdsToSend) {
-                const familiar = familiarsById[familiarId];
-                if (!familiar) {
-                    console.warn(`Familiar with id ${familiarId} not found, skipping.`);
-                    continue;
-                }
-                if (busyFamiliarIds.has(familiarId)) {
-                    console.warn(`Familiar with id ${familiarId} is already on a hunt, skipping.`);
-                    continue;
-                }
-                
-                const newHunt: OngoingHunt = {
-                    huntId: `hunt-${Date.now()}-${familiarId.slice(0, 5)}-${Math.random().toString(36).substring(2, 7)}`,
-                    characterId: character.id,
-                    characterName: character.name,
-                    familiarId,
-                    locationId,
-                    startedAt: startedAt.toISOString(),
-                    endsAt: endsAt.toISOString(),
-                };
-                newHunts.push(newHunt);
-            }
-            
-            character.ongoingHunts = [...(character.ongoingHunts || []), ...newHunts];
-            
-            userData.characters[charIndex] = character;
-            
-            let achievementIds = userData.achievementIds || [];
-            if (!achievementIds.includes(FIRST_HUNT_ACHIEVEMENT_ID)) {
-                achievementIds = [...achievementIds, FIRST_HUNT_ACHIEVEMENT_ID];
-            }
-            
-            transaction.update(userRef, { characters: userData.characters, achievementIds });
-        });
-        
-        const updatedUser = await fetchUserById(currentUser.id);
-        if(updatedUser) setCurrentUser(updatedUser);
-
-    }, [currentUser, gameSettings.huntingLocations, familiarsById, fetchUserById, setCurrentUser, grantAchievementToUser, fetchUsersForAdmin, toast]);
-
-    const claimHuntReward = useCallback(async (characterId: string, huntId: string): Promise<InventoryItem[]> => {
-        if (!currentUser) throw new Error("Пользователь не авторизован.");
-        
-        const character = currentUser.characters.find(c => c.id === characterId);
-        if (!character) throw new Error("Персонаж не найден.");
-        
-        const huntIndex = (character.ongoingHunts || []).findIndex(h => h.huntId === huntId);
-        if (huntIndex === -1) throw new Error("Охота не найдена.");
-        
-        const hunt = character.ongoingHunts![huntIndex];
-        if (new Date(hunt.endsAt) > new Date()) {
-            throw new Error("Охота еще не завершена.");
-        }
-        
-        const familiar = familiarsById[hunt.familiarId];
-        const location = gameSettings.huntingLocations?.find(l => l.id === hunt.locationId);
-        if (!familiar || !location) throw new Error("Данные об охоте некорректны.");
-
-        const allItems = [...(await fetchAllShops())].flatMap(shop => shop.items || []);
-        const allItemsMap = new Map(allItems.map(item => [item.id, item]));
-
-        const rewards: InventoryItem[] = [];
-        (location.rewards || []).forEach(rewardRule => {
-            let rankForReward = familiar.rank;
-            if (rankForReward === 'ивентовый') {
-                rankForReward = 'мифический';
-            }
-            const rewardData = rewardRule.rewardsByRank[rankForReward];
-            if (rewardData && Math.random() * 100 < rewardData.chance) {
-                const itemData = allItemsMap.get(rewardRule.itemId);
-                if (itemData) {
-                    rewards.push({
-                        id: `inv-item-${Date.now()}-${Math.random()}`,
-                        name: (itemData as ShopItem).inventoryItemName || itemData.name,
-                        description: (itemData as ShopItem).inventoryItemDescription || itemData.description || '',
-                        image: (itemData as ShopItem).inventoryItemImage || itemData.image || '',
-                        quantity: rewardData.quantity,
-                        inventoryTag: (itemData as ShopItem).inventoryTag || 'ингредиенты',
-                    });
-                }
-            }
-        });
-
-        const updatedCharacter = { ...character };
-        updatedCharacter.ongoingHunts = (updatedCharacter.ongoingHunts || []).filter(h => h.huntId !== huntId);
-
-        const inventory = { ...updatedCharacter.inventory };
-        rewards.forEach(reward => {
-            const category = reward.inventoryTag;
-            if (!category) return;
-            if (!inventory[category]) (inventory as any)[category] = [];
-            const categoryItems = inventory[category] as InventoryItem[];
-            const existingItemIndex = categoryItems.findIndex(i => i.name === reward.name);
-            if (existingItemIndex > -1) {
-                categoryItems[existingItemIndex].quantity += reward.quantity;
-            } else {
-                categoryItems.push(reward);
-            }
-        });
-        updatedCharacter.inventory = inventory;
-
-        await updateCharacterInUser(currentUser.id, updatedCharacter);
-        return rewards;
-
-    }, [currentUser, familiarsById, gameSettings, updateCharacterInUser, fetchAllShops]);
-
-    const claimAllHuntRewards = useCallback(async (characterId: string): Promise<InventoryItem[]> => {
-        if (!currentUser) throw new Error("Пользователь не авторизован.");
-
-        const character = currentUser.characters.find(c => c.id === characterId);
-        if (!character) throw new Error("Персонаж не найден.");
-
-        const finishedHunts = (character.ongoingHunts || []).filter((h: OngoingHunt) => isPast(new Date(h.endsAt)));
-        if (finishedHunts.length === 0) return [];
-
-        const allItems = [...(await fetchAllShops())].flatMap(shop => shop.items || []);
-        const allItemsMap = new Map(allItems.map(item => [item.id, item]));
-
-        const totalRewardsMap = new Map<string, InventoryItem>();
-        const updatedCharacter: Character = JSON.parse(JSON.stringify(character)); // Deep copy to avoid mutation issues
-        
-        for (const hunt of finishedHunts) {
-            const familiar = familiarsById[hunt.familiarId];
-            const location = gameSettings.huntingLocations?.find(l => l.id === hunt.locationId);
-            if (!familiar || !location) continue;
-
-            (location.rewards || []).forEach(rewardRule => {
-                let rankForReward = familiar.rank;
-                if (rankForReward === 'ивентовый') {
-                    rankForReward = 'мифический';
-                }
-                const rewardData = rewardRule.rewardsByRank[rankForReward];
-                if (rewardData && Math.random() * 100 < rewardData.chance) {
-                    const itemData = allItemsMap.get(rewardRule.itemId);
-                    if (itemData) {
-                        const itemName = (itemData as ShopItem).inventoryItemName || itemData.name;
-                        const existingReward = totalRewardsMap.get(itemName);
-    
-                        if (existingReward) {
-                            existingReward.quantity += rewardData.quantity;
-                        } else {
-                            totalRewardsMap.set(itemName, {
-                                id: `inv-item-${Date.now()}-${Math.random()}`,
-                                name: itemName,
-                                description: (itemData as ShopItem).inventoryItemDescription || (itemData as ShopItem).description || '',
-                                image: (itemData as ShopItem).inventoryItemImage || itemData.image || '',
-                                quantity: rewardData.quantity,
-                                inventoryTag: (itemData as ShopItem).inventoryTag || 'ингредиенты',
-                            });
-                        }
-                    }
-                }
-            });
-        }
-        
-        const totalRewards = Array.from(totalRewardsMap.values());
-
-        const inventory = updatedCharacter.inventory;
-        totalRewards.forEach(reward => {
-            const category = reward.inventoryTag;
-            if (!category) return;
-            if (!inventory[category]) (inventory as any)[category] = [];
-            const categoryItems = inventory[category] as InventoryItem[];
-            const existingItemIndex = categoryItems.findIndex(i => i.name === reward.name);
-            if (existingItemIndex > -1) {
-                categoryItems[existingItemIndex].quantity += reward.quantity;
-            } else {
-                categoryItems.push(reward);
-            }
-        });
-        
-        const finishedHuntIds = new Set(finishedHunts.map((h: OngoingHunt) => h.huntId));
-        updatedCharacter.ongoingHunts = (updatedCharacter.ongoingHunts || []).filter((h) => !finishedHuntIds.has(h.huntId));
-
-        await updateCharacterInUser(currentUser.id, updatedCharacter);
-        return totalRewards;
-    }, [currentUser, familiarsById, gameSettings, updateCharacterInUser, fetchAllShops]);
-    
-
-    const recallHunt = useCallback(async (characterId: string, huntId: string) => {
-        if (!currentUser) throw new Error("Пользователь не авторизован.");
-        const character = currentUser.characters.find(c => c.id === characterId);
-        if (!character) throw new Error("Персонаж не найден.");
-        const updatedCharacter = { ...character, ongoingHunts: (character.ongoingHunts || []).filter(h => h.huntId !== huntId) };
-        await updateCharacterInUser(currentUser.id, updatedCharacter);
-    }, [currentUser, updateCharacterInUser]);
-    
-    const claimRewardsForOtherPlayer = useCallback(async (ownerUserId: string, characterId: string) => {
-        if (!currentUser) {
-            throw new Error("Пользователь не авторизован.");
-        }
-    
-        const userToUpdate = await fetchUserById(ownerUserId);
-        if (!userToUpdate) throw new Error("Пользователь не найден.");
-    
-        const charIndex = userToUpdate.characters.findIndex(c => c.id === characterId);
-        if (charIndex === -1) throw new Error("Персонаж не найден.");
-        
-        const character = userToUpdate.characters[charIndex];
-        const finishedHunts = (character.ongoingHunts || []).filter(h => isPast(new Date(h.endsAt)));
-    
-        if (finishedHunts.length === 0) {
-            toast({ title: 'Нет готовых экспедиций', description: 'У этого персонажа нет завершенных охот для сбора.', variant: 'default'});
-            return;
-        }
-    
-        const allItems = [...(await fetchAllShops())].flatMap(shop => shop.items || []);
-        const allItemsMap = new Map(allItems.map(item => [item.id, item]));
-    
-        const totalRewardsMap = new Map<string, InventoryItem>();
-        const updatedCharacter: Character = JSON.parse(JSON.stringify(character)); // Deep copy
-    
-        for (const hunt of finishedHunts) {
-            const familiar = familiarsById[hunt.familiarId];
-            const location = gameSettings.huntingLocations?.find(l => l.id === hunt.locationId);
-            if (!familiar || !location) continue;
-    
-            (location.rewards || []).forEach(rewardRule => {
-                let rankForReward = familiar.rank;
-                if (rankForReward === 'ивентовый') {
-                    rankForReward = 'мифический';
-                }
-                const rewardData = rewardRule.rewardsByRank[rankForReward];
-                if (rewardData && Math.random() * 100 < rewardData.chance) {
-                    const itemData = allItemsMap.get(rewardRule.itemId);
-                    if (itemData) {
-                        const itemName = (itemData as ShopItem).inventoryItemName || itemData.name;
-                        const existingReward = totalRewardsMap.get(itemName);
-    
-                        if (existingReward) {
-                            existingReward.quantity += rewardData.quantity;
-                        } else {
-                            totalRewardsMap.set(itemName, {
-                                id: `inv-item-${Date.now()}-${Math.random()}`,
-                                name: itemName,
-                                description: (itemData as ShopItem).inventoryItemDescription || (itemData as ShopItem).description || '',
-                                image: (itemData as ShopItem).inventoryItemImage || itemData.image || '',
-                                quantity: rewardData.quantity,
-                                inventoryTag: (itemData as ShopItem).inventoryTag || 'ингредиенты',
-                            });
-                        }
-                    }
-                }
-            });
-        }
-        
-        const totalRewards = Array.from(totalRewardsMap.values());
-        const inventory = updatedCharacter.inventory;
-        totalRewards.forEach(reward => {
-            const category = reward.inventoryTag;
-            if (!category) return;
-            if (!inventory[category]) (inventory as any)[category] = [];
-            const categoryItems = inventory[category] as InventoryItem[];
-            const existingItemIndex = categoryItems.findIndex(i => i.name === reward.name);
-            if (existingItemIndex > -1) {
-                categoryItems[existingItemIndex].quantity += reward.quantity;
-            } else {
-                categoryItems.push(reward);
-            }
-        });
-        
-        const finishedHuntIds = new Set(finishedHunts.map((h: OngoingHunt) => h.huntId));
-        updatedCharacter.ongoingHunts = (updatedCharacter.ongoingHunts || []).filter((h) => !finishedHuntIds.has(h.huntId));
-    
-        const updatedCharacters = [...userToUpdate.characters];
-        updatedCharacters[charIndex] = updatedCharacter;
-        
-        const rewardListString = totalRewards.length > 0 
-            ? totalRewards.map(r => `${r.name} (x${r.quantity})`).join(', ')
-            : 'Ничего (не повезло)';
-    
-        const mailContent = `Игрок ${currentUser.name} собрал добычу для вашего персонажа "${character.name}" из ${finishedHunts.length} завершенных экспедиций. Ваша добыча:\n\n${rewardListString}`;
-    
-        const mail: MailMessage = {
-            id: `mail-other-claim-${Date.now()}`,
-            senderUserId: currentUser.id,
-            senderCharacterName: currentUser.name,
-            recipientUserId: ownerUserId,
-            recipientCharacterId: characterId,
-            subject: 'Добыча с охоты была собрана',
-            content: mailContent,
-            sentAt: new Date().toISOString(),
-            isRead: false,
-            type: 'personal',
-        };
-        
-        const updatedMail = [...(userToUpdate.mail || []), mail];
-    
-        await updateUser(ownerUserId, { characters: updatedCharacters, mail: updatedMail });
-    
-    }, [currentUser, fetchUserById, updateUser, familiarsById, gameSettings.huntingLocations, fetchAllShops, toast]);
-
     const changeUserPassword = useCallback(async (currentPassword: string, newPassword: string) => {
         if (!firebaseUser || !firebaseUser.email) throw new Error("Пользователь не авторизован.");
         
@@ -3372,6 +2959,357 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const result = await callable({ prompt });
         return result.data as {url: string} | {error: string};
     }, [functions]);
+
+    const startHunt = useCallback(async (characterId: string, familiarId: string, locationId: string) => {
+        if (!currentUser) throw new Error("Not authenticated");
+        
+        await runTransaction(db, async (transaction) => {
+            const userRef = doc(db, "users", currentUser.id);
+            const userDoc = await transaction.get(userRef);
+            if (!userDoc.exists()) throw new Error("User not found");
+            const userData = userDoc.data() as User;
+            
+            const charIndex = userData.characters.findIndex(c => c.id === characterId);
+            if (charIndex === -1) throw new Error("Character not found");
+            const character = userData.characters[charIndex];
+            
+            const location = gameSettings.huntingLocations?.find(l => l.id === locationId);
+            if (!location) throw new Error("Location not found");
+
+            const hunt: OngoingHunt = {
+                huntId: `hunt-${Date.now()}`,
+                characterId,
+                characterName: character.name,
+                familiarId,
+                locationId,
+                startedAt: new Date().toISOString(),
+                endsAt: new Date(Date.now() + location.durationMinutes * 60 * 1000).toISOString(),
+            };
+
+            const updatedOngoingHunts = [...(character.ongoingHunts || []), hunt];
+            const updatedCharacters = [...userData.characters];
+            updatedCharacters[charIndex].ongoingHunts = updatedOngoingHunts;
+            
+            const hasFirstHuntAchievement = (userData.achievementIds || []).includes(FIRST_HUNT_ACHIEVEMENT_ID);
+            if (!hasFirstHuntAchievement) {
+                userData.achievementIds = [...(userData.achievementIds || []), FIRST_HUNT_ACHIEVEMENT_ID];
+            }
+
+            transaction.update(userRef, { characters: updatedCharacters, achievementIds: userData.achievementIds });
+        });
+
+        const updatedUser = await fetchUserById(currentUser.id);
+        if (updatedUser) setCurrentUser(updatedUser);
+
+    }, [currentUser, gameSettings.huntingLocations, fetchUserById]);
+
+    const startMultipleHunts = useCallback(async (characterId: string, familiarIds: string[], locationId: string) => {
+        if (!currentUser) throw new Error("Not authenticated");
+        
+        await runTransaction(db, async (transaction) => {
+            const userRef = doc(db, "users", currentUser.id);
+            const userDoc = await transaction.get(userRef);
+            if (!userDoc.exists()) throw new Error("User not found");
+            const userData = userDoc.data() as User;
+            
+            const charIndex = userData.characters.findIndex(c => c.id === characterId);
+            if (charIndex === -1) throw new Error("Character not found");
+            const character = userData.characters[charIndex];
+            
+            const location = gameSettings.huntingLocations?.find(l => l.id === locationId);
+            if (!location) throw new Error("Location not found");
+
+            const now = Date.now();
+            const endsAt = new Date(now + location.durationMinutes * 60 * 1000).toISOString();
+
+            const newHunts: OngoingHunt[] = familiarIds.map((famId, index) => ({
+                huntId: `hunt-${now + index}`,
+                characterId,
+                characterName: character.name,
+                familiarId: famId,
+                locationId,
+                startedAt: new Date(now).toISOString(),
+                endsAt,
+            }));
+
+            const updatedOngoingHunts = [...(character.ongoingHunts || []), ...newHunts];
+            const updatedCharacters = [...userData.characters];
+            updatedCharacters[charIndex].ongoingHunts = updatedOngoingHunts;
+            
+            const hasFirstHuntAchievement = (userData.achievementIds || []).includes(FIRST_HUNT_ACHIEVEMENT_ID);
+            if (!hasFirstHuntAchievement && newHunts.length > 0) {
+                userData.achievementIds = [...(userData.achievementIds || []), FIRST_HUNT_ACHIEVEMENT_ID];
+            }
+
+            transaction.update(userRef, { characters: updatedCharacters, achievementIds: userData.achievementIds });
+        });
+
+        const updatedUser = await fetchUserById(currentUser.id);
+        if (updatedUser) setCurrentUser(updatedUser);
+
+    }, [currentUser, gameSettings.huntingLocations, fetchUserById]);
+
+    const claimHuntReward = useCallback(async (characterId: string, huntId: string): Promise<InventoryItem[]> => {
+        let rewards: InventoryItem[] = [];
+        await runTransaction(db, async (transaction) => {
+            if (!currentUser) throw new Error("Not authenticated");
+            const userRef = doc(db, "users", currentUser.id);
+            const userDoc = await transaction.get(userRef);
+            if (!userDoc.exists()) throw new Error("User not found");
+            const userData = userDoc.data() as User;
+            
+            const charIndex = userData.characters.findIndex(c => c.id === characterId);
+            if (charIndex === -1) throw new Error("Character not found");
+            const character = userData.characters[charIndex];
+            
+            const huntIndex = character.ongoingHunts.findIndex(h => h.huntId === huntId);
+            if (huntIndex === -1) throw new Error("Охота не найдена.");
+            
+            const hunt = character.ongoingHunts[huntIndex];
+            if (new Date(hunt.endsAt) > new Date()) {
+                throw new Error("Охота еще не завершена.");
+            }
+
+            const location = gameSettings.huntingLocations?.find(l => l.id === hunt.locationId);
+            const familiar = familiarsById[hunt.familiarId];
+            if (!location || !familiar) throw new Error("Location or familiar data is missing.");
+            
+            (location.rewards || []).forEach(rewardRule => {
+                let effectiveRank = familiar.rank;
+                if (effectiveRank === 'ивентовый') effectiveRank = 'мифический';
+                
+                const rankReward = rewardRule.rewardsByRank[effectiveRank];
+                if (rankReward && Math.random() * 100 < rankReward.chance) {
+                     const existingReward = rewards.find(r => r.id === rewardRule.itemId);
+                     if (existingReward) {
+                         existingReward.quantity += rankReward.quantity;
+                     } else {
+                         rewards.push({ id: rewardRule.itemId, name: '', quantity: rankReward.quantity });
+                     }
+                }
+            });
+
+            const inventory = character.inventory || {};
+            const allItems = [...(await fetchAllShops())].flatMap(shop => shop.items || []);
+            const allItemsMap = new Map(allItems.map(item => [item.id, item]));
+            [...ALL_ITEMS_FOR_ALCHEMY].forEach(item => allItemsMap.set(item.id, item));
+
+            rewards.forEach(reward => {
+                const itemData = allItemsMap.get(reward.id);
+                if (!itemData) return;
+                reward.name = itemData.name;
+                const category = itemData.inventoryTag;
+                if(category) {
+                     if (!inventory[category]) inventory[category] = [];
+                     const categoryInv = inventory[category] as InventoryItem[];
+                     const existingItem = categoryInv.find(i => i.name === itemData.name);
+                     if(existingItem) {
+                         existingItem.quantity += reward.quantity;
+                     } else {
+                         categoryInv.push({
+                             id: `inv-item-${Date.now()}-${Math.random()}`,
+                             name: itemData.name,
+                             description: itemData.description,
+                             image: itemData.image,
+                             quantity: reward.quantity,
+                         });
+                     }
+                }
+            });
+
+            const updatedOngoingHunts = character.ongoingHunts.filter(h => h.huntId !== huntId);
+            const updatedCharacters = [...userData.characters];
+            updatedCharacters[charIndex] = { ...character, ongoingHunts: updatedOngoingHunts, inventory };
+
+            transaction.update(userRef, { characters: updatedCharacters });
+        });
+        
+        const updatedUser = await fetchUserById(currentUser!.id);
+        if (updatedUser) setCurrentUser(updatedUser);
+        return rewards;
+    }, [currentUser, gameSettings.huntingLocations, familiarsById, fetchAllShops, fetchUserById]);
+
+    const claimAllHuntRewards = useCallback(async (characterId: string): Promise<InventoryItem[]> => {
+        let allRewards: InventoryItem[] = [];
+        await runTransaction(db, async (transaction) => {
+            if (!currentUser) throw new Error("Not authenticated");
+            const userRef = doc(db, "users", currentUser.id);
+            const userDoc = await transaction.get(userRef);
+            if (!userDoc.exists()) throw new Error("User not found");
+            const userData = userDoc.data() as User;
+            
+            const charIndex = userData.characters.findIndex(c => c.id === characterId);
+            if (charIndex === -1) throw new Error("Character not found");
+            const character = userData.characters[charIndex];
+            
+            const finishedHunts = (character.ongoingHunts || []).filter(h => new Date(h.endsAt) <= new Date());
+            if (finishedHunts.length === 0) return;
+            
+            const allItems = [...(await fetchAllShops())].flatMap(shop => shop.items || []);
+            const allItemsMap = new Map(allItems.map(item => [item.id, item]));
+            [...ALL_ITEMS_FOR_ALCHEMY].forEach(item => allItemsMap.set(item.id, item));
+            
+            const inventory = character.inventory || {};
+
+            for (const hunt of finishedHunts) {
+                const location = gameSettings.huntingLocations?.find(l => l.id === hunt.locationId);
+                const familiar = familiarsById[hunt.familiarId];
+                if (!location || !familiar) continue;
+
+                (location.rewards || []).forEach(rewardRule => {
+                    let effectiveRank = familiar.rank;
+                    if (effectiveRank === 'ивентовый') effectiveRank = 'мифический';
+                    
+                    const rankReward = rewardRule.rewardsByRank[effectiveRank];
+                    if (rankReward && Math.random() * 100 < rankReward.chance) {
+                         const existingReward = allRewards.find(r => r.id === rewardRule.itemId);
+                         if (existingReward) {
+                             existingReward.quantity += rankReward.quantity;
+                         } else {
+                             const itemData = allItemsMap.get(rewardRule.itemId);
+                             if (itemData) {
+                                 allRewards.push({ 
+                                     id: rewardRule.itemId, 
+                                     name: itemData.name, 
+                                     quantity: rankReward.quantity,
+                                     description: itemData.description,
+                                     image: itemData.image,
+                                 });
+                             }
+                         }
+                    }
+                });
+            }
+
+             allRewards.forEach(reward => {
+                const itemData = allItemsMap.get(reward.id);
+                if (!itemData) return;
+                const category = itemData.inventoryTag;
+                if(category) {
+                     if (!inventory[category]) inventory[category] = [];
+                     const categoryInv = inventory[category] as InventoryItem[];
+                     const existingItem = categoryInv.find(i => i.name === itemData.name);
+                     if(existingItem) {
+                         existingItem.quantity += reward.quantity;
+                     } else {
+                         categoryInv.push({ ...reward, id: `inv-item-${Date.now()}-${Math.random()}`});
+                     }
+                }
+            });
+
+            const updatedOngoingHunts = (character.ongoingHunts || []).filter(h => new Date(h.endsAt) > new Date());
+            const updatedCharacters = [...userData.characters];
+            updatedCharacters[charIndex] = { ...character, ongoingHunts: updatedOngoingHunts, inventory };
+
+            transaction.update(userRef, { characters: updatedCharacters });
+        });
+
+        const updatedUser = await fetchUserById(currentUser!.id);
+        if (updatedUser) setCurrentUser(updatedUser);
+        return allRewards;
+    }, [currentUser, gameSettings.huntingLocations, familiarsById, fetchAllShops, fetchUserById]);
+
+    const recallHunt = useCallback(async (characterId: string, huntId: string) => {
+        if (!currentUser) throw new Error("Not authenticated");
+        
+        await runTransaction(db, async (transaction) => {
+            const userRef = doc(db, "users", currentUser.id);
+            const userDoc = await transaction.get(userRef);
+            if (!userDoc.exists()) throw new Error("User not found");
+            const userData = userDoc.data() as User;
+            
+            const charIndex = userData.characters.findIndex(c => c.id === characterId);
+            if (charIndex === -1) throw new Error("Character not found");
+            const character = userData.characters[charIndex];
+            
+            const updatedOngoingHunts = (character.ongoingHunts || []).filter(h => h.huntId !== huntId);
+            
+            if (updatedOngoingHunts.length === (character.ongoingHunts || []).length) {
+                throw new Error("Hunt not found.");
+            }
+
+            const updatedCharacters = [...userData.characters];
+            updatedCharacters[charIndex].ongoingHunts = updatedOngoingHunts;
+
+            transaction.update(userRef, { characters: updatedCharacters });
+        });
+
+        const updatedUser = await fetchUserById(currentUser.id);
+        if (updatedUser) setCurrentUser(updatedUser);
+
+    }, [currentUser, fetchUserById]);
+    
+    const claimRewardsForOtherPlayer = useCallback(async (ownerUserId: string, characterId: string) => {
+        await runTransaction(db, async (transaction) => {
+            const userRef = doc(db, "users", ownerUserId);
+            const userDoc = await transaction.get(userRef);
+            if (!userDoc.exists()) throw new Error("User not found");
+            const userData = userDoc.data() as User;
+
+            const charIndex = userData.characters.findIndex(c => c.id === characterId);
+            if (charIndex === -1) throw new Error("Character not found");
+            const character = userData.characters[charIndex];
+
+            const finishedHunts = (character.ongoingHunts || []).filter(h => isPast(new Date(h.endsAt)));
+            if (finishedHunts.length === 0) return;
+
+            const allItemsMap = new Map([...(await fetchAllShops())].flatMap(shop => shop.items || []).map(item => [item.id, item]));
+            [...ALL_ITEMS_FOR_ALCHEMY].forEach(item => allItemsMap.set(item.id, item));
+            
+            let totalRewards: InventoryItem[] = [];
+
+            for (const hunt of finishedHunts) {
+                const location = gameSettings.huntingLocations?.find(l => l.id === hunt.locationId);
+                const familiar = familiarsById[hunt.familiarId];
+                if (!location || !familiar) continue;
+
+                (location.rewards || []).forEach(rewardRule => {
+                    let effectiveRank = familiar.rank === 'ивентовый' ? 'мифический' : familiar.rank;
+                    const rankReward = rewardRule.rewardsByRank[effectiveRank];
+                    if (rankReward && Math.random() * 100 < rankReward.chance) {
+                         const existingReward = totalRewards.find(r => r.id === rewardRule.itemId);
+                         if (existingReward) {
+                             existingReward.quantity += rankReward.quantity;
+                         } else {
+                             const itemData = allItemsMap.get(rewardRule.itemId);
+                             if (itemData) {
+                                 totalRewards.push({
+                                     id: rewardRule.itemId,
+                                     name: itemData.name,
+                                     quantity: rankReward.quantity,
+                                 });
+                             }
+                         }
+                    }
+                });
+            }
+
+            const rewardText = totalRewards.map(r => `${r.name} (x${r.quantity})`).join('\n- ');
+            const mailContent = totalRewards.length > 0
+                ? `Ваша добыча с охоты была собрана. Вы получили:\n- ${rewardText}`
+                : "Ваши экспедиции завершены, но фамильяры вернулись с пустыми лапами.";
+
+            const newMail: MailMessage = {
+                id: `mail-hunt-claim-${Date.now()}`,
+                senderUserId: 'admin',
+                senderCharacterName: 'Система',
+                recipientUserId: ownerUserId,
+                recipientCharacterId: characterId,
+                recipientCharacterName: character.name,
+                subject: 'Добыча с охоты собрана',
+                content: mailContent,
+                sentAt: new Date().toISOString(),
+                isRead: false,
+                type: 'announcement',
+            };
+            
+            const updatedOngoingHunts = (character.ongoingHunts || []).filter(h => !isPast(new Date(h.endsAt)));
+            userData.characters[charIndex].ongoingHunts = updatedOngoingHunts;
+            userData.mail = [...(userData.mail || []), newMail];
+
+            transaction.update(userRef, { characters: userData.characters, mail: userData.mail });
+        });
+    }, [gameSettings, familiarsById, fetchAllShops]);
 
 
     const userContextValue: UserContextType = useMemo(
@@ -3502,3 +3440,4 @@ export const useUser = () => {
 
 
     
+
