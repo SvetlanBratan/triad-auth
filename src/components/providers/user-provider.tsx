@@ -1,5 +1,6 @@
 
-'use client';
+
+"use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
 import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage, Cooldowns, PopularityLog, CharacterPopularityUpdate, OwnedFamiliarCard, AlchemyRecipe, Potion, AlchemyIngredient, PlayerPing, OngoingHunt, PlayerStatus, PlayPlatform, SocialLink, HuntingLocation, HuntReward } from '@/lib/types';
@@ -1792,7 +1793,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const ranksAreDifferent = initiatorFamiliar.rank !== targetFamiliar.rank;
         const isMythicEventTrade =
           (initiatorFamiliar.rank === 'мифический' && targetFamiliar.rank === 'ивентовый') ||
-          (initiatorFamiliar.rank === 'ивентовый' && initiatorFamiliar.rank === 'мифический');
+          (initiatorFamiliar.rank === 'ивентовый' && targetFamiliar.rank === 'мифический');
 
         if (ranksAreDifferent && !isMythicEventTrade) {
             throw new Error("Обмен возможен только между фамильярами одного ранга, или между мифическим и ивентовым.");
@@ -2231,8 +2232,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             
             const items = shopData.items;
             if (!items) return;
+
             const itemIndex = items.findIndex(i => i.id === itemId);
             if (itemIndex === -1) throw new Error("Товар не найден.");
+            
             const item = items[itemIndex];
 
             if (item.quantity !== 0) throw new Error("Этот товар еще есть в наличии.");
@@ -2677,9 +2680,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             }
             const recipe = recipeDoc.data() as AlchemyRecipe;
     
-            const allItems = [...(await fetchAllShops())].flatMap(shop => shop.items || []);
-            const allItemsMap = new Map<string, ShopItem | Potion | AlchemyIngredient>(allItems.map(item => [item.id, item]));
-            [...ALL_ITEMS_FOR_ALCHEMY].forEach(item => allItemsMap.set(item.id, item));
+            type AnyItem = ShopItem | Potion | AlchemyIngredient;
+            const shopItems = (await fetchAllShops()).flatMap(shop => shop.items ?? []);
+            const allItemsMap = new Map<string, AnyItem>(shopItems.map(item => [item.id, item]));
+            ALL_ITEMS_FOR_ALCHEMY.forEach(item => allItemsMap.set(item.id, item));
     
             const inventory = character.inventory || {};
     
@@ -2746,8 +2750,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             }
             recipeName = recipe.name || resultItemData.name;
     
-            const potionsInv = (inventory.зелья || []) as InventoryItem[];
-            const existingPotionIndex = potionsInv.findIndex(p => p.name === resultItemData.name);
+            const targetInventoryCategory = (resultItemData as ShopItem).inventoryTag || 'зелья';
+            const targetInv = (inventory[targetInventoryCategory] || []) as InventoryItem[];
+            const existingItemIndex = targetInv.findIndex(p => p.name === resultItemData.name);
     
             createdItem = {
                 id: `inv-item-${Date.now()}`,
@@ -2755,16 +2760,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 description: resultItemData.description || '',
                 image: resultItemData.image || '',
                 quantity: recipe.outputQty,
-                inventoryTag: 'зелья',
+                inventoryTag: targetInventoryCategory,
             };
     
-            if (existingPotionIndex > -1) {
-                potionsInv[existingPotionIndex].quantity += recipe.outputQty;
+            if (existingItemIndex > -1) {
+                targetInv[existingItemIndex].quantity += recipe.outputQty;
             } else {
-                potionsInv.push(createdItem);
+                targetInv.push(createdItem);
             }
     
-            inventory.зелья = potionsInv;
+            inventory[targetInventoryCategory] = targetInv;
             character.inventory = inventory;
     
             const hasBrewAchievement = (userData.achievementIds || []).includes(FIRST_BREW_ACHIEVEMENT_ID);
@@ -3091,15 +3096,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             });
 
             const inventory = character.inventory || {};
-            const allItems = [...(await fetchAllShops())].flatMap(shop => shop.items || []);
-            const allItemsMap = new Map<string, ShopItem | Potion | AlchemyIngredient>(allItems.map(item => [item.id, item]));
-            [...ALL_ITEMS_FOR_ALCHEMY].forEach(item => allItemsMap.set(item.id, item));
+            type AnyItem = ShopItem | Potion | AlchemyIngredient;
+            const shopItems = (await fetchAllShops()).flatMap(shop => shop.items ?? []);
+            const allItemsMap = new Map<string, AnyItem>(shopItems.map(item => [item.id, item]));
+            ALL_ITEMS_FOR_ALCHEMY.forEach(item => allItemsMap.set(item.id, item));
 
             rewards.forEach(reward => {
                 const itemData = allItemsMap.get(reward.id);
                 if (!itemData) return;
                 reward.name = itemData.name;
-                const category = (itemData as InventoryItem).inventoryTag;
+                const category = (itemData as ShopItem).inventoryTag;
                 if(category) {
                      if (!inventory[category]) inventory[category] = [];
                      const categoryInv = inventory[category] as InventoryItem[];
@@ -3146,9 +3152,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const finishedHunts = (character.ongoingHunts || []).filter(h => new Date(h.endsAt) <= new Date());
             if (finishedHunts.length === 0) return;
             
-            const allItems = [...(await fetchAllShops())].flatMap(shop => shop.items || []);
-            const allItemsMap = new Map<string, ShopItem | Potion | AlchemyIngredient>(allItems.map(item => [item.id, item]));
-            [...ALL_ITEMS_FOR_ALCHEMY].forEach(item => allItemsMap.set(item.id, item));
+            type AnyItem = ShopItem | Potion | AlchemyIngredient;
+            const shopItems = (await fetchAllShops()).flatMap(shop => shop.items ?? []);
+            const allItemsMap = new Map<string, AnyItem>(shopItems.map(item => [item.id, item]));
+            ALL_ITEMS_FOR_ALCHEMY.forEach(item => allItemsMap.set(item.id, item));
             
             const inventory = character.inventory || {};
 
@@ -3184,7 +3191,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
              allRewards.forEach(reward => {
                 const itemData = allItemsMap.get(reward.id);
                 if (!itemData) return;
-                const category = (itemData as InventoryItem).inventoryTag;
+                const category = (itemData as ShopItem).inventoryTag;
                 if(category) {
                      if (!inventory[category]) inventory[category] = [];
                      const categoryInv = inventory[category] as InventoryItem[];
@@ -3253,8 +3260,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const finishedHunts = (character.ongoingHunts || []).filter(h => isPast(new Date(h.endsAt)));
             if (finishedHunts.length === 0) return;
 
-            const allItemsMap = new Map<string, ShopItem | Potion | AlchemyIngredient>([...(await fetchAllShops())].flatMap(shop => shop.items || []).map(item => [item.id, item]));
-            [...ALL_ITEMS_FOR_ALCHEMY].forEach(item => allItemsMap.set(item.id, item));
+            type AnyItem = ShopItem | Potion | AlchemyIngredient;
+            const shopItems = (await fetchAllShops()).flatMap(shop => shop.items ?? []);
+            const allItemsMap = new Map<string, AnyItem>(shopItems.map(item => [item.id, item]));
+            ALL_ITEMS_FOR_ALCHEMY.forEach(item => allItemsMap.set(item.id, item));
             
             let totalRewards: InventoryItem[] = [];
 
@@ -3444,6 +3453,8 @@ export const useUser = () => {
     
 
 
+
+    
 
     
 
