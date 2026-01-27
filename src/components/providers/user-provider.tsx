@@ -433,7 +433,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           setCurrentUser(finalUser);
         }
         return finalUser;
-    }, [fetchUserById, currentUser?.id]);
+    }, [fetchUserById, currentUser?.id, setCurrentUser]);
     
     const fetchGameSettings = useCallback(async () => {
         try {
@@ -682,10 +682,32 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     
     const addPointsToAllUsers = useCallback(async (amount: number, reason: string) => {
         const allUsers = await fetchUsersForAdmin();
-        for (const user of allUsers) {
-            await addPointsToUser(user.id, amount, reason);
+        const batch = writeBatch(db);
+        
+        allUsers.forEach(user => {
+            const userRef = doc(db, "users", user.id);
+            const newPointLog: PointLog = {
+              id: `h-${Date.now()}-${user.id.slice(0,5)}-${Math.random()}`,
+              date: new Date().toISOString(),
+              amount,
+              reason,
+            };
+            
+            batch.update(userRef, {
+                points: increment(amount),
+                pointHistory: arrayUnion(newPointLog)
+            });
+        });
+
+        await batch.commit();
+
+        if (currentUser) {
+            // Refetch current user data as their points might have changed if they are in the allUsers list
+            const updatedUser = await fetchUserById(currentUser.id);
+            if(updatedUser) setCurrentUser(updatedUser);
         }
-    }, [fetchUsersForAdmin, addPointsToUser]);
+
+    }, [fetchUsersForAdmin, currentUser, fetchUserById, setCurrentUser]);
     
     const updateCharacterInUser = useCallback(async (userId: string, characterToUpdate: Character): Promise<User> => {
         await runTransaction(db, async (transaction) => {
@@ -756,7 +778,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             setCurrentUser(updatedUser);
         }
         return updatedUser;
-    }, [currentUser?.id, fetchUserById, initialFormData]);
+    }, [currentUser?.id, fetchUserById, initialFormData, setCurrentUser]);
 
     const deleteCharacterFromUser = useCallback(async (userId: string, characterId: string) => {
         const user = await fetchUserById(userId);
@@ -830,7 +852,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             }
         }
 
-    }, [fetchUserById, currentUser?.id, grantAchievementToUser]);
+    }, [fetchUserById, currentUser?.id, grantAchievementToUser, setCurrentUser]);
   
     const updateRewardRequestStatus = useCallback(async (request: RewardRequest, newStatus: RewardRequestStatus): Promise<RewardRequest | null> => {
         await runTransaction(db, async (transaction) => {
@@ -926,7 +948,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             setCurrentUser(updatedUser);
         }
         return {...request, status: newStatus};
-    }, [fetchUserById, currentUser?.id]);
+    }, [fetchUserById, currentUser?.id, setCurrentUser]);
     
     const fetchAllRewardRequests = useCallback(async (): Promise<RewardRequest[]> => {
         const requests: RewardRequest[] = [];
@@ -1114,7 +1136,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 setCurrentUser(updatedCurrentUser);
             }
         }
-    }, [fetchUsersForAdmin, currentUser, fetchUserById]);
+    }, [fetchUsersForAdmin, currentUser, fetchUserById, setCurrentUser]);
 
     const addMoodletToCharacter = useCallback(async (userId: string, characterId: string, moodletId: string, durationInDays: number, source?: string) => {
         const user = await fetchUserById(userId);
@@ -1345,7 +1367,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const updatedUser = await fetchUserById(sourceUserId);
             if(updatedUser) setCurrentUser(updatedUser);
         }
-    }, [currentUser, fetchUserById, initialFormData]);
+    }, [currentUser, fetchUserById, initialFormData, setCurrentUser]);
 
     const recoverFamiliarsFromHistory = useCallback(async (userId: string, characterId: string, oldCharacterName?: string): Promise<number> => {
         const user = await fetchUserById(userId);
@@ -1459,7 +1481,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
         
         return { totalRecovered, usersAffected };
-    }, [fetchUsersForAdmin, fetchUserById, currentUser, allFamiliars]);
+    }, [fetchUsersForAdmin, fetchUserById, currentUser, allFamiliars, setCurrentUser]);
 
     const updateCharacterWealthLevel = useCallback(async (userId: string, characterId: string, wealthLevel: WealthLevel) => {
         const user = await fetchUserById(userId);
@@ -1573,7 +1595,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const updatedUser = await fetchUserById(sourceUserId);
             if(updatedUser) setCurrentUser(updatedUser);
         }
-    }, [currentUser, fetchUserById]);
+    }, [currentUser, fetchUserById, setCurrentUser]);
 
 
     const processMonthlySalary = useCallback(async () => {
@@ -1663,7 +1685,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         });
         const updatedUser = await fetchUserById(creatorUserId);
         if (updatedUser) setCurrentUser(updatedUser);
-    }, [fetchUserById, currentUser?.id]);
+    }, [fetchUserById, currentUser?.id, setCurrentUser]);
 
  const fetchOpenExchangeRequests = useCallback(async (): Promise<ExchangeRequest[]> => {
         const requestsCollection = collection(db, "exchange_requests");
@@ -1728,7 +1750,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             if (updatedUser) setCurrentUser(updatedUser);
           }
         }
-    }, [currentUser, fetchUserById]);
+    }, [currentUser, fetchUserById, setCurrentUser]);
 
   const cancelExchangeRequest = useCallback(async (request: ExchangeRequest) => {
     await runTransaction(db, async (transaction) => {
@@ -1761,7 +1783,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
        const updatedUser = await fetchUserById(request.creatorUserId);
        if(updatedUser) setCurrentUser(updatedUser);
     }
-  }, [currentUser, fetchUserById]);
+  }, [currentUser, fetchUserById, setCurrentUser]);
 
   const createFamiliarTradeRequest = useCallback(async (initiatorCharacterId: string, initiatorFamiliarId: string, targetCharacterId: string, targetFamiliarId: string) => {
         if (!currentUser) throw new Error("Пользователь не авторизован.");
@@ -1901,7 +1923,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const updatedUser = await fetchUserById(currentUser.id);
             if (updatedUser) setCurrentUser(updatedUser);
         }
-    }, [currentUser, fetchUserById]);
+    }, [currentUser, fetchUserById, setCurrentUser]);
 
   const declineOrCancelFamiliarTradeRequest = useCallback(async (request: FamiliarTradeRequest, status: 'отклонено' | 'отменено') => {
           const requestRef = doc(db, "familiar_trade_requests", request.id);
@@ -2115,7 +2137,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const updatedUser = await fetchUserById(buyerUserId);
             if (updatedUser) setCurrentUser(updatedUser);
         }
-    }, [currentUser, fetchUserById, initialFormData]);
+    }, [currentUser, fetchUserById, initialFormData, setCurrentUser]);
 
     const adminGiveItemToCharacter = useCallback(async (userId: string, characterId: string, itemData: AdminGiveItemForm) => {
         const user = await fetchUserById(userId);
@@ -2305,13 +2327,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         for (const user of allUsers) {
             let hasChanges = false;
-            const updatedCharacters = [...user.characters];
-
-            for (let i = 0; i < updatedCharacters.length; i++) {
-                const character = updatedCharacters[i];
-
+            const updatedCharacters = user.characters.map(character => {
                 if (character.taxpayerStatus !== 'taxable') {
-                    continue;
+                    return character;
                 }
 
                 let incomeTaxRate = 0;
@@ -2345,7 +2363,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                         tradeTaxRateLicensed = 0.10;
                         break;
                     default:
-                        continue; // No taxes for other countries
+                        return character; // No taxes for other countries
                 }
 
                 let totalTaxToPay: Partial<Omit<BankAccount, 'history'>> = { platinum: 0, gold: 0, silver: 0, copper: 0 };
@@ -2414,7 +2432,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                         totalTaxesCollected[key] = (totalTaxesCollected[key] || 0) + (finalTaxAmount[key] || 0);
                     });
                 }
-            }
+            });
             
             if (hasChanges) {
                 const userRef = doc(db, "users", user.id);
@@ -2497,7 +2515,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 setCurrentUser(updatedCurrentUser);
             }
         }
-    }, [fetchUsersForAdmin, currentUser, fetchUserById]);
+    }, [fetchUsersForAdmin, currentUser, fetchUserById, setCurrentUser]);
 
     const updatePopularity = useCallback(async (updates: CharacterPopularityUpdate[]) => {
         const allUsers = await fetchUsersForAdmin();
@@ -2574,7 +2592,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const updatedCurrentUser = await fetchUserById(currentUser.id);
             if (updatedCurrentUser) setCurrentUser(updatedCurrentUser);
         }
-    }, [fetchUsersForAdmin, currentUser, fetchUserById, grantAchievementToUser]);
+    }, [fetchUsersForAdmin, currentUser, fetchUserById, grantAchievementToUser, setCurrentUser]);
 
     const clearAllPopularityHistories = useCallback(async () => {
         const allUsers = await fetchUsersForAdmin();
@@ -2653,7 +2671,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         
         const updatedUser = await fetchUserById(currentUser.id);
         if(updatedUser) setCurrentUser(updatedUser);
-    }, [currentUser, fetchUserById]);
+    }, [currentUser, fetchUserById, setCurrentUser]);
 
     const brewPotion = useCallback(async (userId: string, characterId: string, recipeId: string): Promise<{ createdItem: InventoryItem; recipeName: string; }> => {
         let createdItem: InventoryItem | null = null;
@@ -2682,7 +2700,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     
             type AnyItem = ShopItem | Potion | AlchemyIngredient;
             const shopItems = (await fetchAllShops()).flatMap(shop => shop.items ?? []);
-            const allItemsMap = new Map<string, AnyItem>(shopItems.map(item => [item.id, item]));
+            const allItemsMap: Map<string, AnyItem> = new Map(shopItems.map(item => [item.id, item]));
             ALL_ITEMS_FOR_ALCHEMY.forEach(item => allItemsMap.set(item.id, item));
     
             const inventory = character.inventory || {};
@@ -3098,7 +3116,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const inventory = character.inventory || {};
             type AnyItem = ShopItem | Potion | AlchemyIngredient;
             const shopItems = (await fetchAllShops()).flatMap(shop => shop.items ?? []);
-            const allItemsMap = new Map<string, AnyItem>(shopItems.map(item => [item.id, item]));
+            const allItemsMap: Map<string, AnyItem> = new Map(shopItems.map(item => [item.id, item]));
             ALL_ITEMS_FOR_ALCHEMY.forEach(item => allItemsMap.set(item.id, item));
 
             rewards.forEach(reward => {
@@ -3154,7 +3172,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             
             type AnyItem = ShopItem | Potion | AlchemyIngredient;
             const shopItems = (await fetchAllShops()).flatMap(shop => shop.items ?? []);
-            const allItemsMap = new Map<string, AnyItem>(shopItems.map(item => [item.id, item]));
+            const allItemsMap: Map<string, AnyItem> = new Map(shopItems.map(item => [item.id, item]));
             ALL_ITEMS_FOR_ALCHEMY.forEach(item => allItemsMap.set(item.id, item));
             
             const inventory = character.inventory || {};
@@ -3166,7 +3184,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
                 (location.rewards || []).forEach(rewardRule => {
                     let effectiveRank = familiar.rank === 'ивентовый' ? 'мифический' : familiar.rank;
-                    
                     const rankReward = rewardRule.rewardsByRank[effectiveRank];
                     if (rankReward && Math.random() * 100 < rankReward.chance) {
                          const existingReward = allRewards.find(r => r.id === rewardRule.itemId);
@@ -3244,7 +3261,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const updatedUser = await fetchUserById(currentUser.id);
         if (updatedUser) setCurrentUser(updatedUser);
 
-    }, [currentUser, fetchUserById]);
+    }, [currentUser, fetchUserById, setCurrentUser]);
     
     const claimRewardsForOtherPlayer = useCallback(async (ownerUserId: string, characterId: string) => {
         await runTransaction(db, async (transaction) => {
@@ -3262,7 +3279,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
             type AnyItem = ShopItem | Potion | AlchemyIngredient;
             const shopItems = (await fetchAllShops()).flatMap(shop => shop.items ?? []);
-            const allItemsMap = new Map<string, AnyItem>(shopItems.map(item => [item.id, item]));
+            const allItemsMap: Map<string, AnyItem> = new Map(shopItems.map(item => [item.id, item]));
             ALL_ITEMS_FOR_ALCHEMY.forEach(item => allItemsMap.set(item.id, item));
             
             let totalRewards: InventoryItem[] = [];
@@ -3459,3 +3476,4 @@ export const useUser = () => {
     
 
     
+
