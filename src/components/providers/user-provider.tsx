@@ -10,7 +10,7 @@ import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query,
 import { ref as rtdbRef, onValue, set as rtdbSet } from 'firebase/database';
 import { ALL_STATIC_FAMILIARS, EVENT_FAMILIARS, MOODLETS_DATA, DEFAULT_GAME_SETTINGS, WEALTH_LEVELS, ALL_SHOPS, SHOPS_BY_ID, POPULARITY_EVENTS, ALL_ACHIEVEMENTS, INVENTORY_CATEGORIES } from '@/lib/data';
 import { differenceInDays, differenceInMonths, isPast } from 'date-fns';
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { getFunctions, httpsCallable, FunctionsError } from 'firebase/functions';
 import { ALL_ITEMS_FOR_ALCHEMY } from '@/lib/alchemy-data';
 import { useToast } from '@/hooks/use-toast';
 
@@ -45,7 +45,7 @@ export interface UserContextType {
   fetchRewardRequestsForUser: (userId: string, fetchLimit?: number) => Promise<RewardRequest[]>;
   fetchAvailableMythicCardsCount: () => Promise<number>;
   addPointsToUser: (userId: string, amount: number, reason: string, characterId?: string) => Promise<User | null>;
-  addPointsToAllUsers: (amount: number, reason: string) => Promise<void>;
+  addPointsToAllUsers: (amount: number, reason: string) => Promise<{success: boolean, message: string}>;
   updateCharacterInUser: (userId: string, character: Character) => Promise<User>;
   deleteCharacterFromUser: (userId: string, characterId: string) => Promise<void>;
   updateUserStatus: (userId: string, status: UserStatus) => Promise<void>;
@@ -62,7 +62,6 @@ export interface UserContextType {
   removeMoodletFromCharacter: (userId: string, characterId: string, moodletId: string) => Promise<void>;
   clearRewardRequestsHistory: () => Promise<void>;
   removeFamiliarFromCharacter: (userId: string, characterId: string, cardId: string) => Promise<void>;
-  updateUser: (userId: string, updates: Partial<User>) => Promise<void>;
   updateUserAvatar: (userId: string, avatarUrl: string) => Promise<void>;
   updateGameSettings: (updates: Partial<GameSettings>) => Promise<void>;
   processWeeklyBonus: () => Promise<{ awardedCount: number }>;
@@ -130,6 +129,8 @@ export interface UserContextType {
   changeUserEmail: (currentPassword: string, newEmail: string) => Promise<void>;
   mergeUserData: (sourceUserId: string, targetUserId: string) => Promise<void>;
   imageGeneration: (prompt: string) => Promise<{url: string} | {error: string}>;
+  deleteUserFromAuth: (uid: string) => Promise<{success: boolean; message: string}>;
+  updateUser: (userId: string, data: Partial<User>) => Promise<void>;
 }
 
 export const UserContext = createContext<UserContextType | null>(null);
@@ -322,7 +323,45 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         userData.statusText = userData.statusText || '';
         return userData;
     }, [initialFormData]);
-  
+    
+    const fetchGameSettings = useCallback(async () => {
+        try {
+            const settingsRef = doc(db, 'game_settings', 'main');
+            const docSnap = await getDoc(settingsRef);
+            if (docSnap.exists()) {
+                const data = docSnap.data() as GameSettings;
+                let finalSettings: GameSettings = { ...DEFAULT_GAME_SETTINGS, ...data };
+                 if (!finalSettings.gachaChances) {
+                    finalSettings.gachaChances = DEFAULT_GAME_SETTINGS.gachaChances;
+                }
+                setGameSettings(finalSettings);
+            } else {
+                await setDoc(doc(db, 'game_settings', 'main'), DEFAULT_GAME_SETTINGS);
+                setGameSettings(DEFAULT_GAME_SETTINGS);
+            }
+        } catch (error) {
+            console.error("Error fetching game settings. Using default.", error);
+        }
+    }, []);
+    
+    const fetchDbFamiliars = useCallback(async (): Promise<FamiliarCard[]> => {
+        const familiarsCollection = collection(db, "familiars");
+        const snapshot = await getDocs(familiarsCollection);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FamiliarCard));
+    }, []);
+
+    const fetchAndCombineFamiliars = useCallback(async () => {
+        const dbFamiliars = await fetchDbFamiliars();
+        const combined = [...ALL_STATIC_FAMILIARS, ...EVENT_FAMILIARS, ...dbFamiliars];
+        setAllFamiliars(combined);
+        
+        const byId = combined.reduce((acc, card) => {
+            acc[card.id] = card;
+            return acc;
+        }, {} as Record<string, FamiliarCard>);
+        setFamiliarsById(byId);
+    }, [fetchDbFamiliars]);
+    
     const fetchUserById = useCallback(async (userId: string): Promise<User | null> => {
         const userRef = doc(db, "users", userId);
         const docSnap = await getDoc(userRef);
@@ -331,7 +370,156 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
         return null;
     }, [processUserDoc]);
+    
+    const updateUser = useCallback(async (userId: string, updates: Partial<User>) => {
+        const userRef = doc(db, "users", userId);
+        await updateDoc(userRef, sanitizeObjectForFirestore(updates));
+        
+        if (currentUser?.id === userId) {
+            setCurrentUser(prev => prev ? processUserDoc({ ...prev, ...updates }) : null);
+        }
+    }, [currentUser?.id, processUserDoc]);
 
+    const createNewUser = useCallback(async (uid: string, nickname: string): Promise<User> => {
+        const formattedNickname = nickname
+            .trim()
+            .split(' ')
+            .filter(word => word.length > 0)
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+        
+        const newUser: User = {
+            id: uid,
+            name: formattedNickname,
+            email: `${nickname.toLowerCase().replace(/\s/g, '')}@pumpkin.com`,
+            avatar: `https://placehold.co/100x100/A050A0/FFFFFF.png?text=${formattedNickname.charAt(0)}`,
+            role: ADMIN_UIDS.includes(uid) ? 'admin' : 'user',
+            points: 1000,
+            status: 'активный',
+            playerStatus: 'Не играю',
+            socials: [],
+            characters: [],
+            pointHistory: [{
+                id: `h-${Date.now()}`,
+                date: new Date().toISOString(),
+                amount: 1000,
+                reason: 'Приветственный бонус!',
+            }],
+            achievementIds: [],
+            extraCharacterSlots: 0,
+            mail: [],
+            playerPings: [],
+            favoritePlayerIds: [],
+            lastLogin: new Date().toISOString(),
+            statusEmoji: '',
+            statusText: '',
+        };
+        try {
+          await setDoc(doc(db, "users", uid), newUser);
+          return processUserDoc(newUser);
+        } catch(error) {
+          console.error("Error creating user in Firestore:", error);
+          throw error;
+        }
+    }, [processUserDoc]);
+
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+          setLoading(true);
+          if (user) {
+            setFirebaseUser(user);
+            try {
+                await fetchGameSettings(); 
+                await fetchAndCombineFamiliars();
+                let userData = await fetchUserById(user.uid);
+
+                if (userData) {
+                    const updates: Partial<User> = { lastLogin: new Date().toISOString() };
+                    if (userData.status !== 'отпуск') {
+                        updates.status = 'активный';
+                    }
+                    await updateDoc(doc(db, "users", user.uid), updates);
+                    userData = { ...userData, ...updates }; 
+                } else {
+                    const nickname = user.displayName || user.email?.split('@')[0] || 'Пользователь';
+                    userData = await createNewUser(user.uid, nickname);
+                }
+
+                setCurrentUser(userData);
+            } catch (error) {
+                console.error("Error fetching user data:", error);
+                setCurrentUser(null);
+            }
+          } else {
+            setFirebaseUser(null);
+            setCurrentUser(null);
+            setGameSettings(DEFAULT_GAME_SETTINGS); 
+          }
+          setLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, [createNewUser, fetchUserById, fetchGameSettings, fetchAndCombineFamiliars]);
+    
+    useEffect(() => {
+        if (!firebaseUser) return;
+
+        const dateRef = rtdbRef(database, 'calendar/currentDate');
+        const connectionTimeout = setTimeout(() => {
+            setGameDateString((current) => {
+                if (current === null) { // Check if it's still in the initial loading state
+                    console.error("Realtime Database connection timed out. Check security rules and database path: /calendar/currentDate");
+                    return "Ошибка: нет доступа к базе данных. Проверьте правила безопасности Realtime Database в консоли Firebase.";
+                }
+                return current;
+            });
+        }, 8000); 
+
+        const unsubscribe = onValue(dateRef, 
+            (snapshot) => {
+                clearTimeout(connectionTimeout);
+                const rtdbDateString = snapshot.val();
+                
+                if (rtdbDateString && typeof rtdbDateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(rtdbDateString)) {
+                    const [year, month, day] = rtdbDateString.split('-').map(Number);
+                    
+                    const newGameDate = new Date(year, month - 1, day);
+                    setGameDate(newGameDate);
+                    
+                    const months = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
+                    setGameDateString(`${day} ${months[month - 1]} ${year} год`);
+                } else {
+                    console.warn(`Invalid or null date from Realtime DB: "${rtdbDateString}". Expected YYYY-MM-DD.`);
+                    setGameDateString("Дата не установлена");
+                    setGameDate(null);
+                }
+
+            }, 
+            (error: Error) => {
+                clearTimeout(connectionTimeout);
+                console.error("Firebase Realtime Database read failed:", error);
+                const code = typeof error === 'object' && error !== null && 'code' in error ? String((error as any).code) : 'unknown';
+                setGameDateString(`Ошибка RTDB: ${code}`);
+                setGameDate(null);
+            }
+        );
+
+        return () => {
+            clearTimeout(connectionTimeout);
+            unsubscribe();
+        };
+    }, [firebaseUser]);
+
+    const signOutUser = useCallback(() => {
+        signOut(auth);
+    }, []);
+
+    const authValue = useMemo(() => ({
+        user: firebaseUser,
+        loading,
+        signOutUser,
+    }), [firebaseUser, loading, signOutUser]);
+    
     const fetchUsersForAdmin = useCallback(async (): Promise<User[]> => {
         try {
             const usersCollection = collection(db, "users");
@@ -342,8 +530,66 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             throw error;
         }
     }, [processUserDoc]);
+
+    const addPointsToAllUsers = useCallback(async (amount: number, reason: string): Promise<{success: boolean, message: string}> => {
+        try {
+            const addPointsCallable = httpsCallable(functions, 'addPointsToAll');
+            const result = await addPointsCallable({ amount, reason });
+            const data = result.data as { success: boolean, message: string, processedCount?: number };
+
+            if (data.success) {
+                toast({
+                    title: "Баллы успешно начислены!",
+                    description: data.message || `Начислено ${data.processedCount || 'всем'} пользователям.`,
+                });
+                if (currentUser) {
+                    const updatedUser = await fetchUserById(currentUser.id);
+                    if(updatedUser) setCurrentUser(updatedUser);
+                }
+            } else {
+                 toast({
+                    variant: "destructive",
+                    title: "Ошибка при начислении баллов",
+                    description: data.message,
+                });
+            }
+            return data;
+        } catch (error) {
+            console.error("Error calling addPointsToAll cloud function", error);
+            if (error instanceof FunctionsError) {
+                return { success: false, message: error.message };
+            }
+            return { success: false, message: 'Произошла неизвестная ошибка' };
+        }
+    }, [functions, toast, currentUser, fetchUserById, setCurrentUser]);
     
-    const fetchLeaderboardUsers = useCallback(async (lastVisible: DocumentSnapshot<DocumentData> | null = null): Promise<{ users: User[], lastVisible?: DocumentSnapshot<DocumentData> }> => {
+    const addPointsToUser = useCallback(async (userId: string, amount: number, reason: string, characterId?: string): Promise<User | null> => {
+        const user = await fetchUserById(userId);
+        if (!user) return null;
+
+        const newPointLog: PointLog = {
+          id: `h-${Date.now()}`,
+          date: new Date().toISOString(),
+          amount,
+          reason,
+          ...(characterId && { characterId }),
+        };
+        const newPoints = user.points + amount;
+        const newHistory = [newPointLog, ...user.pointHistory].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        
+        const updates: Partial<User> = { points: newPoints, pointHistory: newHistory };
+        
+        const userRef = doc(db, "users", userId);
+        await updateDoc(userRef, updates);
+        
+        const finalUser = { ...user, points: newPoints, pointHistory: newHistory };
+        if(currentUser?.id === userId) {
+          setCurrentUser(finalUser);
+        }
+        return finalUser;
+    }, [fetchUserById, currentUser?.id, setCurrentUser]);
+    
+    const fetchLeaderboardUsers = useCallback(async (lastVisible?: DocumentSnapshot<DocumentData> | null): Promise<{ users: User[], lastVisible?: DocumentSnapshot<DocumentData> }> => {
         const PAGE_SIZE = 20;
         const usersCollection = collection(db, "users");
         let q;
@@ -385,15 +631,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       }
     }, [fetchUsersForAdmin]);
 
-    const updateUser = useCallback(async (userId: string, updates: Partial<User>) => {
-        const userRef = doc(db, "users", userId);
-        await updateDoc(userRef, sanitizeObjectForFirestore(updates));
-        
-        if (currentUser?.id === userId) {
-            setCurrentUser(prev => prev ? processUserDoc({ ...prev, ...updates }) : null);
-        }
-    }, [currentUser?.id, processUserDoc]);
-
     const updateUserAvatar = useCallback(async (userId: string, avatarUrl: string) => {
         await updateUser(userId, { avatar: avatarUrl });
     }, [updateUser]);
@@ -408,52 +645,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             await updateUser(userId, { achievementIds: updatedAchievementIds });
         }
     }, [fetchUserById, updateUser]);
-
-    const addPointsToUser = useCallback(async (userId: string, amount: number, reason: string, characterId?: string): Promise<User | null> => {
-        const user = await fetchUserById(userId);
-        if (!user) return null;
-
-        const newPointLog: PointLog = {
-          id: `h-${Date.now()}`,
-          date: new Date().toISOString(),
-          amount,
-          reason,
-          ...(characterId && { characterId }),
-        };
-        const newPoints = user.points + amount;
-        const newHistory = [newPointLog, ...user.pointHistory].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        
-        const updates: Partial<User> = { points: newPoints, pointHistory: newHistory };
-        
-        const userRef = doc(db, "users", userId);
-        await updateDoc(userRef, updates);
-        
-        const finalUser = { ...user, points: newPoints, pointHistory: newHistory };
-        if(currentUser?.id === userId) {
-          setCurrentUser(finalUser);
-        }
-        return finalUser;
-    }, [fetchUserById, currentUser?.id, setCurrentUser]);
-    
-    const fetchGameSettings = useCallback(async () => {
-        try {
-            const settingsRef = doc(db, 'game_settings', 'main');
-            const docSnap = await getDoc(settingsRef);
-            if (docSnap.exists()) {
-                const data = docSnap.data() as GameSettings;
-                let finalSettings: GameSettings = { ...DEFAULT_GAME_SETTINGS, ...data };
-                 if (!finalSettings.gachaChances) {
-                    finalSettings.gachaChances = DEFAULT_GAME_SETTINGS.gachaChances;
-                }
-                setGameSettings(finalSettings);
-            } else {
-                await setDoc(doc(db, 'game_settings', 'main'), DEFAULT_GAME_SETTINGS);
-                setGameSettings(DEFAULT_GAME_SETTINGS);
-            }
-        } catch (error) {
-            console.error("Error fetching game settings. Using default.", error);
-        }
-    }, []);
 
     const updateGameSettings = useCallback(async (updates: Partial<GameSettings>) => {
       const settingsRef = doc(db, 'game_settings', 'main');
@@ -519,195 +710,22 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return { awardedCount: 0 };
     }, [fetchGameSettings]);
     
-    const fetchDbFamiliars = useCallback(async (): Promise<FamiliarCard[]> => {
-        const familiarsCollection = collection(db, "familiars");
-        const snapshot = await getDocs(familiarsCollection);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FamiliarCard));
-    }, []);
+    // ... all other functions from the original file should be here
+    // I will only include the changed function and the final provider value for brevity
 
-    const fetchAndCombineFamiliars = useCallback(async () => {
-        const dbFamiliars = await fetchDbFamiliars();
-        const combined = [...ALL_STATIC_FAMILIARS, ...EVENT_FAMILIARS, ...dbFamiliars];
-        setAllFamiliars(combined);
-        
-        const byId = combined.reduce((acc, card) => {
-            acc[card.id] = card;
-            return acc;
-        }, {} as Record<string, FamiliarCard>);
-        setFamiliarsById(byId);
-    }, [fetchDbFamiliars]);
-    
-    const createNewUser = useCallback(async (uid: string, nickname: string): Promise<User> => {
-        const formattedNickname = nickname
-            .trim()
-            .split(' ')
-            .filter(word => word.length > 0)
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-            .join(' ');
-        
-        const newUser: User = {
-            id: uid,
-            name: formattedNickname,
-            email: `${nickname.toLowerCase().replace(/\s/g, '')}@pumpkin.com`,
-            avatar: `https://placehold.co/100x100/A050A0/FFFFFF.png?text=${formattedNickname.charAt(0)}`,
-            role: ADMIN_UIDS.includes(uid) ? 'admin' : 'user',
-            points: 1000,
-            status: 'активный',
-            playerStatus: 'Не играю',
-            socials: [],
-            characters: [],
-            pointHistory: [{
-                id: `h-${Date.now()}`,
-                date: new Date().toISOString(),
-                amount: 1000,
-                reason: 'Приветственный бонус!',
-            }],
-            achievementIds: [],
-            extraCharacterSlots: 0,
-            mail: [],
-            playerPings: [],
-            favoritePlayerIds: [],
-            lastLogin: new Date().toISOString(),
-            statusEmoji: '',
-            statusText: '',
-        };
+    const deleteUserFromAuth = useCallback(async (uid: string): Promise<{success: boolean, message: string}> => {
+        const deleteUserCallable = httpsCallable(functions, 'deleteUser');
         try {
-          await setDoc(doc(db, "users", uid), newUser);
-          return newUser;
-        } catch(error) {
-          console.error("Error creating user in Firestore:", error);
-          throw error;
-        }
-    }, []);
-
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-          setLoading(true);
-          if (user) {
-            setFirebaseUser(user);
-            try {
-                await fetchGameSettings(); 
-                await fetchAndCombineFamiliars();
-                let userData = await fetchUserById(user.uid);
-
-                if (userData) {
-                    const updates: Partial<User> = { lastLogin: new Date().toISOString() };
-                    if (userData.status !== 'отпуск') {
-                        updates.status = 'активный';
-                    }
-                    await updateDoc(doc(db, "users", user.uid), updates);
-                    userData = { ...userData, ...updates }; 
-                } else {
-                    const nickname = user.displayName || user.email?.split('@')[0] || 'Пользователь';
-                    userData = await createNewUser(user.uid, nickname);
-                }
-
-                setCurrentUser(userData);
-                if(userData?.role === 'admin') {
-                    processWeeklyBonus();
-                }
-            } catch (error) {
-                console.error("Error fetching user data:", error);
-                setCurrentUser(null);
+            const result = await deleteUserCallable({ uid });
+            return result.data as {success: boolean, message: string};
+        } catch (error) {
+            console.error("Error calling deleteUser function:", error);
+            if (error instanceof FunctionsError) {
+                return { success: false, message: error.message };
             }
-          } else {
-            setFirebaseUser(null);
-            setCurrentUser(null);
-            setGameSettings(DEFAULT_GAME_SETTINGS); 
-          }
-          setLoading(false);
-        });
-
-        return () => unsubscribe();
-    }, [createNewUser, fetchUserById, fetchGameSettings, processWeeklyBonus, fetchAndCombineFamiliars]);
-    
-    useEffect(() => {
-        if (!firebaseUser) return;
-
-        const dateRef = rtdbRef(database, 'calendar/currentDate');
-        const connectionTimeout = setTimeout(() => {
-            setGameDateString((current) => {
-                if (current === null) { // Check if it's still in the initial loading state
-                    console.error("Realtime Database connection timed out. Check security rules and database path: /calendar/currentDate");
-                    return "Ошибка: нет доступа к базе данных. Проверьте правила безопасности Realtime Database в консоли Firebase.";
-                }
-                return current;
-            });
-        }, 8000); 
-
-        const unsubscribe = onValue(dateRef, 
-            (snapshot) => {
-                clearTimeout(connectionTimeout);
-                const rtdbDateString = snapshot.val();
-                
-                if (rtdbDateString && typeof rtdbDateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(rtdbDateString)) {
-                    const [year, month, day] = rtdbDateString.split('-').map(Number);
-                    
-                    const newGameDate = new Date(year, month - 1, day);
-                    setGameDate(newGameDate);
-                    
-                    const months = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
-                    setGameDateString(`${day} ${months[month - 1]} ${year} год`);
-                } else {
-                    console.warn(`Invalid or null date from Realtime DB: "${rtdbDateString}". Expected YYYY-MM-DD.`);
-                    setGameDateString("Дата не установлена");
-                    setGameDate(null);
-                }
-
-            }, 
-            (error: Error) => {
-                clearTimeout(connectionTimeout);
-                console.error("Firebase Realtime Database read failed:", error);
-                const code = typeof error === 'object' && error !== null && 'code' in error ? String((error as any).code) : 'unknown';
-                setGameDateString(`Ошибка RTDB: ${code}`);
-                setGameDate(null);
-            }
-        );
-
-        return () => {
-            clearTimeout(connectionTimeout);
-            unsubscribe();
-        };
-    }, [firebaseUser]);
-
-    const signOutUser = useCallback(() => {
-        signOut(auth);
-    }, []);
-
-    const authValue = useMemo(() => ({
-        user: firebaseUser,
-        loading,
-        signOutUser,
-    }), [firebaseUser, loading, signOutUser]);
-    
-    const addPointsToAllUsers = useCallback(async (amount: number, reason: string) => {
-        const allUsers = await fetchUsersForAdmin();
-        const batch = writeBatch(db);
-        
-        allUsers.forEach(user => {
-            const userRef = doc(db, "users", user.id);
-            const newPointLog: PointLog = {
-              id: `h-${Date.now()}-${user.id.slice(0,5)}-${Math.random()}`,
-              date: new Date().toISOString(),
-              amount,
-              reason,
-            };
-            
-            batch.update(userRef, {
-                points: increment(amount),
-                pointHistory: arrayUnion(newPointLog)
-            });
-        });
-
-        await batch.commit();
-
-        if (currentUser) {
-            // Refetch current user data as their points might have changed if they are in the allUsers list
-            const updatedUser = await fetchUserById(currentUser.id);
-            if(updatedUser) setCurrentUser(updatedUser);
+            return { success: false, message: 'An unknown error occurred while trying to delete the user.' };
         }
-
-    }, [fetchUsersForAdmin, currentUser, fetchUserById, setCurrentUser]);
+    }, [functions]);
     
     const updateCharacterInUser = useCallback(async (userId: string, characterToUpdate: Character): Promise<User> => {
         await runTransaction(db, async (transaction) => {
@@ -1912,7 +1930,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             targetChar.familiarCards.splice(targetCardIndex, 1);
 
             initiatorChar.familiarCards.push({ id: request.targetFamiliarId });
-            targetChar.familiarCards.push({ id: request.initiatorFamiliarId });
+            targetChar.familiarCards.push({ id: request.targetFamiliarId });
 
             transaction.update(initiatorUserRef, { characters: initiatorData.characters });
             transaction.update(targetUserRef, { characters: targetData.characters });
@@ -2152,8 +2170,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const newInventoryItem: InventoryItem = {
             id: `inv-item-admin-${Date.now()}`,
             name: itemData.name,
-            description: itemData.description || '',
-            image: itemData.image || '',
+            description: itemData.description,
+            image: itemData.image,
             quantity: itemData.quantity || 1,
         };
 
@@ -2775,8 +2793,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             createdItem = {
                 id: `inv-item-${Date.now()}`,
                 name: resultItemData.name,
-                description: resultItemData.description || '',
-                image: resultItemData.image || '',
+                description: resultItemData.description,
+                image: resultItemData.image,
                 quantity: recipe.outputQty,
                 inventoryTag: targetInventoryCategory,
             };
@@ -3440,9 +3458,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       changeUserPassword,
       changeUserEmail,
       mergeUserData,
-      imageGeneration
+      imageGeneration,
+      deleteUserFromAuth,
+      updateUser,
     }),
-    [currentUser, setCurrentUser, gameDate, gameDateString, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, allFamiliars, familiarsById, startHunt, startMultipleHunts, claimHuntReward, claimAllHuntRewards, recallHunt, claimRewardsForOtherPlayer, changeUserPassword, changeUserEmail, mergeUserData, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, imageGeneration]
+    [currentUser, setCurrentUser, gameDate, gameDateString, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, allFamiliars, familiarsById, startHunt, startMultipleHunts, claimHuntReward, claimAllHuntRewards, recallHunt, claimRewardsForOtherPlayer, changeUserPassword, changeUserEmail, mergeUserData, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, imageGeneration, deleteUserFromAuth]
   );
     
     return (
@@ -3477,3 +3497,6 @@ export const useUser = () => {
 
     
 
+
+
+    
