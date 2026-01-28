@@ -241,7 +241,7 @@ export default function CharacterPage() {
     const [editingState, setEditingState] = useState<EditingState | null>(null);
     const [selectedItem, setSelectedItem] = useState<(InventoryItem & { category: InventoryCategory }) | null>(null);
     const [isConsuming, setIsConsuming] = useState(false);
-    const [consumeQuantity, setConsumeQuantity] = useState(1);
+    const [consumeQuantity, setConsumeQuantity] = useState<number | ''>(1);
     const [selectedGalleryItem, setSelectedGalleryItem] = useState<GalleryImage | null>(null);
     const [inventorySearch, setInventorySearch] = useState('');
 
@@ -299,9 +299,19 @@ export default function CharacterPage() {
     
     const handleConsumeItem = async () => {
         if (!selectedItem || !character || !owner) return;
+        
+        if (selectedItem.quantity > 1 && (!consumeQuantity || consumeQuantity <= 0)) {
+            toast({
+                variant: 'destructive',
+                title: 'Неверное количество',
+                description: 'Пожалуйста, введите корректное количество для использования.'
+            });
+            return;
+        }
+
         setIsConsuming(true);
         try {
-            const quantityToRemove = selectedItem.quantity > 1 ? consumeQuantity : 1;
+            const quantityToRemove = selectedItem.quantity > 1 ? Number(consumeQuantity) : 1;
             await consumeInventoryItem(owner.id, character.id, selectedItem.id, selectedItem.category, quantityToRemove);
             toast({ title: "Предмет использован", description: `"${selectedItem.name}" (x${quantityToRemove}) был удален из инвентаря.` });
             
@@ -1398,9 +1408,18 @@ export default function CharacterPage() {
                                       type="number"
                                       value={consumeQuantity}
                                       onChange={(e) => {
-                                        const val = parseInt(e.target.value, 10);
-                                        if (!isNaN(val) && val > 0 && val <= selectedItem.quantity) {
-                                          setConsumeQuantity(val);
+                                        const value = e.target.value;
+                                        if (value === '') {
+                                          setConsumeQuantity('');
+                                        } else {
+                                          const val = parseInt(value, 10);
+                                          if (!isNaN(val)) {
+                                            if (val > selectedItem.quantity) {
+                                              setConsumeQuantity(selectedItem.quantity);
+                                            } else {
+                                              setConsumeQuantity(val);
+                                            }
+                                          }
                                         }
                                       }}
                                       min={1}
@@ -1413,11 +1432,11 @@ export default function CharacterPage() {
                                     <DialogFooter className="mt-4">
                                         <Button 
                                             onClick={handleConsumeItem} 
-                                            disabled={isConsuming}
+                                            disabled={isConsuming || !consumeQuantity || consumeQuantity <= 0}
                                             variant={getItemActionProps(selectedItem.category).variant}
                                             className="w-full"
                                         >
-                                            {isConsuming ? 'Обработка...' : `${getItemActionProps(selectedItem.category).text}${selectedItem.quantity > 1 ? ` (x${consumeQuantity})` : ''}`}
+                                            {isConsuming ? 'Обработка...' : `${getItemActionProps(selectedItem.category).text}${selectedItem.quantity > 1 ? ` (x${consumeQuantity || 0})` : ''}`}
                                         </Button>
                                     </DialogFooter>
                                 )}
@@ -1447,5 +1466,3 @@ export default function CharacterPage() {
         </div>
     );
 }
-
-    
