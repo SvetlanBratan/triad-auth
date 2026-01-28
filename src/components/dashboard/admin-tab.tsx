@@ -1948,6 +1948,39 @@ export default function AdminTab() {
                         <Button type="button" variant="ghost" className="w-full" onClick={() => { setEditingRecipeId(null); setNewRecipe({ name: '', components: [], resultPotionId: '', outputQty: 1 }); }}>Отмена</Button>
                     )}
                 </form>
+                <Separator className="my-6" />
+                <div className="space-y-4">
+                    <h3 className="font-semibold">Существующие рецепты</h3>
+                    {allRecipes.length > 0 ? (
+                        <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+                            {allRecipes.map(recipe => (
+                                <div key={recipe.id} className="flex justify-between items-center p-2 bg-muted/50 rounded-md text-sm">
+                                    <span>{recipe.name || allItemsMap.get(recipe.resultPotionId)?.name || 'Безымянный рецепт'}</span>
+                                    <div className="flex gap-2">
+                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditRecipeClick(recipe)}><Edit className="w-4 h-4" /></Button>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7"><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Удалить рецепт?</AlertDialogTitle>
+                                                    <AlertDialogDescription>Это действие невозможно отменить.</AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Отмена</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => handleDeleteRecipeClick(recipe.id)} className="bg-destructive hover:bg-destructive/90">Удалить</AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-center text-sm text-muted-foreground py-4">Нет созданных рецептов.</p>
+                    )}
+                </div>
             </CardContent>
         </Card>
       </TabsContent>
