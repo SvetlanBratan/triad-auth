@@ -92,7 +92,7 @@ export interface UserContextType {
   adminGiveItemToCharacter: (userId: string, characterId: string, itemData: AdminGiveItemForm) => Promise<void>;
   adminUpdateItemInCharacter: (userId: string, characterId: string, itemData: InventoryItem, category: InventoryCategory) => Promise<void>;
   adminDeleteItemFromCharacter: (userId: string, characterId: string, itemId: string, category: InventoryCategory) => Promise<void>;
-  consumeInventoryItem: (userId: string, characterId: string, itemId: string, category: InventoryCategory) => Promise<void>;
+  consumeInventoryItem: (userId: string, characterId: string, itemId: string, category: InventoryCategory, quantity?: number) => Promise<void>;
   restockShopItem: (shopId: string, itemId: string) => Promise<void>;
   adminUpdateCharacterStatus: (userId: string, characterId: string, updates: { taxpayerStatus?: TaxpayerStatus; citizenshipStatus?: CitizenshipStatus }) => Promise<void>;
   adminUpdateShopLicense: (shopId: string, hasLicense: boolean) => Promise<void>;
@@ -352,7 +352,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             throw error;
         }
     }, [processUserDoc]);
-    
+
+    const updateUserAvatar = useCallback(async (userId: string, avatarUrl: string) => {
+        await updateUser(userId, { avatar: avatarUrl });
+    }, [updateUser]);
+
     const fetchCharacterById = useCallback(async (characterId: string): Promise<{ character: Character; owner: User } | null> => {
         try {
             const allUsers = await fetchUsersForAdmin();
@@ -488,10 +492,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           throw error;
         }
     }, [processUserDoc]);
-
-    const updateUserAvatar = useCallback(async (userId: string, avatarUrl: string) => {
-        await updateUser(userId, { avatar: avatarUrl });
-    }, [updateUser]);
 
     const signOutUser = useCallback(() => {
         signOut(auth);
@@ -2150,31 +2150,39 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         await updateUser(userId, { characters: updatedCharacters });
     }, [fetchUserById, updateUser, initialFormData]);
 
-    const consumeInventoryItem = useCallback(async (userId: string, characterId: string, itemId: string, category: InventoryCategory) => {
+    const consumeInventoryItem = useCallback(async (userId: string, characterId: string, itemId: string, category: InventoryCategory, quantity: number = 1) => {
+        if (quantity <= 0) throw new Error("Количество должно быть положительным.");
+        
         const user = await fetchUserById(userId);
         if (!user) throw new Error("User not found");
-
+    
         const characterIndex = user.characters.findIndex(c => c.id === characterId);
         if (characterIndex === -1) throw new Error("Character not found");
-
+    
         const character = { ...user.characters[characterIndex] };
         const inventory = character.inventory || initialFormData.inventory;
-
+    
         if (!Array.isArray(inventory[category])) {
-           throw new Error("Item category not found");
+            throw new Error("Item category not found");
         }
         
         const itemIndex = inventory[category].findIndex(i => i.id === itemId);
         if (itemIndex === -1) throw new Error("Item not found");
-
-        if (inventory[category][itemIndex].quantity > 1) {
-            inventory[category][itemIndex].quantity -= 1;
+    
+        const item = inventory[category][itemIndex];
+    
+        if (item.quantity < quantity) {
+            throw new Error("Недостаточно предметов в инвентаре.");
+        }
+    
+        if (item.quantity > quantity) {
+            item.quantity -= quantity;
         } else {
             inventory[category] = inventory[category].filter(i => i.id !== itemId);
         }
         
         character.inventory = inventory;
-
+    
         const updatedCharacters = [...user.characters];
         updatedCharacters[characterIndex] = character;
         await updateUser(userId, { characters: updatedCharacters });
@@ -2621,6 +2629,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         let recipeNameResult = '';
 
         const allShopsData = await fetchAllShops();
+        const allItems = [...ALL_ITEMS_FOR_ALCHEMY, ...allShopsData.flatMap(s => s.items || [])];
     
         await runTransaction(db, async (transaction) => {
             const userRef = doc(db, "users", userId);
@@ -2638,10 +2647,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const recipe = recipeDoc.data() as AlchemyRecipe;
             recipeNameResult = recipe.name || 'Неизвестный рецепт';
     
-            const inventory = character.inventory || {};
+            const inventory = JSON.parse(JSON.stringify(character.inventory || {}));
     
             for (const component of recipe.components) {
-                const allItems = [...ALL_ITEMS_FOR_ALCHEMY, ...allShopsData.flatMap(s => s.items || [])];
                 const requiredIngredientData = allItems.find(item => item && item.id === component.ingredientId);
                 
                 if (!requiredIngredientData) throw new Error(`Ingredient with ID ${component.ingredientId} not found in data files.`);
@@ -2650,21 +2658,43 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 const inventoryCategory = (inventory[category as keyof Inventory] || []) as InventoryItem[];
                 const inventoryItemName = ('inventoryItemName' in requiredIngredientData && requiredIngredientData.inventoryItemName) ? requiredIngredientData.inventoryItemName : requiredIngredientData.name;
 
-                const playerIngIndex = inventoryCategory.findIndex((i) => i.name === inventoryItemName);
+                let totalPlayerQty = 0;
+                let itemIndices: { category: keyof Inventory, index: number }[] = [];
+                
+                const mainCategoryItems = (inventory[category as keyof Inventory] || []) as InventoryItem[];
+                const mainPlayerItemIndex = mainCategoryItems.findIndex(i => i.name === inventoryItemName);
+                if (mainPlayerItemIndex > -1) {
+                    totalPlayerQty += mainCategoryItems[mainPlayerItemIndex].quantity;
+                    itemIndices.push({ category: category as keyof Inventory, index: mainPlayerItemIndex });
+                }
 
-                if (playerIngIndex === -1 || inventoryCategory[playerIngIndex].quantity < component.qty) {
+                if (category === 'драгоценности') {
+                    const ingredientItems = (inventory['ингредиенты'] || []) as InventoryItem[];
+                    const jewelInIngredientsIndex = ingredientItems.findIndex(i => i.name === inventoryItemName);
+                    if (jewelInIngredientsIndex > -1) {
+                        totalPlayerQty += ingredientItems[jewelInIngredientsIndex].quantity;
+                         itemIndices.push({ category: 'ингредиенты', index: jewelInIngredientsIndex });
+                    }
+                }
+
+                if (totalPlayerQty < component.qty) {
                     throw new Error(`Недостаточно ингредиента: ${inventoryItemName}`);
                 }
-    
-                if (inventoryCategory[playerIngIndex].quantity > component.qty) {
-                    inventoryCategory[playerIngIndex].quantity -= component.qty;
-                } else {
-                    inventoryCategory.splice(playerIngIndex, 1);
+
+                let qtyToRemove = component.qty;
+                for(const {category, index} of itemIndices) {
+                    const item = (inventory[category] as InventoryItem[])[index];
+                    const toRemove = Math.min(item.quantity, qtyToRemove);
+                    item.quantity -= toRemove;
+                    qtyToRemove -= toRemove;
+                    if(item.quantity === 0) {
+                       (inventory[category] as InventoryItem[]).splice(index, 1);
+                    }
+                     if (qtyToRemove === 0) break;
                 }
             }
     
-            const allResultItems = [...ALL_ITEMS_FOR_ALCHEMY, ...allShopsData.flatMap(s => s.items || [])];
-            const resultPotionData = allResultItems.find(item => item && item.id === recipe.resultPotionId);
+            const resultPotionData = allItems.find(item => item && item.id === recipe.resultPotionId);
             if (!resultPotionData) throw new Error("Result potion data not found.");
 
             const resultCategory = ('inventoryTag' in resultPotionData && resultPotionData.inventoryTag) ? resultPotionData.inventoryTag : 'зелья';
@@ -3390,3 +3420,6 @@ export const useUser = () => {
 
     
 
+
+
+    

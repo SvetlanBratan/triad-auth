@@ -468,12 +468,14 @@ export interface CharacterPopularityUpdate {
 }
 
 // --- ALCHEMY & HUNTING TYPES ---
-export interface AlchemyIngredient extends InventoryItem {
+export interface AlchemyIngredient extends Omit<InventoryItem, 'quantity' | 'inventoryTag'> {
   note?: string;
   tags: string[];
+  quantity?: number;
+  inventoryTag?: 'ингредиенты';
 }
 
-export interface Potion extends InventoryItem {
+export interface Potion extends Omit<InventoryItem, 'quantity' | 'inventoryTag'> {
   note?: string;
   effects: {
     stat: "hp" | "mana" | "luck";
@@ -481,7 +483,10 @@ export interface Potion extends InventoryItem {
     durationSec?: number;
   }[];
   tier: "обычный" | "редкий" | "легендарный";
+  quantity?: number;
+  inventoryTag?: 'зелья';
 }
+
 
 export interface AlchemyRecipeComponent {
   ingredientId: string;
@@ -514,3 +519,6 @@ export interface HuntingLocation {
 }
 
 // --- END ALCHEMY & HUNTING TYPES ---
+
+
+    

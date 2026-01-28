@@ -29,6 +29,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useIsMobile } from '@/hooks/use-mobile';
 import CharacterPageSkeleton from '@/components/dashboard/character-page-skeleton';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useAuth } from '@/components/providers/user-provider';
 import AuthPage from '@/components/auth/auth-page';
 
@@ -240,10 +241,17 @@ export default function CharacterPage() {
     const [editingState, setEditingState] = useState<EditingState | null>(null);
     const [selectedItem, setSelectedItem] = useState<(InventoryItem & { category: InventoryCategory }) | null>(null);
     const [isConsuming, setIsConsuming] = useState(false);
+    const [consumeQuantity, setConsumeQuantity] = useState(1);
     const [selectedGalleryItem, setSelectedGalleryItem] = useState<GalleryImage | null>(null);
     const [inventorySearch, setInventorySearch] = useState('');
 
     const { toast } = useToast();
+
+    useEffect(() => {
+        if (selectedItem) {
+            setConsumeQuantity(1);
+        }
+    }, [selectedItem]);
 
     const { data: allShops = [] } = useQuery({
         queryKey: ['allShops'],
@@ -293,14 +301,17 @@ export default function CharacterPage() {
         if (!selectedItem || !character || !owner) return;
         setIsConsuming(true);
         try {
-            await consumeInventoryItem(owner.id, character.id, selectedItem.id, selectedItem.category);
-            toast({ title: "Предмет использован", description: `"${selectedItem.name}" был удален из инвентаря.` });
-            await refetch();
-            if (currentUser?.id === owner.id) {
+            const quantityToRemove = selectedItem.quantity > 1 ? consumeQuantity : 1;
+            await consumeInventoryItem(owner.id, character.id, selectedItem.id, selectedItem.category, quantityToRemove);
+            toast({ title: "Предмет использован", description: `"${selectedItem.name}" (x${quantityToRemove}) был удален из инвентаря.` });
+            
+            const { data: refreshedCharacterData } = await refetch();
+
+            if (currentUser?.id === owner.id && refreshedCharacterData) {
                 const updatedCurrentUser = { ...currentUser };
                 const charIndex = updatedCurrentUser.characters.findIndex(c => c.id === character.id);
-                if (charIndex > -1 && characterData) {
-                    updatedCurrentUser.characters[charIndex] = characterData.character;
+                if (charIndex > -1) {
+                    updatedCurrentUser.characters[charIndex] = refreshedCharacterData.character;
                     setCurrentUser(updatedCurrentUser);
                 }
             }
@@ -1360,7 +1371,7 @@ export default function CharacterPage() {
                 </DialogContent>
             </Dialog>
             
-            <Dialog open={!!selectedItem} onOpenChange={(isOpen) => !isOpen && setSelectedItem(null)}>
+             <Dialog open={!!selectedItem} onOpenChange={(isOpen) => !isOpen && setSelectedItem(null)}>
                 {selectedItem && (
                     <DialogContent className="max-w-md p-0">
                         <div className="grid md:grid-cols-2 gap-6 items-start">
@@ -1378,6 +1389,26 @@ export default function CharacterPage() {
                                         </div>
                                     </ScrollArea>
                                 </DialogHeader>
+
+                                {isOwnerOrAdmin && selectedItem.quantity > 1 && (
+                                  <div className="mt-4 space-y-2">
+                                    <Label htmlFor="consume-quantity">Количество</Label>
+                                    <Input
+                                      id="consume-quantity"
+                                      type="number"
+                                      value={consumeQuantity}
+                                      onChange={(e) => {
+                                        const val = parseInt(e.target.value, 10);
+                                        if (!isNaN(val) && val > 0 && val <= selectedItem.quantity) {
+                                          setConsumeQuantity(val);
+                                        }
+                                      }}
+                                      min={1}
+                                      max={selectedItem.quantity}
+                                    />
+                                  </div>
+                                )}
+
                                 {isOwnerOrAdmin && (
                                     <DialogFooter className="mt-4">
                                         <Button 
@@ -1386,7 +1417,7 @@ export default function CharacterPage() {
                                             variant={getItemActionProps(selectedItem.category).variant}
                                             className="w-full"
                                         >
-                                            {isConsuming ? 'Обработка...' : getItemActionProps(selectedItem.category).text}
+                                            {isConsuming ? 'Обработка...' : `${getItemActionProps(selectedItem.category).text}${selectedItem.quantity > 1 ? ` (x${consumeQuantity})` : ''}`}
                                         </Button>
                                     </DialogFooter>
                                 )}
@@ -1416,3 +1447,5 @@ export default function CharacterPage() {
         </div>
     );
 }
+
+    
