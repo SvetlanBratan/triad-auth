@@ -351,29 +351,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             throw error;
         }
     }, [processUserDoc]);
-
-    const fetchLeaderboardUsers = useCallback(async (lastVisible: DocumentSnapshot<DocumentData> | null = null): Promise<{ users: User[], lastVisible?: DocumentSnapshot<DocumentData> }> => {
-        const PAGE_SIZE = 20;
-        const usersCollection = collection(db, "users");
-        let q;
-        if (lastVisible) {
-          q = query(usersCollection, orderBy("points", "desc"), startAfter(lastVisible), limit(PAGE_SIZE));
-        } else {
-          q = query(usersCollection, orderBy("points", "desc"), limit(PAGE_SIZE));
-        }
-
-        const userSnapshot = await getDocs(q);
-        const users = await Promise.all(userSnapshot.docs.map(doc => processUserDoc(doc.data() as User)));
-        
-        const newLastVisible = userSnapshot.docs.length >= PAGE_SIZE 
-            ? userSnapshot.docs[userSnapshot.docs.length - 1]
-            : undefined;
-        
-        return {
-            users: users.filter((user): user is User => user !== null),
-            lastVisible: newLastVisible,
-        };
-    }, [processUserDoc]);
     
     const fetchCharacterById = useCallback(async (characterId: string): Promise<{ character: Character; owner: User } | null> => {
         try {
@@ -430,38 +407,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return finalUser;
     }, [fetchUserById, currentUser?.id]);
     
-    const addPointsToAllUsers = useCallback(async (amount: number, reason: string): Promise<{success: boolean, message: string}> => {
-        try {
-            const addPointsCallable = httpsCallable(functions, 'addPointsToAll');
-            const result = await addPointsCallable({ amount, reason });
-            const data = result.data as { success: boolean, message: string, processedCount?: number };
-
-            if (data.success) {
-                toast({
-                    title: "Баллы успешно начислены!",
-                    description: data.message || `Начислено ${data.processedCount || 'всем'} пользователям.`,
-                });
-                if (currentUser) {
-                    const updatedUser = await fetchUserById(currentUser.id);
-                    if(updatedUser) setCurrentUser(updatedUser);
-                }
-            } else {
-                 toast({
-                    variant: "destructive",
-                    title: "Ошибка при начислении баллов",
-                    description: data.message,
-                });
-            }
-            return data;
-        } catch (error) {
-            console.error("Error calling addPointsToAll cloud function", error);
-            if (error instanceof FunctionsError) {
-                return { success: false, message: error.message };
-            }
-            return { success: false, message: 'Произошла неизвестная ошибка' };
-        }
-    }, [functions, toast, currentUser, fetchUserById]);
-    
     const fetchGameSettings = useCallback(async () => {
         try {
             const settingsRef = doc(db, 'game_settings', 'main');
@@ -481,72 +426,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             console.error("Error fetching game settings. Using default.", error);
         }
     }, []);
-
-    const updateGameSettings = useCallback(async (updates: Partial<GameSettings>) => {
-      const settingsRef = doc(db, 'game_settings', 'main');
-      await updateDoc(settingsRef, updates);
-      await fetchGameSettings(); // Refetch settings to update state
-    }, [fetchGameSettings]);
-
-    const processWeeklyBonus = useCallback(async () => {
-        const allUsers = await fetchUsersForAdmin();
-
-        await runTransaction(db, async (transaction) => {
-            const settingsRef = doc(db, 'game_settings', 'main');
-            const settingsDoc = await transaction.get(settingsRef);
-            const settings = (settingsDoc.data() || DEFAULT_GAME_SETTINGS) as GameSettings;
-            const now = new Date();
-            const lastAwarded = settings.lastWeeklyBonusAwardedAt ? new Date(settings.lastWeeklyBonusAwardedAt) : new Date(0);
-            
-            if (differenceInDays(now, lastAwarded) < 7) {
-              return; 
-            }
-            
-            transaction.update(settingsRef, { lastWeeklyBonusAwardedAt: now.toISOString() });
-            
-            for (const user of allUsers) {
-                const userRef = doc(db, "users", user.id);
-                const lastLogin = user.lastLogin ? new Date(user.lastLogin) : new Date(0);
-                
-                let updates: {[key: string]: any} = {};
-
-                if (differenceInMonths(new Date(), lastLogin) >= 1 && user.status !== 'отпуск' && user.status !== 'неактивный') {
-                    updates.status = 'неактивный';
-                }
-        
-                if (user.status === 'активный') {
-                    let totalBonus = 800;
-                    let reason = "Еженедельный бонус за активность";
-                    const popularityPoints = (user.characters || []).reduce((acc, char) => acc + (char.popularity ?? 0), 0);
-                    if (popularityPoints > 0) {
-                        totalBonus += popularityPoints;
-                        reason += ` и популярность (${popularityPoints})`;
-                    }
-                    
-                    const newPointLog: PointLog = { id: `h-weekly-${Date.now()}-${user.id.slice(0, 4)}`, date: now.toISOString(), amount: totalBonus, reason };
-                    
-                    updates.points = increment(totalBonus);
-                    updates.pointHistory = arrayUnion(newPointLog);
-                }
-
-                if (Object.keys(updates).length > 0) {
-                    transaction.update(userRef, updates);
-                }
-            }
-
-            const top3Users = allUsers.sort((a,b) => b.points - a.points).slice(0, 3);
-            for (const topUser of top3Users) {
-              if (!topUser.achievementIds?.includes(FORBES_LIST_ACHIEVEMENT_ID)) {
-                const topUserRef = doc(db, 'users', topUser.id);
-                transaction.update(topUserRef, { achievementIds: arrayUnion(FORBES_LIST_ACHIEVEMENT_ID) });
-              }
-            }
-
-        });
-        
-        await fetchGameSettings();
-        return { awardedCount: 0 };
-    }, [fetchGameSettings, fetchUsersForAdmin]);
 
     const fetchDbFamiliars = useCallback(async (): Promise<FamiliarCard[]> => {
         const familiarsCollection = collection(db, "familiars");
@@ -613,107 +492,183 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         await updateUser(userId, { avatar: avatarUrl });
     }, [updateUser]);
 
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-          setLoading(true);
-          if (user) {
-            setFirebaseUser(user);
-            try {
-                await fetchGameSettings(); 
-                await fetchAndCombineFamiliars();
-                let userData = await fetchUserById(user.uid);
-
-                if (userData) {
-                    const updates: Partial<User> = { lastLogin: new Date().toISOString() };
-                    if (userData.status !== 'отпуск') {
-                        updates.status = 'активный';
-                    }
-                    await updateDoc(doc(db, "users", user.uid), updates);
-                    userData = { ...userData, ...updates }; 
-                    if(userData?.role === 'admin') {
-                        await processWeeklyBonus();
-                    }
-                } else {
-                    const nickname = user.displayName || user.email?.split('@')[0] || 'Пользователь';
-                    userData = await createNewUser(user.uid, nickname);
-                }
-
-                setCurrentUser(userData);
-            } catch (error) {
-                console.error("Error fetching user data:", error);
-                setCurrentUser(null);
-            }
-          } else {
-            setFirebaseUser(null);
-            setCurrentUser(null);
-            setGameSettings(DEFAULT_GAME_SETTINGS); 
-          }
-          setLoading(false);
-        });
-
-        return () => unsubscribe();
-    }, [createNewUser, fetchUserById, fetchGameSettings, processWeeklyBonus, fetchAndCombineFamiliars]);
-    
-    useEffect(() => {
-        if (!firebaseUser) return;
-
-        const dateRef = rtdbRef(database, 'calendar/currentDate');
-        const connectionTimeout = setTimeout(() => {
-            setGameDateString((current) => {
-                if (current === null) { // Check if it's still in the initial loading state
-                    console.error("Realtime Database connection timed out. Check security rules and database path: /calendar/currentDate");
-                    return "Ошибка: нет доступа к базе данных. Проверьте правила безопасности Realtime Database в консоли Firebase.";
-                }
-                return current;
-            });
-        }, 8000); 
-
-        const unsubscribe = onValue(dateRef, 
-            (snapshot) => {
-                clearTimeout(connectionTimeout);
-                const rtdbDateString = snapshot.val();
-                
-                if (rtdbDateString && typeof rtdbDateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(rtdbDateString)) {
-                    const [year, month, day] = rtdbDateString.split('-').map(Number);
-                    
-                    const newGameDate = new Date(year, month - 1, day);
-                    setGameDate(newGameDate);
-                    
-                    const months = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
-                    setGameDateString(`${day} ${months[month - 1]} ${year} год`);
-                } else {
-                    console.warn(`Invalid or null date from Realtime DB: "${rtdbDateString}". Expected YYYY-MM-DD.`);
-                    setGameDateString("Дата не установлена");
-                    setGameDate(null);
-                }
-
-            }, 
-            (error: Error) => {
-                clearTimeout(connectionTimeout);
-                console.error("Firebase Realtime Database read failed:", error);
-                const code = typeof error === 'object' && error !== null && 'code' in error ? String((error as any).code) : 'unknown';
-                setGameDateString(`Ошибка RTDB: ${code}`);
-                setGameDate(null);
-            }
-        );
-
-        return () => {
-            clearTimeout(connectionTimeout);
-            unsubscribe();
-        };
-    }, [firebaseUser]);
-
     const signOutUser = useCallback(() => {
         signOut(auth);
     }, []);
 
-    const authValue = useMemo(() => ({
-        user: firebaseUser,
-        loading,
-        signOutUser,
-    }), [firebaseUser, loading, signOutUser]);
+    const fetchLeaderboardUsers = useCallback(async (lastVisible: DocumentSnapshot<DocumentData> | null = null): Promise<{ users: User[], lastVisible?: DocumentSnapshot<DocumentData> }> => {
+        const PAGE_SIZE = 20;
+        const usersCollection = collection(db, "users");
+        let q;
+        if (lastVisible) {
+          q = query(usersCollection, orderBy("points", "desc"), startAfter(lastVisible), limit(PAGE_SIZE));
+        } else {
+          q = query(usersCollection, orderBy("points", "desc"), limit(PAGE_SIZE));
+        }
+
+        const userSnapshot = await getDocs(q);
+        const users = await Promise.all(userSnapshot.docs.map(doc => processUserDoc(doc.data() as User)));
+        
+        const newLastVisible = userSnapshot.docs.length >= PAGE_SIZE 
+            ? userSnapshot.docs[userSnapshot.docs.length - 1]
+            : undefined;
+        
+        return {
+            users: users.filter((user): user is User => user !== null),
+            lastVisible: newLastVisible,
+        };
+    }, [processUserDoc]);
+
+    const fetchAllRewardRequests = useCallback(async (): Promise<RewardRequest[]> => {
+        const requests: RewardRequest[] = [];
+        try {
+          const q = query(collectionGroup(db, 'reward_requests'));
+          const querySnapshot = await getDocs(q);
+          querySnapshot.forEach((doc) => {
+            requests.push(doc.data() as RewardRequest);
+          });
+          return requests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        } catch (error) {
+          console.error("Error fetching all reward requests:", error);
+          throw error;
+        }
+    }, []);
     
-    // ... other useCallback hooks
+    const fetchRewardRequestsForUser = useCallback(async (userId: string, fetchLimit?: number): Promise<RewardRequest[]> => {
+        const requests: RewardRequest[] = [];
+        try {
+            const requestsRef = collection(db, 'users', userId, 'reward_requests');
+            const q = fetchLimit 
+              ? query(requestsRef, orderBy('createdAt', 'desc'), limit(fetchLimit))
+              : query(requestsRef, orderBy('createdAt', 'desc'));
+            const querySnapshot = await getDocs(q);
+            querySnapshot.forEach((doc) => {
+                requests.push(doc.data() as RewardRequest);
+            });
+            return requests;
+        } catch (error) {
+          console.error("Error fetching reward requests for user:", error);
+          throw error;
+        }
+    }, []);
+    
+    const fetchAvailableMythicCardsCount = useCallback(async (): Promise<number> => {
+        const allUsers = await fetchUsersForAdmin();
+        const allMythicCards = allFamiliars.filter(c => c.rank === 'мифический');
+        const claimedMythicIds = new Set<string>();
+
+        for (const user of allUsers) {
+            for (const character of user.characters) {
+                for (const card of (character.familiarCards || [])) {
+                    const cardDetails = familiarsById[card.id];
+                    if (cardDetails && cardDetails.rank === 'мифический') {
+                        claimedMythicIds.add(card.id);
+                    }
+                }
+            }
+        }
+        return allMythicCards.length - claimedMythicIds.size;
+    }, [fetchUsersForAdmin, allFamiliars, familiarsById]);
+
+    const addPointsToAllUsers = useCallback(async (amount: number, reason: string): Promise<{success: boolean, message: string}> => {
+        try {
+            const addPointsCallable = httpsCallable(functions, 'addPointsToAll');
+            const result = await addPointsCallable({ amount, reason });
+            const data = result.data as { success: boolean, message: string, processedCount?: number };
+
+            if (data.success) {
+                toast({
+                    title: "Баллы успешно начислены!",
+                    description: data.message || `Начислено ${data.processedCount || 'всем'} пользователям.`,
+                });
+                if (currentUser) {
+                    const updatedUser = await fetchUserById(currentUser.id);
+                    if(updatedUser) setCurrentUser(updatedUser);
+                }
+            } else {
+                 toast({
+                    variant: "destructive",
+                    title: "Ошибка при начислении баллов",
+                    description: data.message,
+                });
+            }
+            return data;
+        } catch (error) {
+            console.error("Error calling addPointsToAll cloud function", error);
+            if (error instanceof FunctionsError) {
+                return { success: false, message: error.message };
+            }
+            return { success: false, message: 'Произошла неизвестная ошибка' };
+        }
+    }, [functions, toast, currentUser, fetchUserById]);
+    
+    const updateGameSettings = useCallback(async (updates: Partial<GameSettings>) => {
+      const settingsRef = doc(db, 'game_settings', 'main');
+      await updateDoc(settingsRef, updates);
+      await fetchGameSettings(); // Refetch settings to update state
+    }, [fetchGameSettings]);
+
+    const processWeeklyBonus = useCallback(async () => {
+        const allUsers = await fetchUsersForAdmin();
+
+        await runTransaction(db, async (transaction) => {
+            const settingsRef = doc(db, 'game_settings', 'main');
+            const settingsDoc = await transaction.get(settingsRef);
+            const settings = (settingsDoc.data() || DEFAULT_GAME_SETTINGS) as GameSettings;
+            const now = new Date();
+            const lastAwarded = settings.lastWeeklyBonusAwardedAt ? new Date(settings.lastWeeklyBonusAwardedAt) : new Date(0);
+            
+            if (differenceInDays(now, lastAwarded) < 7) {
+              return; 
+            }
+            
+            transaction.update(settingsRef, { lastWeeklyBonusAwardedAt: now.toISOString() });
+            
+            for (const user of allUsers) {
+                const userRef = doc(db, "users", user.id);
+                const lastLogin = user.lastLogin ? new Date(user.lastLogin) : new Date(0);
+                
+                let updates: {[key: string]: any} = {};
+
+                if (differenceInMonths(new Date(), lastLogin) >= 1 && user.status !== 'отпуск' && user.status !== 'неактивный') {
+                    updates.status = 'неактивный';
+                }
+        
+                if (user.status === 'активный') {
+                    let totalBonus = 800;
+                    let reason = "Еженедельный бонус за активность";
+                    const popularityPoints = (user.characters || []).reduce((acc, char) => acc + (char.popularity ?? 0), 0);
+                    if (popularityPoints > 0) {
+                        totalBonus += popularityPoints;
+                        reason += ` и популярность (${popularityPoints})`;
+                    }
+                    
+                    const newPointLog: PointLog = { id: `h-weekly-${Date.now()}-${user.id.slice(0, 4)}`, date: now.toISOString(), amount: totalBonus, reason };
+                    
+                    updates.points = increment(totalBonus);
+                    updates.pointHistory = arrayUnion(newPointLog);
+                }
+
+                if (Object.keys(updates).length > 0) {
+                    transaction.update(userRef, updates);
+                }
+            }
+
+            const top3Users = allUsers.sort((a,b) => b.points - a.points).slice(0, 3);
+            for (const topUser of top3Users) {
+              if (!topUser.achievementIds?.includes(FORBES_LIST_ACHIEVEMENT_ID)) {
+                const topUserRef = doc(db, 'users', topUser.id);
+                transaction.update(topUserRef, { achievementIds: arrayUnion(FORBES_LIST_ACHIEVEMENT_ID) });
+              }
+            }
+
+        });
+        
+        await fetchGameSettings();
+        return { awardedCount: 0 };
+    }, [fetchGameSettings, fetchUsersForAdmin]);
+    
+    // ... all other useCallback hooks will be here
     const imageGeneration = useCallback(async (prompt: string): Promise<{url: string} | {error: string}> => {
         const generateImage = httpsCallable(functions, 'generateImage');
         try {
@@ -984,57 +939,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return {...request, status: newStatus};
     }, [fetchUserById, currentUser?.id]);
     
-    const fetchAllRewardRequests = useCallback(async (): Promise<RewardRequest[]> => {
-        const requests: RewardRequest[] = [];
-        try {
-          const q = query(collectionGroup(db, 'reward_requests'));
-          const querySnapshot = await getDocs(q);
-          querySnapshot.forEach((doc) => {
-            requests.push(doc.data() as RewardRequest);
-          });
-          return requests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        } catch (error) {
-          console.error("Error fetching all reward requests:", error);
-          throw error;
-        }
-    }, []);
-
-    const fetchRewardRequestsForUser = useCallback(async (userId: string, fetchLimit?: number): Promise<RewardRequest[]> => {
-        const requests: RewardRequest[] = [];
-        try {
-            const requestsRef = collection(db, 'users', userId, 'reward_requests');
-            const q = fetchLimit 
-              ? query(requestsRef, orderBy('createdAt', 'desc'), limit(fetchLimit))
-              : query(requestsRef, orderBy('createdAt', 'desc'));
-            const querySnapshot = await getDocs(q);
-            querySnapshot.forEach((doc) => {
-                requests.push(doc.data() as RewardRequest);
-            });
-            return requests;
-        } catch (error) {
-          console.error("Error fetching reward requests for user:", error);
-          throw error;
-        }
-    }, []);
-
-    const fetchAvailableMythicCardsCount = useCallback(async (): Promise<number> => {
-        const allUsers = await fetchUsersForAdmin();
-        const allMythicCards = allFamiliars.filter(c => c.rank === 'мифический');
-        const claimedMythicIds = new Set<string>();
-
-        for (const user of allUsers) {
-            for (const character of user.characters) {
-                for (const card of (character.familiarCards || [])) {
-                    const cardDetails = familiarsById[card.id];
-                    if (cardDetails && cardDetails.rank === 'мифический') {
-                        claimedMythicIds.add(card.id);
-                    }
-                }
-            }
-        }
-        return allMythicCards.length - claimedMythicIds.size;
-    }, [fetchUsersForAdmin, allFamiliars, familiarsById]);
-    
     const pullGachaForCharacter = useCallback(async (userId: string, characterId: string): Promise<{updatedUser: User, newCard: FamiliarCard, isDuplicate: boolean}> => {
         let finalUser: User | null = null;
         let newCard: FamiliarCard | null = null;
@@ -1122,111 +1026,2258 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         return { updatedUser: finalUser, newCard: newCard, isDuplicate };
     }, [fetchUsersForAdmin, allFamiliars, familiarsById, gameSettings.gachaChances]);
+  
+    const giveAnyFamiliarToCharacter = useCallback(async (userId: string, characterId: string, familiarId: string) => {
+        const user = await fetchUserById(userId);
+        if (!user) return;
 
-    const userContextValue = useMemo(() => ({
-        currentUser,
-        setCurrentUser,
-        gameDate,
-        gameDateString,
-        gameSettings,
-        lastWeeklyBonusAwardedAt: gameSettings.lastWeeklyBonusAwardedAt,
-        fetchUserById,
-        fetchCharacterById,
-        fetchUsersForAdmin,
-        fetchLeaderboardUsers,
-        fetchAllRewardRequests,
-        fetchRewardRequestsForUser,
-        fetchAvailableMythicCardsCount,
-        addPointsToUser,
-        addPointsToAllUsers,
-        updateCharacterInUser,
-        deleteCharacterFromUser,
-        updateUserStatus,
-        updateUserRole,
-        grantAchievementToUser,
-        createNewUser,
-        createRewardRequest,
-        updateRewardRequestStatus,
-        pullGachaForCharacter,
-        giveAnyFamiliarToCharacter,
-        clearPointHistoryForUser,
-        clearAllPointHistories,
-        addMoodletToCharacter,
-        removeMoodletFromCharacter,
-        clearRewardRequestsHistory,
-        removeFamiliarFromCharacter,
-        updateUser,
-        updateUserAvatar,
-        updateGameSettings,
-        processWeeklyBonus,
-        checkExtraCharacterSlots,
-        performRelationshipAction,
-        recoverFamiliarsFromHistory,
-        recoverAllFamiliars,
-        addBankPointsToCharacter,
-        transferCurrency,
-        processMonthlySalary,
-        updateCharacterWealthLevel,
-        createExchangeRequest,
-        fetchOpenExchangeRequests,
-        acceptExchangeRequest,
-        cancelExchangeRequest,
-        createFamiliarTradeRequest,
-        fetchFamiliarTradeRequestsForUser,
-        acceptFamiliarTradeRequest,
-        declineOrCancelFamiliarTradeRequest,
-        fetchAllShops,
-        fetchShopById,
-        updateShopOwner,
-        removeShopOwner,
-        updateShopDetails,
-        addShopItem,
-        updateShopItem,
-        deleteShopItem,
-        purchaseShopItem,
-        adminGiveItemToCharacter,
-        adminUpdateItemInCharacter,
-        adminDeleteItemFromCharacter,
-        consumeInventoryItem,
-        restockShopItem,
-        adminUpdateCharacterStatus,
-        adminUpdateShopLicense,
-        processAnnualTaxes,
-        sendMassMail,
-        markMailAsRead,
-        deleteMailMessage,
-        clearAllMailboxes,
-        updatePopularity,
-        clearAllPopularityHistories,
-        withdrawFromShopTill,
-        brewPotion,
-        addAlchemyRecipe,
-        updateAlchemyRecipe,
-        deleteAlchemyRecipe,
-        fetchAlchemyRecipes,
-        fetchDbFamiliars,
-        addFamiliarToDb,
-        deleteFamiliarFromDb,
-        allFamiliars,
-        familiarsById,
-        startHunt,
-        startMultipleHunts,
-        claimHuntReward,
-        claimAllHuntRewards,
-        recallHunt,
-        claimRewardsForOtherPlayer,
-        changeUserPassword,
-        changeUserEmail,
-        mergeUserData,
-        sendPlayerPing,
-        deletePlayerPing,
-        addFavoritePlayer,
-        removeFavoritePlayer,
-        imageGeneration,
-        deleteUserFromAuth,
-      }),
-      [currentUser, setCurrentUser, gameDate, gameDateString, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, allFamiliars, familiarsById, startHunt, startMultipleHunts, claimHuntReward, claimAllHuntRewards, recallHunt, claimRewardsForOtherPlayer, changeUserPassword, changeUserEmail, mergeUserData, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, imageGeneration, deleteUserFromAuth]
+        const characterIndex = user.characters.findIndex(c => c.id === characterId);
+        if (characterIndex === -1) return;
+
+        const familiar = familiarsById[familiarId];
+        if (!familiar) return;
+
+        const character = { ...user.characters[characterIndex] };
+        const familiarCards = [...(character.familiarCards || []), { id: familiarId }];
+        character.familiarCards = familiarCards;
+
+        const updatedCharacters = [...user.characters];
+        updatedCharacters[characterIndex] = character;
+        
+        const newPointLog: PointLog = {
+            id: `h-${Date.now()}-admin-give`,
+            date: new Date().toISOString(),
+            amount: 0,
+            reason: `Администратор выдал фамильяра: "${familiar.name}"`,
+            characterId: character.id,
+        };
+        const newHistory = [newPointLog, ...user.pointHistory];
+
+        await updateUser(userId, { characters: updatedCharacters, pointHistory: newHistory });
+    }, [fetchUserById, updateUser, familiarsById]);
+  
+    const clearPointHistoryForUser = useCallback(async (userId: string) => {
+        await updateUser(userId, { pointHistory: [] });
+    }, [updateUser]);
+
+    const clearAllPointHistories = useCallback(async () => {
+        const allUsers = await fetchUsersForAdmin();
+        const batch = writeBatch(db);
+        for (const user of allUsers) {
+            const userRef = doc(db, "users", user.id);
+            batch.update(userRef, { pointHistory: [] });
+        }
+        await batch.commit();
+        if (currentUser) {
+            const updatedCurrentUser = await fetchUserById(currentUser.id);
+            if (updatedCurrentUser) {
+                setCurrentUser(updatedCurrentUser);
+            }
+        }
+    }, [fetchUsersForAdmin, currentUser, fetchUserById]);
+
+    const addMoodletToCharacter = useCallback(async (userId: string, characterId: string, moodletId: string, durationInDays: number, source?: string) => {
+        const user = await fetchUserById(userId);
+        if (!user) return;
+
+        const characterIndex = user.characters.findIndex(c => c.id === characterId);
+        if (characterIndex === -1) return;
+
+        const moodletData = MOODLETS_DATA[moodletId as keyof typeof MOODLETS_DATA];
+        if (!moodletData) return;
+
+        const expiryDate = new Date();
+        expiryDate.setDate(expiryDate.getDate() + durationInDays);
+
+        const newMoodlet: Moodlet = {
+            id: moodletId,
+            ...moodletData,
+            expiresAt: expiryDate.toISOString(),
+            ...(source && { source }),
+        };
+
+        const character = { ...user.characters[characterIndex] };
+        const existingMoodlets = (character.moodlets || []).filter(m => m.id !== moodletId);
+        character.moodlets = [...existingMoodlets, newMoodlet];
+
+        const updatedCharacters = [...user.characters];
+        updatedCharacters[characterIndex] = character;
+        
+        await updateUser(userId, { characters: updatedCharacters });
+    }, [fetchUserById, updateUser]);
+
+    const removeMoodletFromCharacter = useCallback(async (userId: string, characterId: string, moodletId: string) => {
+          const user = await fetchUserById(userId);
+          if (!user) return;
+
+          const characterIndex = user.characters.findIndex(c => c.id === characterId);
+          if (characterIndex === -1) return;
+
+          const character = { ...user.characters[characterIndex] };
+          character.moodlets = (character.moodlets || []).filter(m => m.id !== moodletId);
+
+          const updatedCharacters = [...user.characters];
+          updatedCharacters[characterIndex] = character;
+          
+          await updateUser(userId, { characters: updatedCharacters });
+    }, [fetchUserById, updateUser]);
+
+    const clearRewardRequestsHistory = useCallback(async () => {
+        const allUsers = await fetchUsersForAdmin();
+        const batch = writeBatch(db);
+
+        for (const user of allUsers) {
+          const requestsQuery = query(collection(db, `users/${user.id}/reward_requests`), where('status', '!=', 'в ожидании'));
+          const requestSnapshot = await getDocs(requestsQuery);
+          requestSnapshot.forEach(doc => {
+            batch.delete(doc.ref);
+          });
+        }
+
+        await batch.commit();
+    }, [fetchUsersForAdmin]);
+  
+    const removeFamiliarFromCharacter = useCallback(async (userId: string, characterId: string, cardId: string) => {
+        const user = await fetchUserById(userId);
+        if (!user) throw new Error("User not found");
+
+        const characterIndex = user.characters.findIndex(c => c.id === characterId);
+        if (characterIndex === -1) throw new Error("Character not found");
+
+        const character = { ...user.characters[characterIndex] };
+        const ownedCards = character.familiarCards || [];
+
+        const cardIndexToRemove = ownedCards.findIndex(card => card.id === cardId);
+        if (cardIndexToRemove === -1) throw new Error("Card not found on character");
+
+        const updatedCards = [...ownedCards];
+        updatedCards.splice(cardIndexToRemove, 1);
+        character.familiarCards = updatedCards;
+
+        const updatedCharacters = [...user.characters];
+        updatedCharacters[characterIndex] = character;
+
+        await updateUser(userId, { characters: updatedCharacters });
+    }, [fetchUserById, updateUser]);
+
+    const checkExtraCharacterSlots = useCallback(async (userId: string): Promise<number> => {
+        const requestsRef = collection(db, 'users', userId, 'reward_requests');
+        const q = query(requestsRef, where('rewardId', '==', EXTRA_CHARACTER_REWARD_ID), where('status', '==', 'одобрено'));
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.size;
+    }, []);
+
+    const performRelationshipAction = useCallback(async (params: PerformRelationshipActionParams) => {
+        const { sourceUserId, sourceCharacterId, targetCharacterId, actionType, description, itemId, itemCategory, content } = params;
+
+        await runTransaction(db, async (transaction) => {
+            const sourceUserRef = doc(db, "users", sourceUserId);
+            const sourceUserDoc = await transaction.get(sourceUserRef);
+            if (!sourceUserDoc.exists()) throw new Error("Исходный пользователь не найден.");
+            const sourceUserData = sourceUserDoc.data() as User;
+            
+            let targetUserDoc: any = null, targetUserData: User | null = null, targetUserId: string | null = null;
+            const allUsersSnapshot = await getDocs(collection(db, "users"));
+            allUsersSnapshot.forEach(doc => {
+                const user = doc.data() as User;
+                if (user.characters?.some(c => c.id === targetCharacterId)) {
+                    targetUserDoc = doc;
+                    targetUserData = user;
+                    targetUserId = doc.id;
+                }
+            });
+            if (!targetUserDoc || !targetUserData || !targetUserId) throw new Error("Владелец целевого персонажа не найден.");
+            
+            const targetUserFromTx = await transaction.get(targetUserDoc.ref);
+            if (!targetUserFromTx.exists()) throw new Error("Целевой пользователь не найден в транзакции.");
+            targetUserData = targetUserFromTx.data() as User;
+
+            const sourceCharIndex = sourceUserData.characters.findIndex(c => c.id === sourceCharacterId);
+            if (sourceCharIndex === -1) throw new Error("Исходный персонаж не найден.");
+            const sourceChar = sourceUserData.characters[sourceCharIndex];
+
+            const targetCharIndex = targetUserData.characters.findIndex(c => c.id === targetCharacterId);
+            if (targetCharIndex === -1) throw new Error("Целевой персонаж не найден.");
+            const targetChar = targetUserData.characters[targetCharIndex];
+            
+            if (actionType === 'подарок') {
+                if (!itemId || !itemCategory) throw new Error("Для подарка требуется указать предмет.");
+                
+                const sourceInventory = sourceChar.inventory || initialFormData.inventory;
+                const categoryItems = (sourceInventory[itemCategory] as InventoryItem[] | undefined) || [];
+                const itemIndex = categoryItems.findIndex(i => i.id === itemId);
+
+                if (itemIndex === -1) throw new Error("Предмет для подарка не найден в инвентаре.");
+                const itemToGift = { ...categoryItems[itemIndex] };
+
+                if (itemToGift.quantity > 1) {
+                    categoryItems[itemIndex].quantity -= 1;
+                } else {
+                    categoryItems.splice(itemIndex, 1);
+                }
+                sourceInventory[itemCategory] = categoryItems;
+
+                const targetInventory = targetChar.inventory || initialFormData.inventory;
+                const targetCategoryItems = (targetInventory[itemCategory] as InventoryItem[] | undefined) || [];
+                const existingTargetItemIndex = targetCategoryItems.findIndex(invItem => invItem.name === itemToGift.name);
+
+                if (existingTargetItemIndex > -1) {
+                     targetCategoryItems[existingTargetItemIndex].quantity += 1;
+                } else {
+                    targetCategoryItems.push({ ...itemToGift, id: `inv-item-${Date.now()}`, quantity: 1 });
+                }
+                targetInventory[itemCategory] = targetCategoryItems;
+                
+                sourceChar.inventory = sourceInventory;
+                targetChar.inventory = targetInventory;
+
+                const giftMail: MailMessage = {
+                    id: `mail-gift-${Date.now()}`,
+                    senderUserId: sourceUserId,
+                    senderCharacterName: sourceChar.name,
+                    senderCharacterId: sourceChar.id,
+                    recipientUserId: targetUserId,
+                    recipientCharacterId: targetCharacterId,
+                    recipientCharacterName: targetChar.name,
+                    subject: `Вам пришел подарок!`,
+                    content: `${sourceChar.name} отправил(а) вам подарок: "${itemToGift.name}".`,
+                    sentAt: new Date().toISOString(),
+                    isRead: false,
+                    type: 'personal' as const,
+                };
+                targetUserData.mail = [...(targetUserData.mail || []), giftMail];
+
+            } else if (actionType === 'письмо') {
+                 if (!content) throw new Error("Содержание письма не может быть пустым.");
+
+                const newMail: MailMessage = {
+                    id: `mail-${Date.now()}`,
+                    senderUserId: sourceUserId,
+                    senderCharacterName: sourceChar.name,
+                    senderCharacterId: sourceChar.id,
+                    recipientUserId: targetUserId,
+                    recipientCharacterId: targetCharacterId,
+                    recipientCharacterName: targetChar.name,
+                    subject: `Письмо от ${sourceChar.name}`,
+                    content: content,
+                    sentAt: new Date().toISOString(),
+                    isRead: false,
+                    type: 'personal' as const,
+                };
+                targetUserData.mail = [...(targetUserData.mail || []), newMail];
+            }
+
+            const updateRelationship = (character: Character, otherCharId: string, myCharId: string, points: number, action: RelationshipAction) => {
+                const relIndex = (character.relationships || []).findIndex(r => r.targetCharacterId === otherCharId);
+                if (relIndex === -1) return; 
+
+                const relationship = character.relationships[relIndex];
+                relationship.points += points;
+                const now = new Date().toISOString();
+                
+                if (!relationship.cooldowns) relationship.cooldowns = {};
+                if (!relationship.cooldowns[myCharId]) relationship.cooldowns[myCharId] = {};
+                
+                if (action.type === 'подарок') relationship.cooldowns[myCharId].lastGiftSentAt = now;
+                if (action.type === 'письмо') relationship.cooldowns[myCharId].lastLetterSentAt = now;
+                
+                relationship.history = [...(relationship.history || []), action];
+            };
+
+            const newAction: RelationshipAction = {
+                id: `act-${Date.now()}`, type: actionType, date: new Date().toISOString(), description, status: 'confirmed',
+            };
+            const pointsToAdd = RELATIONSHIP_POINTS_CONFIG[actionType];
+
+            updateRelationship(sourceChar, targetCharacterId, sourceCharacterId, pointsToAdd, newAction);
+            updateRelationship(targetChar, sourceCharacterId, sourceCharacterId, pointsToAdd, newAction);
+            
+            const sanitizedSourceUser = sanitizeObjectForFirestore(sourceUserData);
+            const sanitizedTargetUser = sanitizeObjectForFirestore(targetUserData);
+
+            transaction.update(sourceUserRef, { characters: sanitizedSourceUser.characters });
+            transaction.update(targetUserDoc.ref, { characters: sanitizedTargetUser.characters, mail: sanitizedTargetUser.mail });
+        });
+
+        if (currentUser && currentUser.id === sourceUserId) {
+            const updatedUser = await fetchUserById(sourceUserId);
+            if(updatedUser) setCurrentUser(updatedUser);
+        }
+    }, [currentUser, fetchUserById, initialFormData]);
+
+    const recoverFamiliarsFromHistory = useCallback(async (userId: string, characterId: string, oldCharacterName?: string): Promise<number> => {
+        const user = await fetchUserById(userId);
+        if (!user) throw new Error("User not found for recovery");
+
+        const character = user.characters.find(c => c.id === characterId);
+        if (!character) throw new Error("Character not found for recovery");
+
+        const namesToSearch = new Set<string>([character.name]);
+        if (oldCharacterName) {
+            namesToSearch.add(oldCharacterName);
+        }
+
+        const historicalCardWins = new Set<string>();
+        const gachaLogRegex = /Рулетка: получена карта (.+?) \((.+?)\)/;
+
+        user.pointHistory.forEach(log => {
+            if (log.characterId && character.id === log.characterId) {
+                const match = log.reason.match(gachaLogRegex);
+                if (match) {
+                    const cardName = match[1].trim();
+                    const foundCard = allFamiliars.find(c => c.name === cardName);
+                    if (foundCard) {
+                        historicalCardWins.add(foundCard.id);
+                    }
+                }
+            }
+        });
+        
+        const currentOwnedCardIds = new Set((character.familiarCards || []).map(c => c.id));
+        const cardsToAdd: { id: string }[] = [];
+
+        historicalCardWins.forEach(cardId => {
+            if (!currentOwnedCardIds.has(cardId)) {
+                cardsToAdd.push({ id: cardId });
+            }
+        });
+
+        if (cardsToAdd.length > 0) {
+            const characterIndex = user.characters.findIndex(c => c.id === characterId);
+            if (characterIndex !== -1) {
+                const updatedCharacter = { ...character };
+                updatedCharacter.familiarCards = [...(updatedCharacter.familiarCards || []), ...cardsToAdd];
+
+                const updatedCharacters = [...user.characters];
+                updatedCharacters[characterIndex] = updatedCharacter;
+                
+                await updateUser(userId, { characters: updatedCharacters });
+            }
+        }
+
+        return cardsToAdd.length;
+    }, [fetchUserById, updateUser, allFamiliars]);
+
+    const recoverAllFamiliars = useCallback(async (): Promise<{ totalRecovered: number; usersAffected: number }> => {
+        const allUsers = await fetchUsersForAdmin();
+        let totalRecovered = 0;
+        let usersAffected = 0;
+        
+        const batch = writeBatch(db);
+
+        for (const user of allUsers) {
+            let userHasChanges = false;
+            const updatedCharacters = [...user.characters];
+
+            for (let i = 0; i < updatedCharacters.length; i++) {
+                const character = updatedCharacters[i];
+                const gachaLogRegex = /Рулетка: получена карта (.+?) \((.+?)\)/;
+                const historicalCardWins = new Set<string>();
+
+                user.pointHistory.forEach(log => {
+                    if (log.characterId && character.id === log.characterId) {
+                        const match = log.reason.match(gachaLogRegex);
+                        if (match) {
+                            const cardName = match[1].trim();
+                            const foundCard = allFamiliars.find(c => c.name === cardName);
+                            if (foundCard) {
+                                historicalCardWins.add(foundCard.id);
+                            }
+                        }
+                    }
+                });
+
+                const currentOwnedCardIds = new Set((character.familiarCards || []).map(c => c.id));
+                const cardsToAdd: OwnedFamiliarCard[] = [];
+                historicalCardWins.forEach(cardId => {
+                    if (!currentOwnedCardIds.has(cardId)) {
+                        cardsToAdd.push({ id: cardId });
+                    }
+                });
+                
+                if (cardsToAdd.length > 0) {
+                    updatedCharacters[i].familiarCards = [...(character.familiarCards || []), ...cardsToAdd];
+                    totalRecovered += cardsToAdd.length;
+                    userHasChanges = true;
+                }
+            }
+
+            if (userHasChanges) {
+                const userRef = doc(db, 'users', user.id);
+                batch.update(userRef, { characters: updatedCharacters });
+                usersAffected++;
+            }
+        }
+
+        await batch.commit();
+        
+        if (currentUser) {
+           const updatedUser = await fetchUserById(currentUser.id);
+           if(updatedUser) setCurrentUser(updatedUser);
+        }
+        
+        return { totalRecovered, usersAffected };
+    }, [fetchUsersForAdmin, fetchUserById, currentUser, allFamiliars]);
+
+    const updateCharacterWealthLevel = useCallback(async (userId: string, characterId: string, wealthLevel: WealthLevel) => {
+        const user = await fetchUserById(userId);
+        if (!user) return;
+
+        const characterIndex = user.characters.findIndex(c => c.id === characterId);
+        if (characterIndex === -1) return;
+
+        const updatedCharacters = [...user.characters];
+        updatedCharacters[characterIndex] = { ...updatedCharacters[characterIndex], wealthLevel };
+        
+        await updateUser(userId, { characters: updatedCharacters });
+    }, [fetchUserById, updateUser]);
+
+    const addBankPointsToCharacter = useCallback(async (userId: string, characterId: string, amount: Partial<Omit<BankAccount, 'history'>>, reason: string) => {
+        const user = await fetchUserById(userId);
+        if (!user) throw new Error("User not found");
+
+        const characterIndex = user.characters.findIndex(c => c.id === characterId);
+        if (characterIndex === -1) throw new Error("Character not found");
+
+        const updatedCharacters = [...user.characters];
+        const character = { ...updatedCharacters[characterIndex] };
+        
+        const currentBalance = character.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
+        
+        currentBalance.platinum = (currentBalance.platinum || 0) + (amount.platinum || 0);
+        currentBalance.gold = (currentBalance.gold || 0) + (amount.gold || 0);
+        currentBalance.silver = (currentBalance.silver || 0) + (amount.silver || 0);
+        currentBalance.copper = (currentBalance.copper || 0) + (amount.copper || 0);
+
+        const newTransaction: BankTransaction = {
+            id: `txn-${Date.now()}`,
+            date: new Date().toISOString(),
+            reason,
+            amount,
+        };
+        currentBalance.history = [newTransaction, ...(currentBalance.history || [])];
+
+        character.bankAccount = currentBalance;
+        updatedCharacters[characterIndex] = character;
+        
+        await updateUser(userId, { characters: updatedCharacters });
+    }, [fetchUserById, updateUser]);
+
+    const transferCurrency = useCallback(async (sourceUserId: string, sourceCharacterId: string, targetCharacterId: string, amount: Partial<Omit<BankAccount, 'history'>>, reason: string) => {
+        await runTransaction(db, async (transaction) => {
+            const sourceUserRef = doc(db, "users", sourceUserId);
+            const sourceUserDoc = await transaction.get(sourceUserRef);
+            if (!sourceUserDoc.exists()) throw new Error("Исходный пользователь не найден.");
+            const sourceUserData = sourceUserDoc.data() as User;
+
+            let targetUserDoc: any = null, targetUserData: User | null = null, targetUserId: string | null = null;
+            const allUsersSnapshot = await getDocs(collection(db, "users"));
+            allUsersSnapshot.forEach(doc => {
+                const user = doc.data() as User;
+                if (user.characters?.some(c => c.id === targetCharacterId)) {
+                    targetUserDoc = doc;
+                    targetUserData = user;
+                    targetUserId = doc.id;
+                }
+            });
+            if (!targetUserDoc || !targetUserData || !targetUserId) throw new Error("Владелец целевого персонажа не найден.");
+
+            const targetUserFromTx = await transaction.get(targetUserDoc.ref);
+            if (!targetUserFromTx.exists()) throw new Error("Целевой пользователь не найден в транзакции.");
+            targetUserData = targetUserFromTx.data() as User;
+
+            const sourceCharIndex = sourceUserData.characters.findIndex(c => c.id === sourceCharacterId);
+            if (sourceCharIndex === -1) throw new Error("Исходный персонаж не найден.");
+            const sourceChar = sourceUserData.characters[sourceCharIndex];
+            const sourceBalance = sourceChar.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 };
+            if (
+                sourceBalance.platinum < (amount.platinum || 0) ||
+                sourceBalance.gold < (amount.gold || 0) ||
+                sourceBalance.silver < (amount.silver || 0) ||
+                sourceBalance.copper < (amount.copper || 0)
+            ) {
+                throw new Error("Недостаточно средств у отправителя.");
+            }
+
+            const targetCharIndex = targetUserData.characters.findIndex(c => c.id === targetCharacterId);
+            if (targetCharIndex === -1) throw new Error("Целевой персонаж не найден.");
+            const targetChar = targetUserData.characters[targetCharIndex];
+            
+            const now = new Date().toISOString();
+            const reasonText = reason || 'Прямой перевод';
+
+            sourceChar.bankAccount.platinum -= (amount.platinum || 0);
+            sourceChar.bankAccount.gold -= (amount.gold || 0);
+            sourceChar.bankAccount.silver -= (amount.silver || 0);
+            sourceChar.bankAccount.copper -= (amount.copper || 0);
+            const sourceTx: BankTransaction = { id: `txn-send-${Date.now()}`, date: now, reason: `Перевод для ${targetChar.name}: ${reasonText}`, amount: { platinum: -(amount.platinum || 0), gold: -(amount.gold || 0), silver: -(amount.silver || 0), copper: -(amount.copper || 0) } };
+            sourceChar.bankAccount.history = [sourceTx, ...(sourceChar.bankAccount.history || [])];
+
+            targetChar.bankAccount.platinum += (amount.platinum || 0);
+            targetChar.bankAccount.gold += (amount.gold || 0);
+            targetChar.bankAccount.silver += (amount.silver || 0);
+            targetChar.bankAccount.copper += (amount.copper || 0);
+            const targetTx: BankTransaction = { id: `txn-recv-${Date.now()}`, date: now, reason: `Перевод от ${sourceChar.name}: ${reasonText}`, amount: { platinum: (amount.platinum || 0), gold: (amount.gold || 0), silver: (amount.silver || 0), copper: (amount.copper || 0) } };
+            targetChar.bankAccount.history = [targetTx, ...(targetChar.bankAccount.history || [])];
+
+            const sanitizedSourceUser = sanitizeObjectForFirestore(sourceUserData);
+            const sanitizedTargetUser = sanitizeObjectForFirestore(targetUserData);
+
+            transaction.update(sourceUserRef, { characters: sanitizedSourceUser.characters });
+            transaction.update(targetUserDoc.ref, { characters: sanitizedTargetUser.characters });
+        });
+
+        if (currentUser && currentUser.id === sourceUserId) {
+            const updatedUser = await fetchUserById(sourceUserId);
+            if(updatedUser) setCurrentUser(updatedUser);
+        }
+    }, [currentUser, fetchUserById]);
+
+
+    const processMonthlySalary = useCallback(async () => {
+        const allUsers = await fetchUsersForAdmin();
+        const batch = writeBatch(db);
+
+        for (const user of allUsers) {
+            let hasChanges = false;
+            const updatedCharacters = user.characters.map(character => {
+                const wealthInfo = WEALTH_LEVELS.find(w => w.name === character.wealthLevel);
+                if (!wealthInfo || !wealthInfo.salary) return character;
+
+                const salary = wealthInfo.salary;
+                
+                let newBalance = { ...(character.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] }) };
+                newBalance.platinum = (newBalance.platinum || 0) + (salary.platinum || 0);
+                newBalance.gold = (newBalance.gold || 0) + (salary.gold || 0);
+                newBalance.silver = (newBalance.silver || 0) + (salary.silver || 0);
+                newBalance.copper = (newBalance.copper || 0) + (salary.copper || 0);
+                
+                const newTransaction: BankTransaction = {
+                    id: `txn-salary-${Date.now()}`,
+                    date: new Date().toISOString(),
+                    reason: 'Ежемесячная зарплата',
+                    amount: salary,
+                };
+                newBalance.history = [newTransaction, ...(newBalance.history || [])];
+
+                hasChanges = true;
+                return { ...character, bankAccount: newBalance };
+            });
+
+            if (hasChanges) {
+                const userRef = doc(db, "users", user.id);
+                batch.update(userRef, { characters: updatedCharacters });
+            }
+        }
+        await batch.commit();
+
+    }, [fetchUsersForAdmin]);
+
+
+  const createExchangeRequest = useCallback(async (creatorUserId: string, creatorCharacterId: string, fromCurrency: Currency, fromAmount: number, toCurrency: Currency, toAmount: number) => {
+        await runTransaction(db, async (transaction) => {
+            const userRef = doc(db, "users", creatorUserId);
+            const userDoc = await transaction.get(userRef);
+            if (!userDoc.exists()) throw new Error("Пользователь не найден.");
+            
+            const userData = userDoc.data() as User;
+            const charIndex = userData.characters.findIndex(c => c.id === creatorCharacterId);
+            if (charIndex === -1) throw new Error("Персонаж не найден.");
+            
+            const character = userData.characters[charIndex];
+            const bankAccount = character.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
+            if (bankAccount[fromCurrency] < fromAmount) {
+                throw new Error("Недостаточно средств для создания запроса.");
+            }
+            
+            bankAccount[fromCurrency] -= fromAmount;
+            
+            const newTransaction: BankTransaction = {
+              id: `txn-exchange-create-${Date.now()}`,
+              date: new Date().toISOString(),
+              reason: 'Создание запроса на обмен',
+              amount: { [fromCurrency]: -fromAmount }
+            };
+            bankAccount.history = [newTransaction, ...(bankAccount.history || [])];
+            character.bankAccount = bankAccount;
+
+            const newRequest: Omit<ExchangeRequest, 'id'> = {
+                creatorUserId,
+                creatorName: userData.name,
+                creatorCharacterId,
+                creatorCharacterName: character.name,
+                fromCurrency,
+                fromAmount,
+                toCurrency,
+                toAmount,
+                status: 'open',
+                createdAt: new Date().toISOString(),
+            };
+
+            const requestsCollection = collection(db, "exchange_requests");
+            const newDocRef = doc(requestsCollection); 
+            transaction.set(newDocRef, newRequest);
+            transaction.update(userRef, { characters: userData.characters });
+        });
+        const updatedUser = await fetchUserById(creatorUserId);
+        if (updatedUser) setCurrentUser(updatedUser);
+    }, [fetchUserById, currentUser?.id]);
+
+ const fetchOpenExchangeRequests = useCallback(async (): Promise<ExchangeRequest[]> => {
+        const requestsCollection = collection(db, "exchange_requests");
+        const q = query(requestsCollection, where('status', '==', 'open'), orderBy('createdAt', 'desc'));
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ExchangeRequest));
+    }, []);
+
+  const acceptExchangeRequest = useCallback(async (acceptorUserId: string, acceptorCharacterId: string, request: ExchangeRequest) => {
+        await runTransaction(db, async (transaction) => {
+            const requestRef = doc(db, "exchange_requests", request.id);
+            const requestDoc = await transaction.get(requestRef);
+            if (!requestDoc.exists() || requestDoc.data().status !== 'open') {
+                throw new Error("Запрос больше не действителен.");
+            }
+            
+            const acceptorUserRef = doc(db, "users", acceptorUserId);
+            const acceptorUserDoc = await transaction.get(acceptorUserRef);
+            if (!acceptorUserDoc.exists()) throw new Error("Принимающий пользователь не найден.");
+            
+            const acceptorUserData = acceptorUserDoc.data() as User;
+            const acceptorCharIndex = acceptorUserData.characters.findIndex(c => c.id === acceptorCharacterId);
+            
+            if (acceptorCharIndex === -1) {
+                 throw new Error("Выбранный персонаж не найден.");
+            }
+            const acceptorChar = acceptorUserData.characters[acceptorCharIndex];
+
+            if ((acceptorChar.bankAccount?.[request.toCurrency] ?? 0) < request.toAmount) {
+                 throw new Error("У выбранного персонажа недостаточно средств.");
+            }
+            
+            const creatorUserRef = doc(db, "users", request.creatorUserId);
+            const creatorUserDoc = await transaction.get(creatorUserRef);
+            if (!creatorUserDoc.exists()) throw new Error("Создатель запроса не найден.");
+            const creatorUserData = creatorUserDoc.data() as User;
+            const creatorCharIndex = creatorUserData.characters.findIndex(c => c.id === request.creatorCharacterId);
+            if (creatorCharIndex === -1) throw new Error("Персонаж создателя запроса не найден.");
+
+            const acceptorBankAccount = acceptorChar.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
+            acceptorBankAccount[request.toCurrency] -= request.toAmount;
+            acceptorBankAccount[request.fromCurrency] = (acceptorBankAccount[request.fromCurrency] || 0) + request.fromAmount;
+            const acceptorTx: BankTransaction = { id: `txn-accept-${Date.now()}`, date: new Date().toISOString(), reason: `Обмен с ${request.creatorCharacterName}`, amount: { [request.toCurrency]: -request.toAmount, [request.fromCurrency]: request.fromAmount }};
+            acceptorBankAccount.history = [acceptorTx, ...(acceptorBankAccount.history || [])];
+            acceptorChar.bankAccount = acceptorBankAccount;
+
+            const creatorChar = creatorUserData.characters[creatorCharIndex];
+            const creatorBankAccount = creatorChar.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
+            creatorBankAccount[request.toCurrency] = (creatorBankAccount[request.toCurrency] || 0) + request.toAmount;
+            const creatorTx: BankTransaction = { id: `txn-complete-${Date.now()}`, date: new Date().toISOString(), reason: `Обмен с ${acceptorChar.name}`, amount: { [request.toCurrency]: request.toAmount }};
+            creatorBankAccount.history = [creatorTx, ...(creatorBankAccount.history || [])];
+            creatorChar.bankAccount = creatorBankAccount;
+            
+            transaction.update(acceptorUserRef, { characters: acceptorUserData.characters });
+            transaction.update(creatorUserRef, { characters: creatorUserData.characters });
+            transaction.update(requestRef, { status: 'closed', acceptorCharacterId: acceptorCharacterId, acceptorCharacterName: acceptorChar.name });
+        });
+        
+        if (currentUser) {
+          if (currentUser.id === acceptorUserId || currentUser.id === request.creatorUserId) {
+            const updatedUser = await fetchUserById(currentUser.id);
+            if (updatedUser) setCurrentUser(updatedUser);
+          }
+        }
+    }, [currentUser, fetchUserById]);
+
+  const cancelExchangeRequest = useCallback(async (request: ExchangeRequest) => {
+    await runTransaction(db, async (transaction) => {
+        const requestRef = doc(db, "exchange_requests", request.id);
+        const requestDoc = await transaction.get(requestRef);
+        if (!requestDoc.exists() || requestDoc.data().status !== 'open') {
+            throw new Error("Запрос уже не действителен.");
+        }
+
+        const creatorUserRef = doc(db, "users", request.creatorUserId);
+        const creatorUserDoc = await transaction.get(creatorUserRef);
+        if (!creatorUserDoc.exists()) throw new Error("Создатель запроса не найден.");
+        const creatorUserData = creatorUserDoc.data() as User;
+        const creatorCharIndex = creatorUserData.characters.findIndex(c => c.id === request.creatorCharacterId);
+        if (creatorCharIndex === -1) throw new Error("Персонаж создателя запроса не найден.");
+
+        const creatorChar = creatorUserData.characters[creatorCharIndex];
+        const bankAccount = creatorChar.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
+        bankAccount[request.fromCurrency] = (bankAccount[request.fromCurrency] || 0) + request.fromAmount;
+        
+        const refundTx: BankTransaction = { id: `txn-cancel-${Date.now()}`, date: new Date().toISOString(), reason: 'Отмена запроса на обмен', amount: { [request.fromCurrency]: request.fromAmount }};
+        bankAccount.history = [refundTx, ...(bankAccount.history || [])];
+        creatorChar.bankAccount = bankAccount;
+        
+        transaction.update(creatorUserRef, { characters: creatorUserData.characters });
+        transaction.delete(requestRef);
+    });
+    
+    if (currentUser?.id === request.creatorUserId) {
+       const updatedUser = await fetchUserById(request.creatorUserId);
+       if(updatedUser) setCurrentUser(updatedUser);
+    }
+  }, [currentUser, fetchUserById]);
+
+  const createFamiliarTradeRequest = useCallback(async (initiatorCharacterId: string, initiatorFamiliarId: string, targetCharacterId: string, targetFamiliarId: string) => {
+        if (!currentUser) throw new Error("Пользователь не авторизован.");
+        
+        const allUsers = await fetchUsersForAdmin();
+        
+        const initiatorChar = currentUser.characters.find(c => c.id === initiatorCharacterId);
+        if (!initiatorChar) throw new Error("Персонаж-инициатор не найден.");
+
+        const initiatorFamiliar = FAMILIARS_BY_ID[initiatorFamiliarId];
+        if (!initiatorFamiliar) throw new Error("Фамильяр инициатора не найден.");
+
+        let targetUser: User | undefined;
+        let targetChar: Character | undefined;
+
+        for (const user of allUsers) {
+            const foundChar = user.characters.find(c => c.id === targetCharacterId);
+            if (foundChar) {
+                targetUser = user;
+                targetChar = foundChar;
+                break;
+            }
+        }
+        if (!targetUser || !targetChar) throw new Error("Целевой персонаж или его владелец не найдены.");
+        
+        const targetFamiliar = FAMILIARS_BY_ID[targetFamiliarId];
+        if (!targetFamiliar) throw new Error("Целевой фамильяр не найден.");
+
+        const ranksAreDifferent = initiatorFamiliar.rank !== targetFamiliar.rank;
+        const isMythicEventTrade =
+          (initiatorFamiliar.rank === 'мифический' && targetFamiliar.rank === 'ивентовый') ||
+          (initiatorFamiliar.rank === 'ивентовый' && targetFamiliar.rank === 'мифический');
+
+        if (ranksAreDifferent && !isMythicEventTrade) {
+            throw new Error("Обмен возможен только между фамильярами одного ранга, или между мифическим и ивентовым.");
+        }
+        
+        const newRequest: Omit<FamiliarTradeRequest, 'id'> = {
+            initiatorUserId: currentUser.id,
+            initiatorCharacterId,
+            initiatorCharacterName: initiatorChar.name,
+            initiatorFamiliarId,
+            initiatorFamiliarName: initiatorFamiliar.name,
+            targetUserId: targetUser.id,
+            targetCharacterId,
+            targetCharacterName: targetChar.name,
+            targetFamiliarId,
+            targetFamiliarName: targetFamiliar.name,
+            rank: initiatorFamiliar.rank,
+            status: 'в ожидании',
+            createdAt: new Date().toISOString(),
+        };
+
+        const requestsCollection = collection(db, "familiar_trade_requests");
+        await addDoc(requestsCollection, newRequest);
+
+    }, [currentUser, fetchUsersForAdmin]);
+
+  const fetchFamiliarTradeRequestsForUser = useCallback(async (): Promise<FamiliarTradeRequest[]> => {
+        if (!currentUser) return [];
+        
+        const requestsCollection = collection(db, "familiar_trade_requests");
+
+        const outgoingQuery = query(
+          requestsCollection,
+          where('initiatorUserId', '==', currentUser.id),
+          where('status', '==', 'в ожидании')
+        );
+        
+        const incomingQuery = query(
+          requestsCollection,
+          where('targetUserId', '==', currentUser.id),
+          where('status', '==', 'в ожидании')
+        );
+
+        const [outgoingSnapshot, incomingSnapshot] = await Promise.all([
+          getDocs(outgoingQuery),
+          getDocs(incomingQuery)
+        ]);
+
+        const requests: FamiliarTradeRequest[] = [];
+        outgoingSnapshot.forEach(doc => requests.push({ id: doc.id, ...doc.data() } as FamiliarTradeRequest));
+        incomingSnapshot.forEach(doc => requests.push({ id: doc.id, ...doc.data() } as FamiliarTradeRequest));
+
+        return requests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }, [currentUser]);
+
+  const acceptFamiliarTradeRequest = useCallback(async (request: FamiliarTradeRequest) => {
+         await runTransaction(db, async (transaction) => {
+            const requestRef = doc(db, "familiar_trade_requests", request.id);
+            const requestDoc = await transaction.get(requestRef);
+            if (!requestDoc.exists() || requestDoc.data().status !== 'в ожидании') {
+                throw new Error("Запрос больше не действителен.");
+            }
+
+            const initiatorUserRef = doc(db, "users", request.initiatorUserId);
+            const targetUserRef = doc(db, "users", request.targetUserId);
+
+            const [initiatorDoc, targetDoc] = await Promise.all([
+                transaction.get(initiatorUserRef),
+                transaction.get(targetUserRef)
+            ]);
+            
+            if (!initiatorDoc.exists() || !targetDoc.exists()) {
+                throw new Error("Один из пользователей не найден.");
+            }
+            
+            const initiatorData = initiatorDoc.data() as User;
+            const targetData = targetDoc.data() as User;
+
+            const initiatorCharIndex = initiatorData.characters.findIndex(c => c.id === request.initiatorCharacterId);
+            const targetCharIndex = targetData.characters.findIndex(c => c.id === request.targetCharacterId);
+
+            if (initiatorCharIndex === -1 || targetCharIndex === -1) {
+                throw new Error("Один из персонажей не найден.");
+            }
+
+            const initiatorChar = initiatorData.characters[initiatorCharIndex];
+            const initiatorCardIndex = (initiatorChar.familiarCards || []).findIndex(c => c.id === request.initiatorFamiliarId);
+            if (initiatorCardIndex === -1) throw new Error(`Фамильяр ${request.initiatorFamiliarName} не найден у ${request.initiatorCharacterName}.`);
+            initiatorChar.familiarCards.splice(initiatorCardIndex, 1);
+
+            const targetChar = targetData.characters[targetCharIndex];
+            const targetCardIndex = (targetChar.familiarCards || []).findIndex(c => c.id === request.targetFamiliarId);
+            if (targetCardIndex === -1) throw new Error(`Фамильяр ${request.targetFamiliarName} не найден у ${request.targetCharacterName}.`);
+            targetChar.familiarCards.splice(targetCardIndex, 1);
+
+            initiatorChar.familiarCards.push({ id: request.targetFamiliarId });
+            targetChar.familiarCards.push({ id: request.targetFamiliarId });
+
+            transaction.update(initiatorUserRef, { characters: initiatorData.characters });
+            transaction.update(targetUserRef, { characters: targetData.characters });
+            transaction.update(requestRef, { status: 'принято' });
+        });
+
+        if (currentUser && (currentUser.id === request.initiatorUserId || currentUser.id === request.targetUserId)) {
+            const updatedUser = await fetchUserById(currentUser.id);
+            if (updatedUser) setCurrentUser(updatedUser);
+        }
+    }, [currentUser, fetchUserById]);
+
+  const declineOrCancelFamiliarTradeRequest = useCallback(async (request: FamiliarTradeRequest, status: 'отклонено' | 'отменено') => {
+          const requestRef = doc(db, "familiar_trade_requests", request.id);
+          await updateDoc(requestRef, { status });
+    }, []);
+
+  const fetchAllShops = useCallback(async (): Promise<Shop[]> => {
+          const shopsCollection = collection(db, "shops");
+          const snapshot = await getDocs(shopsCollection);
+          const dbShops = new Map<string, Partial<Shop>>();
+          snapshot.forEach(doc => {
+              dbShops.set(doc.id, doc.data());
+          });
+
+          const allShopsWithData = ALL_SHOPS.map(baseShop => {
+              const dbData = dbShops.get(baseShop.id);
+              return { ...baseShop, ...(dbData || {}) };
+          });
+          
+          return allShopsWithData;
+    }, []);
+
+  const fetchShopById = useCallback(async (shopId: string): Promise<Shop | null> => {
+          const baseShop = SHOPS_BY_ID[shopId];
+          if (!baseShop) return null;
+
+          const shopRef = doc(db, "shops", shopId);
+          const docSnap = await getDoc(shopRef);
+
+          if (docSnap.exists()) {
+              return { ...baseShop, ...docSnap.data() };
+          }
+          return baseShop;
+  }, []);
+
+  const updateShopOwner = useCallback(async (shopId: string, ownerUserId: string, ownerCharacterId: string, ownerCharacterName: string) => {
+          const shopRef = doc(db, "shops", shopId);
+           await setDoc(shopRef, {
+              ownerUserId,
+              ownerCharacterId,
+              ownerCharacterName,
+              bankAccount: { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] } // Reset till on new owner
+          }, { merge: true });
+    }, []);
+
+  const removeShopOwner = useCallback(async (shopId: string) => {
+        const shopRef = doc(db, "shops", shopId);
+        await setDoc(shopRef, {
+            ownerUserId: deleteField(),
+            ownerCharacterId: deleteField(),
+            ownerCharacterName: deleteField(),
+            bankAccount: { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] }
+        }, { merge: true });
+    }, []);
+
+  const updateShopDetails = useCallback(async (shopId: string, details: Partial<Pick<Shop, 'title' | 'description' | 'defaultNewItemCategory'>>) => {
+        const shopRef = doc(db, "shops", shopId);
+        await setDoc(shopRef, details, { merge: true });
+    }, []);
+  
+  const addShopItem = useCallback(async (shopId: string, item: Omit<ShopItem, 'id'>) => {
+        const shopRef = doc(db, "shops", shopId);
+        const shopDoc = await getDoc(shopRef);
+        const shopData = shopDoc.data() || {};
+        const items = shopData.items || [];
+        const newItem: ShopItem = { 
+            ...item, 
+            id: `item-${Date.now()}`
+        };
+        const updatedItems = [...items, newItem];
+        const sanitizedItems = updatedItems.map((i: ShopItem) => {
+            const { quantity, ...rest } = i;
+            if (quantity === undefined) {
+                return rest;
+            }
+            return i;
+        });
+        await setDoc(shopRef, { items: sanitizedItems }, { merge: true });
+    }, []);
+
+  const updateShopItem = useCallback(async (shopId: string, itemToUpdate: ShopItem) => {
+        const shopRef = doc(db, "shops", shopId);
+        const shopDoc = await getDoc(shopRef);
+        const shopData = shopDoc.data() || {};
+        const items = shopData.items || [];
+        const updatedItems = items.map((item: ShopItem) => item.id === itemToUpdate.id ? itemToUpdate : item);
+         const sanitizedItems = updatedItems.map((i: ShopItem) => {
+            const { quantity, ...rest } = i;
+            if (quantity === undefined) {
+                return rest;
+            }
+            return i;
+        });
+        await setDoc(shopRef, { items: sanitizedItems }, { merge: true });
+    }, []);
+
+  const deleteShopItem = useCallback(async (shopId: string, itemId: string) => {
+        const shopRef = doc(db, "shops", shopId);
+        const shopDoc = await getDoc(shopRef);
+        const shopData = shopDoc.data() || {};
+        const items = shopData.items || [];
+        const updatedItems = items.filter((item: ShopItem) => item.id !== itemId);
+        await setDoc(shopRef, { items: updatedItems }, { merge: true });
+    }, []);
+  
+  const purchaseShopItem = useCallback(async (shopId: string, itemId: string, buyerUserId: string, buyerCharacterId: string, quantity: number) => {
+        await runTransaction(db, async (transaction) => {
+            const shopRef = doc(db, "shops", shopId);
+            const shopDoc = await transaction.get(shopRef);
+            if (!shopDoc.exists()) throw new Error("Магазин не найден.");
+            const shopData = shopDoc.data() as Shop;
+            
+            const items = shopData.items;
+            if (!items) throw new Error("В этом магазине нет товаров.");
+
+            const itemIndex = items.findIndex(i => i.id === itemId);
+            if (itemIndex === -1) throw new Error("Товар не найден.");
+            
+            const item = items[itemIndex];
+
+            if (item.quantity !== undefined && item.quantity < quantity) {
+                throw new Error("Недостаточно товара в наличии.");
+            }
+
+            const buyerUserRef = doc(db, "users", buyerUserId);
+            const buyerUserDoc = await transaction.get(buyerUserRef);
+            if (!buyerUserDoc.exists()) throw new Error("Покупатель не найден.");
+            const buyerUserData = buyerUserDoc.data() as User;
+
+            const buyerCharIndex = buyerUserData.characters.findIndex(c => c.id === buyerCharacterId);
+            if (buyerCharIndex === -1) throw new Error("Персонаж покупателя не найден.");
+            const buyerChar = buyerUserData.characters[buyerCharIndex];
+            
+            const price = item.price;
+            const totalPrice = {
+                platinum: (price.platinum || 0) * quantity,
+                gold: (price.gold || 0) * quantity,
+                silver: (price.silver || 0) * quantity,
+                copper: (price.copper || 0) * quantity,
+            }
+            const balance = buyerChar.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 };
+            if (
+                balance.platinum < totalPrice.platinum ||
+                balance.gold < totalPrice.gold ||
+                balance.silver < totalPrice.silver ||
+                balance.copper < totalPrice.copper
+            ) {
+                throw new Error("Недостаточно средств у персонажа.");
+            }
+
+            buyerChar.bankAccount.platinum -= totalPrice.platinum;
+            buyerChar.bankAccount.gold -= totalPrice.gold;
+            buyerChar.bankAccount.silver -= totalPrice.silver;
+            buyerChar.bankAccount.copper -= totalPrice.copper;
+            
+            const buyerTx: BankTransaction = { id: `txn-buy-${Date.now()}`, date: new Date().toISOString(), reason: `Покупка: ${item.name} x${quantity}`, amount: { platinum: -totalPrice.platinum, gold: -totalPrice.gold, silver: -totalPrice.silver, copper: -totalPrice.copper } };
+            buyerChar.bankAccount.history = [buyerTx, ...(buyerChar.bankAccount.history || [])];
+
+            if (item.inventoryTag === 'проживание') {
+                buyerChar.residenceLocation = item.name;
+            } else if (item.inventoryTag) {
+                const inv = (buyerChar.inventory ??= {} as Partial<Inventory>);
+                const tag = item.inventoryTag as keyof Inventory;
+                (inv[tag] ??= []);
+                const list = inv[tag]!;
+                
+                const inventoryItemName = item.inventoryItemName || item.name;
+                const inventoryItemDescription = item.inventoryItemDescription || item.description || '';
+                const inventoryItemImage = item.inventoryItemImage || item.image || '';
+
+                const existingItemIndex = list.findIndex(invItem => invItem.name === inventoryItemName);
+
+                if (existingItemIndex > -1) {
+                    list[existingItemIndex].quantity += quantity;
+                } else {
+                    const newInventoryItem: InventoryItem = {
+                        id: `inv-item-${Date.now()}`,
+                        name: inventoryItemName,
+                        description: inventoryItemDescription,
+                        image: inventoryItemImage,
+                        quantity: quantity,
+                    };
+                    list.push(newInventoryItem);
+                }
+            }
+
+            const shopBankAccount = shopData.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
+            shopBankAccount.platinum = (shopBankAccount.platinum || 0) + totalPrice.platinum;
+            shopBankAccount.gold = (shopBankAccount.gold || 0) + totalPrice.gold;
+            shopBankAccount.silver = (shopBankAccount.silver || 0) + totalPrice.silver;
+            shopBankAccount.copper = (shopBankAccount.copper || 0) + totalPrice.copper;
+
+            const shopTx: BankTransaction = { id: `txn-sell-${Date.now()}`, date: new Date().toISOString(), reason: `Продажа: ${item.name} x${quantity}`, amount: totalPrice };
+            shopBankAccount.history = [shopTx, ...(shopBankAccount.history || [])];
+
+            transaction.update(buyerUserRef, { characters: buyerUserData.characters });
+
+            const updatedShopData: Partial<Shop> = { bankAccount: shopBankAccount };
+            const updatedItems = [...items];
+            if (item.quantity !== undefined) {
+                updatedItems[itemIndex].quantity = item.quantity - quantity;
+            }
+            updatedItems[itemIndex].purchaseCount = (updatedItems[itemIndex].purchaseCount || 0) + quantity;
+            updatedShopData.items = updatedItems;
+            updatedShopData.purchaseCount = increment(quantity) as unknown as number;
+
+            transaction.set(shopRef, updatedShopData, { merge: true });
+        });
+        
+         if (currentUser?.id === buyerUserId) {
+            const updatedUser = await fetchUserById(buyerUserId);
+            if (updatedUser) setCurrentUser(updatedUser);
+        }
+    }, [currentUser, fetchUserById, initialFormData]);
+
+    const adminGiveItemToCharacter = useCallback(async (userId: string, characterId: string, itemData: AdminGiveItemForm) => {
+        const user = await fetchUserById(userId);
+        if (!user) throw new Error("User not found");
+
+        const characterIndex = user.characters.findIndex(c => c.id === characterId);
+        if (characterIndex === -1) throw new Error("Character not found");
+
+        const character = { ...user.characters[characterIndex] };
+        const inventory = (character.inventory ??= {} as Partial<Inventory>);
+        
+        const newInventoryItem: InventoryItem = {
+            id: `inv-item-admin-${Date.now()}`,
+            name: itemData.name,
+            description: itemData.description,
+            image: itemData.image,
+            quantity: itemData.quantity || 1,
+        };
+
+        const tag = itemData.inventoryTag as keyof Inventory;
+        (inventory[tag] ??= []);
+        const list = inventory[tag]!;
+        list.push(newInventoryItem);
+
+        const updatedCharacters = [...user.characters];
+        updatedCharacters[characterIndex] = character;
+        await updateUser(userId, { characters: updatedCharacters });
+    }, [fetchUserById, updateUser, initialFormData]);
+
+    const adminUpdateItemInCharacter = useCallback(async (userId: string, characterId: string, itemData: InventoryItem, category: InventoryCategory) => {
+        const user = await fetchUserById(userId);
+        if (!user) throw new Error("User not found");
+
+        const characterIndex = user.characters.findIndex(c => c.id === characterId);
+        if (characterIndex === -1) throw new Error("Character not found");
+
+        const character = { ...user.characters[characterIndex] };
+        const inventory = character.inventory || initialFormData.inventory;
+
+        if (!Array.isArray(inventory[category])) {
+            inventory[category] = [];
+        }
+        
+        const itemIndex = inventory[category].findIndex(i => i.id === itemData.id);
+        if (itemIndex === -1) throw new Error("Item not found in character's inventory");
+
+        inventory[category][itemIndex] = itemData;
+        character.inventory = inventory;
+
+        const updatedCharacters = [...user.characters];
+        updatedCharacters[characterIndex] = character;
+        await updateUser(userId, { characters: updatedCharacters });
+    }, [fetchUserById, updateUser, initialFormData]);
+
+    const adminDeleteItemFromCharacter = useCallback(async (userId: string, characterId: string, itemId: string, category: InventoryCategory) => {
+        const user = await fetchUserById(userId);
+        if (!user) throw new Error("User not found");
+
+        const characterIndex = user.characters.findIndex(c => c.id === characterId);
+        if (characterIndex === -1) throw new Error("Character not found");
+
+        const character = { ...user.characters[characterIndex] };
+        const inventory = character.inventory || initialFormData.inventory;
+
+        if (!Array.isArray(inventory[category])) {
+           return;
+        }
+        
+        inventory[category] = inventory[category].filter(i => i.id !== itemId);
+        character.inventory = inventory;
+
+        const updatedCharacters = [...user.characters];
+        updatedCharacters[characterIndex] = character;
+        await updateUser(userId, { characters: updatedCharacters });
+    }, [fetchUserById, updateUser, initialFormData]);
+
+    const consumeInventoryItem = useCallback(async (userId: string, characterId: string, itemId: string, category: InventoryCategory) => {
+        const user = await fetchUserById(userId);
+        if (!user) throw new Error("User not found");
+
+        const characterIndex = user.characters.findIndex(c => c.id === characterId);
+        if (characterIndex === -1) throw new Error("Character not found");
+
+        const character = { ...user.characters[characterIndex] };
+        const inventory = character.inventory || initialFormData.inventory;
+
+        if (!Array.isArray(inventory[category])) {
+           throw new Error("Item category not found");
+        }
+        
+        const itemIndex = inventory[category].findIndex(i => i.id === itemId);
+        if (itemIndex === -1) throw new Error("Item not found");
+
+        if (inventory[category][itemIndex].quantity > 1) {
+            inventory[category][itemIndex].quantity -= 1;
+        } else {
+            inventory[category] = inventory[category].filter(i => i.id !== itemId);
+        }
+        
+        character.inventory = inventory;
+
+        const updatedCharacters = [...user.characters];
+        updatedCharacters[characterIndex] = character;
+        await updateUser(userId, { characters: updatedCharacters });
+    }, [fetchUserById, updateUser, initialFormData]);
+
+
+    const restockShopItem = useCallback(async (shopId: string, itemId: string) => {
+        await runTransaction(db, async (transaction) => {
+            const shopRef = doc(db, "shops", shopId);
+            const shopDoc = await transaction.get(shopRef);
+            if (!shopDoc.exists()) throw new Error("Магазин не найден.");
+            const shopData = shopDoc.data() as Shop;
+            
+            const items = shopData.items;
+            if (!items) return;
+
+            const itemIndex = items.findIndex(i => i.id === itemId);
+            if (itemIndex === -1) throw new Error("Товар не найден.");
+            
+            const item = items[itemIndex];
+
+            if (item.quantity !== 0) throw new Error("Этот товар еще есть в наличии.");
+            
+            const restockCost = {
+                platinum: Math.ceil((item.price.platinum || 0) * 0.3),
+                gold: Math.ceil((item.price.gold || 0) * 0.3),
+                silver: Math.ceil((item.price.silver || 0) * 0.3),
+                copper: Math.ceil((item.price.copper || 0) * 0.3),
+            };
+
+            const shopTill = shopData.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
+            if (
+                shopTill.platinum < restockCost.platinum ||
+                shopTill.gold < restockCost.gold ||
+                shopTill.silver < restockCost.silver ||
+                shopTill.copper < restockCost.copper
+            ) {
+                throw new Error("В кассе заведения недостаточно средств для пополнения запасов.");
+            }
+            
+            shopTill.platinum -= restockCost.platinum;
+            shopTill.gold -= restockCost.gold;
+            shopTill.silver -= restockCost.silver;
+            shopTill.copper -= restockCost.copper;
+
+            const restockTx: BankTransaction = { id: `txn-restock-${Date.now()}`, date: new Date().toISOString(), reason: `Пополнение товара: ${item.name}`, amount: { platinum: -restockCost.platinum, gold: -restockCost.gold, silver: -restockCost.silver, copper: -restockCost.copper } };
+            shopTill.history = [restockTx, ...(shopTill.history || [])];
+
+            const updatedItems = [...items];
+            updatedItems[itemIndex].quantity = 10;
+
+            transaction.set(shopRef, { items: updatedItems, bankAccount: shopTill }, { merge: true });
+        });
+    }, []);
+
+    const adminUpdateCharacterStatus = useCallback(async (userId: string, characterId: string, updates: { taxpayerStatus?: TaxpayerStatus; citizenshipStatus?: CitizenshipStatus; }) => {
+        const user = await fetchUserById(userId);
+        if (!user) throw new Error("User not found");
+
+        const characterIndex = user.characters.findIndex(c => c.id === characterId);
+        if (characterIndex === -1) throw new Error("Character not found");
+
+        const updatedCharacters = [...user.characters];
+        const character = { ...updatedCharacters[characterIndex], ...updates };
+        updatedCharacters[characterIndex] = character;
+        
+        await updateUser(userId, { characters: updatedCharacters });
+    }, [fetchUserById, updateUser]);
+
+    const adminUpdateShopLicense = useCallback(async (shopId: string, hasLicense: boolean) => {
+        const shopRef = doc(db, "shops", shopId);
+        await setDoc(shopRef, { hasLicense }, { merge: true });
+    }, []);
+
+
+
+    const processAnnualTaxes = useCallback(async (): Promise<{ taxedCharactersCount: number; totalTaxesCollected: BankAccount }> => {
+        const allUsers = await fetchUsersForAdmin();
+        const allShops = await fetchAllShops();
+        const shopsById = new Map(allShops.map(shop => [shop.id, shop]));
+        const batch = writeBatch(db);
+        let taxedCharactersCount = 0;
+        let totalTaxesCollected: BankAccount = { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
+
+        const currencyKeys: (keyof Omit<BankAccount, 'history'>)[] = ['platinum', 'gold', 'silver', 'copper'];
+
+        for (const user of allUsers) {
+            let hasChanges = false;
+            const updatedCharacters = user.characters.map(character => {
+                if (character.taxpayerStatus !== 'taxable') {
+                    return character;
+                }
+
+                let incomeTaxRate = 0;
+                let tradeTaxRate = 0;
+                let tradeTaxRateLicensed = 0;
+
+                switch (character.countryOfResidence) {
+                    case 'Артерианск':
+                        incomeTaxRate = 0.10;
+                        tradeTaxRate = 0.10;
+                        tradeTaxRateLicensed = 0.05;
+                        break;
+                    case 'Белоснежье':
+                        incomeTaxRate = 0.10;
+                        tradeTaxRate = character.citizenshipStatus === 'refugee' ? 0.15 : 0.10;
+                        tradeTaxRateLicensed = character.citizenshipStatus === 'refugee' ? 0.10 : 0.05;
+                        break;
+                    case 'Огнеславия':
+                        incomeTaxRate = 0.15;
+                        tradeTaxRate = 0.15;
+                        tradeTaxRateLicensed = 0.10;
+                        break;
+                    case 'Сан-Ликорис':
+                        incomeTaxRate = 0.05;
+                        tradeTaxRate = 0.07;
+                        tradeTaxRateLicensed = 0.05;
+                        break;
+                    case 'Заприливье':
+                        incomeTaxRate = 0.07;
+                        tradeTaxRate = 0.10; // No license discount
+                        tradeTaxRateLicensed = 0.10;
+                        break;
+                    default:
+                        return character; // No taxes for other countries
+                }
+
+                let totalTaxToPay: Partial<Omit<BankAccount, 'history'>> = { platinum: 0, gold: 0, silver: 0, copper: 0 };
+
+                // 1. Income Tax
+                const wealthInfo = WEALTH_LEVELS.find(w => w.name === character.wealthLevel);
+                if (wealthInfo && wealthInfo.salary) {
+                    const annualSalary: Partial<Omit<BankAccount, 'history'>> = {
+                        platinum: (wealthInfo.salary.platinum || 0) * 12,
+                        gold: (wealthInfo.salary.gold || 0) * 12,
+                        silver: (wealthInfo.salary.silver || 0) * 12,
+                        copper: (wealthInfo.salary.copper || 0) * 12,
+                    };
+                    
+                    currencyKeys.forEach(key => {
+                        const tax = Math.ceil((annualSalary[key] || 0) * incomeTaxRate);
+                        totalTaxToPay[key] = (totalTaxToPay[key] || 0) + tax;
+                    });
+                }
+                
+                // 2. Trade Tax
+                const ownedShops = allShops.filter(shop => shop.ownerCharacterId === character.id);
+                if (ownedShops.length > 0) {
+                     for (const shop of ownedShops) {
+                        const currentTaxRate = shop.hasLicense ? tradeTaxRateLicensed : tradeTaxRate;
+                        let shopValue: Partial<Omit<BankAccount, 'history'>> = { platinum: 0, gold: 0, silver: 0, copper: 0 };
+                        
+                        (shop.items || []).forEach(item => {
+                            currencyKeys.forEach(key => {
+                                const quantity = item.quantity === undefined ? 1 : item.quantity;
+                                shopValue[key] = (shopValue[key] || 0) + (item.price[key] || 0) * quantity;
+                            });
+                        });
+
+                        currencyKeys.forEach(key => {
+                            const tax = Math.ceil((shopValue[key] || 0) * currentTaxRate);
+                            totalTaxToPay[key] = (totalTaxToPay[key] || 0) + tax;
+                        });
+                    }
+                }
+
+                // 3. Deduct taxes
+                const finalTaxAmount = totalTaxToPay;
+                if (Object.values(finalTaxAmount).some(v => v > 0)) {
+                    let newBalance = { ...(character.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] }) };
+                    
+                    let negativeAmount: Partial<Omit<BankAccount, 'history'>> = {};
+                     currencyKeys.forEach(key => {
+                        newBalance[key] = (newBalance[key] || 0) - (finalTaxAmount[key] || 0);
+                        negativeAmount[key] = -(finalTaxAmount[key] || 0);
+                    });
+                    
+                    const newTransaction: BankTransaction = {
+                        id: `txn-tax-${Date.now()}`,
+                        date: new Date().toISOString(),
+                        reason: 'Ежегодный налог',
+                        amount: negativeAmount,
+                    };
+                    newBalance.history = [newTransaction, ...(newBalance.history || [])];
+                    
+                    hasChanges = true;
+                    taxedCharactersCount++;
+
+                    currencyKeys.forEach(key => {
+                        totalTaxesCollected[key] = (totalTaxesCollected[key] || 0) + (finalTaxAmount[key] || 0);
+                    });
+                    return { ...character, bankAccount: newBalance };
+                }
+                return character;
+            });
+            
+            if (hasChanges) {
+                const userRef = doc(db, "users", user.id);
+                batch.update(userRef, { characters: updatedCharacters });
+            }
+        }
+        
+        await batch.commit();
+        return { taxedCharactersCount, totalTaxesCollected };
+
+    }, [fetchUsersForAdmin, fetchAllShops]);
+
+    const sendMassMail = useCallback(async (subject: string, content: string, senderName: string, recipientCharacterIds?: string[]) => {
+        const allUsers = await fetchUsersForAdmin();
+        const batch = writeBatch(db);
+        const timestamp = Date.now();
+      
+        const recipientsSet = recipientCharacterIds && recipientCharacterIds.length > 0 
+          ? new Set(recipientCharacterIds) 
+          : null;
+          
+        const usersToUpdate = new Map<string, User>();
+        
+        for (const user of allUsers) {
+            const userCharacters = recipientsSet
+                ? user.characters.filter(c => recipientsSet.has(c.id))
+                : user.characters;
+                
+            if (userCharacters.length > 0) {
+                const recipientCharacterNames = userCharacters.map(c => c.name).join(', ');
+                const newMail: MailMessage = {
+                    id: `mail-mass-${timestamp}-${user.id}`,
+                    senderUserId: 'admin',
+                    senderCharacterName: senderName,
+                    recipientUserId: user.id,
+                    recipientCharacterId: '',
+                    recipientCharacterName: recipientCharacterNames,
+                    subject,
+                    content,
+                    sentAt: new Date(timestamp).toISOString(),
+                    isRead: false,
+                    type: 'announcement',
+                };
+                const updatedUser = { ...user, mail: [...(user.mail || []), newMail] };
+                usersToUpdate.set(user.id, updatedUser);
+            }
+        }
+        
+        usersToUpdate.forEach((user, userId) => {
+            const userRef = doc(db, "users", userId);
+            batch.update(userRef, { mail: user.mail });
+        });
+        
+        await batch.commit();
+    }, [fetchUsersForAdmin]);
+
+    const markMailAsRead = useCallback(async (mailId: string) => {
+        if (!currentUser) return;
+        const userMail = (currentUser.mail || []).map(m => m.id === mailId ? { ...m, isRead: true } : m);
+        await updateUser(currentUser.id, { mail: userMail });
+    }, [currentUser, updateUser]);
+
+    const deleteMailMessage = useCallback(async (mailId: string) => {
+        if (!currentUser) return;
+        const userMail = (currentUser.mail || []).filter(m => m.id !== mailId);
+        await updateUser(currentUser.id, { mail: userMail });
+    }, [currentUser, updateUser]);
+
+    const clearAllMailboxes = useCallback(async () => {
+        const allUsers = await fetchUsersForAdmin();
+        const batch = writeBatch(db);
+        for (const user of allUsers) {
+            const userRef = doc(db, "users", user.id);
+            batch.update(userRef, { mail: [] });
+        }
+        await batch.commit();
+        if (currentUser) {
+            const updatedCurrentUser = await fetchUserById(currentUser.id);
+            if (updatedCurrentUser) {
+                setCurrentUser(updatedCurrentUser);
+            }
+        }
+    }, [fetchUsersForAdmin, currentUser, fetchUserById]);
+
+    const updatePopularity = useCallback(async (updates: CharacterPopularityUpdate[]) => {
+        const allUsers = await fetchUsersForAdmin();
+        const batch = writeBatch(db);
+
+        const usersToUpdate = new Map<string, User>();
+        allUsers.forEach(user => usersToUpdate.set(user.id, JSON.parse(JSON.stringify(user))));
+
+        for (const user of usersToUpdate.values()) {
+            let userHasChanges = false;
+            const updatedCharacters = user.characters.map(char => {
+                const charUpdate = updates.find(u => u.characterId === char.id);
+                let newPopularity = char.popularity ?? 0;
+                const newHistoryEntries: PopularityLog[] = [];
+
+                if (charUpdate) {
+                    let totalPoints = 0;
+                    charUpdate.eventIds.forEach(eventId => {
+                        const eventData = POPULARITY_EVENTS.find(e => e.label === eventId);
+                        if (eventData) {
+                            totalPoints += eventData.value;
+                            const reason = charUpdate.description ? `${eventData.label}: ${charUpdate.description}` : eventData.label;
+                            newHistoryEntries.push({
+                                id: `pop-${Date.now()}-${char.id.slice(0, 4)}-${Math.random()}`,
+                                date: new Date().toISOString(),
+                                reason: reason,
+                                amount: eventData.value,
+                            });
+                            
+                            if (eventData.achievementId && !(user.achievementIds || []).includes(eventData.achievementId)) {
+                                 user.achievementIds = [...(user.achievementIds || []), eventData.achievementId];
+                                 userHasChanges = true;
+                            }
+                        }
+                    });
+                    newPopularity += totalPoints;
+                } else {
+                    newPopularity -= 5;
+                    newHistoryEntries.push({
+                        id: `pop-decay-${Date.now()}-${char.id.slice(0, 4)}`,
+                        date: new Date().toISOString(),
+                        reason: 'Еженедельный спад популярности',
+                        amount: -5,
+                    });
+                }
+                
+                newPopularity = Math.max(0, newPopularity);
+
+                if (newPopularity !== (char.popularity ?? 0) || newHistoryEntries.length > 0) {
+                    userHasChanges = true;
+                    const updatedHistory = [...newHistoryEntries, ...(char.popularityHistory || [])];
+                    return { ...char, popularity: newPopularity, popularityHistory: updatedHistory };
+                }
+                return char;
+            });
+
+            if (userHasChanges) {
+                 const userToUpdate = usersToUpdate.get(user.id)!;
+                 userToUpdate.characters = updatedCharacters;
+            }
+        }
+
+         for (const user of usersToUpdate.values()) {
+            const userRef = doc(db, "users", user.id);
+            batch.update(userRef, { 
+                characters: user.characters, 
+                achievementIds: user.achievementIds 
+            });
+        }
+
+        await batch.commit();
+
+        if (currentUser) {
+            const updatedCurrentUser = await fetchUserById(currentUser.id);
+            if (updatedCurrentUser) setCurrentUser(updatedCurrentUser);
+        }
+    }, [fetchUsersForAdmin, currentUser, fetchUserById, grantAchievementToUser]);
+
+    const clearAllPopularityHistories = useCallback(async () => {
+        const allUsers = await fetchUsersForAdmin();
+        const batch = writeBatch(db);
+        for (const user of allUsers) {
+            let hasChanges = false;
+            const updatedCharacters = user.characters.map(char => {
+                if (char.popularityHistory && char.popularityHistory.length > 0) {
+                    hasChanges = true;
+                    return { ...char, popularityHistory: [] };
+                }
+                return char;
+            });
+
+            if (hasChanges) {
+                const userRef = doc(db, "users", user.id);
+                batch.update(userRef, { characters: updatedCharacters });
+            }
+        }
+        await batch.commit();
+    }, [fetchUsersForAdmin]);
+
+    const withdrawFromShopTill = useCallback(async (shopId: string) => {
+        if (!currentUser) throw new Error("Пользователь не авторизован.");
+        
+        await runTransaction(db, async (transaction) => {
+            const shopRef = doc(db, "shops", shopId);
+            const shopDoc = await transaction.get(shopRef);
+            if (!shopDoc.exists()) throw new Error("Магазин не найден.");
+            const shopData = shopDoc.data() as Shop;
+            
+            if (shopData.ownerUserId !== currentUser.id) {
+                throw new Error("Вы не являетесь владельцем этого заведения.");
+            }
+            
+            const ownerChar = currentUser.characters.find(c => c.id === shopData.ownerCharacterId);
+            if (!ownerChar) throw new Error("Персонаж-владелец не найден в вашем профиле.");
+
+            const shopTill = shopData.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
+            if (Object.values(shopTill).every(v => typeof v === 'number' && v === 0)) {
+                throw new Error("Касса заведения пуста.");
+            }
+
+            const userRef = doc(db, "users", currentUser.id);
+            const userDoc = await transaction.get(userRef);
+            const userData = userDoc.data() as User;
+            const charIndex = userData.characters.findIndex(c => c.id === ownerChar.id);
+            const characterToUpdate = userData.characters[charIndex];
+            
+            const charBalance = characterToUpdate.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
+            charBalance.platinum += shopTill.platinum;
+            charBalance.gold += shopTill.gold;
+            charBalance.silver += shopTill.silver;
+            charBalance.copper += shopTill.copper;
+            
+            const withdrawTx: BankTransaction = {
+                id: `txn-withdraw-${Date.now()}`,
+                date: new Date().toISOString(),
+                reason: `Вывод средств из кассы "${shopData.title}"`,
+                amount: { platinum: shopTill.platinum, gold: shopTill.gold, silver: shopTill.silver, copper: shopTill.copper }
+            };
+            charBalance.history = [withdrawTx, ...(charBalance.history || [])];
+
+            const newShopTill: BankAccount = { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
+            const shopWithdrawTx: BankTransaction = {
+                id: `txn-shop-withdraw-${Date.now()}`,
+                date: new Date().toISOString(),
+                reason: `Вывод средств владельцем`,
+                amount: { platinum: -shopTill.platinum, gold: -shopTill.gold, silver: -shopTill.silver, copper: -shopTill.copper }
+            };
+            newShopTill.history = [shopWithdrawTx, ...(shopTill.history || [])];
+            
+            transaction.update(userRef, { characters: userData.characters });
+            transaction.set(shopRef, { bankAccount: newShopTill }, { merge: true });
+        });
+        
+        const updatedUser = await fetchUserById(currentUser.id);
+        if(updatedUser) setCurrentUser(updatedUser);
+    }, [currentUser, fetchUserById]);
+
+    const fetchAlchemyRecipes = useCallback(async (): Promise<AlchemyRecipe[]> => {
+        const recipesCollection = collection(db, "alchemy_recipes");
+        const snapshot = await getDocs(recipesCollection);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AlchemyRecipe));
+    }, []);
+    
+    const brewPotion = useCallback(async (userId: string, characterId: string, recipeId: string): Promise<{ createdItem: InventoryItem; recipeName: string; }> => {
+        let createdItemResult: InventoryItem | null = null;
+        let recipeNameResult = '';
+    
+        await runTransaction(db, async (transaction) => {
+            const userRef = doc(db, "users", userId);
+            const userDoc = await transaction.get(userRef);
+            if (!userDoc.exists()) throw new Error("User not found.");
+            const userData = userDoc.data() as User;
+    
+            const charIndex = userData.characters.findIndex((c) => c.id === characterId);
+            if (charIndex === -1) throw new Error("Character not found.");
+            const character = { ...userData.characters[charIndex] };
+    
+            const recipeRef = doc(db, "alchemy_recipes", recipeId);
+            const recipeDoc = await transaction.get(recipeRef);
+            if (!recipeDoc.exists()) throw new Error("Recipe not found.");
+            const recipe = recipeDoc.data() as AlchemyRecipe;
+            recipeNameResult = recipe.name || 'Неизвестный рецепт';
+    
+            const inventory = character.inventory || {};
+    
+            for (const component of recipe.components) {
+                const allItems = [...ALL_ITEMS_FOR_ALCHEMY, ...ALL_SHOPS.flatMap(s => s.items || [])];
+                const requiredIngredientData = allItems.find(item => item.id === component.ingredientId);
+                
+                if (!requiredIngredientData) throw new Error(`Ingredient with ID ${component.ingredientId} not found in data files.`);
+                
+                const category = ('inventoryTag' in requiredIngredientData && requiredIngredientData.inventoryTag) ? requiredIngredientData.inventoryTag : 'ингредиенты';
+                const inventoryCategory = (inventory[category as keyof Inventory] || []) as InventoryItem[];
+                const inventoryItemName = ('inventoryItemName' in requiredIngredientData && requiredIngredientData.inventoryItemName) ? requiredIngredientData.inventoryItemName : requiredIngredientData.name;
+
+                const playerIngIndex = inventoryCategory.findIndex((i) => i.name === inventoryItemName);
+
+                if (playerIngIndex === -1 || inventoryCategory[playerIngIndex].quantity < component.qty) {
+                    throw new Error(`Недостаточно ингредиента: ${inventoryItemName}`);
+                }
+    
+                if (inventoryCategory[playerIngIndex].quantity > component.qty) {
+                    inventoryCategory[playerIngIndex].quantity -= component.qty;
+                } else {
+                    inventoryCategory.splice(playerIngIndex, 1);
+                }
+            }
+    
+            const allResultItems = [...ALL_ITEMS_FOR_ALCHEMY, ...ALL_SHOPS.flatMap(s => s.items || [])];
+            const resultPotionData = allResultItems.find(item => item.id === recipe.resultPotionId);
+            if (!resultPotionData) throw new Error("Result potion data not found.");
+
+            const resultCategory = ('inventoryTag' in resultPotionData && resultPotionData.inventoryTag) ? resultPotionData.inventoryTag : 'зелья';
+            
+            const resultCategoryItems = (inventory[resultCategory as keyof Inventory] || []) as InventoryItem[];
+            const existingPotionIndex = resultCategoryItems.findIndex(p => p.name === resultPotionData.name);
+    
+            if (existingPotionIndex > -1) {
+                resultCategoryItems[existingPotionIndex].quantity += recipe.outputQty;
+                createdItemResult = resultCategoryItems[existingPotionIndex];
+            } else {
+                const newItem: InventoryItem = {
+                    id: `inv-item-${Date.now()}`,
+                    name: resultPotionData.name,
+                    description: resultPotionData.note || ('description' in resultPotionData ? resultPotionData.description : ''),
+                    image: resultPotionData.image,
+                    quantity: recipe.outputQty,
+                };
+                resultCategoryItems.push(newItem);
+                createdItemResult = newItem;
+            }
+            (inventory[resultCategory as keyof Inventory] as InventoryItem[]) = resultCategoryItems;
+            
+            character.inventory = inventory;
+
+            const hasAchievement = (userData.achievementIds || []).includes(FIRST_BREW_ACHIEVEMENT_ID);
+            if (!hasAchievement) {
+                userData.achievementIds = [...(userData.achievementIds || []), FIRST_BREW_ACHIEVEMENT_ID];
+            }
+
+            userData.characters[charIndex] = character;
+            transaction.update(userRef, { characters: userData.characters, achievementIds: userData.achievementIds });
+        });
+    
+        if (!createdItemResult) throw new Error("Crafting failed mysteriously.");
+        if (currentUser?.id === userId) {
+            const updatedUser = await fetchUserById(userId);
+            if (updatedUser) setCurrentUser(updatedUser);
+        }
+        return { createdItem: createdItemResult, recipeName: recipeNameResult };
+    }, [currentUser, fetchUserById, initialFormData]);
+
+    const addAlchemyRecipe = useCallback(async (recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
+        const newRecipe = {
+            ...recipe,
+            createdAt: new Date().toISOString(),
+        };
+        const recipesCollection = collection(db, 'alchemy_recipes');
+        await addDoc(recipesCollection, newRecipe);
+    }, []);
+
+    const updateAlchemyRecipe = useCallback(async (recipeId: string, recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
+        const recipeRef = doc(db, 'alchemy_recipes', recipeId);
+        await updateDoc(recipeRef, recipe);
+    }, []);
+    
+    const deleteAlchemyRecipe = useCallback(async (recipeId: string) => {
+        const recipeRef = doc(db, 'alchemy_recipes', recipeId);
+        await deleteDoc(recipeRef);
+    }, []);
+
+    const addFamiliarToDb = useCallback(async (familiar: Omit<FamiliarCard, 'id'>) => {
+        const familiarsCollection = collection(db, 'familiars');
+        await addDoc(familiarsCollection, familiar);
+        await fetchAndCombineFamiliars();
+    }, [fetchAndCombineFamiliars]);
+    
+    const deleteFamiliarFromDb = useCallback(async (familiarId: string) => {
+        const familiarRef = doc(db, 'familiars', familiarId);
+        await deleteDoc(familiarRef);
+        await fetchAndCombineFamiliars();
+    }, [fetchAndCombineFamiliars]);
+
+    const sendPlayerPing = useCallback(async (targetUserId: string) => {
+        if (!currentUser) throw new Error("Not authenticated");
+
+        const targetUser = await fetchUserById(targetUserId);
+        if (!targetUser) throw new Error("Target user not found");
+
+        const newPing: PlayerPing = {
+            id: `ping-${Date.now()}`,
+            fromUserId: currentUser.id,
+            fromUserName: currentUser.name,
+            fromUserAvatar: currentUser.avatar,
+            toUserId: targetUserId,
+            createdAt: new Date().toISOString(),
+        };
+        
+        // Add ping to target user's document
+        // await updateUser(targetUserId, { playerPings: arrayUnion(newPing) as any });
+
+        // Add ping to current user's document as well for tracking
+        await updateUser(currentUser.id, { playerPings: arrayUnion(newPing) as any });
+    }, [currentUser, fetchUserById, updateUser]);
+
+    const deletePlayerPing = useCallback(async (pingId: string, isMyPing: boolean) => {
+        if (!currentUser) throw new Error("Not authenticated");
+        
+        let userToUpdateId = currentUser.id;
+
+        if (!isMyPing) {
+            const allUsers = await fetchUsersForAdmin();
+            const pingOwner = allUsers.find(u => (u.playerPings || []).some(p => p.id === pingId));
+            if (pingOwner) {
+                userToUpdateId = pingOwner.id;
+            } else {
+                throw new Error("Could not find the user who sent the ping.");
+            }
+        }
+        
+        const userRef = doc(db, "users", userToUpdateId);
+        const userDoc = await getDoc(userRef);
+        if (!userDoc.exists()) throw new Error("User to update not found");
+
+        const userData = userDoc.data() as User;
+        const updatedPings = (userData.playerPings || []).filter(p => p.id !== pingId);
+
+        await updateDoc(userRef, { playerPings: updatedPings });
+
+        if (currentUser.id === userToUpdateId) {
+             setCurrentUser(prev => prev ? {...prev, playerPings: updatedPings} : null);
+        }
+    }, [currentUser, fetchUsersForAdmin]);
+
+    const addFavoritePlayer = useCallback(async (targetUserId: string) => {
+        if (!currentUser) return;
+        
+        await updateUser(currentUser.id, { favoritePlayerIds: arrayUnion(targetUserId) as any });
+
+        const hasAchievement = (currentUser.achievementIds || []).includes(FAVORITE_PLAYER_ACHIEVEMENT_ID);
+        if (!hasAchievement) {
+            await grantAchievementToUser(currentUser.id, FAVORITE_PLAYER_ACHIEVEMENT_ID);
+        }
+
+    }, [currentUser, updateUser, grantAchievementToUser]);
+    
+    const removeFavoritePlayer = useCallback(async (targetUserId: string) => {
+        if (!currentUser) return;
+        await updateUser(currentUser.id, { favoritePlayerIds: arrayRemove(targetUserId) as any });
+    }, [currentUser, updateUser]);
+
+    const startHunt = useCallback(async (characterId: string, familiarId: string, locationId: string) => {
+        if (!currentUser) throw new Error("Not authenticated");
+
+        const location = gameSettings.huntingLocations?.find(l => l.id === locationId);
+        if (!location) throw new Error("Location not found");
+
+        const now = new Date();
+        const endsAt = new Date(now.getTime() + location.durationMinutes * 60000);
+        
+        const character = currentUser.characters.find(c => c.id === characterId);
+        if (!character) throw new Error("Character not found");
+
+        const newHunt: OngoingHunt = {
+            huntId: `hunt-${Date.now()}`,
+            characterId,
+            characterName: character.name,
+            familiarId,
+            locationId,
+            startedAt: now.toISOString(),
+            endsAt: endsAt.toISOString(),
+        };
+
+        const hasAchievement = (currentUser.achievementIds || []).includes(FIRST_HUNT_ACHIEVEMENT_ID);
+        
+        await runTransaction(db, async (transaction) => {
+            const userRef = doc(db, "users", currentUser.id);
+            const userDoc = await transaction.get(userRef);
+            const userData = userDoc.data() as User;
+            const charIndex = userData.characters.findIndex(c => c.id === characterId);
+            
+            const updatedChar = { ...userData.characters[charIndex] };
+            updatedChar.ongoingHunts = [...(updatedChar.ongoingHunts || []), newHunt];
+            
+            userData.characters[charIndex] = updatedChar;
+
+            const updates: Partial<User> = { characters: userData.characters };
+            if (!hasAchievement) {
+                updates.achievementIds = arrayUnion(FIRST_HUNT_ACHIEVEMENT_ID) as any;
+            }
+
+            transaction.update(userRef, updates);
+        });
+
+        const updatedUser = await fetchUserById(currentUser.id);
+        if (updatedUser) setCurrentUser(updatedUser);
+    }, [currentUser, gameSettings.huntingLocations, grantAchievementToUser, fetchUserById]);
+
+    const startMultipleHunts = useCallback(async (characterId: string, familiarIds: string[], locationId: string) => {
+        if (!currentUser) throw new Error("Not authenticated");
+
+        const location = gameSettings.huntingLocations?.find(l => l.id === locationId);
+        if (!location) throw new Error("Location not found");
+
+        const character = currentUser.characters.find(c => c.id === characterId);
+        if (!character) throw new Error("Character not found");
+        
+        const now = new Date();
+        const endsAt = new Date(now.getTime() + location.durationMinutes * 60000);
+
+        const newHunts = familiarIds.map(famId => ({
+            huntId: `hunt-${Date.now()}-${famId.slice(0,4)}`,
+            characterId,
+            characterName: character.name,
+            familiarId: famId,
+            locationId,
+            startedAt: now.toISOString(),
+            endsAt: endsAt.toISOString(),
+        }));
+
+        await runTransaction(db, async (transaction) => {
+            const userRef = doc(db, "users", currentUser.id);
+            const userDoc = await transaction.get(userRef);
+            const userData = userDoc.data() as User;
+            const charIndex = userData.characters.findIndex(c => c.id === characterId);
+            
+            const updatedChar = { ...userData.characters[charIndex] };
+            updatedChar.ongoingHunts = [...(updatedChar.ongoingHunts || []), ...newHunts];
+            
+            userData.characters[charIndex] = updatedChar;
+            transaction.update(userRef, { characters: userData.characters });
+        });
+        const updatedUser = await fetchUserById(currentUser.id);
+        if (updatedUser) setCurrentUser(updatedUser);
+    }, [currentUser, gameSettings.huntingLocations, fetchUserById]);
+
+
+    const claimHuntReward = useCallback(async (characterId: string, huntId: string): Promise<InventoryItem[]> => {
+        if (!currentUser) throw new Error("Not authenticated");
+        
+        let rewards: InventoryItem[] = [];
+
+        await runTransaction(db, async (transaction) => {
+            const userRef = doc(db, "users", currentUser.id);
+            const userDoc = await transaction.get(userRef);
+            if (!userDoc.exists()) throw new Error("User not found");
+
+            const userData = userDoc.data() as User;
+            const charIndex = userData.characters.findIndex(c => c.id === characterId);
+            if (charIndex === -1) throw new Error("Character not found");
+
+            const character = { ...userData.characters[charIndex] };
+            const huntIndex = (character.ongoingHunts || []).findIndex(h => h.huntId === huntId);
+            if (huntIndex === -1) throw new Error("Hunt not found");
+            const hunt = character.ongoingHunts![huntIndex];
+
+            if (!isPast(new Date(hunt.endsAt))) {
+                throw new Error("Hunt is not finished yet");
+            }
+
+            const location = gameSettings.huntingLocations?.find(l => l.id === hunt.locationId);
+            const familiar = familiarsById[hunt.familiarId];
+            if (!location || !familiar) {
+                // If data is missing, just remove the hunt
+                character.ongoingHunts!.splice(huntIndex, 1);
+                userData.characters[charIndex] = character;
+                transaction.update(userRef, { characters: userData.characters });
+                return;
+            }
+
+            let effectiveRank = familiar.rank;
+            if (effectiveRank === 'ивентовый') effectiveRank = 'мифический';
+            
+            const inventory = character.inventory || {};
+
+            for (const rewardRule of location.rewards) {
+                const rankReward = rewardRule.rewardsByRank[effectiveRank];
+                if (rankReward && Math.random() * 100 < rankReward.chance) {
+                    const itemData = ALL_ITEMS_FOR_ALCHEMY.find(i => i.id === rewardRule.itemId);
+                    if (itemData) {
+                        const invCategory = itemData.inventoryTag || 'ингредиенты';
+                        const categoryItems = (inventory[invCategory] || []) as InventoryItem[];
+                        const existingItemIndex = categoryItems.findIndex(i => i.name === itemData.name);
+                        
+                        const quantityGained = rankReward.quantity;
+
+                        if (existingItemIndex > -1) {
+                            categoryItems[existingItemIndex].quantity += quantityGained;
+                        } else {
+                            categoryItems.push({
+                                id: `inv-item-${Date.now()}-${Math.random()}`,
+                                name: itemData.name,
+                                description: itemData.note || '',
+                                image: itemData.image,
+                                quantity: quantityGained,
+                            });
+                        }
+                        inventory[invCategory] = categoryItems;
+                        rewards.push({ ...itemData, quantity: quantityGained } as InventoryItem);
+                    }
+                }
+            }
+
+            character.ongoingHunts!.splice(huntIndex, 1);
+            character.inventory = inventory;
+            userData.characters[charIndex] = character;
+            transaction.update(userRef, { characters: userData.characters });
+        });
+
+        if (currentUser) {
+            const updatedUser = await fetchUserById(currentUser.id);
+            if (updatedUser) setCurrentUser(updatedUser);
+        }
+        return rewards;
+
+    }, [currentUser, gameSettings, familiarsById, fetchUserById]);
+
+    const claimAllHuntRewards = useCallback(async (characterId: string): Promise<InventoryItem[]> => {
+        if (!currentUser) throw new Error("Not authenticated");
+    
+        const finishedHunts = (currentUser.characters.find(c => c.id === characterId)?.ongoingHunts || [])
+            .filter(hunt => isPast(new Date(hunt.endsAt)));
+    
+        if (finishedHunts.length === 0) return [];
+    
+        let allRewards: InventoryItem[] = [];
+    
+        for (const hunt of finishedHunts) {
+            try {
+                const rewardsFromHunt = await claimHuntReward(characterId, hunt.huntId);
+                rewardsFromHunt.forEach(reward => {
+                    const existingReward = allRewards.find(r => r.name === reward.name);
+                    if (existingReward) {
+                        existingReward.quantity += reward.quantity;
+                    } else {
+                        allRewards.push({ ...reward });
+                    }
+                });
+            } catch (error) {
+                console.error(`Failed to claim reward for hunt ${hunt.huntId}:`, error);
+                // Optionally, inform the user about the specific hunt that failed
+                toast({
+                    variant: 'destructive',
+                    title: `Ошибка сбора добычи`,
+                    description: `Не удалось забрать добычу с охоты ${familiarsById[hunt.familiarId]?.name || 'фамильяра'}. Попробуйте снова.`,
+                });
+            }
+        }
+    
+        return allRewards;
+    }, [currentUser, claimHuntReward, toast, familiarsById]);
+
+    const recallHunt = useCallback(async (characterId: string, huntId: string) => {
+        if (!currentUser) throw new Error("Not authenticated");
+
+        await runTransaction(db, async (transaction) => {
+            const userRef = doc(db, "users", currentUser.id);
+            const userDoc = await transaction.get(userRef);
+            if (!userDoc.exists()) throw new Error("User not found");
+
+            const userData = userDoc.data() as User;
+            const charIndex = userData.characters.findIndex(c => c.id === characterId);
+            if (charIndex === -1) throw new Error("Character not found");
+
+            const character = { ...userData.characters[charIndex] };
+            const huntIndex = (character.ongoingHunts || []).findIndex(h => h.huntId === huntId);
+            if (huntIndex === -1) throw new Error("Hunt not found");
+            
+            character.ongoingHunts!.splice(huntIndex, 1);
+            userData.characters[charIndex] = character;
+            transaction.update(userRef, { characters: userData.characters });
+        });
+        
+        const updatedUser = await fetchUserById(currentUser.id);
+        if (updatedUser) setCurrentUser(updatedUser);
+    }, [currentUser, fetchUserById]);
+
+    const claimRewardsForOtherPlayer = useCallback(async (ownerUserId: string, characterId: string) => {
+      const owner = await fetchUserById(ownerUserId);
+      if (!owner) throw new Error("Владелец не найден");
+
+      const character = owner.characters.find(c => c.id === characterId);
+      if (!character) throw new Error("Персонаж не найден");
+
+      const finishedHunts = (character.ongoingHunts || []).filter(h => isPast(new Date(h.endsAt)));
+      if (finishedHunts.length === 0) {
+        toast({ title: "Нет готовой добычи" });
+        return;
+      }
+      
+      let allRewards: InventoryItem[] = [];
+
+      await runTransaction(db, async (transaction) => {
+        const ownerRef = doc(db, "users", ownerUserId);
+        const ownerDoc = await transaction.get(ownerRef);
+        const ownerData = ownerDoc.data() as User;
+        const charIndex = ownerData.characters.findIndex(c => c.id === characterId);
+        const charToUpdate = ownerData.characters[charIndex];
+        const inventory = charToUpdate.inventory || {};
+
+        for (const hunt of finishedHunts) {
+            const location = gameSettings.huntingLocations?.find(l => l.id === hunt.locationId);
+            const familiar = familiarsById[hunt.familiarId];
+            if (!location || !familiar) continue;
+            
+            let effectiveRank = familiar.rank;
+            if (effectiveRank === 'ивентовый') effectiveRank = 'мифический';
+            
+            for (const rewardRule of location.rewards) {
+                 const rankReward = rewardRule.rewardsByRank[effectiveRank];
+                if (rankReward && Math.random() * 100 < rankReward.chance) {
+                    const itemData = ALL_ITEMS_FOR_ALCHEMY.find(i => i.id === rewardRule.itemId);
+                    if (itemData) {
+                       allRewards.push({ ...itemData, quantity: rankReward.quantity } as InventoryItem);
+                    }
+                }
+            }
+        }
+
+        const summary = allRewards.length > 0
+            ? allRewards.map(r => `${r.name} (x${r.quantity})`).join(', ')
+            : "Ничего (не повезло).";
+
+        const mailContent = `Ваш друг забрал вашу добычу с охоты! Вы получили:\n\n${summary}`;
+        const newMail: MailMessage = {
+          id: `mail-claim-${Date.now()}`,
+          senderUserId: 'system',
+          senderCharacterName: 'Система Охоты',
+          recipientUserId: ownerUserId,
+          recipientCharacterId: characterId,
+          subject: 'Ваша добыча с охоты',
+          content: mailContent,
+          sentAt: new Date().toISOString(),
+          isRead: false,
+          type: 'personal',
+        };
+        
+        charToUpdate.ongoingHunts = (charToUpdate.ongoingHunts || []).filter(h => !isPast(new Date(h.endsAt)));
+        ownerData.mail = [...(ownerData.mail || []), newMail];
+
+        transaction.update(ownerRef, { characters: ownerData.characters, mail: ownerData.mail });
+      });
+
+    }, [fetchUserById, gameSettings, familiarsById, toast]);
+
+    const changeUserPassword = useCallback(async (currentPassword: string, newPassword: string) => {
+        if (!firebaseUser) throw new Error("No user is signed in.");
+        
+        const credential = EmailAuthProvider.credential(firebaseUser.email!, currentPassword);
+        
+        await reauthenticateWithCredential(firebaseUser, credential);
+        await updatePassword(firebaseUser, newPassword);
+        
+    }, [firebaseUser]);
+    
+    const changeUserEmail = useCallback(async (currentPassword: string, newEmail: string) => {
+        if (!firebaseUser) throw new Error("No user is signed in.");
+    
+        const credential = EmailAuthProvider.credential(firebaseUser.email!, currentPassword);
+        
+        await reauthenticateWithCredential(firebaseUser, credential);
+        await updateEmail(firebaseUser, newEmail);
+
+        // Also update the email in the Firestore document
+        await updateUser(firebaseUser.uid, { email: newEmail });
+
+    }, [firebaseUser, updateUser]);
+
+    const userContextValue = useMemo(
+        () => ({
+          currentUser, setCurrentUser, gameDate, gameDateString, gameSettings,
+          lastWeeklyBonusAwardedAt: gameSettings.lastWeeklyBonusAwardedAt,
+          fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers,
+          fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount,
+          addPointsToUser, addPointsToAllUsers, updateCharacterInUser, deleteCharacterFromUser,
+          updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest,
+          updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter,
+          clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter,
+          removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter,
+          updateUser, updateUserAvatar, updateGameSettings, processWeeklyBonus,
+          checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory,
+          recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary,
+          updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests,
+          acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest,
+          fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest,
+          declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById,
+          updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem,
+          deleteShopItem, purchaseShopItem, adminGiveItemToCharacter,
+          adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem,
+          restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense,
+          processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage,
+          clearAllMailboxes, updatePopularity, clearAllPopularityHistories,
+          withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe,
+          deleteAlchemyRecipe, fetchAlchemyRecipes, fetchDbFamiliars, addFamiliarToDb,
+          deleteFamiliarFromDb, allFamiliars, familiarsById, startHunt, startMultipleHunts,
+          claimHuntReward, claimAllHuntRewards, recallHunt, claimRewardsForOtherPlayer,
+          changeUserPassword, changeUserEmail, mergeUserData, sendPlayerPing, deletePlayerPing,
+          addFavoritePlayer, removeFavoritePlayer, imageGeneration, deleteUserFromAuth,
+        }),
+        [
+            currentUser, setCurrentUser, gameDate, gameDateString, gameSettings, fetchUserById, 
+            fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, 
+            fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, 
+            addPointsToAllUsers, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, 
+            updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, 
+            updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, 
+            clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, 
+            removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, 
+            updateUser, updateUserAvatar, updateGameSettings, processWeeklyBonus, 
+            checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, 
+            recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, 
+            updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, 
+            acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, 
+            fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, 
+            declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, 
+            removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, 
+            purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, 
+            adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, 
+            adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, 
+            markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, 
+            clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, 
+            updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes, fetchDbFamiliars, 
+            addFamiliarToDb, deleteFamiliarFromDb, allFamiliars, familiarsById, startHunt, 
+            startMultipleHunts, claimHuntReward, claimAllHuntRewards, recallHunt, 
+            claimRewardsForOtherPlayer, changeUserPassword, changeUserEmail, mergeUserData, 
+            sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, 
+            imageGeneration, deleteUserFromAuth
+        ]
     );
+
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+          setLoading(true);
+          if (user) {
+            setFirebaseUser(user);
+            try {
+                await fetchGameSettings(); 
+                await fetchAndCombineFamiliars();
+                let userData = await fetchUserById(user.uid);
+
+                if (userData) {
+                    const updates: Partial<User> = { lastLogin: new Date().toISOString() };
+                    if (userData.status !== 'отпуск') {
+                        updates.status = 'активный';
+                    }
+                    await updateDoc(doc(db, "users", user.uid), updates);
+                    userData = { ...userData, ...updates }; 
+                    if(userData?.role === 'admin') {
+                        await processWeeklyBonus();
+                    }
+                } else {
+                    const nickname = user.displayName || user.email?.split('@')[0] || 'Пользователь';
+                    userData = await createNewUser(user.uid, nickname);
+                }
+
+                setCurrentUser(userData);
+            } catch (error) {
+                console.error("Error fetching user data:", error);
+                setCurrentUser(null);
+            }
+          } else {
+            setFirebaseUser(null);
+            setCurrentUser(null);
+            setGameSettings(DEFAULT_GAME_SETTINGS); 
+          }
+          setLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, [createNewUser, fetchUserById, fetchGameSettings, processWeeklyBonus, fetchAndCombineFamiliars]);
+    
+    useEffect(() => {
+        if (!firebaseUser) return;
+
+        const dateRef = rtdbRef(database, 'calendar/currentDate');
+        const connectionTimeout = setTimeout(() => {
+            setGameDateString((current) => {
+                if (current === null) { // Check if it's still in the initial loading state
+                    console.error("Realtime Database connection timed out. Check security rules and database path: /calendar/currentDate");
+                    return "Ошибка: нет доступа к базе данных. Проверьте правила безопасности Realtime Database в консоли Firebase.";
+                }
+                return current;
+            });
+        }, 8000); 
+
+        const unsubscribe = onValue(dateRef, 
+            (snapshot) => {
+                clearTimeout(connectionTimeout);
+                const rtdbDateString = snapshot.val();
+                
+                if (rtdbDateString && typeof rtdbDateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(rtdbDateString)) {
+                    const [year, month, day] = rtdbDateString.split('-').map(Number);
+                    
+                    const newGameDate = new Date(year, month - 1, day);
+                    setGameDate(newGameDate);
+                    
+                    const months = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
+                    setGameDateString(`${day} ${months[month - 1]} ${year} год`);
+                } else {
+                    console.warn(`Invalid or null date from Realtime DB: "${rtdbDateString}". Expected YYYY-MM-DD.`);
+                    setGameDateString("Дата не установлена");
+                    setGameDate(null);
+                }
+
+            }, 
+            (error: Error) => {
+                clearTimeout(connectionTimeout);
+                console.error("Firebase Realtime Database read failed:", error);
+                const code = typeof error === 'object' && error !== null && 'code' in error ? String((error as any).code) : 'unknown';
+                setGameDateString(`Ошибка RTDB: ${code}`);
+                setGameDate(null);
+            }
+        );
+
+        return () => {
+            clearTimeout(connectionTimeout);
+            unsubscribe();
+        };
+    }, [firebaseUser]);
+    
+    const authValue = useMemo(() => ({
+        user: firebaseUser,
+        loading,
+        signOutUser,
+    }), [firebaseUser, loading, signOutUser]);
     
     return (
         <AuthContext.Provider value={authValue}>
@@ -1254,3 +3305,6 @@ export const useUser = () => {
     
 
 
+
+
+      
