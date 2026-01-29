@@ -109,6 +109,16 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        
+        if (!isAdmin && (formData.quantity === undefined || formData.quantity <= 0)) {
+            toast({
+                variant: "destructive",
+                title: "Ошибка",
+                description: "Пожалуйста, укажите количество товара (от 1 до 10).",
+            });
+            return;
+        }
+
         setIsLoading(true);
 
         try {
@@ -193,18 +203,22 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
                     </div>
                 </div>
 
-                <Separator />
+                {isAdmin && (
+                    <>
+                        <Separator />
+                        <div className="flex items-center space-x-2 pt-2">
+                            <Switch
+                                id="show-inventory-fields"
+                                checked={showInventoryFields}
+                                onCheckedChange={setShowInventoryFields}
+                            />
+                            <Label htmlFor="show-inventory-fields">Данные для инвентаря отличаются</Label>
+                        </div>
+                    </>
+                )}
 
-                <div className="flex items-center space-x-2 pt-2">
-                    <Switch
-                        id="show-inventory-fields"
-                        checked={showInventoryFields}
-                        onCheckedChange={setShowInventoryFields}
-                    />
-                    <Label htmlFor="show-inventory-fields">Данные для инвентаря отличаются</Label>
-                </div>
 
-                {showInventoryFields && (
+                {showInventoryFields && isAdmin && (
                     <>
                         <h4 className="font-semibold text-muted-foreground">Данные в инвентаре</h4>
                         <div className="p-4 border rounded-md space-y-4">
@@ -289,11 +303,28 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
                         id="quantity"
                         type="number"
                         value={formData.quantity ?? ''}
-                        onChange={(e) => setFormData(prev => ({ ...prev, quantity: e.target.value === '' ? undefined : parseInt(e.target.value, 10) }))}
-                        placeholder="Оставьте пустым для бесконечного"
+                        onChange={(e) => {
+                            const rawValue = e.target.value;
+                             if (rawValue === '') {
+                                setFormData(prev => ({ ...prev, quantity: undefined }));
+                                return;
+                            }
+                            let numValue = parseInt(rawValue, 10);
+                            if(isNaN(numValue)) return;
+                            if (!isAdmin && numValue > 10) {
+                                numValue = 10;
+                            }
+                            setFormData(prev => ({ ...prev, quantity: numValue }));
+                        }}
+                        placeholder={isAdmin ? "Пусто = бесконечно" : "1-10"}
+                        disabled={!isAdmin && !!item}
+                        required={!isAdmin}
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                       Если оставить поле пустым, товар будет считаться бесконечным.
+                       {isAdmin 
+                        ? "Если оставить поле пустым, товар будет считаться бесконечным."
+                        : "Максимум 10. После создания количество изменить нельзя."
+                       }
                     </p>
                 </div>
                 
