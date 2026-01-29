@@ -333,15 +333,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return null;
     }, [processUserDoc]);
 
-    const updateUser = useCallback(async (userId: string, updates: Partial<User>) => {
-        const userRef = doc(db, "users", userId);
-        await updateDoc(userRef, sanitizeObjectForFirestore(updates));
-        
-        if (currentUser?.id === userId) {
-            setCurrentUser(prev => prev ? processUserDoc({ ...prev, ...updates }) : null);
-        }
-    }, [currentUser?.id, processUserDoc]);
-
     const fetchUsersForAdmin = useCallback(async (): Promise<User[]> => {
         try {
             const usersCollection = collection(db, "users");
@@ -352,10 +343,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             throw error;
         }
     }, [processUserDoc]);
-
-    const updateUserAvatar = useCallback(async (userId: string, avatarUrl: string) => {
-        await updateUser(userId, { avatar: avatarUrl });
-    }, [updateUser]);
 
     const fetchCharacterById = useCallback(async (characterId: string): Promise<{ character: Character; owner: User } | null> => {
         try {
@@ -374,6 +361,19 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             return null;
         }
       }, [fetchUsersForAdmin]);
+
+    const updateUser = useCallback(async (userId: string, updates: Partial<User>) => {
+        const userRef = doc(db, "users", userId);
+        await updateDoc(userRef, sanitizeObjectForFirestore(updates));
+        
+        if (currentUser?.id === userId) {
+            setCurrentUser(prev => prev ? processUserDoc({ ...prev, ...updates }) : null);
+        }
+    }, [currentUser?.id, processUserDoc]);
+
+    const updateUserAvatar = useCallback(async (userId: string, avatarUrl: string) => {
+        await updateUser(userId, { avatar: avatarUrl });
+    }, [updateUser]);
 
     const grantAchievementToUser = useCallback(async (userId: string, achievementId: string) => {
         const user = await fetchUserById(userId);
@@ -610,8 +610,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }, [fetchGameSettings]);
 
     const processWeeklyBonus = useCallback(async () => {
-        const allUsers = await fetchUsersForAdmin();
-
         await runTransaction(db, async (transaction) => {
             const settingsRef = doc(db, 'game_settings', 'main');
             const settingsDoc = await transaction.get(settingsRef);
@@ -3421,5 +3419,7 @@ export const useUser = () => {
     
 
 
+
+    
 
     
