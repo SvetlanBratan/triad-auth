@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
@@ -45,7 +44,7 @@ export interface UserContextType {
   fetchRewardRequestsForUser: (userId: string, fetchLimit?: number) => Promise<RewardRequest[]>;
   fetchAvailableMythicCardsCount: () => Promise<number>;
   addPointsToUser: (userId: string, amount: number, reason: string, characterId?: string) => Promise<User | null>;
-  addPointsToAllUsers: (amount: number, reason: string) => Promise<{success: boolean, message: string}>;
+  addPointsToAllUsers: (amount: number, reason: string) => Promise<void>;
   updateCharacterInUser: (userId: string, character: Character) => Promise<User>;
   deleteCharacterFromUser: (userId: string, characterId: string) => Promise<void>;
   updateUserStatus: (userId: string, status: UserStatus) => Promise<void>;
@@ -62,6 +61,8 @@ export interface UserContextType {
   removeMoodletFromCharacter: (userId: string, characterId: string, moodletId: string) => Promise<void>;
   clearRewardRequestsHistory: () => Promise<void>;
   removeFamiliarFromCharacter: (userId: string, characterId: string, cardId: string) => Promise<void>;
+  updateUser: (userId: string, data: Partial<User>) => Promise<void>;
+  updateUserAvatar: (userId: string, avatarUrl: string) => Promise<void>;
   updateGameSettings: (updates: Partial<GameSettings>) => Promise<void>;
   processWeeklyBonus: () => Promise<{ awardedCount: number }>;
   checkExtraCharacterSlots: (userId: string) => Promise<number>;
@@ -129,8 +130,6 @@ export interface UserContextType {
   mergeUserData: (sourceUserId: string, targetUserId: string) => Promise<void>;
   imageGeneration: (prompt: string) => Promise<{url: string} | {error: string}>;
   deleteUserFromAuth: (uid: string) => Promise<{success: boolean; message: string}>;
-  updateUser: (userId: string, data: Partial<User>) => Promise<void>;
-  updateUserAvatar: (userId: string, avatarUrl: string) => Promise<void>;
 }
 
 export const UserContext = createContext<UserContextType | null>(null);
@@ -345,22 +344,22 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }, [processUserDoc]);
 
     const fetchCharacterById = useCallback(async (characterId: string): Promise<{ character: Character; owner: User } | null> => {
-        try {
-            const allUsers = await fetchUsersForAdmin();
-            for (const user of allUsers) {
-                if (user && user.characters) {
-                    const character = user.characters.find(c => c.id === characterId);
-                    if (character) {
-                        return { character, owner: user };
-                    }
-                }
-            }
-            return null; 
-        } catch (error) {
-            console.error("Error fetching character by ID:", error);
-            return null;
-        }
-      }, [fetchUsersForAdmin]);
+      try {
+          const allUsers = await fetchUsersForAdmin();
+          for (const user of allUsers) {
+              if (user && user.characters) {
+                  const character = user.characters.find(c => c.id === characterId);
+                  if (character) {
+                      return { character, owner: user };
+                  }
+              }
+          }
+          return null; 
+      } catch (error) {
+          console.error("Error fetching character by ID:", error);
+          return null;
+      }
+    }, [fetchUsersForAdmin]);
 
     const updateUser = useCallback(async (userId: string, updates: Partial<User>) => {
         const userRef = doc(db, "users", userId);
@@ -571,37 +570,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return allMythicCards.length - claimedMythicIds.size;
     }, [fetchUsersForAdmin, allFamiliars, familiarsById]);
 
-    const addPointsToAllUsers = useCallback(async (amount: number, reason: string): Promise<{success: boolean, message: string}> => {
-        try {
-            const addPointsCallable = httpsCallable(functions, 'addPointsToAll');
-            const result = await addPointsCallable({ amount, reason });
-            const data = result.data as { success: boolean, message: string, processedCount?: number };
-
-            if (data.success) {
-                toast({
-                    title: "Баллы успешно начислены!",
-                    description: data.message || `Начислено ${data.processedCount || 'всем'} пользователям.`,
-                });
-                if (currentUser) {
-                    const updatedUser = await fetchUserById(currentUser.id);
-                    if(updatedUser) setCurrentUser(updatedUser);
-                }
-            } else {
-                 toast({
-                    variant: "destructive",
-                    title: "Ошибка при начислении баллов",
-                    description: data.message,
-                });
-            }
-            return data;
-        } catch (error) {
-            console.error("Error calling addPointsToAll cloud function", error);
-            if (error instanceof FunctionsError) {
-                return { success: false, message: error.message };
-            }
-            return { success: false, message: 'Произошла неизвестная ошибка' };
+    const addPointsToAllUsers = useCallback(async (amount: number, reason: string) => {
+        const allUsers = await fetchUsersForAdmin();
+        for (const user of allUsers) {
+            await addPointsToUser(user.id, amount, reason);
         }
-    }, [functions, toast, currentUser, fetchUserById]);
+    }, [fetchUsersForAdmin, addPointsToUser]);
     
     const updateGameSettings = useCallback(async (updates: Partial<GameSettings>) => {
       const settingsRef = doc(db, 'game_settings', 'main');
@@ -610,6 +584,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }, [fetchGameSettings]);
 
     const processWeeklyBonus = useCallback(async () => {
+        const allUsers = await fetchUsersForAdmin();
         await runTransaction(db, async (transaction) => {
             const settingsRef = doc(db, 'game_settings', 'main');
             const settingsDoc = await transaction.get(settingsRef);
@@ -653,7 +628,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 }
             }
 
-            const top3Users = allUsers.sort((a,b) => b.points - a.points).slice(0, 3);
+            const top3Users = [...allUsers].sort((a,b) => b.points - a.points).slice(0, 3);
             for (const topUser of top3Users) {
               if (!topUser.achievementIds?.includes(FORBES_LIST_ACHIEVEMENT_ID)) {
                 const topUserRef = doc(db, 'users', topUser.id);
@@ -679,7 +654,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
     }, [functions]);
     
-    const deleteUserFromAuth = useCallback(async (uid: string): Promise<{success: boolean, message: string}> => {
+    const deleteUserFromAuth = useCallback(async (uid: string): Promise<{success: boolean; message: string}> => {
         const deleteUserFunction = httpsCallable(functions, 'deleteUser');
         try {
             const result = await deleteUserFunction({ uid });
@@ -3383,7 +3358,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         mergeUserData,
         imageGeneration,
         deleteUserFromAuth,
-    }), [currentUser, setCurrentUser, gameDate, gameDateString, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, allFamiliars, familiarsById, startHunt, startMultipleHunts, claimHuntReward, claimAllHuntRewards, recallHunt, claimRewardsForOtherPlayer, changeUserPassword, changeUserEmail, mergeUserData, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, imageGeneration, deleteUserFromAuth]);
+    }),
+        [currentUser, setCurrentUser, gameDate, gameDateString, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, allFamiliars, familiarsById, startHunt, startMultipleHunts, claimHuntReward, claimAllHuntRewards, recallHunt, claimRewardsForOtherPlayer, changeUserPassword, changeUserEmail, mergeUserData, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, imageGeneration, deleteUserFromAuth]
+    );
     
     return (
         <AuthContext.Provider value={authValue}>
@@ -3401,25 +3378,4 @@ export const useUser = () => {
     }
     return context;
 };
-    
-
-
-    
-
-    
-
-    
-
-
-
-
-      
-
-
-    
-
-
-
-    
-
     
