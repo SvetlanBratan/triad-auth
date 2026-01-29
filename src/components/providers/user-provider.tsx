@@ -2973,38 +2973,93 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }, [currentUser, gameSettings, familiarsById, fetchUserById, setCurrentUser, fetchAllShops]);
 
     const claimAllHuntRewards = useCallback(async (characterId: string): Promise<InventoryItem[]> => {
-        if (!currentUser) throw new Error("Not authenticated");
-    
-        const finishedHunts = (currentUser.characters.find(c => c.id === characterId)?.ongoingHunts || [])
-            .filter(hunt => isPast(new Date(hunt.endsAt)));
-    
-        if (finishedHunts.length === 0) return [];
-    
-        let allRewards: InventoryItem[] = [];
-    
-        for (const hunt of finishedHunts) {
-            try {
-                const rewardsFromHunt = await claimHuntReward(characterId, hunt.huntId);
-                rewardsFromHunt.forEach(reward => {
-                    const existingReward = allRewards.find(r => r.name === reward.name);
-                    if (existingReward) {
-                        existingReward.quantity += reward.quantity;
-                    } else {
-                        allRewards.push({ ...reward });
-                    }
-                });
-            } catch (error) {
-                console.error(`Failed to claim reward for hunt ${hunt.huntId}:`, error);
-                toast({
-                    variant: 'destructive',
-                    title: `Ошибка сбора добычи`,
-                    description: `Не удалось забрать добычу с охоты ${familiarsById[hunt.familiarId]?.name || 'фамильяра'}. Попробуйте снова.`,
-                });
-            }
-        }
-    
-        return allRewards;
-    }, [currentUser, claimHuntReward, toast, familiarsById]);
+      if (!currentUser) throw new Error("Not authenticated");
+  
+      const character = currentUser.characters.find(c => c.id === characterId);
+      if (!character) throw new Error("Character not found");
+  
+      const finishedHunts = (character.ongoingHunts || []).filter(hunt => isPast(new Date(hunt.endsAt)));
+  
+      if (finishedHunts.length === 0) {
+          toast({ title: "Нет завершенных экспедиций", description: "Ваши фамильяры еще в пути." });
+          return [];
+      }
+      
+      let allRewards: InventoryItem[] = [];
+      const allShopsData = await fetchAllShops();
+      const allItems = [...ALL_ITEMS_FOR_ALCHEMY, ...allShopsData.flatMap(s => s.items || [])];
+  
+      await runTransaction(db, async (transaction) => {
+          const userRef = doc(db, "users", currentUser.id);
+          const userDoc = await transaction.get(userRef);
+          if (!userDoc.exists()) throw new Error("User not found");
+  
+          const userData = userDoc.data() as User;
+          const charIndex = userData.characters.findIndex(c => c.id === characterId);
+          if (charIndex === -1) throw new Error("Character not found in transaction.");
+  
+          const charToUpdate = { ...userData.characters[charIndex] };
+          const inventory = JSON.parse(JSON.stringify(charToUpdate.inventory || {}));
+          
+          const finishedHuntIds = new Set(finishedHunts.map(h => h.huntId));
+  
+          for (const hunt of finishedHunts) {
+              const location = gameSettings.huntingLocations?.find(l => l.id === hunt.locationId);
+              const familiar = familiarsById[hunt.familiarId];
+              
+              if (!location || !familiar) continue; // Skip if data is missing
+  
+              let effectiveRank = familiar.rank;
+              if (effectiveRank === 'ивентовый') effectiveRank = 'мифический';
+              
+              for (const rewardRule of location.rewards) {
+                  const rankReward = rewardRule.rewardsByRank[effectiveRank];
+                  if (rankReward && (Math.random() * 100 <= rankReward.chance)) {
+                      const itemData = allItems.find(i => i && i.id === rewardRule.itemId);
+                      if (itemData) {
+                          const invCategory = ('inventoryTag' in itemData && itemData.inventoryTag) ? itemData.inventoryTag : 'ингредиенты';
+                          const categoryItems = (inventory[invCategory as keyof typeof inventory] || []) as InventoryItem[];
+                          const existingItemIndex = categoryItems.findIndex(i => i.name === itemData.name);
+                          
+                          const quantityGained = rankReward.quantity;
+  
+                          if (existingItemIndex > -1) {
+                              categoryItems[existingItemIndex].quantity += quantityGained;
+                          } else {
+                              categoryItems.push({
+                                  id: `inv-item-${Date.now()}-${Math.random()}`,
+                                  name: itemData.name,
+                                  description: ('note' in itemData ? itemData.note : '') || ('description' in itemData ? (itemData as any).description : ''),
+                                  image: itemData.image,
+                                  quantity: quantityGained,
+                              });
+                          }
+                          inventory[invCategory as keyof typeof inventory] = categoryItems as any;
+                          
+                          // Aggregate rewards for the final toast message
+                          const existingOverallReward = allRewards.find(r => r.name === itemData.name);
+                          if (existingOverallReward) {
+                              existingOverallReward.quantity += quantityGained;
+                          } else {
+                              allRewards.push({ ...itemData, quantity: quantityGained } as InventoryItem);
+                          }
+                      }
+                  }
+              }
+          }
+          
+          charToUpdate.ongoingHunts = (charToUpdate.ongoingHunts || []).filter(h => !finishedHuntIds.has(h.huntId));
+          charToUpdate.inventory = inventory;
+          userData.characters[charIndex] = charToUpdate;
+          
+          transaction.update(userRef, { characters: userData.characters });
+      });
+  
+      const updatedUser = await fetchUserById(currentUser.id);
+      if (updatedUser) setCurrentUser(updatedUser);
+  
+      return allRewards;
+  }, [currentUser, gameSettings.huntingLocations, familiarsById, fetchAllShops, fetchUserById, setCurrentUser, toast]);
 
     const recallHunt = useCallback(async (characterId: string, huntId: string) => {
         if (!currentUser) throw new Error("Not authenticated");
@@ -3341,10 +3396,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         fetchDbFamiliars,
         addFamiliarToDb,
         deleteFamiliarFromDb,
-        sendPlayerPing,
-        deletePlayerPing,
-        addFavoritePlayer,
-        removeFavoritePlayer,
         allFamiliars,
         familiarsById,
         startHunt,
@@ -3356,6 +3407,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         changeUserPassword,
         changeUserEmail,
         mergeUserData,
+        sendPlayerPing,
+        deletePlayerPing,
+        addFavoritePlayer,
+        removeFavoritePlayer,
         imageGeneration,
         deleteUserFromAuth,
     }),
