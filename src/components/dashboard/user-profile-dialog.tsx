@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
@@ -357,7 +355,7 @@ export default function UserProfileDialog({ user }: { user: User }) {
                         )}
                     </CardTitle>
                     {user.statusText && (
-                        <CardDescription className="truncate">{user.statusText}</CardDescription>
+                        <CardDescription className="truncate text-sm">{user.statusText}</CardDescription>
                     )}
                     </div>
                     {!isOwner && currentUser && (

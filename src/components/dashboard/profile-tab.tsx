@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useUser } from '@/hooks/use-user';
@@ -409,7 +407,7 @@ export default function ProfileTab() {
                   )}
                 </CardTitle>
                 {currentUser.statusText && (
-                    <CardDescription className="truncate text-sm sm:text-base">{currentUser.statusText}</CardDescription>
+                    <CardDescription className="truncate text-sm">{currentUser.statusText}</CardDescription>
                 )}
             </div>
         </div>
