@@ -353,19 +353,12 @@ export default function UserProfileDialog({ user }: { user: User }) {
                     <CardTitle className="text-xl sm:text-2xl font-headline truncate flex items-center gap-2">
                         {user.name}
                         {user.statusEmoji && (
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <span className="cursor-default">{user.statusEmoji}</span>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>{user.statusText}</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
+                            <span className="cursor-default">{user.statusEmoji}</span>
                         )}
                     </CardTitle>
-                    <CardDescription className="truncate">{user.email}</CardDescription>
+                    {user.statusText && (
+                        <CardDescription className="truncate">{user.statusText}</CardDescription>
+                    )}
                     </div>
                     {!isOwner && currentUser && (
                     <Button variant="ghost" size="icon" onClick={handleToggleFavorite}>

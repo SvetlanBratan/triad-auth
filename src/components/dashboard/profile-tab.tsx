@@ -403,21 +403,14 @@ export default function ProfileTab() {
             </div>
             <div className="flex-1 overflow-hidden min-w-0">
                 <CardTitle className="text-xl sm:text-2xl font-headline truncate flex items-center gap-2">
-                    {currentUser.name}
-                    {currentUser.statusEmoji && (
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <span className="cursor-default">{currentUser.statusEmoji}</span>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{currentUser.statusText}</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    )}
+                  {currentUser.name}
+                  {currentUser.statusEmoji && (
+                      <span className="cursor-default">{currentUser.statusEmoji}</span>
+                  )}
                 </CardTitle>
-                <CardDescription className="truncate text-sm sm:text-base">{currentUser.email}</CardDescription>
+                {currentUser.statusText && (
+                    <CardDescription className="truncate text-sm sm:text-base">{currentUser.statusText}</CardDescription>
+                )}
             </div>
         </div>
         </CardHeader>
