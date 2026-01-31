@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -1025,6 +1026,7 @@ export default function CharacterPage() {
                             src={character.bannerImage}
                             alt={`${character.name} banner`}
                             fill
+                            priority
                             style={{ objectFit: 'cover' }}
                             className="bg-muted/30"
                             data-ai-hint="character banner"

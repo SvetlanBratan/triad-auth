@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -267,6 +268,7 @@ export default function ShopPage() {
                             src={shop.image}
                             alt={shop.title}
                             fill
+                            priority
                             style={{objectFit: "cover"}}
                             className="w-full h-full"
                             data-ai-hint={shop.aiHint}
