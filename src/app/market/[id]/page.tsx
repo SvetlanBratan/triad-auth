@@ -41,7 +41,7 @@ import AuthPage from '@/components/auth/auth-page';
 export default function ShopPage() {
     const { id } = useParams();
     const router = useRouter();
-    const { currentUser, deleteShopItem, purchaseShopItem, restockShopItem, fetchShopById, updateShopDetails, withdrawFromShopTill } = useUser();
+    const { currentUser, deleteShopItem, purchaseShopItem, restockShopItem, fetchShopById, updateShopDetails, withdrawFromShopTill, adminAddShop } = useUser();
     const { loading } = useAuth();
     const { toast } = useToast();
 
@@ -428,87 +428,89 @@ export default function ShopPage() {
                             Здесь вы можете изменить информацию о вашем заведении и пополнить запасы товаров.
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="py-4 space-y-6">
-                        <div className="space-y-4 p-4 border rounded-md">
-                             <h4 className="font-semibold mb-2">Настройки магазина</h4>
-                             <div className="space-y-2">
-                                <Label htmlFor="shopTitle">Название</Label>
-                                <Input id="shopTitle" value={editedTitle} onChange={(e) => setEditedTitle(e.target.value)} />
-                             </div>
-                             <div className="space-y-2">
-                                <Label htmlFor="shopDescription">Описание</Label>
-                                <Textarea id="shopDescription" value={editedDescription} onChange={(e) => setEditedDescription(e.target.value)} />
-                             </div>
-                             <div className="space-y-2">
-                                <Label htmlFor="defaultCategory">Категория по умолчанию для новых товаров</Label>
-                                 <SearchableSelect
-                                    options={INVENTORY_CATEGORIES}
-                                    value={defaultNewItemCategory}
-                                    onValueChange={(v) => setDefaultNewItemCategory(v as InventoryCategory)}
-                                    placeholder="Выберите категорию..."
-                                />
-                             </div>
-                              <Button onClick={handleSaveChanges} disabled={isSavingDetails}>
-                                <Save className="mr-2 h-4 w-4" /> {isSavingDetails ? "Сохранение..." : "Сохранить информацию"}
-                            </Button>
-                        </div>
-                        
-                        <div className="space-y-4 p-4 border rounded-md">
-                            <h4 className="font-semibold mb-2">Касса заведения</h4>
-                            <div className="p-4 bg-muted rounded-lg flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                                <div className="flex-1">
-                                    <p className="text-sm text-muted-foreground">Текущий баланс:</p>
-                                    <p className="text-xl font-bold text-primary">{formatCurrency(shopBalance)}</p>
+                    <ScrollArea className="max-h-[70vh]">
+                        <div className="py-4 pr-6 space-y-6">
+                            <div className="space-y-4 p-4 border rounded-md">
+                                <h4 className="font-semibold mb-2">Настройки магазина</h4>
+                                <div className="space-y-2">
+                                    <Label htmlFor="shopTitle">Название</Label>
+                                    <Input id="shopTitle" value={editedTitle} onChange={(e) => setEditedTitle(e.target.value)} />
                                 </div>
-                                <Button onClick={handleWithdraw} disabled={isWithdrawing || !hasMoneyInTill}>
-                                    <WalletCards className="mr-2 h-4 w-4" /> 
-                                    {isWithdrawing ? "Перевод..." : "Вывести средства"}
+                                <div className="space-y-2">
+                                    <Label htmlFor="shopDescription">Описание</Label>
+                                    <Textarea id="shopDescription" value={editedDescription} onChange={(e) => setEditedDescription(e.target.value)} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="defaultCategory">Категория по умолчанию для новых товаров</Label>
+                                    <SearchableSelect
+                                        options={INVENTORY_CATEGORIES}
+                                        value={defaultNewItemCategory}
+                                        onValueChange={(v) => setDefaultNewItemCategory(v as InventoryCategory)}
+                                        placeholder="Выберите категорию..."
+                                    />
+                                </div>
+                                <Button onClick={handleSaveChanges} disabled={isSavingDetails}>
+                                    <Save className="mr-2 h-4 w-4" /> {isSavingDetails ? "Сохранение..." : "Сохранить информацию"}
                                 </Button>
                             </div>
-                        </div>
-
-                        <div className="space-y-4 p-4 border rounded-md">
-                            <h4 className="font-semibold mb-2">Товары не в наличии</h4>
-                             <p className="text-sm text-muted-foreground">Стоимость пополнения составляет 30% от базовой цены товара и списывается из кассы заведения.</p>
-                            {outOfStockItems.length > 0 ? (
-                                <div className="space-y-4">
-                                    {outOfStockItems.map(item => {
-                                        const restockCost = {
-                                            platinum: Math.ceil((item.price.platinum || 0) * 0.3),
-                                            gold: Math.ceil((item.price.gold || 0) * 0.3),
-                                            silver: Math.ceil((item.price.silver || 0) * 0.3),
-                                            copper: Math.ceil((item.price.copper || 0) * 0.3),
-                                        }
-                                        const canAffordRestock = 
-                                            (shopBalance.platinum >= restockCost.platinum) &&
-                                            (shopBalance.gold >= restockCost.gold) &&
-                                            (shopBalance.silver >= restockCost.silver) &&
-                                            (shopBalance.copper >= restockCost.copper);
-
-                                        return (
-                                            <div key={item.id} className="flex justify-between items-center p-3 bg-muted/50 rounded-md">
-                                                <div>
-                                                    <p className="font-semibold">{item.name}</p>
-                                                    <p className="text-xs text-muted-foreground">Стоимость пополнения: {formatCurrency(restockCost)}</p>
-                                                </div>
-                                                <Button 
-                                                    onClick={() => handleRestock(item)}
-                                                    disabled={isRestockingId === item.id || !canAffordRestock}
-                                                >
-                                                    <RefreshCw className="mr-2 h-4 w-4" />
-                                                    {isRestockingId === item.id ? "Пополняем..." : (canAffordRestock ? "Пополнить" : "Недостаточно средств")}
-                                                </Button>
-                                            </div>
-                                        )
-                                    })}
+                            
+                            <div className="space-y-4 p-4 border rounded-md">
+                                <h4 className="font-semibold mb-2">Касса заведения</h4>
+                                <div className="p-4 bg-muted rounded-lg flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                                    <div className="flex-1">
+                                        <p className="text-sm text-muted-foreground">Текущий баланс:</p>
+                                        <p className="text-xl font-bold text-primary">{formatCurrency(shopBalance)}</p>
+                                    </div>
+                                    <Button onClick={handleWithdraw} disabled={isWithdrawing || !hasMoneyInTill}>
+                                        <WalletCards className="mr-2 h-4 w-4" /> 
+                                        {isWithdrawing ? "Перевод..." : "Вывести средства"}
+                                    </Button>
                                 </div>
-                            ) : (
-                                <p className="text-sm text-muted-foreground text-center py-4">
-                                    Все товары в наличии.
-                                </p>
-                            )}
+                            </div>
+
+                            <div className="space-y-4 p-4 border rounded-md">
+                                <h4 className="font-semibold mb-2">Товары не в наличии</h4>
+                                <p className="text-sm text-muted-foreground">Стоимость пополнения составляет 30% от базовой цены товара и списывается из кассы заведения.</p>
+                                {outOfStockItems.length > 0 ? (
+                                    <div className="space-y-4">
+                                        {outOfStockItems.map(item => {
+                                            const restockCost = {
+                                                platinum: Math.ceil((item.price.platinum || 0) * 0.3),
+                                                gold: Math.ceil((item.price.gold || 0) * 0.3),
+                                                silver: Math.ceil((item.price.silver || 0) * 0.3),
+                                                copper: Math.ceil((item.price.copper || 0) * 0.3),
+                                            }
+                                            const canAffordRestock = 
+                                                (shopBalance.platinum >= restockCost.platinum) &&
+                                                (shopBalance.gold >= restockCost.gold) &&
+                                                (shopBalance.silver >= restockCost.silver) &&
+                                                (shopBalance.copper >= restockCost.copper);
+
+                                            return (
+                                                <div key={item.id} className="flex justify-between items-center p-3 bg-muted/50 rounded-md">
+                                                    <div>
+                                                        <p className="font-semibold">{item.name}</p>
+                                                        <p className="text-xs text-muted-foreground">Стоимость пополнения: {formatCurrency(restockCost)}</p>
+                                                    </div>
+                                                    <Button 
+                                                        onClick={() => handleRestock(item)}
+                                                        disabled={isRestockingId === item.id || !canAffordRestock}
+                                                    >
+                                                        <RefreshCw className="mr-2 h-4 w-4" />
+                                                        {isRestockingId === item.id ? "Пополняем..." : (canAffordRestock ? "Пополнить" : "Недостаточно средств")}
+                                                    </Button>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground text-center py-4">
+                                        Все товары в наличии.
+                                    </p>
+                                )}
+                            </div>
                         </div>
-                    </div>
+                    </ScrollArea>
                 </DialogContent>
             </Dialog>
             
@@ -590,7 +592,7 @@ export default function ShopPage() {
                                                     );
                                                 }}
                                                 renderOption={(option) => {
-                                                    const character = buyerCharacters.find(c => c.id === option.value);
+                                                     const character = buyerCharacters.find(c => c.id === option.value);
                                                     if (!character) return option.label;
                                                     return (
                                                         <div>
@@ -643,3 +645,4 @@ export default function ShopPage() {
     
 
     
+
