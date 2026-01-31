@@ -117,6 +117,7 @@ export default function AdminTab() {
     gameSettings,
     updateGameSettings,
     mergeUserData,
+    adminAddShop,
   } = useUser();
   const queryClient = useQueryClient();
 
@@ -220,6 +221,8 @@ export default function AdminTab() {
   const [shopOwnerCharId, setShopOwnerCharId] = useState('');
   const [licenseShopId, setLicenseShopId] = useState('');
   const [shopHasLicense, setShopHasLicense] = useState(false);
+  const [newShop, setNewShop] = useState({ title: '', description: '', image: '', aiHint: '' });
+  const [isAddingShop, setIsAddingShop] = useState(false);
 
   
   // Item management state
@@ -809,6 +812,26 @@ export default function AdminTab() {
     }
 };
 
+  const handleAddNewShop = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newShop.title || !newShop.description || !newShop.image) {
+        toast({ variant: 'destructive', title: 'Ошибка', description: 'Пожалуйста, заполните все обязательные поля.' });
+        return;
+    }
+    setIsAddingShop(true);
+    try {
+        await adminAddShop({ ...newShop });
+        toast({ title: 'Магазин добавлен!', description: `Магазин "${newShop.title}" появился на рынке.` });
+        setNewShop({ title: '', description: '', image: '', aiHint: '' });
+        await queryClient.invalidateQueries({ queryKey: ['allShops'] });
+    } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Не удалось добавить магазин.';
+        toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+    } finally {
+        setIsAddingShop(false);
+    }
+  }
+
   const handleGiveItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!itemUserId || !itemCharId) {
@@ -946,7 +969,7 @@ export default function AdminTab() {
         setNewRecipe(prev => ({ ...prev, components }));
     };
 
-    const handleRecipeSubmit = async (e: React.FormEvent) => {
+    const handleAddRecipe = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newRecipe.resultPotionId || newRecipe.components.length === 0) {
             toast({ variant: 'destructive', title: 'Ошибка', description: 'Выберите итоговое зелье и хотя бы один ингредиент.' });
@@ -954,42 +977,15 @@ export default function AdminTab() {
         }
         setIsAddingRecipe(true);
         try {
-            if (editingRecipeId) {
-                await updateAlchemyRecipe(editingRecipeId, newRecipe);
-                toast({ title: 'Рецепт обновлен!' });
-            } else {
-                await addAlchemyRecipe(newRecipe);
-                toast({ title: 'Рецепт добавлен!' });
-            }
-            setNewRecipe({ name: '', components: [], resultPotionId: '', outputQty: 1 });
-            setEditingRecipeId(null);
+            await addAlchemyRecipe(newRecipe);
+            toast({ title: 'Рецепт добавлен!' });
+            setNewRecipe({ name: '', components: [], resultPotionId: '', outputQty: 1, difficulty: 1 });
             queryClient.invalidateQueries({ queryKey: ['alchemyRecipes'] });
         } catch (error) {
             const message = error instanceof Error ? error.message : "Произошла неизвестная ошибка";
             toast({ variant: 'destructive', title: 'Ошибка', description: message });
         } finally {
             setIsAddingRecipe(false);
-        }
-    };
-
-    const handleEditRecipeClick = (recipe: AlchemyRecipe) => {
-        setEditingRecipeId(recipe.id);
-        setNewRecipe({
-            name: recipe.name || '',
-            components: recipe.components,
-            resultPotionId: recipe.resultPotionId,
-            outputQty: recipe.outputQty,
-        });
-    }
-
-    const handleDeleteRecipeClick = async (recipeId: string) => {
-        try {
-            await deleteAlchemyRecipe(recipeId);
-            toast({ title: "Рецепт удален" });
-            refetchRecipes();
-        } catch(e) {
-            const msg = e instanceof Error ? e.message : 'Не удалось удалить рецепт.';
-            toast({ variant: 'destructive', title: 'Ошибка', description: msg });
         }
     };
   
@@ -1893,7 +1889,7 @@ export default function AdminTab() {
                 <CardDescription>Создайте новый алхимический рецепт, который станет доступен игрокам.</CardDescription>
             </CardHeader>
             <CardContent>
-                <form onSubmit={handleRecipeSubmit} className="space-y-4">
+                <form onSubmit={handleAddRecipe} className="space-y-4">
                      <div>
                         <Label htmlFor="recipe-name">Название рецепта (необязательно)</Label>
                         <Input id="recipe-name" value={newRecipe.name} onChange={e => setNewRecipe(p => ({ ...p, name: e.target.value }))} placeholder="Напр., Простое зелье лечения"/>
@@ -1942,55 +1938,18 @@ export default function AdminTab() {
                     </div>
 
                     <Button type="submit" className="w-full" disabled={isAddingRecipe}>
-                        {isAddingRecipe ? (editingRecipeId ? 'Сохранение...' : 'Добавление...') : (editingRecipeId ? 'Сохранить рецепт' : 'Добавить рецепт')}
+                        {isAddingRecipe ? 'Добавление...' : 'Добавить рецепт'}
                     </Button>
-                    {editingRecipeId && (
-                        <Button type="button" variant="ghost" className="w-full" onClick={() => { setEditingRecipeId(null); setNewRecipe({ name: '', components: [], resultPotionId: '', outputQty: 1 }); }}>Отмена</Button>
-                    )}
                 </form>
-                <Separator className="my-6" />
-                <div className="space-y-4">
-                    <h3 className="font-semibold">Существующие рецепты</h3>
-                    {allRecipes.length > 0 ? (
-                        <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
-                            {allRecipes.map(recipe => (
-                                <div key={recipe.id} className="flex justify-between items-center p-2 bg-muted/50 rounded-md text-sm">
-                                    <span>{recipe.name || allItemsMap.get(recipe.resultPotionId)?.name || 'Безымянный рецепт'}</span>
-                                    <div className="flex gap-2">
-                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditRecipeClick(recipe)}><Edit className="w-4 h-4" /></Button>
-                                        <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="h-7 w-7"><Trash2 className="w-4 h-4 text-destructive" /></Button>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                    <AlertDialogTitle>Удалить рецепт?</AlertDialogTitle>
-                                                    <AlertDialogDescription>Это действие невозможно отменить.</AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                    <AlertDialogCancel>Отмена</AlertDialogCancel>
-                                                    <AlertDialogAction onClick={() => handleDeleteRecipeClick(recipe.id)} className="bg-destructive hover:bg-destructive/90">Удалить</AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <p className="text-center text-sm text-muted-foreground py-4">Нет созданных рецептов.</p>
-                    )}
-                </div>
             </CardContent>
         </Card>
       </TabsContent>
       
       <TabsContent value="familiars" className="mt-4">
         <Tabs defaultValue="stats" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 max-w-lg mx-auto">
+            <TabsList className="grid w-full grid-cols-2 max-w-lg mx-auto">
                 <TabsTrigger value="stats">Статистика</TabsTrigger>
                 <TabsTrigger value="manage">Управление</TabsTrigger>
-                <TabsTrigger value="hunting">Охота</TabsTrigger>
             </TabsList>
             <TabsContent value="stats" className="mt-4">
                 <div className="gap-6 column-1 md:column-2 lg:column-3">
@@ -2173,145 +2132,6 @@ export default function AdminTab() {
             </TabsContent>
             <TabsContent value="manage" className="mt-4">
                 <AdminFamiliarsTab />
-            </TabsContent>
-            <TabsContent value="hunting" className="mt-4">
-                <Card className="max-w-4xl mx-auto">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Compass /> Управление локациями для охоты</CardTitle>
-                        <CardDescription>
-                        Создавайте и редактируйте локации, где игроки могут добывать ингредиенты.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {editingHuntLocation ? (
-                            <div className="space-y-6">
-                                <div className="space-y-4">
-                                    <h3 className="font-semibold text-lg">{editingHuntLocation.id ? 'Редактирование' : 'Новая локация'}</h3>
-                                    <div>
-                                        <Label htmlFor="loc-name">Название</Label>
-                                        <Input id="loc-name" value={editingHuntLocation.name || ''} onChange={(e) => handleLocationChange(0, 'name', e.target.value)} />
-                                    </div>
-                                    <div>
-                                        <Label htmlFor="loc-desc">Описание</Label>
-                                        <Textarea id="loc-desc" value={editingHuntLocation.description || ''} onChange={(e) => handleLocationChange(0, 'description', e.target.value)} />
-                                    </div>
-                                    <div>
-                                        <Label htmlFor="loc-image">URL изображения</Label>
-                                        <Input id="loc-image" value={editingHuntLocation.image || ''} onChange={(e) => handleLocationChange(0, 'image', e.target.value)} placeholder="https://..." />
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-4">
-                                        <div>
-                                            <Label htmlFor="loc-duration">Длительность (в минутах)</Label>
-                                            <Input id="loc-duration" type="number" value={editingHuntLocation.durationMinutes || 60} onChange={(e) => handleLocationChange(0, 'durationMinutes', parseInt(e.target.value, 10))} />
-                                        </div>
-                                        <div>
-                                            <Label htmlFor="loc-limit">Лимит мест</Label>
-                                            <Input id="loc-limit" type="number" value={editingHuntLocation.limit ?? 10} onChange={(e) => handleLocationChange(0, 'limit', parseInt(e.target.value, 10))} placeholder="10"/>
-                                        </div>
-                                        <div>
-                                            <Label htmlFor="loc-rank">Мин. ранг</Label>
-                                            <SearchableSelect 
-                                                options={rankOptions.filter(o => o.value !== 'ивентовый')}
-                                                value={editingHuntLocation.requiredRank || 'обычный'}
-                                                onValueChange={(val) => handleLocationChange(0, 'requiredRank', val as FamiliarRank)}
-                                                placeholder="Выберите ранг"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="space-y-4">
-                                    <h4 className="font-semibold">Награды</h4>
-                                    {(editingHuntLocation.rewards || []).map((reward, rewardIndex) => (
-                                        <div key={rewardIndex} className="p-3 border rounded-md space-y-3">
-                                            <div className="flex justify-between items-start">
-                                                <div className="flex-1 space-y-2">
-                                                    <Label>Ингредиент</Label>
-                                                    <SearchableSelect 
-                                                        options={alchemyIngredientOptions}
-                                                        value={reward.itemId}
-                                                        onValueChange={(val) => handleLocationRewardChange(0, rewardIndex, 'itemId', val)}
-                                                        placeholder="Выберите ингредиент..."
-                                                    />
-                                                </div>
-                                                <Button type="button" variant="ghost" size="icon" className="ml-2 mt-6" onClick={() => removeLocationReward(0, rewardIndex)}>
-                                                    <Trash2 className="w-4 h-4 text-destructive" />
-                                                </Button>
-                                            </div>
-                                            <div>
-                                                <Label>Шанс (%) и Количество (шт.) для каждого ранга</Label>
-                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-1">
-                                                    {rankOrder.map(rank => (
-                                                        <div key={rank} className="space-y-1">
-                                                            <Label htmlFor={`chance-${rewardIndex}-${rank}`} className="text-xs capitalize">{rankNames[rank]}</Label>
-                                                            <div className='flex items-center gap-1'>
-                                                                <Input id={`chance-${rewardIndex}-${rank}`} type="number" min="0" max="100" 
-                                                                    placeholder="Шанс"
-                                                                    value={reward.rewardsByRank?.[rank]?.chance || 0}
-                                                                    onChange={(e) => handleRewardRankDataChange(rewardIndex, rank, 'chance', e.target.value)}
-                                                                />
-                                                                 <Input type="number" min="0" max="100"
-                                                                    placeholder="Кол-во"
-                                                                    value={reward.rewardsByRank?.[rank]?.quantity || 1}
-                                                                    onChange={(e) => handleRewardRankDataChange(rewardIndex, rank, 'quantity', e.target.value)}
-                                                                    className="w-16"
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    <Button type="button" variant="outline" size="sm" onClick={() => addLocationReward(0)}>
-                                        <PlusCircle className="mr-2 h-4 w-4" /> Добавить награду
-                                    </Button>
-                                </div>
-                                <div className="flex gap-2 justify-end">
-                                    <Button variant="ghost" onClick={() => setEditingHuntLocation(null)}>Отмена</Button>
-                                    <Button onClick={handleSaveHuntingLocation}>
-                                        <Save className="mr-2 h-4 w-4" /> Сохранить локацию
-                                    </Button>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                <Button onClick={() => setEditingHuntLocation({ name: '', description: '', image: '', durationMinutes: 60, requiredRank: 'обычный', rewards: [], limit: 10 })}>
-                                    <PlusCircle className="mr-2 h-4 w-4" /> Добавить новую локацию
-                                </Button>
-                                <div className="space-y-3">
-                                    {(gameSettings.huntingLocations || []).map((loc, locIndex) => (
-                                        <Card key={loc.id} className="flex flex-col sm:flex-row items-start gap-4 p-4">
-                                            {loc.image && <img src={loc.image} alt={loc.name} className="w-full sm:w-32 h-auto aspect-video sm:aspect-square object-cover rounded-md bg-muted" />}
-                                            <div className="flex-1">
-                                                <h4 className="font-semibold">{loc.name}</h4>
-                                                <p className="text-xs text-muted-foreground">{loc.durationMinutes} мин. / {rankNames[loc.requiredRank]}</p>
-                                                <p className="text-sm mt-1">{loc.description}</p>
-                                            </div>
-                                            <div className="flex gap-2 self-start">
-                                                <Button size="icon" variant="outline" onClick={() => setEditingHuntLocation(loc)}><Edit className="w-4 h-4" /></Button>
-                                                <AlertDialog>
-                                                    <AlertDialogTrigger asChild>
-                                                        <Button size="icon" variant="destructive"><Trash2 className="w-4 h-4" /></Button>
-                                                    </AlertDialogTrigger>
-                                                    <AlertDialogContent>
-                                                        <AlertDialogHeader>
-                                                            <AlertDialogTitle>Удалить локацию "{loc.name}"?</AlertDialogTitle>
-                                                            <AlertDialogDescription>Это действие невозможно отменить.</AlertDialogDescription>
-                                                        </AlertDialogHeader>
-                                                        <AlertDialogFooter>
-                                                            <AlertDialogCancel>Отмена</AlertDialogCancel>
-                                                            <AlertDialogAction onClick={() => handleDeleteHuntingLocation(loc.id)} className="bg-destructive hover:bg-destructive/90">Удалить</AlertDialogAction>
-                                                        </AlertDialogFooter>
-                                                    </AlertDialogContent>
-                                                </AlertDialog>
-                                            </div>
-                                        </Card>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
             </TabsContent>
         </Tabs>
       </TabsContent>
@@ -2603,6 +2423,37 @@ export default function AdminTab() {
                 </CardContent>
             </Card>
            </div>
+           <div className="break-inside-avoid mb-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Store /> Добавить новый магазин</CardTitle>
+                        <CardDescription>Создайте новую торговую точку на рынке.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <form onSubmit={handleAddNewShop} className="space-y-4">
+                            <div>
+                                <Label htmlFor="newShopTitle">Название</Label>
+                                <Input id="newShopTitle" value={newShop.title} onChange={e => setNewShop(p => ({...p, title: e.target.value}))} required />
+                            </div>
+                            <div>
+                                <Label htmlFor="newShopDesc">Описание</Label>
+                                <Textarea id="newShopDesc" value={newShop.description} onChange={e => setNewShop(p => ({...p, description: e.target.value}))} required />
+                            </div>
+                            <div>
+                                <Label htmlFor="newShopImg">URL изображения</Label>
+                                <Input id="newShopImg" value={newShop.image} onChange={e => setNewShop(p => ({...p, image: e.target.value}))} required placeholder="https://..." />
+                            </div>
+                            <div>
+                                <Label htmlFor="newShopHint">Подсказка для AI (необязательно)</Label>
+                                <Input id="newShopHint" value={newShop.aiHint} onChange={e => setNewShop(p => ({...p, aiHint: e.target.value}))} placeholder="fantasy shop" />
+                            </div>
+                            <Button type="submit" disabled={isAddingShop}>
+                                {isAddingShop ? 'Добавление...' : 'Добавить магазин'}
+                            </Button>
+                        </form>
+                    </CardContent>
+                </Card>
+            </div>
              <div className="break-inside-avoid mb-6">
                 <Card>
                     <CardHeader>
