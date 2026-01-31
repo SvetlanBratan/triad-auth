@@ -44,17 +44,9 @@ export default function ShopPage() {
     const { currentUser, deleteShopItem, purchaseShopItem, restockShopItem, fetchShopById, updateShopDetails, withdrawFromShopTill, adminAddShop } = useUser();
     const { loading } = useAuth();
     const { toast } = useToast();
-
-    if (loading) {
-        return <div className="container mx-auto p-8"><p>Загрузка магазина...</p></div>;
-    }
-
-    if (!currentUser) {
-        return <AuthPage />;
-    }
-    
     const shopId = Array.isArray(id) ? id[0] : id;
 
+    // All hooks must be called unconditionally at the top level.
     const { data: shop, isLoading, refetch } = useQuery<Shop | null>({
         queryKey: ['shop', shopId],
         queryFn: () => fetchShopById(shopId!),
@@ -79,7 +71,6 @@ export default function ShopPage() {
     const [defaultNewItemCategory, setDefaultNewItemCategory] = React.useState<InventoryCategory>('прочее');
     const [isWithdrawing, setIsWithdrawing] = React.useState(false);
 
-
     React.useEffect(() => {
         if (shop) {
             setEditedTitle(shop.title);
@@ -87,7 +78,6 @@ export default function ShopPage() {
             setDefaultNewItemCategory(shop.defaultNewItemCategory || 'прочее');
         }
     }, [shop]);
-
 
     const isOwnerOrAdmin = React.useMemo(() => {
         if (!currentUser || !shop) return false;
@@ -98,6 +88,65 @@ export default function ShopPage() {
         if (!currentUser || !shop) return false;
         return currentUser.id === shop.ownerUserId;
     }, [currentUser, shop]);
+
+    const totalPrice = React.useMemo(() => {
+        if (!selectedItemForPurchase) return null;
+        const { platinum = 0, gold = 0, silver = 0, copper = 0 } = selectedItemForPurchase.price;
+        return {
+            platinum: platinum * purchaseQuantity,
+            gold: gold * purchaseQuantity,
+            silver: silver * purchaseQuantity,
+            copper: copper * purchaseQuantity,
+        };
+    }, [selectedItemForPurchase, purchaseQuantity]);
+
+    const buyerCharacters = React.useMemo(() => {
+        if (!currentUser || !totalPrice) return [];
+        return currentUser.characters.filter(char => {
+            const balance = char.bankAccount;
+            return (balance.platinum >= totalPrice.platinum) &&
+                   (balance.gold >= totalPrice.gold) &&
+                   (balance.silver >= totalPrice.silver) &&
+                   (balance.copper >= totalPrice.copper);
+        });
+    }, [currentUser, totalPrice]);
+
+    const buyerCharacterOptions = React.useMemo(() => {
+        return buyerCharacters.map(char => ({
+            value: char.id,
+            label: `${char.name} (${formatCurrency(char.bankAccount)})`
+        }));
+    }, [buyerCharacters]);
+
+    const outOfStockItems = React.useMemo(() => {
+        return (shop?.items || []).filter(item => item.quantity === 0);
+    }, [shop]);
+
+    const filteredItems = React.useMemo(() => {
+        if (!shop?.items) return [];
+        let items = [...shop.items];
+        
+        if (!isOwnerOrAdmin) {
+            items = items.filter(item => !item.isHidden);
+        }
+
+        const sortedItems = items.sort((a, b) => (b.purchaseCount || 0) - (a.purchaseCount || 0));
+        
+        if (!searchQuery) return sortedItems;
+
+        return sortedItems.filter(item =>
+            item.name.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    }, [shop?.items, searchQuery, isOwnerOrAdmin]);
+
+    // Conditional returns must come after all hook calls.
+    if (loading) {
+        return <div className="container mx-auto p-8"><p>Загрузка магазина...</p></div>;
+    }
+
+    if (!currentUser) {
+        return <AuthPage />;
+    }
     
     const handleFormClose = () => {
         setIsFormOpen(false);
@@ -190,57 +239,6 @@ export default function ShopPage() {
             setIsWithdrawing(false);
         }
     }
-    
-     const totalPrice = React.useMemo(() => {
-        if (!selectedItemForPurchase) return null;
-        const { platinum = 0, gold = 0, silver = 0, copper = 0 } = selectedItemForPurchase.price;
-        return {
-            platinum: platinum * purchaseQuantity,
-            gold: gold * purchaseQuantity,
-            silver: silver * purchaseQuantity,
-            copper: copper * purchaseQuantity,
-        };
-    }, [selectedItemForPurchase, purchaseQuantity]);
-
-    const buyerCharacters = React.useMemo(() => {
-        if (!currentUser || !totalPrice) return [];
-        return currentUser.characters.filter(char => {
-            const balance = char.bankAccount;
-            return (balance.platinum >= totalPrice.platinum) &&
-                   (balance.gold >= totalPrice.gold) &&
-                   (balance.silver >= totalPrice.silver) &&
-                   (balance.copper >= totalPrice.copper);
-        });
-    }, [currentUser, totalPrice]);
-
-    const buyerCharacterOptions = React.useMemo(() => {
-        return buyerCharacters.map(char => ({
-            value: char.id,
-            label: `${char.name} (${formatCurrency(char.bankAccount)})`
-        }));
-    }, [buyerCharacters]);
-
-    const outOfStockItems = React.useMemo(() => {
-        return (shop?.items || []).filter(item => item.quantity === 0);
-    }, [shop]);
-
-    const filteredItems = React.useMemo(() => {
-        if (!shop?.items) return [];
-        let items = [...shop.items];
-        
-        if (!isOwnerOrAdmin) {
-            items = items.filter(item => !item.isHidden);
-        }
-
-        const sortedItems = items.sort((a, b) => (b.purchaseCount || 0) - (a.purchaseCount || 0));
-        
-        if (!searchQuery) return sortedItems;
-
-        return sortedItems.filter(item =>
-            item.name.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-    }, [shop?.items, searchQuery, isOwnerOrAdmin]);
-
 
     if (isLoading) {
         return <div className="container mx-auto p-8"><p>Загрузка магазина...</p></div>;
@@ -252,7 +250,6 @@ export default function ShopPage() {
     
     const shopBalance = shop.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 };
     const hasMoneyInTill = Object.values(shopBalance).some(amount => amount > 0);
-
 
     return (
         <div className="container mx-auto p-4 md:p-8 space-y-6">
@@ -645,4 +642,3 @@ export default function ShopPage() {
     
 
     
-
