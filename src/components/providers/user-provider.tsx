@@ -131,7 +131,7 @@ export interface UserContextType {
   mergeUserData: (sourceUserId: string, targetUserId: string) => Promise<void>;
   imageGeneration: (prompt: string) => Promise<{url: string} | {error: string}>;
   deleteUserFromAuth: (uid: string) => Promise<{success: boolean; message: string}>;
-  adminAddShop: (shopData: Omit<Shop, 'id' | 'items'>) => Promise<void>;
+  adminAddShop: (shopData: Omit<Shop, 'id' | 'items' | 'purchaseCount'>) => Promise<void>;
 }
 
 export const UserContext = createContext<UserContextType | null>(null);
@@ -344,6 +344,30 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             throw error;
         }
     }, [processUserDoc]);
+    
+    const fetchLeaderboardUsers = useCallback(async (lastVisible: DocumentSnapshot<DocumentData> | null = null): Promise<{ users: User[], lastVisible?: DocumentSnapshot<DocumentData> }> => {
+        const PAGE_SIZE = 20;
+        const usersCollection = collection(db, "users");
+        let q;
+        if (lastVisible) {
+          q = query(usersCollection, orderBy("points", "desc"), startAfter(lastVisible), limit(PAGE_SIZE));
+        } else {
+          q = query(usersCollection, orderBy("points", "desc"), limit(PAGE_SIZE));
+        }
+
+        const userSnapshot = await getDocs(q);
+        const users = await Promise.all(userSnapshot.docs.map(doc => processUserDoc(doc.data() as User)));
+        
+        const newLastVisible = userSnapshot.docs.length >= PAGE_SIZE 
+            ? userSnapshot.docs[userSnapshot.docs.length - 1]
+            : undefined;
+        
+        return {
+            users: users.filter((user): user is User => user !== null),
+            lastVisible: newLastVisible,
+        };
+    }, [processUserDoc]);
+
 
     const fetchCharacterById = useCallback(async (characterId: string): Promise<{ character: Character; owner: User } | null> => {
       try {
@@ -497,87 +521,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const signOutUser = useCallback(() => {
         signOut(auth);
     }, []);
-
-    const fetchLeaderboardUsers = useCallback(async (lastVisible: DocumentSnapshot<DocumentData> | null = null): Promise<{ users: User[], lastVisible?: DocumentSnapshot<DocumentData> }> => {
-        const PAGE_SIZE = 20;
-        const usersCollection = collection(db, "users");
-        let q;
-        if (lastVisible) {
-          q = query(usersCollection, orderBy("points", "desc"), startAfter(lastVisible), limit(PAGE_SIZE));
-        } else {
-          q = query(usersCollection, orderBy("points", "desc"), limit(PAGE_SIZE));
-        }
-
-        const userSnapshot = await getDocs(q);
-        const users = await Promise.all(userSnapshot.docs.map(doc => processUserDoc(doc.data() as User)));
-        
-        const newLastVisible = userSnapshot.docs.length >= PAGE_SIZE 
-            ? userSnapshot.docs[userSnapshot.docs.length - 1]
-            : undefined;
-        
-        return {
-            users: users.filter((user): user is User => user !== null),
-            lastVisible: newLastVisible,
-        };
-    }, [processUserDoc]);
-
-    const fetchAllRewardRequests = useCallback(async (): Promise<RewardRequest[]> => {
-        const requests: RewardRequest[] = [];
-        try {
-          const q = query(collectionGroup(db, 'reward_requests'));
-          const querySnapshot = await getDocs(q);
-          querySnapshot.forEach((doc) => {
-            requests.push(doc.data() as RewardRequest);
-          });
-          return requests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        } catch (error) {
-          console.error("Error fetching all reward requests:", error);
-          throw error;
-        }
-    }, []);
-    
-    const fetchRewardRequestsForUser = useCallback(async (userId: string, fetchLimit?: number): Promise<RewardRequest[]> => {
-        const requests: RewardRequest[] = [];
-        try {
-            const requestsRef = collection(db, 'users', userId, 'reward_requests');
-            const q = fetchLimit 
-              ? query(requestsRef, orderBy('createdAt', 'desc'), limit(fetchLimit))
-              : query(requestsRef, orderBy('createdAt', 'desc'));
-            const querySnapshot = await getDocs(q);
-            querySnapshot.forEach((doc) => {
-                requests.push(doc.data() as RewardRequest);
-            });
-            return requests;
-        } catch (error) {
-          console.error("Error fetching reward requests for user:", error);
-          throw error;
-        }
-    }, []);
-    
-    const fetchAvailableMythicCardsCount = useCallback(async (): Promise<number> => {
-        const allUsers = await fetchUsersForAdmin();
-        const allMythicCards = allFamiliars.filter(c => c.rank === 'мифический');
-        const claimedMythicIds = new Set<string>();
-
-        for (const user of allUsers) {
-            for (const character of user.characters) {
-                for (const card of (character.familiarCards || [])) {
-                    const cardDetails = familiarsById[card.id];
-                    if (cardDetails && cardDetails.rank === 'мифический') {
-                        claimedMythicIds.add(card.id);
-                    }
-                }
-            }
-        }
-        return allMythicCards.length - claimedMythicIds.size;
-    }, [fetchUsersForAdmin, allFamiliars, familiarsById]);
-
-    const addPointsToAllUsers = useCallback(async (amount: number, reason: string) => {
-        const allUsers = await fetchUsersForAdmin();
-        for (const user of allUsers) {
-            await addPointsToUser(user.id, amount, reason);
-        }
-    }, [fetchUsersForAdmin, addPointsToUser]);
     
     const updateGameSettings = useCallback(async (updates: Partial<GameSettings>) => {
       const settingsRef = doc(db, 'game_settings', 'main');
@@ -675,6 +618,109 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         await mergeData({ sourceUserId, targetUserId });
     }, [functions]);
 
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+          setLoading(true);
+          if (user) {
+            setFirebaseUser(user);
+            try {
+                await fetchGameSettings(); 
+                await fetchAndCombineFamiliars();
+                let userData = await fetchUserById(user.uid);
+
+                if (userData) {
+                    const updates: Partial<User> = { lastLogin: new Date().toISOString() };
+                    if (userData.status !== 'отпуск') {
+                        updates.status = 'активный';
+                    }
+                    await updateDoc(doc(db, "users", user.uid), updates);
+                    userData = { ...userData, ...updates }; 
+                    if(userData?.role === 'admin') {
+                        await processWeeklyBonus();
+                    }
+                } else {
+                    const nickname = user.displayName || user.email?.split('@')[0] || 'Пользователь';
+                    userData = await createNewUser(user.uid, nickname);
+                }
+
+                setCurrentUser(userData);
+            } catch (error) {
+                console.error("Error fetching user data:", error);
+                setCurrentUser(null);
+            }
+          } else {
+            setFirebaseUser(null);
+            setCurrentUser(null);
+            setGameSettings(DEFAULT_GAME_SETTINGS); 
+          }
+          setLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, [createNewUser, fetchUserById, fetchGameSettings, processWeeklyBonus, fetchAndCombineFamiliars]);
+    
+    useEffect(() => {
+        if (!firebaseUser) return;
+
+        const dateRef = rtdbRef(database, 'calendar/currentDate');
+        const connectionTimeout = setTimeout(() => {
+            setGameDateString((current) => {
+                if (current === null) { 
+                    console.error("Realtime Database connection timed out. Check security rules and database path: /calendar/currentDate");
+                    return "Ошибка: нет доступа к базе данных. Проверьте правила безопасности Realtime Database в консоли Firebase.";
+                }
+                return current;
+            });
+        }, 8000); 
+
+        const unsubscribe = onValue(dateRef, 
+            (snapshot) => {
+                clearTimeout(connectionTimeout);
+                const rtdbDateString = snapshot.val();
+                
+                if (rtdbDateString && typeof rtdbDateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(rtdbDateString)) {
+                    const [year, month, day] = rtdbDateString.split('-').map(Number);
+                    
+                    const newGameDate = new Date(year, month - 1, day);
+                    setGameDate(newGameDate);
+                    
+                    const months = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
+                    setGameDateString(`${day} ${months[month - 1]} ${year} год`);
+                } else {
+                    console.warn(`Invalid or null date from Realtime DB: "${rtdbDateString}". Expected YYYY-MM-DD.`);
+                    setGameDateString("Дата не установлена");
+                    setGameDate(null);
+                }
+
+            }, 
+            (error: Error) => {
+                clearTimeout(connectionTimeout);
+                console.error("Firebase Realtime Database read failed:", error);
+                const code = typeof error === 'object' && error !== null && 'code' in error ? String((error as any).code) : 'unknown';
+                setGameDateString(`Ошибка RTDB: ${code}`);
+                setGameDate(null);
+            }
+        );
+
+        return () => {
+            clearTimeout(connectionTimeout);
+            unsubscribe();
+        };
+    }, [firebaseUser]);
+    
+    const authValue = useMemo(() => ({
+        user: firebaseUser,
+        loading,
+        signOutUser,
+    }), [firebaseUser, loading, signOutUser]);
+    
+    const addPointsToAllUsers = useCallback(async (amount: number, reason: string) => {
+        const allUsers = await fetchUsersForAdmin();
+        for (const user of allUsers) {
+            await addPointsToUser(user.id, amount, reason);
+        }
+    }, [fetchUsersForAdmin, addPointsToUser]);
+    
     const updateCharacterInUser = useCallback(async (userId: string, characterToUpdate: Character): Promise<User> => {
         await runTransaction(db, async (transaction) => {
             const userRef = doc(db, "users", userId);
@@ -916,6 +962,57 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return {...request, status: newStatus};
     }, [fetchUserById, currentUser?.id]);
     
+    const fetchAllRewardRequests = useCallback(async (): Promise<RewardRequest[]> => {
+        const requests: RewardRequest[] = [];
+        try {
+          const q = query(collectionGroup(db, 'reward_requests'));
+          const querySnapshot = await getDocs(q);
+          querySnapshot.forEach((doc) => {
+            requests.push(doc.data() as RewardRequest);
+          });
+          return requests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        } catch (error) {
+          console.error("Error fetching all reward requests:", error);
+          throw error;
+        }
+    }, []);
+
+    const fetchRewardRequestsForUser = useCallback(async (userId: string, fetchLimit?: number): Promise<RewardRequest[]> => {
+        const requests: RewardRequest[] = [];
+        try {
+            const requestsRef = collection(db, 'users', userId, 'reward_requests');
+            const q = fetchLimit 
+              ? query(requestsRef, orderBy('createdAt', 'desc'), limit(fetchLimit))
+              : query(requestsRef, orderBy('createdAt', 'desc'));
+            const querySnapshot = await getDocs(q);
+            querySnapshot.forEach((doc) => {
+                requests.push(doc.data() as RewardRequest);
+            });
+            return requests;
+        } catch (error) {
+          console.error("Error fetching reward requests for user:", error);
+          throw error;
+        }
+    }, []);
+
+    const fetchAvailableMythicCardsCount = useCallback(async (): Promise<number> => {
+        const allUsers = await fetchUsersForAdmin();
+        const allMythicCards = allFamiliars.filter(c => c.rank === 'мифический');
+        const claimedMythicIds = new Set<string>();
+
+        for (const user of allUsers) {
+            for (const character of user.characters) {
+                for (const card of (character.familiarCards || [])) {
+                    const cardDetails = familiarsById[card.id];
+                    if (cardDetails && cardDetails.rank === 'мифический') {
+                        claimedMythicIds.add(card.id);
+                    }
+                }
+            }
+        }
+        return allMythicCards.length - claimedMythicIds.size;
+    }, [fetchUsersForAdmin, allFamiliars, familiarsById]);
+
     const pullGachaForCharacter = useCallback(async (userId: string, characterId: string): Promise<{updatedUser: User, newCard: FamiliarCard, isDuplicate: boolean}> => {
         let finalUser: User | null = null;
         let newCard: FamiliarCard | null = null;
@@ -1843,7 +1940,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           await updateDoc(requestRef, { status });
     }, []);
 
-    const fetchAllShops = useCallback(async (): Promise<Shop[]> => {
+  const fetchAllShops = useCallback(async (): Promise<Shop[]> => {
         const shopsMap = new Map<string, Shop>(ALL_SHOPS.map(shop => [shop.id, { ...shop }]));
         
         const shopsCollection = collection(db, "shops");
@@ -1943,114 +2040,119 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }, []);
   
   const purchaseShopItem = useCallback(async (shopId: string, itemId: string, buyerUserId: string, buyerCharacterId: string, quantity: number) => {
-        await runTransaction(db, async (transaction) => {
-            const shopRef = doc(db, "shops", shopId);
-            const shopDoc = await transaction.get(shopRef);
-            if (!shopDoc.exists()) throw new Error("Магазин не найден.");
-            const shopData = shopDoc.data() as Shop;
-            
-            const items = shopData.items;
-            if (!items) throw new Error("В этом магазине нет товаров.");
-
-            const itemIndex = items.findIndex(i => i.id === itemId);
-            if (itemIndex === -1) throw new Error("Товар не найден.");
-            
-            const item = items[itemIndex];
-
-            if (item.quantity !== undefined && item.quantity < quantity) {
-                throw new Error("Недостаточно товара в наличии.");
-            }
-
-            const buyerUserRef = doc(db, "users", buyerUserId);
-            const buyerUserDoc = await transaction.get(buyerUserRef);
-            if (!buyerUserDoc.exists()) throw new Error("Покупатель не найден.");
-            const buyerUserData = buyerUserDoc.data() as User;
-
-            const buyerCharIndex = buyerUserData.characters.findIndex(c => c.id === buyerCharacterId);
-            if (buyerCharIndex === -1) throw new Error("Персонаж покупателя не найден.");
-            const buyerChar = buyerUserData.characters[buyerCharIndex];
-            
-            const price = item.price;
-            const totalPrice = {
-                platinum: (price.platinum || 0) * quantity,
-                gold: (price.gold || 0) * quantity,
-                silver: (price.silver || 0) * quantity,
-                copper: (price.copper || 0) * quantity,
-            }
-            const balance = buyerChar.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 };
-            if (
-                balance.platinum < totalPrice.platinum ||
-                balance.gold < totalPrice.gold ||
-                balance.silver < totalPrice.silver ||
-                balance.copper < totalPrice.copper
-            ) {
-                throw new Error("Недостаточно средств у персонажа.");
-            }
-
-            buyerChar.bankAccount.platinum -= totalPrice.platinum;
-            buyerChar.bankAccount.gold -= totalPrice.gold;
-            buyerChar.bankAccount.silver -= totalPrice.silver;
-            buyerChar.bankAccount.copper -= totalPrice.copper;
-            
-            const buyerTx: BankTransaction = { id: `txn-buy-${Date.now()}`, date: new Date().toISOString(), reason: `Покупка: ${item.name} x${quantity}`, amount: { platinum: -totalPrice.platinum, gold: -totalPrice.gold, silver: -totalPrice.silver, copper: -totalPrice.copper } };
-            buyerChar.bankAccount.history = [buyerTx, ...(buyerChar.bankAccount.history || [])];
-
-            if (item.inventoryTag === 'проживание') {
-                buyerChar.residenceLocation = item.name;
-            } else if (item.inventoryTag) {
-                const inv = (buyerChar.inventory ??= {} as Partial<Inventory>);
-                const tag = item.inventoryTag as keyof Inventory;
-                (inv[tag] ??= []);
-                const list = inv[tag]!;
-                
-                const inventoryItemName = item.inventoryItemName || item.name;
-                const inventoryItemDescription = item.inventoryItemDescription || item.description || '';
-                const inventoryItemImage = item.inventoryItemImage || item.image || '';
-
-                const existingItemIndex = list.findIndex(invItem => invItem.name === inventoryItemName);
-
-                if (existingItemIndex > -1) {
-                    list[existingItemIndex].quantity += quantity;
-                } else {
-                    const newInventoryItem: InventoryItem = {
-                        id: `inv-item-${Date.now()}`,
-                        name: inventoryItemName,
-                        description: inventoryItemDescription,
-                        image: inventoryItemImage,
-                        quantity: quantity,
-                    };
-                    list.push(newInventoryItem);
-                }
-            }
-
-            const shopBankAccount = shopData.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
-            shopBankAccount.platinum = (shopBankAccount.platinum || 0) + totalPrice.platinum;
-            shopBankAccount.gold = (shopBankAccount.gold || 0) + totalPrice.gold;
-            shopBankAccount.silver = (shopBankAccount.silver || 0) + totalPrice.silver;
-            shopBankAccount.copper = (shopBankAccount.copper || 0) + totalPrice.copper;
-
-            const shopTx: BankTransaction = { id: `txn-sell-${Date.now()}`, date: new Date().toISOString(), reason: `Продажа: ${item.name} x${quantity}`, amount: totalPrice };
-            shopBankAccount.history = [shopTx, ...(shopBankAccount.history || [])];
-
-            transaction.update(buyerUserRef, { characters: buyerUserData.characters });
-
-            const updatedShopData: Partial<Shop> = { bankAccount: shopBankAccount };
-            const updatedItems = [...items];
-            if (item.quantity !== undefined) {
-                updatedItems[itemIndex].quantity = item.quantity - quantity;
-            }
-            updatedItems[itemIndex].purchaseCount = (updatedItems[itemIndex].purchaseCount || 0) + quantity;
-            updatedShopData.items = updatedItems;
-            updatedShopData.purchaseCount = increment(quantity) as unknown as number;
-
-            transaction.set(shopRef, updatedShopData, { merge: true });
-        });
+    await runTransaction(db, async (transaction) => {
+        const shopRef = doc(db, "shops", shopId);
+        const shopDoc = await transaction.get(shopRef);
+        if (!shopDoc.exists()) throw new Error("Магазин не найден.");
+        const shopData = shopDoc.data() as Shop;
         
-         if (currentUser?.id === buyerUserId) {
-            const updatedUser = await fetchUserById(buyerUserId);
-            if (updatedUser) setCurrentUser(updatedUser);
+        const items = shopData.items;
+        if (!items) throw new Error("В этом магазине нет товаров.");
+
+        const itemIndex = items.findIndex(i => i.id === itemId);
+        if (itemIndex === -1) throw new Error("Товар не найден.");
+        
+        const item = items[itemIndex];
+
+        if (item.quantity !== undefined && item.quantity < quantity) {
+            throw new Error("Недостаточно товара в наличии.");
         }
-    }, [currentUser, fetchUserById, initialFormData]);
+
+        const buyerUserRef = doc(db, "users", buyerUserId);
+        const buyerUserDoc = await transaction.get(buyerUserRef);
+        if (!buyerUserDoc.exists()) throw new Error("Покупатель не найден.");
+        const buyerUserData = buyerUserDoc.data() as User;
+
+        const buyerCharIndex = buyerUserData.characters.findIndex(c => c.id === buyerCharacterId);
+        if (buyerCharIndex === -1) throw new Error("Персонаж покупателя не найден.");
+        const buyerChar = buyerUserData.characters[buyerCharIndex];
+        
+        const price = item.price;
+        const totalPrice = {
+            platinum: (price.platinum || 0) * quantity,
+            gold: (price.gold || 0) * quantity,
+            silver: (price.silver || 0) * quantity,
+            copper: (price.copper || 0) * quantity,
+        }
+        const balance = buyerChar.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 };
+        if (
+            balance.platinum < totalPrice.platinum ||
+            balance.gold < totalPrice.gold ||
+            balance.silver < totalPrice.silver ||
+            balance.copper < totalPrice.copper
+        ) {
+            throw new Error("Недостаточно средств у персонажа.");
+        }
+
+        buyerChar.bankAccount.platinum -= totalPrice.platinum;
+        buyerChar.bankAccount.gold -= totalPrice.gold;
+        buyerChar.bankAccount.silver -= totalPrice.silver;
+        buyerChar.bankAccount.copper -= totalPrice.copper;
+        
+        const buyerTx: BankTransaction = { id: `txn-buy-${Date.now()}`, date: new Date().toISOString(), reason: `Покупка: ${item.name} x${quantity}`, amount: { platinum: -totalPrice.platinum, gold: -totalPrice.gold, silver: -totalPrice.silver, copper: -totalPrice.copper } };
+        buyerChar.bankAccount.history = [buyerTx, ...(buyerChar.bankAccount.history || [])];
+
+        if (item.inventoryTag === 'проживание') {
+            buyerChar.residenceLocation = item.name;
+        } else if (item.inventoryTag) {
+            if (!buyerChar.inventory) {
+                buyerChar.inventory = {};
+            }
+            const inv = buyerChar.inventory;
+            const tag = item.inventoryTag as keyof Inventory;
+            if (!inv[tag]) {
+                inv[tag] = [];
+            }
+            const list = inv[tag]!;
+            
+            const inventoryItemName = item.inventoryItemName || item.name;
+            const inventoryItemDescription = item.inventoryItemDescription || item.description || '';
+            const inventoryItemImage = item.inventoryItemImage || item.image || '';
+
+            const existingItemIndex = list.findIndex(invItem => invItem.name === inventoryItemName);
+
+            if (existingItemIndex > -1) {
+                list[existingItemIndex].quantity += quantity;
+            } else {
+                const newInventoryItem: InventoryItem = {
+                    id: `inv-item-${Date.now()}`,
+                    name: inventoryItemName,
+                    description: inventoryItemDescription,
+                    image: inventoryItemImage,
+                    quantity: quantity,
+                };
+                list.push(newInventoryItem);
+            }
+        }
+
+        const shopBankAccount = shopData.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
+        shopBankAccount.platinum = (shopBankAccount.platinum || 0) + totalPrice.platinum;
+        shopBankAccount.gold = (shopBankAccount.gold || 0) + totalPrice.gold;
+        shopBankAccount.silver = (shopBankAccount.silver || 0) + totalPrice.silver;
+        shopBankAccount.copper = (shopBankAccount.copper || 0) + totalPrice.copper;
+
+        const shopTx: BankTransaction = { id: `txn-sell-${Date.now()}`, date: new Date().toISOString(), reason: `Продажа: ${item.name} x${quantity}`, amount: totalPrice };
+        shopBankAccount.history = [shopTx, ...(shopBankAccount.history || [])];
+
+        transaction.update(buyerUserRef, { characters: buyerUserData.characters });
+
+        const updatedShopData: Partial<Shop> = { bankAccount: shopBankAccount };
+        const updatedItems = [...items];
+        if (item.quantity !== undefined) {
+            updatedItems[itemIndex].quantity = item.quantity - quantity;
+        }
+        updatedItems[itemIndex].purchaseCount = (updatedItems[itemIndex].purchaseCount || 0) + quantity;
+        updatedShopData.items = updatedItems;
+        updatedShopData.purchaseCount = (shopData.purchaseCount || 0) + quantity;
+
+        transaction.set(shopRef, updatedShopData, { merge: true });
+    });
+    
+     if (currentUser?.id === buyerUserId) {
+        const updatedUser = await fetchUserById(buyerUserId);
+        if (updatedUser) setCurrentUser(updatedUser);
+    }
+  }, [currentUser, fetchUserById, initialFormData]);
 
     const adminGiveItemToCharacter = useCallback(async (userId: string, characterId: string, itemData: AdminGiveItemForm) => {
         const user = await fetchUserById(userId);
@@ -2071,7 +2173,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         };
 
         const tag = itemData.inventoryTag as keyof Inventory;
-        (inventory[tag] ??= []);
+        if(!inventory[tag]) inventory[tag] = [];
         const list = inventory[tag]!;
         list.push(newInventoryItem);
 
@@ -2559,7 +2661,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             }
 
             const userRef = doc(db, "users", currentUser.id);
-            const userDoc = await transaction.get(userRef);
+            const userDoc = await getDoc(userRef);
             const userData = userDoc.data() as User;
             const charIndex = userData.characters.findIndex(c => c.id === ownerChar.id);
             const characterToUpdate = userData.characters[charIndex];
@@ -3220,7 +3322,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     }, [firebaseUser, updateUser]);
 
-    const adminAddShop = useCallback(async (shopData: Omit<Shop, 'id' | 'items'>) => {
+    const adminAddShop = useCallback(async (shopData: Omit<Shop, 'id' | 'items' | 'purchaseCount'>) => {
         const newShopId = `shop-custom-${Date.now()}`;
         const newShop: Shop = {
             id: newShopId,
@@ -3231,102 +3333,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         await setDoc(shopRef, newShop);
     }, []);
 
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-          setLoading(true);
-          if (user) {
-            setFirebaseUser(user);
-            try {
-                await fetchGameSettings(); 
-                await fetchAndCombineFamiliars();
-                let userData = await fetchUserById(user.uid);
-
-                if (userData) {
-                    const updates: Partial<User> = { lastLogin: new Date().toISOString() };
-                    if (userData.status !== 'отпуск') {
-                        updates.status = 'активный';
-                    }
-                    await updateDoc(doc(db, "users", user.uid), updates);
-                    userData = { ...userData, ...updates }; 
-                    if(userData?.role === 'admin') {
-                        await processWeeklyBonus();
-                    }
-                } else {
-                    const nickname = user.displayName || user.email?.split('@')[0] || 'Пользователь';
-                    userData = await createNewUser(user.uid, nickname);
-                }
-
-                setCurrentUser(userData);
-            } catch (error) {
-                console.error("Error fetching user data:", error);
-                setCurrentUser(null);
-            }
-          } else {
-            setFirebaseUser(null);
-            setCurrentUser(null);
-            setGameSettings(DEFAULT_GAME_SETTINGS); 
-          }
-          setLoading(false);
-        });
-
-        return () => unsubscribe();
-    }, [createNewUser, fetchUserById, fetchGameSettings, processWeeklyBonus, fetchAndCombineFamiliars]);
-    
-    useEffect(() => {
-        if (!firebaseUser) return;
-
-        const dateRef = rtdbRef(database, 'calendar/currentDate');
-        const connectionTimeout = setTimeout(() => {
-            setGameDateString((current) => {
-                if (current === null) { 
-                    console.error("Realtime Database connection timed out. Check security rules and database path: /calendar/currentDate");
-                    return "Ошибка: нет доступа к базе данных. Проверьте правила безопасности Realtime Database в консоли Firebase.";
-                }
-                return current;
-            });
-        }, 8000); 
-
-        const unsubscribe = onValue(dateRef, 
-            (snapshot) => {
-                clearTimeout(connectionTimeout);
-                const rtdbDateString = snapshot.val();
-                
-                if (rtdbDateString && typeof rtdbDateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(rtdbDateString)) {
-                    const [year, month, day] = rtdbDateString.split('-').map(Number);
-                    
-                    const newGameDate = new Date(year, month - 1, day);
-                    setGameDate(newGameDate);
-                    
-                    const months = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
-                    setGameDateString(`${day} ${months[month - 1]} ${year} год`);
-                } else {
-                    console.warn(`Invalid or null date from Realtime DB: "${rtdbDateString}". Expected YYYY-MM-DD.`);
-                    setGameDateString("Дата не установлена");
-                    setGameDate(null);
-                }
-
-            }, 
-            (error: Error) => {
-                clearTimeout(connectionTimeout);
-                console.error("Firebase Realtime Database read failed:", error);
-                const code = typeof error === 'object' && error !== null && 'code' in error ? String((error as any).code) : 'unknown';
-                setGameDateString(`Ошибка RTDB: ${code}`);
-                setGameDate(null);
-            }
-        );
-
-        return () => {
-            clearTimeout(connectionTimeout);
-            unsubscribe();
-        };
-    }, [firebaseUser]);
-    
-    const authValue = useMemo(() => ({
-        user: firebaseUser,
-        loading,
-        signOutUser,
-    }), [firebaseUser, loading, signOutUser]);
-    
     const userContextValue: UserContextType = useMemo(() => ({
         currentUser,
         setCurrentUser,
@@ -3449,4 +3455,6 @@ export const useUser = () => {
     }
     return context;
 };
+    
+
     
