@@ -500,6 +500,7 @@ export interface AlchemyRecipe {
   resultPotionId: string;
   outputQty: number;
   createdAt: string; // ISO string
+  difficulty?: number;
 }
 
 export interface HuntReward {
