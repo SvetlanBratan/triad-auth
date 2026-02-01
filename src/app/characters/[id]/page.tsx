@@ -880,6 +880,9 @@ export default function CharacterPage() {
                 {inventoryLayout.map(section => {
                     const filteredCategories = section.categories
                         .map(cat => {
+                            if (cat.key === 'ключи' && !isOwnerOrAdmin) {
+                                return { cat, items: [], hasContent: false };
+                            }
                             if (cat.key === 'предприятия') {
                                 const filteredShops = ownedShops.filter(shop => shop.title.toLowerCase().includes(lowercasedSearch));
                                 return { cat, items: filteredShops, hasContent: filteredShops.length > 0 };
