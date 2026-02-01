@@ -1242,7 +1242,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const performRelationshipAction = useCallback(async (params: PerformRelationshipActionParams) => {
-        const { sourceUserId, sourceCharacterId, targetCharacterId, actionType, description, itemId, itemCategory, content } = params;
+        const { sourceUserId, sourceCharacterId, targetCharacterId, actionType, description, itemId, itemCategory, quantity, content } = params;
 
         await runTransaction(db, async (transaction) => {
             const sourceUserRef = doc(db, "users", sourceUserId);
@@ -1275,7 +1275,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const targetChar = targetUserData.characters[targetCharIndex];
             
             if (actionType === 'подарок') {
-                if (!itemId || !itemCategory) throw new Error("Для подарка требуется указать предмет.");
+                if (!itemId || !itemCategory || !quantity || quantity <= 0) throw new Error("Для подарка требуется указать предмет и количество.");
                 
                 const sourceInventory = sourceChar.inventory || initialFormData.inventory;
                 const categoryItems = (sourceInventory[itemCategory] as InventoryItem[] | undefined) || [];
@@ -1284,8 +1284,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 if (itemIndex === -1) throw new Error("Предмет для подарка не найден в инвентаре.");
                 const itemToGift = { ...categoryItems[itemIndex] };
 
-                if (itemToGift.quantity > 1) {
-                    categoryItems[itemIndex].quantity -= 1;
+                if (itemToGift.quantity < quantity) throw new Error("Недостаточное количество предметов для подарка.");
+                
+                if (itemToGift.quantity > quantity) {
+                    categoryItems[itemIndex].quantity -= quantity;
                 } else {
                     categoryItems.splice(itemIndex, 1);
                 }
@@ -1296,9 +1298,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 const existingTargetItemIndex = targetCategoryItems.findIndex(invItem => invItem.name === itemToGift.name);
 
                 if (existingTargetItemIndex > -1) {
-                     targetCategoryItems[existingTargetItemIndex].quantity += 1;
+                     targetCategoryItems[existingTargetItemIndex].quantity += quantity;
                 } else {
-                    targetCategoryItems.push({ ...itemToGift, id: `inv-item-${Date.now()}`, quantity: 1 });
+                    targetCategoryItems.push({ ...itemToGift, id: `inv-item-${Date.now()}`, quantity });
                 }
                 targetInventory[itemCategory] = targetCategoryItems;
                 
@@ -1314,7 +1316,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                     recipientCharacterId: targetCharacterId,
                     recipientCharacterName: targetChar.name,
                     subject: `Вам пришел подарок!`,
-                    content: `${sourceChar.name} отправил(а) вам подарок: "${itemToGift.name}".`,
+                    content: `${sourceChar.name} отправил(а) вам подарок: "${itemToGift.name}" (x${quantity}).`,
                     sentAt: new Date().toISOString(),
                     isRead: false,
                     type: 'personal' as const,
@@ -2124,6 +2126,27 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 list.push(newInventoryItem);
             }
         }
+        
+        const userUpdates: {[key: string]: any} = { characters: buyerUserData.characters };
+
+        if (item.mailOnPurchase) {
+            const purchaseMail: MailMessage = {
+                id: `mail-purchase-${Date.now()}`,
+                senderUserId: 'system',
+                senderCharacterName: shopData.title,
+                recipientUserId: buyerUserId,
+                recipientCharacterId: buyerCharacterId,
+                recipientCharacterName: buyerChar.name,
+                subject: `Информация о покупке: ${item.name}`,
+                content: item.mailOnPurchase,
+                sentAt: new Date().toISOString(),
+                isRead: false,
+                type: 'personal',
+            };
+            userUpdates.mail = arrayUnion(purchaseMail);
+        }
+
+        transaction.update(buyerUserRef, userUpdates);
 
         const shopBankAccount = shopData.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
         shopBankAccount.platinum = (shopBankAccount.platinum || 0) + totalPrice.platinum;
@@ -2133,8 +2156,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         const shopTx: BankTransaction = { id: `txn-sell-${Date.now()}`, date: new Date().toISOString(), reason: `Продажа: ${item.name} x${quantity}`, amount: totalPrice };
         shopBankAccount.history = [shopTx, ...(shopBankAccount.history || [])];
-
-        transaction.update(buyerUserRef, { characters: buyerUserData.characters });
 
         const updatedShopData: Partial<Shop> = { bankAccount: shopBankAccount };
         const updatedItems = [...items];

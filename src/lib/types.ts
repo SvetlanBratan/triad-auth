@@ -419,6 +419,7 @@ export interface ShopItem {
   inventoryItemName?: string;
   inventoryItemDescription?: string;
   inventoryItemImage?: string;
+  mailOnPurchase?: string;
 }
 
 export interface Shop {

@@ -39,6 +39,7 @@ const initialFormData: Omit<ShopItem, 'id'> = {
     inventoryItemName: '',
     inventoryItemDescription: '',
     inventoryItemImage: '',
+    mailOnPurchase: '',
 };
 
 export default function ShopItemForm({ shopId, item, closeDialog, defaultCategory }: ShopItemFormProps) {
@@ -90,6 +91,7 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
                 inventoryItemName: item.inventoryItemName || '',
                 inventoryItemDescription: item.inventoryItemDescription || '',
                 inventoryItemImage: item.inventoryItemImage || '',
+                mailOnPurchase: item.mailOnPurchase || '',
             });
              setShowInventoryFields(!!(item.inventoryItemName || item.inventoryItemDescription || item.inventoryItemImage));
         } else {
@@ -352,6 +354,24 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
                         </p>
                     </div>
                 </div>
+
+                {isAdmin && (
+                    <div className="space-y-4 pt-4 border-t">
+                        <h4 className="font-semibold text-muted-foreground">Дополнительные действия</h4>
+                        <div>
+                            <Label htmlFor="mailOnPurchase">Сообщение при покупке</Label>
+                            <Textarea
+                                id="mailOnPurchase"
+                                value={formData.mailOnPurchase || ''}
+                                onChange={(e) => setFormData(p => ({...p, mailOnPurchase: e.target.value}))}
+                                placeholder="Это сообщение будет отправлено на почту покупателю. Например: 'Пароль от номера: 1234'"
+                            />
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Будет отправлено от имени магазина. Оставьте пустым, чтобы ничего не отправлять.
+                            </p>
+                        </div>
+                    </div>
+                )}
 
 
                  <div className="flex items-center space-x-2 pt-2">
