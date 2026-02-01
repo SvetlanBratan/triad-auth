@@ -39,7 +39,8 @@ export type InventoryCategory =
   | "проживание"
   | "услуги"
   | "документы"
-  | "ингредиенты";
+  | "ингредиенты"
+  | "ключи";
 export type RelationshipType =
   | "романтика"
   | "дружба"
@@ -172,6 +173,7 @@ export interface Inventory {
   услуги: InventoryItem[];
   документы: InventoryItem[];
   ингредиенты: InventoryItem[];
+  ключи: InventoryItem[];
 }
 
 export interface RelationshipAction {
@@ -520,6 +522,3 @@ export interface HuntingLocation {
 }
 
 // --- END ALCHEMY & HUNTING TYPES ---
-
-
-    

@@ -221,6 +221,7 @@ export const INVENTORY_CATEGORIES: { value: InventoryCategory, label: string }[]
     { value: 'питомцы', label: 'Питомцы' },
     { value: 'услуги', label: 'Услуги' },
     { value: 'документы', label: 'Документы' },
+    { value: 'ключи', label: 'Ключи' },
     { value: 'ингредиенты', label: 'Ингредиенты' },
     { value: 'прочее', label: 'Прочее' },
     { value: 'подарки', label: 'Подарки' },
@@ -839,8 +840,7 @@ export const ALL_SHOPS: Shop[] = [
     title: 'Лавка ингредиентов',
     description: 'Здесь вы найдете самые редкие и экзотические ингредиенты для алхимии, зельеварения и ритуалов. От корня мандрагоры до пыльцы фей — все, что нужно настоящему мастеру.',
     image: 'https://i.postimg.cc/hv2b9nyc/Chat-GPT-Image-1-2025-22-59-24.png',
-    aiHint: 'alchemy ingredients',
-    items: []
+    aiHint: 'alchemy ingredients'
   },
 ];
 
@@ -848,7 +848,3 @@ export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) =>
     acc[shop.id] = shop;
     return acc;
 }, {} as Record<string, Shop>);
-
-
-    
-

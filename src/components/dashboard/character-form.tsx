@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React from 'react';
@@ -110,6 +111,7 @@ const initialFormData: Omit<Character, 'id'> = {
         услуги: [],
         документы: [],
         ингредиенты: [],
+        ключи: [],
     },
     bankAccount: { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] },
     wealthLevel: 'Бедный',
@@ -742,4 +744,3 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
 };
 
 export default CharacterForm;
-

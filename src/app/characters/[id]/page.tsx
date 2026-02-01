@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -146,6 +147,7 @@ const inventoryLayout: {
             { key: 'драгоценности', label: 'Драгоценности', icon: Sparkles },
             { key: 'книгиИСвитки', label: 'Книги и свитки', icon: BookOpen },
             { key: 'документы', label: 'Документы', icon: FileText },
+            { key: 'ключи', label: 'Ключи', icon: KeyRound },
             { key: 'ингредиенты', label: 'Ингредиенты', icon: BrainCircuit },
             { key: 'еда', label: 'Еда', icon: Star },
             { key: 'инструменты', label: 'Инструменты', icon: Gavel },
@@ -425,7 +427,7 @@ export default function CharacterPage() {
       оружие: [], доспехи: [], артефакты: [], зелья: [], гардероб: [],
       драгоценности: [], книгиИСвитки: [], еда: [], инструменты: [],
       питомцы: [], прочее: [], недвижимость: [], души: [], мебель: [],
-      транспорт: [], предприятия: [], услуги: [], документы: [], ингредиенты: [],
+      транспорт: [], предприятия: [], услуги: [], документы: [], ингредиенты: [], ключи: [],
       ...(character.inventory ?? {})
     } as Character['inventory'];
     
