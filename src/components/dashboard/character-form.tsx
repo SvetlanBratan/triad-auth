@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React from 'react';
@@ -296,9 +297,14 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
         const age = parseInt(ageStr, 10);
         if (!isNaN(age) && age >= 0 && gameDate) {
             const birthYear = gameDate.getFullYear() - age;
-            const currentParts = (formData.birthDate || "ДД.ММ.ГГГГ").split('.');
-            const day = currentParts[0] && currentParts[0] !== 'ДД' ? currentParts[0] : '01';
-            const month = currentParts[1] && currentParts[1] !== 'ММ' ? currentParts[1] : '01';
+            const currentParts = (formData.birthDate || 'ДД.ММ.ГГГГ').split('.');
+
+            const dayPart = currentParts[0];
+            const monthPart = currentParts[1];
+
+            const day = /^\d{1,2}$/.test(dayPart) && parseInt(dayPart) > 0 && parseInt(dayPart) <= 31 ? dayPart : 'ДД';
+            const month = /^\d{1,2}$/.test(monthPart) && parseInt(monthPart) > 0 && parseInt(monthPart) <= 12 ? monthPart : 'ММ';
+            
             handleFieldChange('birthDate', `${day}.${month}.${birthYear}`);
         }
     };

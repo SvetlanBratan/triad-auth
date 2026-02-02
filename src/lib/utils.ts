@@ -60,43 +60,18 @@ export function calculateAge(birthDateString: string, gameDate: Date): number | 
   try {
     const parts = birthDateString.split('.');
     if (parts.length !== 3) {
-        console.warn("Invalid birthDate format (expected D.M.Y):", birthDateString);
         return null;
     }
 
-    const day = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed in JS
-    let year = parseInt(parts[2], 10);
+    const year = parseInt(parts[2], 10);
 
-    if (isNaN(day) || isNaN(month) || isNaN(year) || year < 0) {
-        console.warn("Invalid date parts in birthDateString:", birthDateString);
+    if (isNaN(year) || year < 0) {
         return null;
     }
     
-    // Handle very early years correctly by setting them on a Date object.
-    // JavaScript's `new Date()` handles years between 0 and 99 by mapping them to 1900-1999.
-    // We need to set the full year manually to avoid this.
-    const birthDate = new Date(0);
-    birthDate.setFullYear(year, month, day);
+    // Simplified calculation as requested
+    return gameDate.getFullYear() - year;
 
-    // Re-check after creation for invalid dates like 31.02.2000
-    if (birthDate.getFullYear() !== year || birthDate.getMonth() !== month || birthDate.getDate() !== day) {
-        console.warn("Invalid date created from parts (e.g., Feb 30):", birthDateString);
-        return null;
-    }
-
-    const gameYear = gameDate.getFullYear();
-    const gameMonth = gameDate.getMonth();
-    const gameDay = gameDate.getDate();
-
-    let age = gameYear - birthDate.getFullYear();
-    
-    // Check if the birthday has occurred this year
-    if (gameMonth < birthDate.getMonth() || (gameMonth === birthDate.getMonth() && gameDay < birthDate.getDate())) {
-        age--;
-    }
-
-    return age;
   } catch (error) {
     console.error("Error calculating age:", error);
     return null;
