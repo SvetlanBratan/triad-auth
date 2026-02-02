@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React from 'react';
@@ -182,16 +181,15 @@ const FormattingHelp = () => (
 
 const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingState }: CharacterFormProps) => {
     const isCreating = editingState?.type === 'createCharacter';
-    const { currentUser } = useUser();
+    const { currentUser, gameDate } = useUser();
     const isAdmin = currentUser?.role === 'admin';
     const [formData, setFormData] = React.useState<Character>({ ...initialFormData, id: `c-${Date.now()}`});
     
-    // State for the single item being edited/added
     const [currentItem, setCurrentItem] = React.useState<Relationship | Accomplishment | null>(null);
 
-    // State for race editing
     const [baseRace, setBaseRace] = React.useState('');
     const [raceDetails, setRaceDetails] = React.useState('');
+    const [ageInput, setAgeInput] = React.useState('');
 
      React.useEffect(() => {
         const initializeState = () => {
@@ -217,7 +215,6 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                 };
                 setFormData(initializedCharacter);
 
-                // Initialize race fields
                 const raceString = initializedCharacter.race || '';
                 const match = raceString.match(/^(.*?)\s*\((.*)\)$/);
                 if (match) {
@@ -231,6 +228,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
         };
 
         initializeState();
+        setAgeInput('');
 
         if (editingState?.type === 'relationship') {
             if (editingState.mode === 'edit') setCurrentItem(editingState.relationship);
@@ -243,7 +241,6 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
         }
     }, [editingState, character, isCreating]);
 
-    // Effect to update formData.race when baseRace or raceDetails change
     React.useEffect(() => {
         if (editingState?.type === 'createCharacter' || (editingState?.type === 'field' && editingState.field === 'race') || (editingState?.type === 'section' && editingState.section === 'mainInfo')) {
             let combinedRace = baseRace.trim();
@@ -262,7 +259,6 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
         const existingTargetIds = new Set<string>();
 
         if (editingState?.type === 'relationship') {
-            // Get all relationships except the one being currently edited
             (formData.relationships || []).forEach(r => {
                 if (editingState.mode === 'add' || (editingState.mode === 'edit' && r.id !== editingState.relationship.id)) {
                     existingTargetIds.add(r.targetCharacterId);
@@ -294,6 +290,19 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
         setFormData(prev => ({ ...prev, [field]: value }));
     };
     
+    const handleAgeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const ageStr = e.target.value;
+        setAgeInput(ageStr);
+        const age = parseInt(ageStr, 10);
+        if (!isNaN(age) && age >= 0 && gameDate) {
+            const birthYear = gameDate.getFullYear() - age;
+            const currentParts = (formData.birthDate || "ДД.ММ.ГГГГ").split('.');
+            const day = currentParts[0] && currentParts[0] !== 'ДД' ? currentParts[0] : '01';
+            const month = currentParts[1] && currentParts[1] !== 'ММ' ? currentParts[1] : '01';
+            handleFieldChange('birthDate', `${day}.${month}.${birthYear}`);
+        }
+    };
+
     const handleGalleryImageChange = (index: number, field: keyof GalleryImage, value: any) => {
         const newImages = [...(formData.galleryImages || [])];
         (newImages[index] as any)[field] = value;
@@ -347,7 +356,6 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
              
              let updatedData = { ...formData };
              if (editingState.type === 'relationship' && 'targetCharacterId' in currentItem) {
-                // Only add/update if a target character is selected
                 if (currentItem.targetCharacterId) {
                     const items = [...(formData.relationships || [])];
                     const index = items.findIndex(r => r.id === currentItem.id);
@@ -401,6 +409,19 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
             }
         }
     }
+
+    const renderBirthDateField = () => (
+         <div className="space-y-4">
+            <div>
+                <Label htmlFor="birthDate">Дата рождения</Label>
+                <Input id="birthDate" value={formData.birthDate ?? ''} onChange={(e) => handleFieldChange('birthDate', e.target.value)} placeholder="ДД.ММ.ГГГГ"/>
+            </div>
+            <div>
+                <Label htmlFor="age-calculator" className="text-sm text-muted-foreground">или возраст для расчета года</Label>
+                <Input id="age-calculator" type="number" value={ageInput} onChange={handleAgeChange} placeholder="Напр., 25" />
+            </div>
+        </div>
+    );
 
     const renderContent = () => {
         if (!editingState) return null;
@@ -474,10 +495,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                                     </div>
                                 )}
                             </div>
-                            <div>
-                                <Label htmlFor="birthDate">Дата рождения</Label>
-                                <Input id="birthDate" value={formData.birthDate ?? ''} onChange={(e) => handleFieldChange('birthDate', e.target.value)} placeholder="ДД.ММ.ГГГГ"/>
-                            </div>
+                            {renderBirthDateField()}
                              <div>
                                 <Label htmlFor="crimeLevel">Уровень преступности</Label>
                                  <SearchableSelect
@@ -498,7 +516,6 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                         </div>
                     );
                 }
-                 // The rest of the section cases
                 switch(editingState.section) {
                     case 'appearance': return <div className="space-y-4"><ImageUploader
                                     currentImageUrl={formData.appearanceImage}
@@ -568,6 +585,9 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
 
             case 'field':
                 const field = editingState.field;
+                if (field === 'birthDate') {
+                    return renderBirthDateField();
+                }
                 if (field === 'race') {
                     return (
                         <div className="space-y-4">
@@ -744,3 +764,5 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
 };
 
 export default CharacterForm;
+
+    
