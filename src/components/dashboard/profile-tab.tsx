@@ -48,7 +48,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '../ui/scroll-area';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider } from '../ui/tooltip';
 
 
 const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
@@ -106,9 +106,8 @@ const CharacterDisplay = ({ character, onDelete }: { character: Character, onDel
                         </Link>
                         <div>
                             <div className="flex items-center gap-2 flex-wrap">
-                                <Link href={`/characters/${character.id}`} className="font-bold text-base hover:underline flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                                    <span>{character.name}</span>
-                                    <UserSquare className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                                <Link href={`/characters/${character.id}`} className="font-bold text-base hover:underline" onClick={e => e.stopPropagation()}>
+                                    {character.name}
                                 </Link>
                                  {isBlessed && (
                                    <Sparkles className="h-4 w-4 text-yellow-500" />
@@ -525,19 +524,7 @@ export default function ProfileTab() {
           <CardHeader>
             <div className="flex justify-between items-center">
                 <div>
-                    <div className="flex items-center gap-2">
-                        <CardTitle>Персонажи</CardTitle>
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <button type="button" className="cursor-help"><Info className="w-4 h-4 text-muted-foreground" /></button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>Нажмите на иконку или имя персонажа, чтобы открыть анкету</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    </div>
+                    <CardTitle>Персонажи</CardTitle>
                     <CardDescription>
                         ({currentUser.characters.length} / {totalSlots})
                     </CardDescription>
