@@ -526,7 +526,7 @@ export default function ProfileTab() {
                 <div>
                     <CardTitle>Персонажи</CardTitle>
                     <CardDescription>
-                        ({currentUser.characters.length} / {totalSlots})
+                       ({currentUser.characters.length} / {totalSlots}) <span className="text-xs text-muted-foreground">Нажмите на иконку или имя, чтобы открыть анкету.</span>
                     </CardDescription>
                 </div>
                 <Popover open={!canAddCharacter ? undefined : false}>
