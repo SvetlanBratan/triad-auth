@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useUser } from '@/hooks/use-user';
@@ -7,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Trash2, Pencil, UserSquare, Sparkles, Anchor, KeyRound, Link as LinkIcon, Gamepad2, X, Heart, Users, History, Award } from 'lucide-react';
+import { PlusCircle, Trash2, Pencil, UserSquare, Sparkles, Anchor, KeyRound, Link as LinkIcon, Gamepad2, X, Heart, Users, History, Award, Info } from 'lucide-react';
 import type { PointLog, UserStatus, Character, User, FamiliarCard, FamiliarRank, Moodlet, PlayerStatus, PlayPlatform, SocialLink } from '@/lib/types';
 import Link from 'next/link';
 import {
@@ -524,7 +525,19 @@ export default function ProfileTab() {
           <CardHeader>
             <div className="flex justify-between items-center">
                 <div>
-                    <CardTitle>Персонажи</CardTitle>
+                    <div className="flex items-center gap-2">
+                        <CardTitle>Персонажи</CardTitle>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <button type="button" className="cursor-help"><Info className="w-4 h-4 text-muted-foreground" /></button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Нажмите на иконку или имя персонажа, чтобы открыть анкету</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    </div>
                     <CardDescription>
                         ({currentUser.characters.length} / {totalSlots})
                     </CardDescription>
