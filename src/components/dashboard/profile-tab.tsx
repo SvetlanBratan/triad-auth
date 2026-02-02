@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser } from '@/hooks/use-user';
@@ -99,10 +100,15 @@ const CharacterDisplay = ({ character, onDelete }: { character: Character, onDel
              <div className="flex justify-between items-center w-full">
                  <AccordionTrigger className="flex-1 py-3 hover:no-underline group">
                    <div className="flex items-center gap-3">
-                        <CustomIcon src="/icons/character.svg" className="w-10 h-10 icon-primary shrink-0" />
+                        <Link href={`/characters/${character.id}`} onClick={e => e.stopPropagation()} className="shrink-0">
+                            <CustomIcon src="/icons/character.svg" className="w-10 h-10 icon-primary" />
+                        </Link>
                         <div>
                             <div className="flex items-center gap-2 flex-wrap">
-                                <Link href={`/characters/${character.id}`} className="font-bold text-base hover:underline" onClick={e => e.stopPropagation()}>{character.name}</Link>
+                                <Link href={`/characters/${character.id}`} className="font-bold text-base hover:underline flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                                    <span>{character.name}</span>
+                                    <UserSquare className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </Link>
                                  {isBlessed && (
                                    <Sparkles className="h-4 w-4 text-yellow-500" />
                                  )}
