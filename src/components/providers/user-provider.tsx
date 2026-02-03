@@ -2178,26 +2178,40 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const adminGiveItemToCharacter = useCallback(async (userId: string, characterId: string, itemData: AdminGiveItemForm) => {
         const user = await fetchUserById(userId);
         if (!user) throw new Error("User not found");
-
+    
         const characterIndex = user.characters.findIndex(c => c.id === characterId);
         if (characterIndex === -1) throw new Error("Character not found");
-
+    
         const character = { ...user.characters[characterIndex] };
-        const inventory = (character.inventory ??= {} as Partial<Inventory>);
+        const inventory = character.inventory || JSON.parse(JSON.stringify(initialFormData.inventory));
         
-        const newInventoryItem: InventoryItem = {
-            id: `inv-item-admin-${Date.now()}`,
-            name: itemData.name,
-            description: itemData.description,
-            image: itemData.image,
-            quantity: itemData.quantity || 1,
-        };
-
         const tag = itemData.inventoryTag as keyof Inventory;
-        if(!inventory[tag]) inventory[tag] = [];
-        const list = inventory[tag]!;
-        list.push(newInventoryItem);
-
+        
+        if (!Array.isArray(inventory[tag])) {
+            inventory[tag] = [];
+        }
+        
+        const list = inventory[tag]! as InventoryItem[];
+        
+        const existingItemIndex = list.findIndex(invItem => invItem.name === itemData.name);
+        
+        const quantityToAdd = itemData.quantity || 1;
+    
+        if (existingItemIndex > -1) {
+            list[existingItemIndex].quantity += quantityToAdd;
+        } else {
+            const newInventoryItem: InventoryItem = {
+                id: `inv-item-admin-${Date.now()}`,
+                name: itemData.name,
+                description: itemData.description,
+                image: itemData.image,
+                quantity: quantityToAdd,
+            };
+            list.push(newInventoryItem);
+        }
+        
+        character.inventory = inventory;
+    
         const updatedCharacters = [...user.characters];
         updatedCharacters[characterIndex] = character;
         await updateUser(userId, { characters: updatedCharacters });
@@ -3479,3 +3493,4 @@ export const useUser = () => {
     
 
     
+

@@ -234,6 +234,7 @@ export default function AdminTab() {
   const [newItemData, setNewItemData] = useState<AdminGiveItemForm>({ name: '', description: '', inventoryTag: 'прочее', quantity: 1, image: '' });
   const [selectedInventoryItem, setSelectedInventoryItem] = useState<{ id: string, category: InventoryCategory } | null>(null);
   const [editItemData, setEditItemData] = useState<InventoryItem | null>(null);
+  const [existingItemQuantity, setExistingItemQuantity] = useState(1);
   
   // Mass mail state
   const [mailSubject, setMailSubject] = useState('');
@@ -813,26 +814,6 @@ export default function AdminTab() {
     }
 };
 
-  const handleAddNewShop = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newShop.title || !newShop.description || !newShop.image) {
-        toast({ variant: 'destructive', title: 'Ошибка', description: 'Пожалуйста, заполните все обязательные поля.' });
-        return;
-    }
-    setIsAddingShop(true);
-    try {
-        await adminAddShop({ ...newShop });
-        toast({ title: 'Магазин добавлен!', description: `Магазин "${newShop.title}" появился на рынке.` });
-        setNewShop({ title: '', description: '', image: '', aiHint: '' });
-        await queryClient.invalidateQueries({ queryKey: ['allShops'] });
-    } catch (e) {
-        const msg = e instanceof Error ? e.message : 'Не удалось добавить магазин.';
-        toast({ variant: 'destructive', title: 'Ошибка', description: msg });
-    } finally {
-        setIsAddingShop(false);
-    }
-  }
-
   const handleGiveItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!itemUserId || !itemCharId) {
@@ -853,15 +834,17 @@ export default function AdminTab() {
             return;
         }
         itemData = JSON.parse(selectedShopItemId);
+        itemData.quantity = existingItemQuantity;
     }
     
     await adminGiveItemToCharacter(itemUserId, itemCharId, itemData);
     await refetchUsers();
-    toast({ title: 'Предмет выдан!', description: `"${itemData.name}" добавлен в инвентарь персонажа.` });
+    toast({ title: 'Предмет выдан!', description: `"${itemData.name}" (x${itemData.quantity}) добавлен в инвентарь персонажа.` });
     
     // Reset form but keep user and character selected
     setSelectedShopItemId('');
     setNewItemData({ name: '', description: '', inventoryTag: 'прочее', quantity: 1, image: '' });
+    setExistingItemQuantity(1);
   };
   
   const handleUpdateItem = async (e: React.FormEvent) => {
@@ -969,199 +952,26 @@ export default function AdminTab() {
         components.splice(index, 1);
         setNewRecipe(prev => ({ ...prev, components }));
     };
-    
-    useEffect(() => {
-        if (editingRecipeId) {
-            const recipeToEdit = allRecipes.find((r) => r.id === editingRecipeId);
-            if (recipeToEdit) {
-                setNewRecipe({
-                    name: recipeToEdit.name || '',
-                    components: recipeToEdit.components,
-                    resultPotionId: recipeToEdit.resultPotionId,
-                    outputQty: recipeToEdit.outputQty || 1,
-                    difficulty: recipeToEdit.difficulty || 1,
-                });
-            }
-        } else {
-            setNewRecipe({ name: '', components: [], resultPotionId: '', outputQty: 1, difficulty: 1 });
-        }
-    }, [editingRecipeId, allRecipes]);
 
-    const handleRecipeSubmit = async (e: React.FormEvent) => {
+    const handleAddRecipe = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newRecipe.resultPotionId || newRecipe.components.length === 0) {
             toast({ variant: 'destructive', title: 'Ошибка', description: 'Выберите итоговое зелье и хотя бы один ингредиент.' });
             return;
         }
-        setIsSubmittingRecipe(true);
+        setIsAddingRecipe(true);
         try {
-            if (editingRecipeId) {
-                await updateAlchemyRecipe(editingRecipeId, newRecipe);
-                toast({ title: 'Рецепт обновлен!' });
-            } else {
-                await addAlchemyRecipe(newRecipe);
-                toast({ title: 'Рецепт добавлен!' });
-            }
-            setEditingRecipeId(null);
-            refetchRecipes();
+            await addAlchemyRecipe(newRecipe);
+            toast({ title: 'Рецепт добавлен!' });
+            setNewRecipe({ name: '', components: [], resultPotionId: '', outputQty: 1, difficulty: 1 });
+            queryClient.invalidateQueries({ queryKey: ['alchemyRecipes'] });
         } catch (error) {
             const message = error instanceof Error ? error.message : "Произошла неизвестная ошибка";
             toast({ variant: 'destructive', title: 'Ошибка', description: message });
         } finally {
-            setIsSubmittingRecipe(false);
+            setIsAddingRecipe(false);
         }
     };
-    
-    const handleDeleteRecipe = async (recipeId: string) => {
-        try {
-            await deleteAlchemyRecipe(recipeId);
-            toast({ title: 'Рецепт удален' });
-            if (editingRecipeId === recipeId) {
-                setEditingRecipeId(null);
-            }
-            refetchRecipes();
-        } catch (error) {
-            const message = error instanceof Error ? error.message : "Ошибка удаления";
-            toast({ variant: 'destructive', title: 'Ошибка', description: message });
-        }
-    };
-  
-  const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифический' | 'легендарный' | 'редкий', value: string) => {
-    const numValue = parseInt(value, 10);
-    if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
-        setGachaChances(prev => ({
-            ...prev,
-            [type]: {
-                ...prev[type],
-                [rank]: numValue
-            }
-        }));
-    }
-  };
-
-  const handleSaveChances = async () => {
-    try {
-        await updateGameSettings({ gachaChances });
-        toast({ title: "Шансы рулетки обновлены" });
-    } catch(e) {
-        const msg = e instanceof Error ? e.message : "Не удалось сохранить шансы.";
-        toast({ variant: "destructive", title: "Ошибка", description: msg });
-    }
-  };
-  
-  const handleLocationChange = (index: number, field: keyof HuntingLocation, value: any) => {
-    if (!editingHuntLocation) return;
-    const newLoc = { ...editingHuntLocation };
-    (newLoc as any)[field] = value;
-    setEditingHuntLocation(newLoc);
-  };
-
-  const handleLocationRewardChange = (locIndex: number, rewardIndex: number, field: keyof HuntReward, value: any) => {
-    if (!editingHuntLocation) return;
-    const newLoc = { ...editingHuntLocation };
-    const newRewards = [...(newLoc.rewards || [])];
-    if (field === 'rewardsByRank') {
-        newRewards[rewardIndex].rewardsByRank = value;
-    } else {
-        (newRewards[rewardIndex] as any)[field] = value;
-    }
-    newLoc.rewards = newRewards;
-    setEditingHuntLocation(newLoc);
-  };
-  
-  const handleRewardRankDataChange = (rewardIndex: number, rank: FamiliarRank, field: 'chance' | 'quantity', value: string) => {
-    if (!editingHuntLocation) return;
-    const numValue = parseInt(value, 10);
-    if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
-        const newLoc = { ...editingHuntLocation };
-        const newRewards = [...(newLoc.rewards || [])];
-
-        if (!newRewards[rewardIndex].rewardsByRank) {
-          newRewards[rewardIndex].rewardsByRank = {};
-        }
-
-        const rankReward = (newRewards[rewardIndex].rewardsByRank as any)[rank] || { chance: 0, quantity: 1 };
-        (rankReward as any)[field] = numValue;
-        
-        (newRewards[rewardIndex].rewardsByRank as any)[rank] = rankReward;
-        
-        newLoc.rewards = newRewards;
-        setEditingHuntLocation(newLoc);
-    }
-  };
-
-
-  const addLocationReward = (locIndex: number) => {
-    if (!editingHuntLocation) return;
-     const newReward: HuntReward = {
-        itemId: '',
-        rewardsByRank: { 'обычный': { chance: 0, quantity: 1 } }
-    };
-    const newLoc = { ...editingHuntLocation };
-    newLoc.rewards = [...(newLoc.rewards || []), newReward];
-    setEditingHuntLocation(newLoc);
-  };
-
-  const removeLocationReward = (locIndex: number, rewardIndex: number) => {
-    if (!editingHuntLocation) return;
-    const newLoc = { ...editingHuntLocation };
-    newLoc.rewards = (newLoc.rewards || []).filter((_, i) => i !== rewardIndex);
-    setEditingHuntLocation(newLoc);
-  };
-
-  const handleSaveHuntingLocation = async () => {
-    if (!editingHuntLocation) return;
-
-    const currentLocations = gameSettings.huntingLocations || [];
-    let updatedLocations;
-    
-    if (editingHuntLocation.id) { // Editing existing
-        updatedLocations = currentLocations.map(loc => loc.id === editingHuntLocation!.id ? editingHuntLocation as HuntingLocation : loc);
-    } else { // Adding new
-        const newLocation = { ...editingHuntLocation, id: `hunt-${Date.now()}` } as HuntingLocation;
-        updatedLocations = [...currentLocations, newLocation];
-    }
-    
-    try {
-        await updateGameSettings({ huntingLocations: updatedLocations });
-        toast({ title: "Локации для охоты обновлены!" });
-        setEditingHuntLocation(null);
-    } catch(e) {
-        const msg = e instanceof Error ? e.message : 'Не удалось сохранить локации.';
-        toast({ variant: 'destructive', title: 'Ошибка', description: msg });
-    }
-  };
-
-  const handleDeleteHuntingLocation = async (locationId: string) => {
-    const updatedLocations = (gameSettings.huntingLocations || []).filter(loc => loc.id !== locationId);
-    try {
-        await updateGameSettings({ huntingLocations: updatedLocations });
-        toast({ title: "Локация удалена." });
-    } catch(e) {
-        const msg = e instanceof Error ? e.message : 'Не удалось удалить локацию.';
-        toast({ variant: 'destructive', title: 'Ошибка', description: msg });
-    }
-  }
-
-  const handleMergeUsers = async () => {
-    if (!sourceMergeUserId || !targetMergeUserId || sourceMergeUserId === targetMergeUserId) {
-        toast({ variant: 'destructive', title: 'Ошибка', description: 'Выберите два разных аккаунта для объединения.' });
-        return;
-    }
-    setIsMerging(true);
-    try {
-        await mergeUserData(sourceMergeUserId, targetMergeUserId);
-        toast({ title: 'Объединение завершено', description: 'Данные успешно перенесены.' });
-        await refetchAdminUsers();
-        setSourceMergeUserId('');
-        setTargetMergeUserId('');
-    } catch (e) {
-        const msg = e instanceof Error ? e.message : 'Произошла ошибка при объединении.';
-        toast({ variant: 'destructive', title: 'Ошибка объединения', description: msg });
-    } finally {
-        setIsMerging(false);
-    }
-  };
 
 
   // --- Memos ---
@@ -1358,55 +1168,8 @@ export default function AdminTab() {
         label: `${event.label} (+${event.value})`,
     })), []);
     
-    const alchemyResultOptions = useMemo(() => {
-        const itemsFromShops = allShops.flatMap(shop => shop.items || [])
-            .filter(item => item.inventoryTag === 'зелья' || item.inventoryTag === 'артефакты')
-            .map(item => ({ value: item.id, label: item.name }));
-
-        const staticPotions = ALCHEMY_POTIONS.map(p => ({ value: p.id, label: p.name }));
-        
-        const combined = [...itemsFromShops, ...staticPotions];
-        const uniqueItems = Array.from(new Map(combined.map(item => [item.label, item])).values());
-        
-        return uniqueItems.sort((a, b) => a.label.localeCompare(b.label));
-    }, [allShops]);
-
-    const alchemyIngredientOptions = useMemo(() => {
-        const ingredients = new Map<string, { label: string, value: string }>();
-        const jewelry = new Map<string, { label: string, value: string }>();
-
-        allShops.forEach(shop => {
-            (shop.items || []).forEach(item => {
-                const name = item.inventoryItemName || item.name;
-                if (item.inventoryTag === 'ингредиенты') {
-                    if (!ingredients.has(name)) {
-                        ingredients.set(name, { value: item.id, label: name });
-                    }
-                } else if (item.inventoryTag === 'драгоценности') {
-                     if (!jewelry.has(name)) {
-                        jewelry.set(name, { value: item.id, label: name });
-                    }
-                }
-            });
-        });
-        
-        const groups: ({label: string; options: {value: string, label: string}[]})[] = [];
-
-        if(ingredients.size > 0) {
-            groups.push({
-                label: 'Ингредиенты',
-                options: Array.from(ingredients.values()).sort((a, b) => a.label.localeCompare(b.label))
-            });
-        }
-        if(jewelry.size > 0) {
-            groups.push({
-                label: 'Драгоценности',
-                options: Array.from(jewelry.values()).sort((a, b) => a.label.localeCompare(b.label))
-            });
-        }
-
-        return groups;
-    }, [allShops]);
+    const alchemyResultOptions = useMemo(() => ALCHEMY_POTIONS.map(p => ({ value: p.id, label: p.name })), []);
+    const alchemyIngredientOptions = useMemo(() => ALCHEMY_INGREDIENTS.map(i => ({ value: i.id, label: i.name })), []);
 
 
   if (isUsersLoading || isShopsLoading) {
@@ -2523,37 +2286,6 @@ export default function AdminTab() {
                 </CardContent>
             </Card>
            </div>
-           <div className="break-inside-avoid mb-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Store /> Добавить новый магазин</CardTitle>
-                        <CardDescription>Создайте новую торговую точку на рынке.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <form onSubmit={handleAddNewShop} className="space-y-4">
-                            <div>
-                                <Label htmlFor="newShopTitle">Название</Label>
-                                <Input id="newShopTitle" value={newShop.title} onChange={e => setNewShop(p => ({...p, title: e.target.value}))} required />
-                            </div>
-                            <div>
-                                <Label htmlFor="newShopDesc">Описание</Label>
-                                <Textarea id="newShopDesc" value={newShop.description} onChange={e => setNewShop(p => ({...p, description: e.target.value}))} required />
-                            </div>
-                            <div>
-                                <Label htmlFor="newShopImg">URL изображения</Label>
-                                <Input id="newShopImg" value={newShop.image} onChange={e => setNewShop(p => ({...p, image: e.target.value}))} required placeholder="https://..." />
-                            </div>
-                            <div>
-                                <Label htmlFor="newShopHint">Подсказка для AI (необязательно)</Label>
-                                <Input id="newShopHint" value={newShop.aiHint} onChange={e => setNewShop(p => ({...p, aiHint: e.target.value}))} placeholder="fantasy shop" />
-                            </div>
-                            <Button type="submit" disabled={isAddingShop}>
-                                {isAddingShop ? 'Добавление...' : 'Добавить магазин'}
-                            </Button>
-                        </form>
-                    </CardContent>
-                </Card>
-            </div>
              <div className="break-inside-avoid mb-6">
                 <Card>
                     <CardHeader>
@@ -2657,14 +2389,26 @@ export default function AdminTab() {
                                         </div>
                                     </div>
                                 ) : (
-                                    <div>
-                                        <Label>Существующий предмет</Label>
-                                        <SearchableSelect
-                                            options={allShopItems}
-                                            value={selectedShopItemId}
-                                            onValueChange={setSelectedShopItemId}
-                                            placeholder="Выберите предмет из магазина..."
-                                        />
+                                    <div className="space-y-4">
+                                        <div>
+                                            <Label>Существующий предмет</Label>
+                                            <SearchableSelect
+                                                options={allShopItems}
+                                                value={selectedShopItemId}
+                                                onValueChange={setSelectedShopItemId}
+                                                placeholder="Выберите предмет из магазина..."
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="existing-item-quantity">Количество</Label>
+                                            <Input
+                                                id="existing-item-quantity"
+                                                type="number"
+                                                value={existingItemQuantity}
+                                                onChange={(e) => setExistingItemQuantity(parseInt(e.target.value, 10) || 1)}
+                                                min="1"
+                                            />
+                                        </div>
                                     </div>
                                 )}
                                 <Button type="submit">Выдать предмет</Button>
@@ -2825,5 +2569,6 @@ export default function AdminTab() {
 
 
     
+
 
 
