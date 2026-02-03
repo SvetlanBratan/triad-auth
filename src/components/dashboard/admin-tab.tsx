@@ -937,6 +937,101 @@ export default function AdminTab() {
         }));
    };
 
+    const handleMergeUsers = async () => {
+    if (!sourceMergeUserId || !targetMergeUserId) {
+        toast({
+            variant: "destructive",
+            title: "Ошибка",
+            description: "Пожалуйста, выберите оба аккаунта для объединения.",
+        });
+        return;
+    }
+    setIsMerging(true);
+    try {
+        await mergeUserData(sourceMergeUserId, targetMergeUserId);
+        toast({
+            title: "Объединение успешно",
+            description: "Данные были перенесены. Теперь вы можете удалить исходный аккаунт, если это необходимо.",
+        });
+        setSourceMergeUserId('');
+        setTargetMergeUserId('');
+        await refetchAdminUsers();
+    } catch (error) {
+        const msg = error instanceof Error ? error.message : "Произошла ошибка при объединении.";
+        toast({
+            variant: "destructive",
+            title: "Ошибка объединения",
+            description: msg,
+        });
+    } finally {
+        setIsMerging(false);
+    }
+  };
+
+  const handleRecipeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newRecipe.resultPotionId || newRecipe.components.length === 0) {
+        toast({ variant: 'destructive', title: 'Ошибка', description: 'Выберите итоговое зелье и хотя бы один ингредиент.' });
+        return;
+    }
+    setIsSubmittingRecipe(true);
+    try {
+        if (editingRecipeId) {
+            await updateAlchemyRecipe(editingRecipeId, newRecipe);
+            toast({ title: 'Рецепт обновлен!' });
+        } else {
+            await addAlchemyRecipe(newRecipe);
+            toast({ title: 'Рецепт добавлен!' });
+        }
+        setNewRecipe({ name: '', components: [], resultPotionId: '', outputQty: 1, difficulty: 1 });
+        setEditingRecipeId(null);
+        refetchRecipes();
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "Произошла неизвестная ошибка";
+        toast({ variant: 'destructive', title: 'Ошибка', description: message });
+    } finally {
+        setIsSubmittingRecipe(false);
+    }
+};
+
+const handleDeleteRecipe = async (recipeId: string) => {
+    try {
+        await deleteAlchemyRecipe(recipeId);
+        toast({ title: 'Рецепт удален' });
+        refetchRecipes();
+        if (editingRecipeId === recipeId) {
+            setEditingRecipeId(null);
+            setNewRecipe({ name: '', components: [], resultPotionId: '', outputQty: 1, difficulty: 1 });
+        }
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "Произошла неизвестная ошибка";
+        toast({ variant: 'destructive', title: 'Ошибка удаления', description: message });
+    }
+};
+
+const handleSaveChances = async () => {
+    try {
+      await updateGameSettings({ gachaChances });
+      toast({ title: "Шансы рулетки сохранены!" });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Не удалось сохранить шансы.";
+      toast({ variant: "destructive", title: "Ошибка", description: msg });
+    }
+};
+
+const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифический' | 'легендарный' | 'редкий', value: string) => {
+    const numValue = parseInt(value, 10);
+    if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+      setGachaChances(prev => ({
+        ...prev,
+        [type]: {
+          ...prev[type],
+          [rank]: numValue
+        }
+      }));
+    }
+};
+
     const handleNewRecipeComponentChange = (index: number, field: 'ingredientId' | 'qty', value: string | number) => {
         const components = [...newRecipe.components];
         (components[index] as any)[field] = value;
@@ -2537,7 +2632,7 @@ export default function AdminTab() {
                             {isSendingMail ? 'Отправка...' : 'Отправить'}
                         </Button>
                     </form>
-                    <Separator />
+                    <Separator className="my-6" />
                     <div className="p-4 border border-destructive/50 rounded-lg">
                         <h4 className="font-semibold text-destructive mb-2 flex items-center gap-2"><ShieldAlert /> Опасная зона</h4>
                          <AlertDialog>
@@ -2569,6 +2664,7 @@ export default function AdminTab() {
 
 
     
+
 
 
 
