@@ -2960,7 +2960,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (!character) throw new Error("Character not found");
 
         const newHunt: OngoingHunt = {
-            huntId: `hunt-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+            huntId: `hunt-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
             characterId,
             characterName: character.name,
             familiarId,
@@ -3006,8 +3006,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const now = new Date();
         const endsAt = new Date(now.getTime() + location.durationMinutes * 60000);
 
-        const newHunts = familiarIds.map(famId => ({
-            huntId: `hunt-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        const newHunts = familiarIds.map((famId, index) => ({
+            huntId: `hunt-${now.getTime()}-${index}-${famId.slice(-4)}`,
             characterId,
             characterName: character.name,
             familiarId: famId,
@@ -3030,7 +3030,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         });
         const updatedUser = await fetchUserById(currentUser.id);
         if (updatedUser) setCurrentUser(updatedUser);
-    }, [currentUser, gameSettings.huntingLocations, fetchUserById]);
+    }, [currentUser, gameSettings.huntingLocations, fetchUserById, setCurrentUser]);
 
 
     const claimHuntReward = useCallback(async (characterId: string, huntId: string): Promise<InventoryItem[]> => {
@@ -3453,6 +3453,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         fetchDbFamiliars,
         addFamiliarToDb,
         deleteFamiliarFromDb,
+        sendPlayerPing,
+        deletePlayerPing,
+        addFavoritePlayer,
+        removeFavoritePlayer,
         allFamiliars,
         familiarsById,
         startHunt,
@@ -3464,10 +3468,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         changeUserPassword,
         changeUserEmail,
         mergeUserData,
-        sendPlayerPing,
-        deletePlayerPing,
-        addFavoritePlayer,
-        removeFavoritePlayer,
         imageGeneration,
         deleteUserFromAuth,
         adminAddShop,
@@ -3498,3 +3498,6 @@ export const useUser = () => {
 
 
 
+
+
+    
