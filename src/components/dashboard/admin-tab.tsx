@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
@@ -277,7 +276,12 @@ export default function AdminTab() {
             });
         }
     } else {
-        setNewRecipe({ name: '', components: [], resultPotionId: '', outputQty: 1, difficulty: 1 });
+        setNewRecipe(prev => {
+            if (prev.name !== '' || prev.components.length > 0 || prev.resultPotionId !== '' || prev.outputQty !== 1 || prev.difficulty !== 1) {
+                return { name: '', components: [], resultPotionId: '', outputQty: 1, difficulty: 1 };
+            }
+            return prev;
+        });
     }
   }, [editingRecipeId, allRecipes]);
 
@@ -305,12 +309,16 @@ export default function AdminTab() {
             const item = (character.inventory[selectedInventoryItem.category] || []).find(i => i.id === selectedInventoryItem.id);
             if (item) {
                 setEditItemData(item);
+            } else {
+                setEditItemData(null);
             }
+        } else {
+            setEditItemData(null);
         }
     } else {
         setEditItemData(null);
     }
-  }, [selectedInventoryItem, itemUserId, itemCharId, users]);
+}, [selectedInventoryItem, itemUserId, itemCharId, users]);
 
   const selectedCharacterForStatus = useMemo(() => {
     if (!ecoUserId || !ecoCharId) return null;
@@ -2679,11 +2687,4 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
   );
 }
 
-
     
-
-
-
-
-
-
