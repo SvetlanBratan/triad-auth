@@ -34,7 +34,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import ImageKitUploader from './imagekit-uploader';
 import { SearchableMultiSelect } from '../ui/searchable-multi-select';
 import AdminFamiliarsTab from './admin-familiars-tab';
-import { ALCHEMY_INGREDIENTS, ALCHEMY_POTIONS, ALL_ITEMS_FOR_ALCHEMY } from '@/lib/alchemy-data';
+import { ALL_ITEMS_FOR_ALCHEMY, ALCHEMY_POTIONS, ALCHEMY_INGREDIENTS } from '@/lib/alchemy-data';
 import { ScrollArea } from '../ui/scroll-area';
 
 const rankNames: Record<FamiliarRank, string> = {
@@ -1058,9 +1058,12 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
 };
 
     const handleNewRecipeComponentChange = (index: number, field: 'ingredientId' | 'qty', value: string | number) => {
-        const components = [...newRecipe.components];
-        (components[index] as any)[field] = value;
-        setNewRecipe(prev => ({ ...prev, components }));
+      setNewRecipe(prev => ({
+          ...prev,
+          components: prev.components.map((c, i) =>
+              i === index ? { ...c, [field]: value } : c
+          )
+      }));
     };
 
     const addRecipeComponent = () => {
@@ -1068,29 +1071,10 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
     };
 
     const removeRecipeComponent = (index: number) => {
-        const components = [...newRecipe.components];
-        components.splice(index, 1);
-        setNewRecipe(prev => ({ ...prev, components }));
-    };
-
-    const handleAddRecipe = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newRecipe.resultPotionId || newRecipe.components.length === 0) {
-            toast({ variant: 'destructive', title: 'Ошибка', description: 'Выберите итоговое зелье и хотя бы один ингредиент.' });
-            return;
-        }
-        setIsAddingRecipe(true);
-        try {
-            await addAlchemyRecipe(newRecipe);
-            toast({ title: 'Рецепт добавлен!' });
-            setNewRecipe({ name: '', components: [], resultPotionId: '', outputQty: 1, difficulty: 1 });
-            queryClient.invalidateQueries({ queryKey: ['alchemyRecipes'] });
-        } catch (error) {
-            const message = error instanceof Error ? error.message : "Произошла неизвестная ошибка";
-            toast({ variant: 'destructive', title: 'Ошибка', description: message });
-        } finally {
-            setIsAddingRecipe(false);
-        }
+        setNewRecipe(prev => ({
+            ...prev,
+            components: prev.components.filter((_, i) => i !== index)
+        }));
     };
 
 
@@ -2686,5 +2670,7 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
     </Tabs>
   );
 }
+
+    
 
     
