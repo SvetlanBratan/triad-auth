@@ -56,27 +56,32 @@ export function formatHuntTimeLeft(isoDateString?: string | null): string {
 
 export function calculateAge(birthDateString: string, gameDate: Date): number | null {
   if (!birthDateString) return null;
-  
+
   try {
-    const parts = birthDateString.split('.');
-    if (parts.length !== 3) {
+    const dateParts = birthDateString.split('.');
+    // Check for placeholder values
+    if (dateParts.length !== 3 || dateParts[0] === 'ДД' || dateParts[1] === 'ММ' || dateParts[2] === 'ГГГГ') {
+        const year = parseInt(dateParts[2], 10);
+        if (!isNaN(year)) {
+            return gameDate.getFullYear() - year; // Fallback to simple calculation
+        }
         return null;
     }
 
-    const year = parseInt(parts[2], 10);
+    const birthDate = parse(birthDateString, 'dd.MM.yyyy', new Date());
 
-    if (isNaN(year) || year < 0) {
-        return null;
+    if (isNaN(birthDate.getTime())) {
+      return null; // Return null if parsing fails
     }
     
-    // Simplified calculation as requested
-    return gameDate.getFullYear() - year;
+    return differenceInYears(gameDate, birthDate);
 
   } catch (error) {
     console.error("Error calculating age:", error);
     return null;
   }
 }
+
 
 export function calculateRelationshipLevel(points: number): { level: number; progressToNextLevel: number; maxPointsForCurrentLevel: number; } {
     const level = Math.min(10, Math.floor(points / 100));

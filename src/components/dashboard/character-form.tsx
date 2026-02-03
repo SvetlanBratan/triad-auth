@@ -296,12 +296,24 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
         setAgeInput(ageStr);
         const age = parseInt(ageStr, 10);
         if (!isNaN(age) && age >= 0 && gameDate) {
-            const birthYear = gameDate.getFullYear() - age;
+            let birthYear = gameDate.getFullYear() - age;
             const currentParts = (formData.birthDate || 'ДД.ММ.ГГГГ').split('.');
-
             const dayPart = currentParts[0];
             const monthPart = currentParts[1];
 
+            const birthDay = parseInt(dayPart, 10);
+            const birthMonth = parseInt(monthPart, 10); // month is 1-12
+
+            if (!isNaN(birthDay) && !isNaN(birthMonth) && birthDay > 0 && birthMonth > 0) {
+                const gameMonth = gameDate.getMonth() + 1; // getMonth is 0-11, so +1
+                const gameDay = gameDate.getDate();
+                
+                // If birthday for this year hasn't happened yet, subtract a year
+                if (birthMonth > gameMonth || (birthMonth === gameMonth && birthDay > gameDay)) {
+                    birthYear -= 1;
+                }
+            }
+            
             const day = /^\d{1,2}$/.test(dayPart) && parseInt(dayPart) > 0 && parseInt(dayPart) <= 31 ? dayPart : 'ДД';
             const month = /^\d{1,2}$/.test(monthPart) && parseInt(monthPart) > 0 && parseInt(monthPart) <= 12 ? monthPart : 'ММ';
             
