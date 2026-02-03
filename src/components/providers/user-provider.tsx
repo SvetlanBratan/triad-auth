@@ -2591,7 +2591,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
 
          for (const user of usersToUpdate.values()) {
-            const userRef = doc(db, "users", userId);
+            const userRef = doc(db, "users", user.id);
             batch.update(userRef, { 
                 characters: user.characters, 
                 achievementIds: user.achievementIds 
@@ -3534,5 +3534,7 @@ export const useUser = () => {
  
 
 
+
+    
 
     
