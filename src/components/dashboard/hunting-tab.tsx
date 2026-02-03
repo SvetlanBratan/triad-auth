@@ -276,8 +276,13 @@ export default function HuntingTab() {
           const allRewards = await claimAllHuntRewards(character.id);
           
           if (allRewards.length > 0) {
-              const rewardSummary = allRewards
-                  .map(r => `${r.name} (x${r.quantity})`)
+              const aggregatedRewards = new Map<string, number>();
+              allRewards.forEach(reward => {
+                  aggregatedRewards.set(reward.name, (aggregatedRewards.get(reward.name) || 0) + reward.quantity);
+              });
+      
+              const rewardSummary = Array.from(aggregatedRewards.entries())
+                  .map(([name, quantity]) => `${name} (x${quantity})`)
                   .join(', ');
               
               toast({
@@ -287,7 +292,7 @@ export default function HuntingTab() {
           } else {
               toast({
                   title: `Экспедиции завершены`,
-                  description: `${finishedHunts.length} фамильяров вернулись с пустыми лапами.`
+                  description: `${finishedHunts.length} ${getPlural(finishedHunts.length, 'фамильяр', 'фамильяра', 'фамильяров')} вернулись с пустыми лапами.`
               });
           }
           refetchAllUsers();
@@ -521,3 +526,6 @@ export default function HuntingTab() {
     
 
 
+
+
+    
