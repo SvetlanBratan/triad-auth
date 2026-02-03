@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
 import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info, AlertTriangle, Bell, CheckCircle, Store, PackagePlus, Edit, BadgeCheck, FileText, Send, Gavel, Eye, UserMinus, FlaskConical, Compass, Save, Merge } from 'lucide-react';
 import type { UserStatus, UserRole, User, FamiliarCard, BankAccount, WealthLevel, FamiliarRank, Shop, InventoryCategory, AdminGiveItemForm, InventoryItem, CitizenshipStatus, TaxpayerStatus, CharacterPopularityUpdate, AlchemyRecipe, GameSettings, HuntingLocation, HuntReward, Potion, AlchemyIngredient, ShopItem } from '@/lib/types';
-import { EVENT_FAMILIARS, ALL_ACHIEVEMENTS, MOODLETS_DATA, WEALTH_LEVELS, ALL_STATIC_FAMILIARS, STARTING_CAPITAL_LEVELS, ALL_SHOPS, INVENTORY_CATEGORIES, POPULARITY_EVENTS } from '@/lib/data';
+import { ALL_ACHIEVEMENTS, MOODLETS_DATA, WEALTH_LEVELS, STARTING_CAPITAL_LEVELS, INVENTORY_CATEGORIES, POPULARITY_EVENTS } from '@/lib/data';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -276,12 +276,9 @@ export default function AdminTab() {
             });
         }
     } else {
-        setNewRecipe(prev => {
-            if (prev.name !== '' || prev.components.length > 0 || prev.resultPotionId !== '' || prev.outputQty !== 1 || prev.difficulty !== 1) {
-                return { name: '', components: [], resultPotionId: '', outputQty: 1, difficulty: 1 };
-            }
-            return prev;
-        });
+        if (newRecipe.name !== '' || newRecipe.components.length > 0 || newRecipe.resultPotionId !== '' || newRecipe.outputQty !== 1 || newRecipe.difficulty !== 1) {
+            setNewRecipe({ name: '', components: [], resultPotionId: '', outputQty: 1, difficulty: 1 });
+        }
     }
   }, [editingRecipeId, allRecipes]);
 
@@ -859,17 +856,15 @@ export default function AdminTab() {
             return;
         }
         itemData = JSON.parse(selectedShopItemId);
-        itemData.quantity = existingItemQuantity;
     }
     
     await adminGiveItemToCharacter(itemUserId, itemCharId, itemData);
     await refetchUsers();
-    toast({ title: 'Предмет выдан!', description: `"${itemData.name}" (x${itemData.quantity}) добавлен в инвентарь персонажа.` });
+    toast({ title: 'Предмет выдан!', description: `"${itemData.name}" добавлен в инвентарь персонажа.` });
     
     // Reset form but keep user and character selected
     setSelectedShopItemId('');
     setNewItemData({ name: '', description: '', inventoryTag: 'прочее', quantity: 1, image: '' });
-    setExistingItemQuantity(1);
   };
   
   const handleUpdateItem = async (e: React.FormEvent) => {
@@ -2493,26 +2488,14 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="space-y-4">
-                                        <div>
-                                            <Label>Существующий предмет</Label>
-                                            <SearchableSelect
-                                                options={allShopItems}
-                                                value={selectedShopItemId}
-                                                onValueChange={setSelectedShopItemId}
-                                                placeholder="Выберите предмет из магазина..."
-                                            />
-                                        </div>
-                                        <div>
-                                            <Label htmlFor="existing-item-quantity">Количество</Label>
-                                            <Input
-                                                id="existing-item-quantity"
-                                                type="number"
-                                                value={existingItemQuantity}
-                                                onChange={(e) => setExistingItemQuantity(parseInt(e.target.value, 10) || 1)}
-                                                min="1"
-                                            />
-                                        </div>
+                                    <div>
+                                        <Label>Существующий предмет</Label>
+                                        <SearchableSelect
+                                            options={allShopItems}
+                                            value={selectedShopItemId}
+                                            onValueChange={setSelectedShopItemId}
+                                            placeholder="Выберите предмет из магазина..."
+                                        />
                                     </div>
                                 )}
                                 <Button type="submit">Выдать предмет</Button>
@@ -2641,7 +2624,7 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
                             {isSendingMail ? 'Отправка...' : 'Отправить'}
                         </Button>
                     </form>
-                    <Separator className="my-6" />
+                    <Separator />
                     <div className="p-4 border border-destructive/50 rounded-lg">
                         <h4 className="font-semibold text-destructive mb-2 flex items-center gap-2"><ShieldAlert /> Опасная зона</h4>
                          <AlertDialog>
