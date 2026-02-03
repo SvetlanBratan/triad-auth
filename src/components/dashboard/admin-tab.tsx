@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
@@ -309,8 +310,6 @@ export default function AdminTab() {
             } else {
                 setEditItemData(null);
             }
-        } else {
-            setEditItemData(null);
         }
     } else {
         setEditItemData(null);
@@ -988,32 +987,6 @@ export default function AdminTab() {
     }
   };
 
-  const handleRecipeSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newRecipe.resultPotionId || newRecipe.components.length === 0) {
-        toast({ variant: 'destructive', title: 'Ошибка', description: 'Выберите итоговое зелье и хотя бы один ингредиент.' });
-        return;
-    }
-    setIsSubmittingRecipe(true);
-    try {
-        if (editingRecipeId) {
-            await updateAlchemyRecipe(editingRecipeId, newRecipe);
-            toast({ title: 'Рецепт обновлен!' });
-        } else {
-            await addAlchemyRecipe(newRecipe);
-            toast({ title: 'Рецепт добавлен!' });
-        }
-        setNewRecipe({ name: '', components: [], resultPotionId: '', outputQty: 1, difficulty: 1 });
-        setEditingRecipeId(null);
-        refetchRecipes();
-    } catch (error) {
-        const message = error instanceof Error ? error.message : "Произошла неизвестная ошибка";
-        toast({ variant: 'destructive', title: 'Ошибка', description: message });
-    } finally {
-        setIsSubmittingRecipe(false);
-    }
-};
-
 const handleDeleteRecipe = async (recipeId: string) => {
     try {
         await deleteAlchemyRecipe(recipeId);
@@ -1070,6 +1043,32 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
             ...prev,
             components: prev.components.filter((_, i) => i !== index)
         }));
+    };
+
+    const handleRecipeSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newRecipe.resultPotionId || newRecipe.components.length === 0) {
+            toast({ variant: 'destructive', title: 'Ошибка', description: 'Выберите итоговое зелье и хотя бы один ингредиент.' });
+            return;
+        }
+        setIsSubmittingRecipe(true);
+        try {
+            if (editingRecipeId) {
+                await updateAlchemyRecipe(editingRecipeId, newRecipe);
+                toast({ title: 'Рецепт обновлен!' });
+            } else {
+                await addAlchemyRecipe(newRecipe);
+                toast({ title: 'Рецепт добавлен!' });
+            }
+            setNewRecipe({ name: '', components: [], resultPotionId: '', outputQty: 1, difficulty: 1 });
+            setEditingRecipeId(null);
+            refetchRecipes();
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Произошла неизвестная ошибка";
+            toast({ variant: 'destructive', title: 'Ошибка', description: message });
+        } finally {
+            setIsSubmittingRecipe(false);
+        }
     };
 
 
@@ -1267,18 +1266,34 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
         label: `${event.label} (+${event.value})`,
     })), []);
     
-    const alchemyResultOptions = useMemo(() => ALCHEMY_POTIONS.map(p => ({ value: p.id, label: p.name })), []);
-    const alchemyIngredientOptions = useMemo(() => {
-      if (isShopsLoading) return [];
-      const ingredients = new Map<string, { value: string; label: string }>();
-      allShops.forEach(shop => {
-          (shop.items || []).forEach(item => {
-              if (item.inventoryTag === 'ингредиенты') {
-                  ingredients.set(item.id, { value: item.id, label: item.name });
-              }
-          });
-      });
-      return Array.from(ingredients.values());
+    const alchemyResultOptions = useMemo(() => {
+        const results = new Map<string, { value: string, label: string }>();
+        ALCHEMY_POTIONS.forEach(p => results.set(p.id, { value: p.id, label: p.name }));
+    
+        if (!isShopsLoading) {
+            allShops.forEach(shop => {
+                (shop.items || []).forEach(item => {
+                    if (item.inventoryTag === 'зелья' || item.inventoryTag === 'артефакты') {
+                        results.set(item.id, { value: item.id, label: item.name });
+                    }
+                });
+            });
+        }
+        
+        return Array.from(results.values()).sort((a, b) => a.label.localeCompare(b.label));
+    }, [allShops, isShopsLoading]);
+
+  const alchemyIngredientOptions = useMemo(() => {
+    if (isShopsLoading) return [];
+    const ingredients = new Map<string, { value: string; label: string }>();
+    allShops.forEach(shop => {
+        (shop.items || []).forEach(item => {
+            if (item.inventoryTag === 'ингредиенты') {
+                ingredients.set(item.id, { value: item.id, label: item.name });
+            }
+        });
+    });
+    return Array.from(ingredients.values()).sort((a, b) => a.label.localeCompare(b.label));
   }, [allShops, isShopsLoading]);
 
 
@@ -2668,4 +2683,5 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
     
 
     
+
 
