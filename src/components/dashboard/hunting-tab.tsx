@@ -7,7 +7,7 @@ import { useUser } from '@/hooks/use-user';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Compass, Send, Hourglass, CheckCircle, Bone, X, Users } from 'lucide-react';
+import { Compass, Send, Hourglass, CheckCircle, Bone, X, Users, Shield } from 'lucide-react';
 import type { Character, FamiliarCard, FamiliarRank, HuntingLocation, OngoingHunt, InventoryItem, User } from '@/lib/types';
 import Image from 'next/image';
 import { SearchableSelect } from '../ui/searchable-select';
@@ -71,7 +71,7 @@ const LocationCard = ({ location, onSelect, currentHunts = 0, limit = 10 }: { lo
 }
 
 export default function HuntingTab() {
-  const { currentUser, gameSettings = DEFAULT_GAME_SETTINGS, startHunt, claimHuntReward, recallHunt, familiarsById, claimAllHuntRewards, startMultipleHunts, fetchUsersForAdmin, claimRewardsForOtherPlayer } = useUser();
+  const { currentUser, gameSettings = DEFAULT_GAME_SETTINGS, startHunt, claimHuntReward, recallHunt, familiarsById, claimAllHuntRewards, startMultipleHunts, fetchUsersForAdmin, claimRewardsForOtherPlayer, adminClaimHuntEarly } = useUser();
   const { toast } = useToast();
   
   const [selectedLocation, setSelectedLocation] = useState<HuntingLocation | null>(null);
@@ -82,6 +82,7 @@ export default function HuntingTab() {
   const [isProcessingId, setIsProcessingId] = useState<string | null>(null);
   const [isClaimingAll, setIsClaimingAll] = useState(false);
   const [isProcessingForCharId, setIsProcessingForCharId] = useState<string | null>(null);
+  const [isProcessingAdminClaim, setIsProcessingAdminClaim] = useState<string | null>(null);
   
   const [now, setNow] = useState(new Date());
 
@@ -89,6 +90,8 @@ export default function HuntingTab() {
     queryKey: ['allUsersForHunting'],
     queryFn: fetchUsersForAdmin,
   });
+
+  const isAdmin = currentUser?.role === 'admin';
 
   const allOngoingHunts = useMemo(() => {
     if (!allUsers.length) return [];
@@ -258,6 +261,32 @@ export default function HuntingTab() {
     }
   };
 
+  const handleAdminClaimEarly = async (hunt: OngoingHunt & { userId: string }) => {
+    if (!isAdmin) return;
+    setIsProcessingAdminClaim(hunt.huntId);
+    try {
+      const rewards = await adminClaimHuntEarly(hunt.userId, hunt.characterId, hunt.huntId);
+      if (rewards.length > 0) {
+        const rewardList = rewards.map(r => `${r.name} (x${r.quantity})`).join(', ');
+        toast({
+            title: `Добыча собрана досрочно для ${hunt.characterName}`,
+            description: `Получено: ${rewardList}`
+        });
+      } else {
+          toast({
+              title: `Добыча собрана досрочно для ${hunt.characterName}`,
+              description: 'К сожалению, фамильяр вернулся с пустыми лапами.',
+          });
+      }
+      refetchAllUsers();
+    } catch(e) {
+      const msg = e instanceof Error ? e.message : 'Произошла ошибка';
+      toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+    } finally {
+      setIsProcessingAdminClaim(null);
+    }
+  };
+
   const ongoingHunts = useMemo(() => {
     if (!character) return [];
     return character.ongoingHunts || [];
@@ -365,22 +394,35 @@ export default function HuntingTab() {
                                                  <p className="text-sm text-muted-foreground">{isFinished ? 'Можно забрать добычу.' : 'Осталось времени.'}</p>
                                             </div>
                                             <DialogFooter className="grid grid-cols-2 gap-2">
-                                                {!isFinished && (
-                                                    <Button
-                                                        variant="outline"
-                                                        onClick={() => handleRecall(hunt)}
+                                                {isFinished ? (
+                                                     <Button 
+                                                        onClick={() => handleClaimReward(hunt)} 
                                                         disabled={isProcessingId === hunt.huntId}
+                                                        className="col-span-2"
                                                     >
-                                                       <X className="mr-2 h-4 w-4" />Отозвать
+                                                        {isProcessingId === hunt.huntId ? 'Сбор...' : <><Bone className="mr-2 h-4 w-4"/>Забрать добычу</>}
                                                     </Button>
+                                                ) : (
+                                                    <>
+                                                         <Button
+                                                            variant="outline"
+                                                            onClick={() => handleRecall(hunt)}
+                                                            disabled={isProcessingId === hunt.huntId || (isAdmin && isProcessingAdminClaim === hunt.huntId)}
+                                                            className={cn(!isAdmin && "col-span-2")}
+                                                        >
+                                                            <X className="mr-2 h-4 w-4" />Отозвать
+                                                        </Button>
+                                                        {isAdmin && currentUser && (
+                                                             <Button
+                                                                variant="secondary"
+                                                                onClick={() => handleAdminClaimEarly({ ...hunt, userId: currentUser.id })}
+                                                                disabled={isProcessingId === hunt.huntId || isProcessingAdminClaim === hunt.huntId}
+                                                            >
+                                                                <Shield className="mr-2 h-4 w-4" />Собрать
+                                                            </Button>
+                                                        )}
+                                                    </>
                                                 )}
-                                                <Button 
-                                                    onClick={() => handleClaimReward(hunt)} 
-                                                    disabled={!isFinished || isProcessingId === hunt.huntId}
-                                                    className={cn(!isFinished && "col-span-2")}
-                                                >
-                                                    {isProcessingId === hunt.huntId ? 'Сбор...' : <><Bone className="mr-2 h-4 w-4"/>Забрать добычу</>}
-                                                </Button>
                                             </DialogFooter>
                                         </DialogContent>
                                     </Dialog>
@@ -501,6 +543,26 @@ export default function HuntingTab() {
                                                                 </TooltipTrigger>
                                                                 <TooltipContent>
                                                                     <p>Забрать всю готовую добычу для этого игрока</p>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
+                                                    )}
+                                                     {isAdmin && !isOwn && !isFinished && (
+                                                        <TooltipProvider>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button
+                                                                        variant="secondary"
+                                                                        size="icon"
+                                                                        className="h-7 w-7"
+                                                                        onClick={() => handleAdminClaimEarly(hunt)}
+                                                                        disabled={isProcessingAdminClaim === hunt.huntId}
+                                                                    >
+                                                                        <Shield className="w-4 h-4" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>
+                                                                    <p>Собрать досрочно (Админ)</p>
                                                                 </TooltipContent>
                                                             </Tooltip>
                                                         </TooltipProvider>
