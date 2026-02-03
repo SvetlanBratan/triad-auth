@@ -2591,7 +2591,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
 
          for (const user of usersToUpdate.values()) {
-            const userRef = doc(db, "users", user.id);
+            const userRef = doc(db, "users", userId);
             batch.update(userRef, { 
                 characters: user.characters, 
                 achievementIds: user.achievementIds 
@@ -2912,7 +2912,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (!character) throw new Error("Character not found");
 
         const newHunt: OngoingHunt = {
-            huntId: `hunt-${Date.now()}-${familiarId}`,
+            huntId: `hunt-${now.getTime()}-${Math.random().toString(36).substring(2, 7)}`,
             characterId,
             characterName: character.name,
             familiarId,
@@ -2959,7 +2959,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const endsAt = new Date(now.getTime() + location.durationMinutes * 60000);
 
         const newHunts = familiarIds.map(famId => ({
-            huntId: `hunt-${now.getTime()}-${famId}`,
+            huntId: `hunt-${now.getTime()}-${famId}-${Math.random().toString(36).substring(2, 7)}`,
             characterId,
             characterName: character.name,
             familiarId: famId,
@@ -3252,7 +3252,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           charToUpdate.ongoingHunts = remainingHunts;
           ownerData.characters[charIndex] = charToUpdate;
 
-          const rewardSummary = allRewards.map(r => `${r.name} (x${r.quantity})`).join(', ');
+          const aggregatedRewards = new Map<string, number>();
+          allRewards.forEach(reward => {
+              aggregatedRewards.set(reward.name, (aggregatedRewards.get(reward.name) || 0) + reward.quantity);
+          });
+  
+          const rewardSummary = Array.from(aggregatedRewards.entries())
+              .map(([name, quantity]) => `${name} (x${quantity})`)
+              .join(', ');
 
           const newMail: MailMessage = {
               id: `mail-hunt-claim-${Date.now()}`,
@@ -3526,3 +3533,6 @@ export const useUser = () => {
 
  
 
+
+
+    
