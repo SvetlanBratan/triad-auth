@@ -2960,7 +2960,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (!character) throw new Error("Character not found");
 
         const newHunt: OngoingHunt = {
-            huntId: `hunt-${Date.now()}`,
+            huntId: `hunt-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
             characterId,
             characterName: character.name,
             familiarId,
@@ -3007,7 +3007,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const endsAt = new Date(now.getTime() + location.durationMinutes * 60000);
 
         const newHunts = familiarIds.map(famId => ({
-            huntId: `hunt-${Date.now()}-${famId.slice(0,4)}`,
+            huntId: `hunt-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
             characterId,
             characterName: character.name,
             familiarId: famId,
@@ -3494,5 +3494,6 @@ export const useUser = () => {
     
 
     
+
 
 
