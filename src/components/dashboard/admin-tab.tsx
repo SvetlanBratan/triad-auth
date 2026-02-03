@@ -35,7 +35,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import ImageKitUploader from './imagekit-uploader';
 import { SearchableMultiSelect } from '../ui/searchable-multi-select';
 import AdminFamiliarsTab from './admin-familiars-tab';
-import { ALCHEMY_POTIONS, ALL_ITEMS_FOR_ALCHEMY } from '@/lib/alchemy-data';
+import { ALCHEMY_INGREDIENTS, ALCHEMY_POTIONS, ALL_ITEMS_FOR_ALCHEMY } from '@/lib/alchemy-data';
 import { ScrollArea } from '../ui/scroll-area';
 
 const rankNames: Record<FamiliarRank, string> = {
@@ -2569,6 +2569,7 @@ export default function AdminTab() {
 
 
     
+
 
 
 

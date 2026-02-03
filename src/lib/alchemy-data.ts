@@ -14,4 +14,3 @@ export const ALL_ITEMS_FOR_ALCHEMY: (Potion | AlchemyIngredient)[] = [
     ...ALCHEMY_POTIONS,
     ...ALCHEMY_INGREDIENTS,
 ];
-
