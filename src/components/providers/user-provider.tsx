@@ -368,6 +368,34 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         };
     }, [processUserDoc]);
 
+    const fetchAllShops = useCallback(async (): Promise<Shop[]> => {
+          const shopsCollection = collection(db, "shops");
+          const snapshot = await getDocs(shopsCollection);
+          const dbShops = new Map<string, Partial<Shop>>();
+          snapshot.forEach(doc => {
+              dbShops.set(doc.id, doc.data());
+          });
+
+          const allShopsWithData = ALL_SHOPS.map(baseShop => {
+              const dbData = dbShops.get(baseShop.id);
+              return { ...baseShop, ...(dbData || {}) };
+          });
+          
+          return allShopsWithData;
+    }, []);
+
+    const fetchShopById = useCallback(async (shopId: string): Promise<Shop | null> => {
+          const baseShop = SHOPS_BY_ID[shopId];
+          if (!baseShop) return null;
+
+          const shopRef = doc(db, "shops", shopId);
+          const docSnap = await getDoc(shopRef);
+
+          if (docSnap.exists()) {
+              return { ...baseShop, ...docSnap.data() };
+          }
+          return baseShop;
+  }, []);
 
     const fetchCharacterById = useCallback(async (characterId: string): Promise<{ character: Character; owner: User } | null> => {
       try {
@@ -823,7 +851,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         };
 
         const requestRef = doc(db, "users", user.id, "reward_requests", requestId);
-        batch.set(requestRef, sanitizeObjectForFirestore(newRequestData));
+        batch.set(sanitizeObjectForFirestore(newRequestData), requestRef);
 
         const newPointLog: PointLog = {
           id: `h-${Date.now()}-req`,
@@ -1805,7 +1833,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const initiatorChar = currentUser.characters.find(c => c.id === initiatorCharacterId);
         if (!initiatorChar) throw new Error("Персонаж-инициатор не найден.");
 
-        const initiatorFamiliar = familiarsById[initiatorFamiliarId];
+        const initiatorFamiliar = FAMILIARS_BY_ID[initiatorFamiliarId];
         if (!initiatorFamiliar) throw new Error("Фамильяр инициатора не найден.");
 
         let targetUser: User | undefined;
@@ -1821,7 +1849,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
         if (!targetUser || !targetChar) throw new Error("Целевой персонаж или его владелец не найдены.");
         
-        const targetFamiliar = familiarsById[targetFamiliarId];
+        const targetFamiliar = FAMILIARS_BY_ID[targetFamiliarId];
         if (!targetFamiliar) throw new Error("Целевой фамильяр не найден.");
 
         const ranksAreDifferent = initiatorFamiliar.rank !== targetFamiliar.rank;
@@ -1852,7 +1880,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const requestsCollection = collection(db, "familiar_trade_requests");
         await addDoc(requestsCollection, newRequest);
 
-    }, [currentUser, fetchUsersForAdmin, familiarsById]);
+    }, [currentUser, fetchUsersForAdmin]);
 
   const fetchFamiliarTradeRequestsForUser = useCallback(async (): Promise<FamiliarTradeRequest[]> => {
         if (!currentUser) return [];
@@ -1942,35 +1970,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           await updateDoc(requestRef, { status });
     }, []);
 
-  const fetchAllShops = useCallback(async (): Promise<Shop[]> => {
-        const shopsMap = new Map<string, Shop>(ALL_SHOPS.map(shop => [shop.id, { ...shop }]));
-        
-        const shopsCollection = collection(db, "shops");
-        const snapshot = await getDocs(shopsCollection);
-        
-        snapshot.forEach(doc => {
-            const dbData = doc.data() as Partial<Shop>;
-            const shopId = doc.id;
-            const existingShop = shopsMap.get(shopId) || { id: shopId, title: '', description: '', image: '', aiHint: '' } as Shop;
-            
-            shopsMap.set(shopId, { ...existingShop, ...dbData });
-        });
-        
-        return Array.from(shopsMap.values());
-  }, []);
-
-  const fetchShopById = useCallback(async (shopId: string): Promise<Shop | null> => {
-          const baseShop = SHOPS_BY_ID[shopId];
-          
-          const shopRef = doc(db, "shops", shopId);
-          const docSnap = await getDoc(shopRef);
-
-          if (docSnap.exists()) {
-              return { ...(baseShop || { id: shopId, title: 'Новый магазин', description: '', image: '', aiHint: '' }), ...docSnap.data() } as Shop;
-          }
-          return baseShop || null;
-  }, []);
-
   const updateShopOwner = useCallback(async (shopId: string, ownerUserId: string, ownerCharacterId: string, ownerCharacterName: string) => {
           const shopRef = doc(db, "shops", shopId);
            await setDoc(shopRef, {
@@ -2042,177 +2041,138 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }, []);
   
   const purchaseShopItem = useCallback(async (shopId: string, itemId: string, buyerUserId: string, buyerCharacterId: string, quantity: number) => {
-    await runTransaction(db, async (transaction) => {
-        const shopRef = doc(db, "shops", shopId);
-        const shopDoc = await transaction.get(shopRef);
-        if (!shopDoc.exists()) throw new Error("Магазин не найден.");
-        const shopData = shopDoc.data() as Shop;
-        
-        const items = shopData.items;
-        if (!items) throw new Error("В этом магазине нет товаров.");
-
-        const itemIndex = items.findIndex(i => i.id === itemId);
-        if (itemIndex === -1) throw new Error("Товар не найден.");
-        
-        const item = items[itemIndex];
-
-        if (item.quantity !== undefined && item.quantity < quantity) {
-            throw new Error("Недостаточно товара в наличии.");
-        }
-
-        const buyerUserRef = doc(db, "users", buyerUserId);
-        const buyerUserDoc = await transaction.get(buyerUserRef);
-        if (!buyerUserDoc.exists()) throw new Error("Покупатель не найден.");
-        const buyerUserData = buyerUserDoc.data() as User;
-
-        const buyerCharIndex = buyerUserData.characters.findIndex(c => c.id === buyerCharacterId);
-        if (buyerCharIndex === -1) throw new Error("Персонаж покупателя не найден.");
-        const buyerChar = buyerUserData.characters[buyerCharIndex];
-        
-        const price = item.price;
-        const totalPrice = {
-            platinum: (price.platinum || 0) * quantity,
-            gold: (price.gold || 0) * quantity,
-            silver: (price.silver || 0) * quantity,
-            copper: (price.copper || 0) * quantity,
-        }
-        const balance = buyerChar.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 };
-        if (
-            balance.platinum < totalPrice.platinum ||
-            balance.gold < totalPrice.gold ||
-            balance.silver < totalPrice.silver ||
-            balance.copper < totalPrice.copper
-        ) {
-            throw new Error("Недостаточно средств у персонажа.");
-        }
-
-        buyerChar.bankAccount.platinum -= totalPrice.platinum;
-        buyerChar.bankAccount.gold -= totalPrice.gold;
-        buyerChar.bankAccount.silver -= totalPrice.silver;
-        buyerChar.bankAccount.copper -= totalPrice.copper;
-        
-        const buyerTx: BankTransaction = { id: `txn-buy-${Date.now()}`, date: new Date().toISOString(), reason: `Покупка: ${item.name} x${quantity}`, amount: { platinum: -totalPrice.platinum, gold: -totalPrice.gold, silver: -totalPrice.silver, copper: -totalPrice.copper } };
-        buyerChar.bankAccount.history = [buyerTx, ...(buyerChar.bankAccount.history || [])];
-
-        if (item.inventoryTag === 'проживание') {
-            buyerChar.residenceLocation = item.name;
-        } else if (item.inventoryTag) {
-            if (!buyerChar.inventory) {
-                buyerChar.inventory = {};
-            }
-            const inv = buyerChar.inventory;
-            const tag = item.inventoryTag as keyof Inventory;
-            if (!inv[tag]) {
-                inv[tag] = [];
-            }
-            const list = inv[tag]!;
+        await runTransaction(db, async (transaction) => {
+            const shopRef = doc(db, "shops", shopId);
+            const shopDoc = await transaction.get(shopRef);
+            if (!shopDoc.exists()) throw new Error("Магазин не найден.");
+            const shopData = shopDoc.data() as Shop;
             
-            const inventoryItemName = item.inventoryItemName || item.name;
-            const inventoryItemDescription = item.inventoryItemDescription || item.description || '';
-            const inventoryItemImage = item.inventoryItemImage || item.image || '';
+            const items = shopData.items;
+            if (!items) throw new Error("В этом магазине нет товаров.");
 
-            const existingItemIndex = list.findIndex(invItem => invItem.name === inventoryItemName);
+            const itemIndex = items.findIndex(i => i.id === itemId);
+            if (itemIndex === -1) throw new Error("Товар не найден.");
+            
+            const item = items[itemIndex];
 
-            if (existingItemIndex > -1) {
-                list[existingItemIndex].quantity += quantity;
-            } else {
-                const newInventoryItem: InventoryItem = {
-                    id: `inv-item-${Date.now()}`,
-                    name: inventoryItemName,
-                    description: inventoryItemDescription,
-                    image: inventoryItemImage,
-                    quantity: quantity,
-                };
-                list.push(newInventoryItem);
+            if (item.quantity !== undefined && item.quantity < quantity) {
+                throw new Error("Недостаточно товара в наличии.");
             }
-        }
+
+            const buyerUserRef = doc(db, "users", buyerUserId);
+            const buyerUserDoc = await transaction.get(buyerUserRef);
+            if (!buyerUserDoc.exists()) throw new Error("Покупатель не найден.");
+            const buyerUserData = buyerUserDoc.data() as User;
+
+            const buyerCharIndex = buyerUserData.characters.findIndex(c => c.id === buyerCharacterId);
+            if (buyerCharIndex === -1) throw new Error("Персонаж покупателя не найден.");
+            const buyerChar = buyerUserData.characters[buyerCharIndex];
+            
+            const price = item.price;
+            const totalPrice = {
+                platinum: (price.platinum || 0) * quantity,
+                gold: (price.gold || 0) * quantity,
+                silver: (price.silver || 0) * quantity,
+                copper: (price.copper || 0) * quantity,
+            }
+            const balance = buyerChar.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 };
+            if (
+                balance.platinum < totalPrice.platinum ||
+                balance.gold < totalPrice.gold ||
+                balance.silver < totalPrice.silver ||
+                balance.copper < totalPrice.copper
+            ) {
+                throw new Error("Недостаточно средств у персонажа.");
+            }
+
+            buyerChar.bankAccount.platinum -= totalPrice.platinum;
+            buyerChar.bankAccount.gold -= totalPrice.gold;
+            buyerChar.bankAccount.silver -= totalPrice.silver;
+            buyerChar.bankAccount.copper -= totalPrice.copper;
+            
+            const buyerTx: BankTransaction = { id: `txn-buy-${Date.now()}`, date: new Date().toISOString(), reason: `Покупка: ${item.name} x${quantity}`, amount: { platinum: -totalPrice.platinum, gold: -totalPrice.gold, silver: -totalPrice.silver, copper: -totalPrice.copper } };
+            buyerChar.bankAccount.history = [buyerTx, ...(buyerChar.bankAccount.history || [])];
+
+            if (item.inventoryTag === 'проживание') {
+                buyerChar.residenceLocation = item.name;
+            } else if (item.inventoryTag) {
+                const inv = (buyerChar.inventory ??= {} as Partial<Inventory>);
+                const tag = item.inventoryTag as keyof Inventory;
+                (inv[tag] ??= []);
+                const list = inv[tag]!;
+                
+                const inventoryItemName = item.inventoryItemName || item.name;
+                const inventoryItemDescription = item.inventoryItemDescription || item.description || '';
+                const inventoryItemImage = item.inventoryItemImage || item.image || '';
+
+                const existingItemIndex = list.findIndex(invItem => invItem.name === inventoryItemName);
+
+                if (existingItemIndex > -1) {
+                    list[existingItemIndex].quantity += quantity;
+                } else {
+                    const newInventoryItem: InventoryItem = {
+                        id: `inv-item-${Date.now()}`,
+                        name: inventoryItemName,
+                        description: inventoryItemDescription,
+                        image: inventoryItemImage,
+                        quantity: quantity,
+                    };
+                    list.push(newInventoryItem);
+                }
+            }
+
+            const shopBankAccount = shopData.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
+            shopBankAccount.platinum = (shopBankAccount.platinum || 0) + totalPrice.platinum;
+            shopBankAccount.gold = (shopBankAccount.gold || 0) + totalPrice.gold;
+            shopBankAccount.silver = (shopBankAccount.silver || 0) + totalPrice.silver;
+            shopBankAccount.copper = (shopBankAccount.copper || 0) + totalPrice.copper;
+
+            const shopTx: BankTransaction = { id: `txn-sell-${Date.now()}`, date: new Date().toISOString(), reason: `Продажа: ${item.name} x${quantity}`, amount: totalPrice };
+            shopBankAccount.history = [shopTx, ...(shopBankAccount.history || [])];
+
+            transaction.update(buyerUserRef, { characters: buyerUserData.characters });
+
+            const updatedShopData: Partial<Shop> = { bankAccount: shopBankAccount };
+            const updatedItems = [...items];
+            if (item.quantity !== undefined) {
+                updatedItems[itemIndex].quantity = item.quantity - quantity;
+            }
+            updatedItems[itemIndex].purchaseCount = (updatedItems[itemIndex].purchaseCount || 0) + quantity;
+            updatedShopData.items = updatedItems;
+            updatedShopData.purchaseCount = increment(quantity) as unknown as number;
+
+            transaction.set(shopRef, updatedShopData, { merge: true });
+        });
         
-        const userUpdates: {[key: string]: any} = { characters: buyerUserData.characters };
-
-        if (item.mailOnPurchase) {
-            const purchaseMail: MailMessage = {
-                id: `mail-purchase-${Date.now()}`,
-                senderUserId: 'system',
-                senderCharacterName: shopData.title,
-                recipientUserId: buyerUserId,
-                recipientCharacterId: buyerCharacterId,
-                recipientCharacterName: buyerChar.name,
-                subject: `Информация о покупке: ${item.name}`,
-                content: item.mailOnPurchase,
-                sentAt: new Date().toISOString(),
-                isRead: false,
-                type: 'personal',
-            };
-            userUpdates.mail = arrayUnion(purchaseMail);
+         if (currentUser?.id === buyerUserId) {
+            const updatedUser = await fetchUserById(buyerUserId);
+            if (updatedUser) setCurrentUser(updatedUser);
         }
-
-        transaction.update(buyerUserRef, userUpdates);
-
-        const shopBankAccount = shopData.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
-        shopBankAccount.platinum = (shopBankAccount.platinum || 0) + totalPrice.platinum;
-        shopBankAccount.gold = (shopBankAccount.gold || 0) + totalPrice.gold;
-        shopBankAccount.silver = (shopBankAccount.silver || 0) + totalPrice.silver;
-        shopBankAccount.copper = (shopBankAccount.copper || 0) + totalPrice.copper;
-
-        const shopTx: BankTransaction = { id: `txn-sell-${Date.now()}`, date: new Date().toISOString(), reason: `Продажа: ${item.name} x${quantity}`, amount: totalPrice };
-        shopBankAccount.history = [shopTx, ...(shopBankAccount.history || [])];
-
-        const updatedShopData: Partial<Shop> = { bankAccount: shopBankAccount };
-        const updatedItems = [...items];
-        if (item.quantity !== undefined) {
-            updatedItems[itemIndex].quantity = item.quantity - quantity;
-        }
-        updatedItems[itemIndex].purchaseCount = (updatedItems[itemIndex].purchaseCount || 0) + quantity;
-        updatedShopData.items = updatedItems;
-        updatedShopData.purchaseCount = (shopData.purchaseCount || 0) + quantity;
-
-        transaction.set(shopRef, updatedShopData, { merge: true });
-    });
-    
-     if (currentUser?.id === buyerUserId) {
-        const updatedUser = await fetchUserById(buyerUserId);
-        if (updatedUser) setCurrentUser(updatedUser);
-    }
-  }, [currentUser, fetchUserById, initialFormData]);
+    }, [currentUser, fetchUserById, initialFormData]);
 
     const adminGiveItemToCharacter = useCallback(async (userId: string, characterId: string, itemData: AdminGiveItemForm) => {
         const user = await fetchUserById(userId);
         if (!user) throw new Error("User not found");
-    
+
         const characterIndex = user.characters.findIndex(c => c.id === characterId);
         if (characterIndex === -1) throw new Error("Character not found");
-    
+
         const character = { ...user.characters[characterIndex] };
-        const inventory = character.inventory || JSON.parse(JSON.stringify(initialFormData.inventory));
+        const inventory = (character.inventory ??= {} as Partial<Inventory>);
         
+        const newInventoryItem: InventoryItem = {
+            id: `inv-item-admin-${Date.now()}`,
+            name: itemData.name,
+            description: itemData.description,
+            image: itemData.image,
+            quantity: itemData.quantity || 1,
+        };
+
         const tag = itemData.inventoryTag as keyof Inventory;
-        
-        if (!Array.isArray(inventory[tag])) {
-            inventory[tag] = [];
-        }
-        
-        const list = inventory[tag]! as InventoryItem[];
-        
-        const inventoryItemName = itemData.name;
-        const existingItemIndex = list.findIndex(invItem => invItem.name === inventoryItemName);
-        
-        const quantityToAdd = itemData.quantity || 1;
-    
-        if (existingItemIndex > -1) {
-            list[existingItemIndex].quantity += quantityToAdd;
-        } else {
-            const newInventoryItem: InventoryItem = {
-                id: `inv-item-admin-${Date.now()}`,
-                name: inventoryItemName,
-                description: itemData.description,
-                image: itemData.image,
-                quantity: quantityToAdd,
-            };
-            list.push(newInventoryItem);
-        }
-        
-        character.inventory = inventory;
-    
+        (inventory[tag] ??= []);
+        const list = inventory[tag]!;
+        list.push(newInventoryItem);
+
         const updatedCharacters = [...user.characters];
         updatedCharacters[characterIndex] = character;
         await updateUser(userId, { characters: updatedCharacters });
@@ -2266,38 +2226,30 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }, [fetchUserById, updateUser, initialFormData]);
 
     const consumeInventoryItem = useCallback(async (userId: string, characterId: string, itemId: string, category: InventoryCategory, quantity: number = 1) => {
-        if (quantity <= 0) throw new Error("Количество должно быть положительным.");
-        
         const user = await fetchUserById(userId);
         if (!user) throw new Error("User not found");
-    
+
         const characterIndex = user.characters.findIndex(c => c.id === characterId);
         if (characterIndex === -1) throw new Error("Character not found");
-    
+
         const character = { ...user.characters[characterIndex] };
         const inventory = character.inventory || initialFormData.inventory;
-    
+
         if (!Array.isArray(inventory[category])) {
-            throw new Error("Item category not found");
+           throw new Error("Item category not found");
         }
         
         const itemIndex = inventory[category].findIndex(i => i.id === itemId);
         if (itemIndex === -1) throw new Error("Item not found");
-    
-        const item = inventory[category][itemIndex];
-    
-        if (item.quantity < quantity) {
-            throw new Error("Недостаточно предметов в инвентаре.");
-        }
-    
-        if (item.quantity > quantity) {
-            item.quantity -= quantity;
+
+        if (inventory[category][itemIndex].quantity > quantity) {
+            inventory[category][itemIndex].quantity -= quantity;
         } else {
             inventory[category] = inventory[category].filter(i => i.id !== itemId);
         }
         
         character.inventory = inventory;
-    
+
         const updatedCharacters = [...user.characters];
         updatedCharacters[characterIndex] = character;
         await updateUser(userId, { characters: updatedCharacters });
@@ -2960,7 +2912,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (!character) throw new Error("Character not found");
 
         const newHunt: OngoingHunt = {
-            huntId: `hunt-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+            huntId: `hunt-${Date.now()}-${familiarId}-${Math.random().toString(36).slice(2, 9)}`,
             characterId,
             characterName: character.name,
             familiarId,
@@ -3007,7 +2959,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const endsAt = new Date(now.getTime() + location.durationMinutes * 60000);
 
         const newHunts = familiarIds.map((famId, index) => ({
-            huntId: `hunt-${now.getTime()}-${index}-${famId.slice(-4)}`,
+            huntId: `hunt-${now.getTime()}-${famId}-${index}-${Math.random().toString(36).slice(2, 9)}`,
             characterId,
             characterName: character.name,
             familiarId: famId,
@@ -3155,42 +3107,40 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
               if (effectiveRank === 'ивентовый') effectiveRank = 'мифический';
               
               for (const rewardRule of location.rewards) {
-                  const rankReward = rewardRule.rewardsByRank[effectiveRank];
-                  if (rankReward && (Math.random() * 100 <= rankReward.chance)) {
-                      const itemData = allItems.find(i => i && i.id === rewardRule.itemId);
-                      if (itemData) {
-                          const invCategory = ('inventoryTag' in itemData && itemData.inventoryTag) ? itemData.inventoryTag : 'ингредиенты';
-                          const categoryItems = (inventory[invCategory as keyof typeof inventory] || []) as InventoryItem[];
-                          const existingItemIndex = categoryItems.findIndex(i => i.name === itemData.name);
-                          
-                          const quantityGained = rankReward.quantity;
+                 const rankReward = rewardRule.rewardsByRank[effectiveRank];
+                if (rankReward && (Math.random() * 100 <= rankReward.chance)) {
+                    const itemData = allItems.find(i => i && i.id === rewardRule.itemId);
+                    if (itemData) {
+                       allRewards.push({ ...itemData, quantity: rankReward.quantity } as InventoryItem);
+                       
+                       // Add to inventory
+                        const invCategory = ('inventoryTag' in itemData && itemData.inventoryTag) ? itemData.inventoryTag : 'ингредиенты';
+                        const categoryItems = (inventory[invCategory as keyof typeof inventory] || []) as InventoryItem[];
+                        const existingItemIndex = categoryItems.findIndex(i => i.name === itemData.name);
+                        
+                        const quantityGained = rankReward.quantity;
   
-                          if (existingItemIndex > -1) {
-                              categoryItems[existingItemIndex].quantity += quantityGained;
-                          } else {
-                              categoryItems.push({
-                                  id: `inv-item-${Date.now()}-${Math.random()}`,
-                                  name: itemData.name,
-                                  description: ('note' in itemData ? itemData.note : '') || ('description' in itemData ? (itemData as any).description : ''),
-                                  image: itemData.image,
-                                  quantity: quantityGained,
-                              });
-                          }
-                          inventory[invCategory as keyof typeof inventory] = categoryItems as any;
-                          
-                          // Aggregate rewards for the final toast message
-                          const existingOverallReward = allRewards.find(r => r.name === itemData.name);
-                          if (existingOverallReward) {
-                              existingOverallReward.quantity += quantityGained;
-                          } else {
-                              allRewards.push({ ...itemData, quantity: quantityGained } as InventoryItem);
-                          }
-                      }
-                  }
+                        if (existingItemIndex > -1) {
+                            categoryItems[existingItemIndex].quantity += quantityGained;
+                        } else {
+                            categoryItems.push({
+                                id: `inv-item-${Date.now()}-${Math.random()}`,
+                                name: itemData.name,
+                                description: ('note' in itemData ? itemData.note : '') || ('description' in itemData ? (itemData as any).description : ''),
+                                image: itemData.image,
+                                quantity: quantityGained,
+                            });
+                        }
+                        inventory[invCategory as keyof typeof inventory] = categoryItems as any;
+                    }
+                }
+              }
+              const huntIndex = charToUpdate.ongoingHunts!.findIndex(h => h.huntId === hunt.huntId);
+              if(huntIndex > -1) {
+                charToUpdate.ongoingHunts!.splice(huntIndex, 1);
               }
           }
           
-          charToUpdate.ongoingHunts = (charToUpdate.ongoingHunts || []).filter(h => !finishedHuntIds.has(h.huntId));
           charToUpdate.inventory = inventory;
           userData.characters[charIndex] = charToUpdate;
           
@@ -3472,7 +3422,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         deleteUserFromAuth,
         adminAddShop,
     }),
-        [currentUser, setCurrentUser, gameDate, gameDateString, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, allFamiliars, familiarsById, startHunt, startMultipleHunts, claimHuntReward, claimAllHuntRewards, recallHunt, claimRewardsForOtherPlayer, changeUserPassword, changeUserEmail, mergeUserData, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, imageGeneration, deleteUserFromAuth, adminAddShop]
+        [currentUser, setCurrentUser, gameDate, gameDateString, gameSettings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, allFamiliars, familiarsById, startHunt, startMultipleHunts, claimHuntReward, claimAllHuntRewards, recallHunt, claimRewardsForOtherPlayer, changeUserPassword, changeUserEmail, mergeUserData, imageGeneration, deleteUserFromAuth, adminAddShop]
     );
     
     return (
@@ -3501,3 +3451,5 @@ export const useUser = () => {
 
 
     
+
+
