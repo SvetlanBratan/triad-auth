@@ -265,6 +265,23 @@ export default function AdminTab() {
 
 
   useEffect(() => {
+    if (editingRecipeId) {
+        const recipeToEdit = allRecipes.find(r => r.id === editingRecipeId);
+        if (recipeToEdit) {
+            setNewRecipe({
+                name: recipeToEdit.name || '',
+                components: recipeToEdit.components || [],
+                resultPotionId: recipeToEdit.resultPotionId,
+                outputQty: recipeToEdit.outputQty || 1,
+                difficulty: recipeToEdit.difficulty || 1,
+            });
+        }
+    } else {
+        setNewRecipe({ name: '', components: [], resultPotionId: '', outputQty: 1, difficulty: 1 });
+    }
+  }, [editingRecipeId, allRecipes]);
+
+  useEffect(() => {
     const newUpdates: Record<string, { events: string[] }> = {};
     popularityCharIds.forEach(id => {
         newUpdates[id] = popularityUpdates[id] || { events: [] };
@@ -2664,6 +2681,7 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
 
 
     
+
 
 
 
