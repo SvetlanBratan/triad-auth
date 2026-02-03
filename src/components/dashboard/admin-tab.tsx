@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
@@ -35,8 +34,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import ImageKitUploader from './imagekit-uploader';
 import { SearchableMultiSelect } from '../ui/searchable-multi-select';
 import AdminFamiliarsTab from './admin-familiars-tab';
-import { ALCHEMY_POTIONS, ALCHEMY_INGREDIENTS } from '@/lib/alchemy-data';
+import { ALCHEMY_POTIONS, ALCHEMY_INGREDIENTS, ALL_ITEMS_FOR_ALCHEMY } from '@/lib/alchemy-data';
 import { ScrollArea } from '../ui/scroll-area';
+import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
 
 const rankNames: Record<FamiliarRank, string> = {
     'мифический': 'Мифический',
@@ -144,7 +144,7 @@ export default function AdminTab() {
     if (isShopsLoading) return map;
     const allItems = [
         ...(allShops.flatMap(shop => shop.items || [])),
-        ...ALCHEMY_POTIONS,
+        ...ALL_ITEMS_FOR_ALCHEMY,
     ];
     allItems.forEach(item => {
         if (item) map.set(item.id, item);
@@ -256,7 +256,8 @@ export default function AdminTab() {
   const [isSubmittingRecipe, setIsSubmittingRecipe] = useState(false);
   
    // Hunting state
-  const [editingHuntLocation, setEditingHuntLocation] = useState<Partial<HuntingLocation> | null>(null);
+  const [editingHuntLocation, setEditingHuntLocation] = useState<HuntingLocation | null>(null);
+  const [isSavingHunt, setIsSavingHunt] = useState(false);
 
   // Merge state
   const [sourceMergeUserId, setSourceMergeUserId] = useState('');
@@ -303,12 +304,17 @@ export default function AdminTab() {
     if (selectedInventoryItem) {
         const user = users.find(u => u.id === itemUserId);
         const character = user?.characters.find(c => c.id === itemCharId);
-        if (character && character.inventory) {
-            const item = (character.inventory[selectedInventoryItem.category] || []).find(i => i.id === selectedInventoryItem.id);
-            if (item) {
-                setEditItemData(item);
+        if (character && character.inventory && selectedInventoryItem.category in character.inventory) {
+            const items = character.inventory[selectedInventoryItem.category as keyof typeof character.inventory];
+            if(Array.isArray(items)) {
+                const item = items.find(i => i.id === selectedInventoryItem.id);
+                 if (item) {
+                    setEditItemData(item);
+                } else {
+                    setEditItemData(null);
+                }
             } else {
-                setEditItemData(null);
+                 setEditItemData(null);
             }
         }
     } else {
@@ -854,8 +860,10 @@ export default function AdminTab() {
             toast({ variant: 'destructive', title: 'Ошибка', description: 'Выберите существующий предмет.' });
             return;
         }
-        itemData = JSON.parse(selectedShopItemId);
-        itemData.quantity = existingItemQuantity;
+        itemData = {
+          ...JSON.parse(selectedShopItemId),
+          quantity: existingItemQuantity,
+        };
     }
     
     await adminGiveItemToCharacter(itemUserId, itemCharId, itemData);
@@ -1028,12 +1036,11 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
 };
 
     const handleNewRecipeComponentChange = (index: number, field: 'ingredientId' | 'qty', value: string | number) => {
-      setNewRecipe(prev => ({
-          ...prev,
-          components: prev.components.map((c, i) =>
-              i === index ? { ...c, [field]: value } : c
-          )
-      }));
+      setNewRecipe(prev => {
+        const newComponents = [...prev.components];
+        (newComponents[index] as any)[field] = value;
+        return { ...prev, components: newComponents };
+    });
     };
 
     const addRecipeComponent = () => {
@@ -1072,6 +1079,77 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
             setIsSubmittingRecipe(false);
         }
     };
+    
+    const handleLocationChange = (field: keyof HuntingLocation, value: any) => {
+        setEditingHuntLocation(p => (p ? { ...p, [field]: value } : null));
+    };
+
+    const handleRewardPropertyChange = (rewardIndex: number, rank: FamiliarRank, property: 'chance' | 'quantity', value: string) => {
+        setEditingHuntLocation(prev => {
+            if (!prev) return null;
+            const newRewards = JSON.parse(JSON.stringify(prev.rewards));
+            const numValue = parseInt(value, 10) || 0;
+            
+            if (!newRewards[rewardIndex].rewardsByRank) newRewards[rewardIndex].rewardsByRank = {};
+            if (!newRewards[rewardIndex].rewardsByRank[rank]) newRewards[rewardIndex].rewardsByRank[rank] = { chance: 0, quantity: 0 };
+            
+            newRewards[rewardIndex].rewardsByRank[rank]![property] = numValue;
+
+            return { ...prev, rewards: newRewards };
+        });
+    };
+
+    const handleRewardItemChange = (rewardIndex: number, newItemId: string) => {
+        setEditingHuntLocation(prev => {
+            if (!prev) return null;
+            const newRewards = [...prev.rewards];
+            newRewards[rewardIndex].itemId = newItemId;
+            return { ...prev, rewards: newRewards };
+        });
+    };
+
+    const addRewardRule = () => {
+        setEditingHuntLocation(prev => {
+            if (!prev) return null;
+            const newReward: HuntReward = {
+                itemId: '',
+                rewardsByRank: {
+                    'обычный': { chance: 0, quantity: 1 },
+                    'редкий': { chance: 0, quantity: 1 },
+                    'легендарный': { chance: 0, quantity: 1 },
+                    'мифический': { chance: 0, quantity: 1 },
+                    'ивентовый': { chance: 0, quantity: 1 },
+                }
+            };
+            return { ...prev, rewards: [...(prev.rewards || []), newReward] };
+        });
+    };
+
+    const removeRewardRule = (rewardIndex: number) => {
+        setEditingHuntLocation(prev => {
+            if (!prev) return null;
+            const newRewards = prev.rewards.filter((_, index) => index !== rewardIndex);
+            return { ...prev, rewards: newRewards };
+        });
+    };
+
+    const handleSaveHuntLocation = async () => {
+        if (!editingHuntLocation) return;
+        setIsSavingHunt(true);
+        try {
+            const updatedLocations = (gameSettings.huntingLocations || []).map(loc => 
+                loc.id === editingHuntLocation.id ? editingHuntLocation : loc
+            );
+            await updateGameSettings({ huntingLocations: updatedLocations });
+            toast({ title: "Локация обновлена" });
+            setEditingHuntLocation(null);
+        } catch (e) {
+            const msg = e instanceof Error ? e.message : 'Произошла ошибка.';
+            toast({ variant: "destructive", title: "Ошибка сохранения", description: msg });
+        } finally {
+            setIsSavingHunt(false);
+        }
+    }
 
 
   // --- Memos ---
@@ -1298,6 +1376,21 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
     return Array.from(ingredients.values()).sort((a, b) => a.label.localeCompare(b.label));
   }, [allShops, isShopsLoading]);
 
+  const allItemOptionsForRewards = useMemo(() => {
+    const items = new Map<string, { value: string; label: string }>();
+    allShops.forEach(shop => {
+        (shop.items || []).forEach(item => {
+            items.set(item.id, { value: item.id, label: `${item.name} (${shop.title})` });
+        });
+    });
+    ALL_ITEMS_FOR_ALCHEMY.forEach(item => {
+        if (!items.has(item.id)) {
+            items.set(item.id, { value: item.id, label: item.name });
+        }
+    });
+    return Array.from(items.values()).sort((a,b) => a.label.localeCompare(b.label));
+  }, [allShops]);
+
 
   if (isUsersLoading || isShopsLoading) {
     return <div className="flex justify-center items-center h-64"><p>Загрузка данных...</p></div>
@@ -1310,6 +1403,7 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
         <TabsTrigger value="general" className="text-xs sm:text-sm">Общее</TabsTrigger>
         <TabsTrigger value="popularity" className="text-xs sm:text-sm">Популярность</TabsTrigger>
         <TabsTrigger value="alchemy" className="text-xs sm:text-sm">Алхимия</TabsTrigger>
+        <TabsTrigger value="hunting" className="text-xs sm:text-sm">Охота</TabsTrigger>
         <TabsTrigger value="familiars" className="text-xs sm:text-sm">Фамильяры</TabsTrigger>
         <TabsTrigger value="economy" className="text-xs sm:text-sm">Экономика</TabsTrigger>
         <TabsTrigger value="shops" className="text-xs sm:text-sm">Магазины</TabsTrigger>
@@ -1933,6 +2027,106 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
                     </CardContent>
                 </Card>
             </div>
+      </TabsContent>
+
+      <TabsContent value="hunting" className="mt-4">
+        <Card>
+            <CardHeader>
+                <CardTitle>Управление локациями для охоты</CardTitle>
+                <CardDescription>Здесь вы можете редактировать существующие локации для охоты фамильяров.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                {(gameSettings.huntingLocations || []).map(location => (
+                    <div key={location.id} className="p-4 border rounded-lg flex justify-between items-center">
+                        <div>
+                            <p className="font-semibold">{location.name}</p>
+                            <p className="text-sm text-muted-foreground">{location.description}</p>
+                        </div>
+                        <Button variant="outline" onClick={() => setEditingHuntLocation(location)}>Редактировать</Button>
+                    </div>
+                ))}
+            </CardContent>
+        </Card>
+        <Dialog open={!!editingHuntLocation} onOpenChange={(isOpen) => !isOpen && setEditingHuntLocation(null)}>
+            <DialogContent className="max-w-3xl">
+                {editingHuntLocation && (
+                    <>
+                        <DialogHeader>
+                            <DialogTitle>Редактировать локацию: {editingHuntLocation.name}</DialogTitle>
+                        </DialogHeader>
+                        <ScrollArea className="max-h-[70vh] -mr-6 pr-6">
+                            <div className="py-4 space-y-4">
+                                <div className="space-y-2">
+                                    <Label>Название</Label>
+                                    <Input value={editingHuntLocation.name} onChange={(e) => handleLocationChange('name', e.target.value)} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Описание</Label>
+                                    <Textarea value={editingHuntLocation.description} onChange={(e) => handleLocationChange('description', e.target.value)} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>URL изображения</Label>
+                                    <Input value={editingHuntLocation.image} onChange={(e) => handleLocationChange('image', e.target.value)} />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Длительность (минут)</Label>
+                                        <Input type="number" value={editingHuntLocation.durationMinutes} onChange={(e) => handleLocationChange('durationMinutes', parseInt(e.target.value, 10))} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Лимит фамильяров</Label>
+                                        <Input type="number" value={editingHuntLocation.limit || 10} onChange={(e) => handleLocationChange('limit', parseInt(e.target.value, 10))} />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Требуемый ранг</Label>
+                                    <SearchableSelect options={rankOptions} value={editingHuntLocation.requiredRank} onValueChange={(v) => handleLocationChange('requiredRank', v as FamiliarRank)} placeholder="Выберите ранг" />
+                                </div>
+                                <Separator />
+                                <div className="space-y-2">
+                                    <div className="flex justify-between items-center">
+                                        <Label>Награды</Label>
+                                        <Button size="sm" variant="outline" onClick={addRewardRule}>Добавить награду</Button>
+                                    </div>
+                                    <div className="space-y-4">
+                                        {(editingHuntLocation.rewards || []).map((reward, rewardIndex) => (
+                                            <div key={rewardIndex} className="p-3 border rounded-md space-y-3 relative">
+                                                <Button size="icon" variant="ghost" className="absolute top-1 right-1 h-7 w-7" onClick={() => removeRewardRule(rewardIndex)}><Trash2 className="w-4 h-4 text-destructive"/></Button>
+                                                <div className="space-y-2">
+                                                    <Label>Предмет</Label>
+                                                    <SearchableSelect options={allItemOptionsForRewards} value={reward.itemId} onValueChange={(v) => handleRewardItemChange(rewardIndex, v)} placeholder="Выберите предмет" />
+                                                </div>
+                                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 text-xs">
+                                                   {(['обычный', 'редкий', 'легендарный', 'мифический'] as FamiliarRank[]).map(rank => (
+                                                      <div key={rank} className="p-2 bg-muted/50 rounded-md">
+                                                          <p className="font-semibold capitalize text-center mb-1">{rankNames[rank]}</p>
+                                                          <div className="space-y-1">
+                                                              <div>
+                                                                <Label>Шанс (%)</Label>
+                                                                <Input type="number" value={reward.rewardsByRank[rank]?.chance || 0} onChange={(e) => handleRewardPropertyChange(rewardIndex, rank, 'chance', e.target.value)} className="h-8"/>
+                                                              </div>
+                                                              <div>
+                                                                <Label>Кол-во</Label>
+                                                                <Input type="number" value={reward.rewardsByRank[rank]?.quantity || 1} onChange={(e) => handleRewardPropertyChange(rewardIndex, rank, 'quantity', e.target.value)} className="h-8"/>
+                                                              </div>
+                                                          </div>
+                                                      </div>
+                                                   ))}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </ScrollArea>
+                        <DialogFooter>
+                            <Button variant="ghost" onClick={() => setEditingHuntLocation(null)}>Отмена</Button>
+                            <Button onClick={handleSaveHuntLocation} disabled={isSavingHunt}>{isSavingHunt ? 'Сохранение...' : 'Сохранить'}</Button>
+                        </DialogFooter>
+                    </>
+                )}
+            </DialogContent>
+        </Dialog>
       </TabsContent>
       
       <TabsContent value="familiars" className="mt-4">
@@ -2687,8 +2881,3 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
 }
 
     
-
-    
-
-
-
