@@ -1834,7 +1834,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const initiatorChar = currentUser.characters.find(c => c.id === initiatorCharacterId);
         if (!initiatorChar) throw new Error("Персонаж-инициатор не найден.");
 
-        const initiatorFamiliar = FAMILIARS_BY_ID[initiatorFamiliarId];
+        const initiatorFamiliar = familiarsById[initiatorFamiliarId];
         if (!initiatorFamiliar) throw new Error("Фамильяр инициатора не найден.");
 
         let targetUser: User | undefined;
@@ -1850,7 +1850,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
         if (!targetUser || !targetChar) throw new Error("Целевой персонаж или его владелец не найдены.");
         
-        const targetFamiliar = FAMILIARS_BY_ID[targetFamiliarId];
+        const targetFamiliar = familiarsById[targetFamiliarId];
         if (!targetFamiliar) throw new Error("Целевой фамильяр не найден.");
 
         const ranksAreDifferent = initiatorFamiliar.rank !== targetFamiliar.rank;
@@ -1881,7 +1881,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const requestsCollection = collection(db, "familiar_trade_requests");
         await addDoc(requestsCollection, newRequest);
 
-    }, [currentUser, fetchUsersForAdmin]);
+    }, [currentUser, fetchUsersForAdmin, familiarsById]);
 
   const fetchFamiliarTradeRequestsForUser = useCallback(async (): Promise<FamiliarTradeRequest[]> => {
         if (!currentUser) return [];
@@ -3141,6 +3141,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           }
           
           charToUpdate.inventory = inventory;
+          charToUpdate.ongoingHunts = charToUpdate.ongoingHunts!.filter(h => !finishedHuntIds.has(h.huntId));
           userData.characters[charIndex] = charToUpdate;
           
           transaction.update(userRef, { characters: userData.characters });
@@ -3524,3 +3525,4 @@ export const useUser = () => {
 
 
  
+
