@@ -1970,17 +1970,17 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           await updateDoc(requestRef, { status });
     }, []);
 
-  const updateShopOwner = useCallback(async (shopId: string, ownerUserId: string, ownerCharacterId: string, ownerCharacterName: string) => {
-          const shopRef = doc(db, "shops", shopId);
-           await setDoc(shopRef, {
-              ownerUserId,
-              ownerCharacterId,
-              ownerCharacterName,
-              bankAccount: { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] } // Reset till on new owner
-          }, { merge: true });
-    }, []);
+    const updateShopOwner = useCallback(async (shopId: string, ownerUserId: string, ownerCharacterId: string, ownerCharacterName: string) => {
+        const shopRef = doc(db, "shops", shopId);
+         await setDoc(shopRef, {
+            ownerUserId,
+            ownerCharacterId,
+            ownerCharacterName,
+            bankAccount: { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] } // Reset till on new owner
+        }, { merge: true });
+  }, []);
 
-  const removeShopOwner = useCallback(async (shopId: string) => {
+    const removeShopOwner = useCallback(async (shopId: string) => {
         const shopRef = doc(db, "shops", shopId);
         await setDoc(shopRef, {
             ownerUserId: deleteField(),
@@ -1988,12 +1988,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             ownerCharacterName: deleteField(),
             bankAccount: { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] }
         }, { merge: true });
-    }, []);
+  }, []);
 
-  const updateShopDetails = useCallback(async (shopId: string, details: Partial<Pick<Shop, 'title' | 'description' | 'defaultNewItemCategory'>>) => {
+    const updateShopDetails = useCallback(async (shopId: string, details: Partial<Pick<Shop, 'title' | 'description' | 'defaultNewItemCategory'>>) => {
         const shopRef = doc(db, "shops", shopId);
         await setDoc(shopRef, details, { merge: true });
-    }, []);
+  }, []);
   
   const addShopItem = useCallback(async (shopId: string, item: Omit<ShopItem, 'id'>) => {
         const shopRef = doc(db, "shops", shopId);
@@ -2911,7 +2911,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (!character) throw new Error("Character not found");
 
         const newHunt: OngoingHunt = {
-            huntId: `hunt-${Date.now()}-${familiarId}-${Math.random().toString(36).slice(2, 9)}`,
+            huntId: `hunt-${Date.now()}-${familiarId}`,
             characterId,
             characterName: character.name,
             familiarId,
@@ -2957,8 +2957,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const now = new Date();
         const endsAt = new Date(now.getTime() + location.durationMinutes * 60000);
 
-        const newHunts = familiarIds.map((famId, index) => ({
-            huntId: `hunt-${now.getTime()}-${famId}-${index}-${Math.random().toString(36).slice(2, 9)}`,
+        const newHunts = familiarIds.map(famId => ({
+            huntId: `hunt-${now.getTime()}-${famId}`,
             characterId,
             characterName: character.name,
             familiarId: famId,
@@ -3112,7 +3112,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                     if (itemData) {
                        allRewards.push({ ...itemData, quantity: rankReward.quantity } as InventoryItem);
                        
-                       // Add to inventory
                         const invCategory = ('inventoryTag' in itemData && itemData.inventoryTag) ? itemData.inventoryTag : 'ингредиенты';
                         const categoryItems = (inventory[invCategory as keyof typeof inventory] || []) as InventoryItem[];
                         const existingItemIndex = categoryItems.findIndex(i => i.name === itemData.name);
@@ -3307,7 +3306,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           const location = gameSettings.huntingLocations?.find(l => l.id === hunt.locationId);
           const familiar = familiarsById[hunt.familiarId];
           if (!location || !familiar) {
-              character.ongoingHunts!.splice(huntIndex, 1);
+              character.ongoingHunts = (character.ongoingHunts || []).filter(h => h.huntId !== huntId);
               userData.characters[charIndex] = character;
               transaction.update(userRef, { characters: userData.characters });
               return;
@@ -3346,7 +3345,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
               }
           }
 
-          character.ongoingHunts!.splice(huntIndex, 1);
+          character.ongoingHunts = (character.ongoingHunts || []).filter(h => h.huntId !== huntId);
           character.inventory = inventory;
           userData.characters[charIndex] = character;
           transaction.update(userRef, { characters: userData.characters });
@@ -3530,4 +3529,5 @@ export const useUser = () => {
     
 
     
+
 
