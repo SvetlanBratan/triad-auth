@@ -1,10 +1,12 @@
 
 {
   "rules": {
-    ".read": true,
+    ".read": false,
+    ".write": false,
     "users": {
       ".indexOn": "nickname",
       "$uid": {
+        ".read": "auth != null && $uid === auth.uid",
         ".write": "auth != null && $uid === auth.uid"
       }
     },
@@ -81,8 +83,8 @@
         ".write": "auth != null"
     },
     "calendar": {
-      ".read": true,
-      ".write": "auth != null"
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true"
     },
     "economy": {
         ".write": "auth != null"
