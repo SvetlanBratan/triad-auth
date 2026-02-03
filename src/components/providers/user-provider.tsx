@@ -613,7 +613,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
     }, [functions]);
 
-    const mergeUserData = useCallback(async (sourceUserId: string, targetUserId: string): Promise<void> => {
+    const mergeUserData = useCallback(async (sourceUserId: string, targetUserId: string) => {
         const mergeData = httpsCallable(functions, 'mergeUserData');
         await mergeData({ sourceUserId, targetUserId });
     }, [functions]);
@@ -2193,7 +2193,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         
         const list = inventory[tag]! as InventoryItem[];
         
-        const existingItemIndex = list.findIndex(invItem => invItem.name === itemData.name);
+        const inventoryItemName = itemData.name;
+        const existingItemIndex = list.findIndex(invItem => invItem.name === inventoryItemName);
         
         const quantityToAdd = itemData.quantity || 1;
     
@@ -2202,7 +2203,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         } else {
             const newInventoryItem: InventoryItem = {
                 id: `inv-item-admin-${Date.now()}`,
-                name: itemData.name,
+                name: inventoryItemName,
                 description: itemData.description,
                 image: itemData.image,
                 quantity: quantityToAdd,
@@ -3493,4 +3494,5 @@ export const useUser = () => {
     
 
     
+
 

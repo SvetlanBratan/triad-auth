@@ -35,7 +35,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import ImageKitUploader from './imagekit-uploader';
 import { SearchableMultiSelect } from '../ui/searchable-multi-select';
 import AdminFamiliarsTab from './admin-familiars-tab';
-import { ALCHEMY_POTIONS } from '@/lib/alchemy-data';
+import { ALCHEMY_POTIONS, ALCHEMY_INGREDIENTS } from '@/lib/alchemy-data';
 import { ScrollArea } from '../ui/scroll-area';
 
 const rankNames: Record<FamiliarRank, string> = {
@@ -855,15 +855,17 @@ export default function AdminTab() {
             return;
         }
         itemData = JSON.parse(selectedShopItemId);
+        itemData.quantity = existingItemQuantity;
     }
     
     await adminGiveItemToCharacter(itemUserId, itemCharId, itemData);
     await refetchUsers();
-    toast({ title: 'Предмет выдан!', description: `"${itemData.name}" добавлен в инвентарь персонажа.` });
+    toast({ title: 'Предмет выдан!', description: `"${itemData.name}" (x${itemData.quantity || 1}) добавлен в инвентарь персонажа.` });
     
     // Reset form but keep user and character selected
     setSelectedShopItemId('');
     setNewItemData({ name: '', description: '', inventoryTag: 'прочее', quantity: 1, image: '' });
+    setExistingItemQuantity(1);
   };
   
   const handleUpdateItem = async (e: React.FormEvent) => {
@@ -2514,7 +2516,7 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
                                         </div>
                                     </div>
                                 ) : (
-                                    <div>
+                                    <div className="space-y-2">
                                         <Label>Существующий предмет</Label>
                                         <SearchableSelect
                                             options={allShopItems}
@@ -2522,6 +2524,10 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
                                             onValueChange={setSelectedShopItemId}
                                             placeholder="Выберите предмет из магазина..."
                                         />
+                                        <div>
+                                            <Label htmlFor="existing-item-quantity">Количество</Label>
+                                            <Input id="existing-item-quantity" type="number" min="1" value={existingItemQuantity} onChange={e => setExistingItemQuantity(parseInt(e.target.value, 10) || 1)} />
+                                        </div>
                                     </div>
                                 )}
                                 <Button type="submit">Выдать предмет</Button>
@@ -2683,5 +2689,6 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
     
 
     
+
 
 
