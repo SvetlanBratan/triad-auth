@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
@@ -851,7 +852,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         };
 
         const requestRef = doc(db, "users", user.id, "reward_requests", requestId);
-        batch.set(sanitizeObjectForFirestore(newRequestData));
+        batch.set(requestRef, sanitizeObjectForFirestore(newRequestData));
 
         const newPointLog: PointLog = {
           id: `h-${Date.now()}-req`,
@@ -3196,8 +3197,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       await runTransaction(db, async (transaction) => {
         const ownerRef = doc(db, "users", ownerUserId);
         const ownerDoc = await transaction.get(ownerRef);
+        if(!ownerDoc.exists()) throw new Error("Owner not found");
+
         const ownerData = ownerDoc.data() as User;
         const charIndex = ownerData.characters.findIndex(c => c.id === characterId);
+        if (charIndex === -1) throw new Error("Character not found in transaction.");
         const charToUpdate = ownerData.characters[charIndex];
         
         const remainingHunts = [...(charToUpdate.ongoingHunts || [])];
@@ -3238,49 +3242,36 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                         inventory[invCategory as keyof typeof inventory] = categoryItems as any;
                     }
                 }
-            }
-            const huntIndex = remainingHunts.findIndex(h => h.huntId === hunt.huntId);
-            if (huntIndex > -1) remainingHunts.splice(huntIndex, 1);
-        }
+              }
+              const huntIndex = remainingHunts.findIndex(h => h.huntId === hunt.huntId);
+              if (huntIndex > -1) remainingHunts.splice(huntIndex, 1);
+          }
+          
+          charToUpdate.inventory = inventory;
+          charToUpdate.ongoingHunts = remainingHunts;
+          ownerData.characters[charIndex] = charToUpdate;
 
-        const aggregatedRewards = new Map<string, InventoryItem>();
-        for (const reward of allRewards) {
-            const existing = aggregatedRewards.get(reward.name);
-            if (existing) {
-                existing.quantity += reward.quantity;
-            } else {
-                aggregatedRewards.set(reward.name, { ...reward });
-            }
-        }
+          const rewardSummary = allRewards.map(r => `${r.name} (x${r.quantity})`).join(', ');
 
-        const summary = aggregatedRewards.size > 0
-            ? Array.from(aggregatedRewards.values()).map(r => `${r.name} (x${r.quantity})`).join(', ')
-            : "Ничего (не повезло).";
-
-
-        const mailContent = `Игрок ${currentUser?.name} забрал вашу добычу с охоты! Вы получили:\n\n${summary}`;
-        const newMail: MailMessage = {
-          id: `mail-claim-${Date.now()}`,
-          senderUserId: currentUser?.id || 'system',
-          senderCharacterName: currentUser?.name || 'Система Охоты',
-          recipientUserId: ownerUserId,
-          recipientCharacterId: characterId,
-          recipientCharacterName: charToUpdate.name,
-          subject: 'Ваша добыча с охоты',
-          content: mailContent,
-          sentAt: new Date().toISOString(),
-          isRead: false,
-          type: 'personal',
-        };
-        
-        charToUpdate.ongoingHunts = remainingHunts;
-        charToUpdate.inventory = inventory;
-        ownerData.mail = [...(ownerData.mail || []), newMail];
+          const newMail: MailMessage = {
+              id: `mail-hunt-claim-${Date.now()}`,
+              senderUserId: currentUser?.id || 'admin',
+              senderCharacterName: currentUser?.name || 'Администрация',
+              recipientUserId: ownerUserId,
+              recipientCharacterId: characterId,
+              recipientCharacterName: character.name,
+              subject: 'Сбор добычи',
+              content: `Другой игрок забрал вашу добычу с охоты. Получено: ${rewardSummary || 'ничего'}.`,
+              sentAt: new Date().toISOString(),
+              isRead: false,
+              type: 'personal',
+          };
+          ownerData.mail = [...(ownerData.mail || []), newMail];
 
         transaction.update(ownerRef, { characters: ownerData.characters, mail: ownerData.mail });
       });
 
-    }, [fetchUserById, gameSettings, familiarsById, toast, currentUser]);
+    }, [fetchUserById, gameSettings, familiarsById, toast, currentUser, fetchAllShops]);
 
     const adminClaimHuntEarly = useCallback(async (userId: string, characterId: string, huntId: string): Promise<InventoryItem[]> => {
       if (!currentUser || currentUser.role !== 'admin') throw new Error("Unauthorized");
@@ -3531,3 +3522,5 @@ export const useUser = () => {
     
 
 
+
+ 
