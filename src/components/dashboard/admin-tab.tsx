@@ -34,7 +34,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import ImageKitUploader from './imagekit-uploader';
 import { SearchableMultiSelect } from '../ui/searchable-multi-select';
 import AdminFamiliarsTab from './admin-familiars-tab';
-import { ALL_ITEMS_FOR_ALCHEMY, ALCHEMY_POTIONS, ALCHEMY_INGREDIENTS } from '@/lib/alchemy-data';
+import { ALCHEMY_POTIONS } from '@/lib/alchemy-data';
 import { ScrollArea } from '../ui/scroll-area';
 
 const rankNames: Record<FamiliarRank, string> = {
@@ -143,7 +143,7 @@ export default function AdminTab() {
     if (isShopsLoading) return map;
     const allItems = [
         ...(allShops.flatMap(shop => shop.items || [])),
-        ...ALL_ITEMS_FOR_ALCHEMY,
+        ...ALCHEMY_POTIONS,
     ];
     allItems.forEach(item => {
         if (item) map.set(item.id, item);
@@ -264,22 +264,22 @@ export default function AdminTab() {
 
 
   useEffect(() => {
-    if (editingRecipeId) {
-        const recipeToEdit = allRecipes.find(r => r.id === editingRecipeId);
-        if (recipeToEdit) {
-            setNewRecipe({
-                name: recipeToEdit.name || '',
-                components: recipeToEdit.components || [],
-                resultPotionId: recipeToEdit.resultPotionId,
-                outputQty: recipeToEdit.outputQty || 1,
-                difficulty: recipeToEdit.difficulty || 1,
-            });
-        }
-    } else {
-        if (newRecipe.name !== '' || newRecipe.components.length > 0 || newRecipe.resultPotionId !== '' || newRecipe.outputQty !== 1 || newRecipe.difficulty !== 1) {
+      if (editingRecipeId) {
+          const recipeToEdit = allRecipes.find(r => r.id === editingRecipeId);
+          if (recipeToEdit) {
+              setNewRecipe({
+                  name: recipeToEdit.name || '',
+                  components: recipeToEdit.components || [],
+                  resultPotionId: recipeToEdit.resultPotionId,
+                  outputQty: recipeToEdit.outputQty || 1,
+                  difficulty: recipeToEdit.difficulty || 1,
+              });
+          }
+      } else {
+        if (newRecipe.name || newRecipe.components.length > 0 || newRecipe.resultPotionId || newRecipe.outputQty !== 1 || newRecipe.difficulty !== 1) {
             setNewRecipe({ name: '', components: [], resultPotionId: '', outputQty: 1, difficulty: 1 });
         }
-    }
+      }
   }, [editingRecipeId, allRecipes]);
 
   useEffect(() => {
@@ -1268,7 +1268,18 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
     })), []);
     
     const alchemyResultOptions = useMemo(() => ALCHEMY_POTIONS.map(p => ({ value: p.id, label: p.name })), []);
-    const alchemyIngredientOptions = useMemo(() => ALCHEMY_INGREDIENTS.map(i => ({ value: i.id, label: i.name })), []);
+    const alchemyIngredientOptions = useMemo(() => {
+      if (isShopsLoading) return [];
+      const ingredients = new Map<string, { value: string; label: string }>();
+      allShops.forEach(shop => {
+          (shop.items || []).forEach(item => {
+              if (item.inventoryTag === 'ингредиенты') {
+                  ingredients.set(item.id, { value: item.id, label: item.name });
+              }
+          });
+      });
+      return Array.from(ingredients.values());
+  }, [allShops, isShopsLoading]);
 
 
   if (isUsersLoading || isShopsLoading) {
@@ -2657,3 +2668,4 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
     
 
     
+
