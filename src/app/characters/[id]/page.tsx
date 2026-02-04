@@ -1,6 +1,5 @@
 
 
-
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -471,7 +470,7 @@ export default function CharacterPage() {
                         </Button>
                     )}
                 </div>
-                {!isEmpty ? content : <p className="text-sm text-muted-foreground italic">Информация отсутствует.</p>}
+                {!isEmpty ? content : <p className="text-sm">Информация отсутствует.</p>}
             </div>
         );
      };
@@ -485,7 +484,7 @@ export default function CharacterPage() {
                 <span className="text-muted-foreground col-span-1 flex items-center gap-1.5">{icon}{label}:</span>
                 <div className="flex items-center justify-between col-span-1 sm:col-span-2">
                     <div className="flex-1 text-left">
-                        {isEmpty && isOwnerOrAdmin ? <span className="italic text-muted-foreground/80">Не указано</span> : finalValue}
+                        {isEmpty && isOwnerOrAdmin ? <span className="italic">Не указано</span> : finalValue}
                     </div>
                      {isOwnerOrAdmin && (field !== 'race' || (field === 'race' && (isAdmin || !character.raceIsConfirmed))) && (
                          <Button
@@ -708,7 +707,7 @@ export default function CharacterPage() {
                                         )}
                                     </div>
                                 ) : (
-                                    <p className="italic text-muted-foreground pl-2">Магические способности не указаны.</p>
+                                    <p className="pl-2">Магические способности не указаны.</p>
                                 )}
                             </div>
 
@@ -720,7 +719,7 @@ export default function CharacterPage() {
                                             <FormattedTextRenderer text={character.magic.magicClarifications} />
                                         </div>
                                     ) : (
-                                        isOwnerOrAdmin && <p className="italic text-muted-foreground pl-2">Описание отсутствует.</p>
+                                        isOwnerOrAdmin && <p className="pl-2">Описание отсутствует.</p>
                                     )}
                                 </div>
                             )}
@@ -733,7 +732,7 @@ export default function CharacterPage() {
                                             <FormattedTextRenderer text={character.abilities} />
                                         </div>
                                     ) : (
-                                        isOwnerOrAdmin && <p className="italic text-muted-foreground pl-2">Описание отсутствует.</p>
+                                        isOwnerOrAdmin && <p className="pl-2">Описание отсутствует.</p>
                                     )}
                                 </div>
                             )}
