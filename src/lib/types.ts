@@ -1,6 +1,4 @@
 
-
-
 export type UserRole = "admin" | "user";
 export type UserStatus = "активный" | "неактивный" | "отпуск";
 export type PlayerStatus =
@@ -291,6 +289,8 @@ export interface Magic {
   reserveLevel?: string;
   faithLevel?: string;
   magicClarifications?: string;
+  maxElements?: number;
+  maxTeachings?: number;
 }
 
 export interface OngoingHunt {
