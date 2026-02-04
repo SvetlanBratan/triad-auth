@@ -1,5 +1,6 @@
 
 
+
 import type { Reward, FamiliarCard, Achievement, GameSettings, WealthLevel, BankAccount, CapitalLevel, CrimeLevel, Shop, InventoryCategory, PopularityEvent, HuntingLocation } from './types';
 import type { OptionType } from '@/components/ui/multi-select';
 
