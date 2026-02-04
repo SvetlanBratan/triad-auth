@@ -24,7 +24,7 @@ export type EditableSection =
     | 'appearance' | 'personality' 
     | 'biography' | 'abilities' | 'weaknesses' | 'marriage' 
     | 'training' | 'lifeGoal' | 'diary' | 'criminalRecords' | 'mainInfo'
-    | 'gallery' | 'magic';
+    | 'gallery';
 
 export type EditingState = {
     type: 'section',
@@ -146,7 +146,6 @@ const SectionTitles: Record<EditableSection, string> = {
     personality: 'Характер',
     biography: 'Биография',
     abilities: 'Способности',
-    magic: 'Магия',
     weaknesses: 'Слабости',
     marriage: 'Семейное положение',
     training: 'Обучение',
@@ -593,7 +592,58 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                     );
                     case 'abilities': return (
                         <div className="space-y-6">
-                             <div className="space-y-2">
+                            <div className="space-y-4 p-4 border rounded-md">
+                                <h4 className="font-semibold text-foreground">Магические способности</h4>
+                                <div>
+                                    <Label>Восприятие магии (не более 3)</Label>
+                                    <SearchableMultiSelect
+                                        options={MAGIC_PERCEPTION_OPTIONS}
+                                        selected={formData.magic?.perception || []}
+                                        onChange={(v) => v.length <= 3 && handleMagicChange('perception', v)}
+                                        placeholder='Выберите восприятие...'
+                                    />
+                                </div>
+                                <div>
+                                    <Label>Стихийная магия (не более 4)</Label>
+                                    <SearchableMultiSelect
+                                        options={isAdmin ? ADMIN_ELEMENTAL_MAGIC_OPTIONS : ELEMENTAL_MAGIC_OPTIONS}
+                                        selected={formData.magic?.elements || []}
+                                        onChange={(v) => v.length <= 4 && handleMagicChange('elements', v)}
+                                        placeholder='Выберите стихии...'
+                                    />
+                                </div>
+                                <div>
+                                    <Label>Учения (до 3 штук)</Label>
+                                    <SearchableMultiSelect
+                                        options={teachings}
+                                        selected={formData.magic?.teachings || []}
+                                        onChange={(v) => v.length <= 3 && handleMagicChange('teachings', v)}
+                                        placeholder='Выберите учения...'
+                                    />
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        Список учений будет подгружаться из базы данных.
+                                    </p>
+                                </div>
+                                <div>
+                                    <Label>Уровень резерва</Label>
+                                    <SearchableSelect
+                                        options={isAdmin ? ADMIN_RESERVE_LEVEL_OPTIONS : RESERVE_LEVEL_OPTIONS}
+                                        value={formData.magic?.reserveLevel || ''}
+                                        onValueChange={(v) => handleMagicChange('reserveLevel', v)}
+                                        placeholder="Выберите уровень..."
+                                    />
+                                </div>
+                                <div>
+                                    <Label>Уровень веры</Label>
+                                    <SearchableSelect
+                                        options={FAITH_LEVEL_OPTIONS}
+                                        value={formData.magic?.faithLevel || ''}
+                                        onValueChange={(v) => handleMagicChange('faithLevel', v)}
+                                        placeholder="Выберите уровень..."
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
                                 <Label htmlFor="magicClarifications">Уточнения по магии</Label>
                                 <Textarea id="magicClarifications" value={formData.magic?.magicClarifications || ''} onChange={(e) => handleMagicChange('magicClarifications', e.target.value)} rows={6} placeholder="Любые детали и нюансы, не вошедшие в шаблон..."/>
                                 <FormattingHelp />
@@ -602,59 +652,6 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                                 <Label htmlFor="abilities">Немагические навыки</Label>
                                 <Textarea id="abilities" value={formData.abilities ?? ''} onChange={(e) => handleFieldChange('abilities', e.target.value)} rows={8} placeholder="Опишите уникальные немагические способности или навыки..."/>
                                 <FormattingHelp />
-                            </div>
-                        </div>
-                    );
-                    case 'magic': return (
-                        <div className="space-y-4 p-4 border rounded-md">
-                            <h4 className="font-semibold text-foreground">Магические способности</h4>
-                            <div>
-                                <Label>Восприятие магии (не более 3)</Label>
-                                <SearchableMultiSelect
-                                    options={MAGIC_PERCEPTION_OPTIONS}
-                                    selected={formData.magic?.perception || []}
-                                    onChange={(v) => v.length <= 3 && handleMagicChange('perception', v)}
-                                    placeholder='Выберите восприятие...'
-                                />
-                            </div>
-                            <div>
-                                <Label>Стихийная магия (не более 4)</Label>
-                                <SearchableMultiSelect
-                                    options={isAdmin ? ADMIN_ELEMENTAL_MAGIC_OPTIONS : ELEMENTAL_MAGIC_OPTIONS}
-                                    selected={formData.magic?.elements || []}
-                                    onChange={(v) => v.length <= 4 && handleMagicChange('elements', v)}
-                                    placeholder='Выберите стихии...'
-                                />
-                            </div>
-                            <div>
-                                <Label>Учения (до 3 штук)</Label>
-                                <SearchableMultiSelect
-                                    options={teachings}
-                                    selected={formData.magic?.teachings || []}
-                                    onChange={(v) => v.length <= 3 && handleMagicChange('teachings', v)}
-                                    placeholder='Выберите учения...'
-                                />
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    Список учений будет подгружаться из базы данных.
-                                </p>
-                            </div>
-                            <div>
-                                <Label>Уровень резерва</Label>
-                                <SearchableSelect
-                                    options={isAdmin ? ADMIN_RESERVE_LEVEL_OPTIONS : RESERVE_LEVEL_OPTIONS}
-                                    value={formData.magic?.reserveLevel || ''}
-                                    onValueChange={(v) => handleMagicChange('reserveLevel', v)}
-                                    placeholder="Выберите уровень..."
-                                />
-                            </div>
-                            <div>
-                                <Label>Уровень веры</Label>
-                                <SearchableSelect
-                                    options={FAITH_LEVEL_OPTIONS}
-                                    value={formData.magic?.faithLevel || ''}
-                                    onValueChange={(v) => handleMagicChange('faithLevel', v)}
-                                    placeholder="Выберите уровень..."
-                                />
                             </div>
                         </div>
                     );
@@ -879,3 +876,5 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
 };
 
 export default CharacterForm;
+
+    
