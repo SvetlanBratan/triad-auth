@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React from 'react';
@@ -20,11 +19,11 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { useUser } from '@/hooks/use-user';
 
 
-export type EditableSection = 
-    | 'appearance' | 'personality' 
-    | 'biography' | 'abilities' | 'weaknesses' | 'marriage' 
+export type EditableSection =
+    | 'appearance' | 'personality'
+    | 'biography' | 'abilities' | 'weaknesses' | 'marriage'
     | 'training' | 'lifeGoal' | 'diary' | 'criminalRecords' | 'mainInfo'
-    | 'gallery';
+    | 'gallery' | 'magic';
 
 export type EditingState = {
     type: 'section',
@@ -150,6 +149,7 @@ const SectionTitles: Record<EditableSection, string> = {
     personality: 'Характер',
     biography: 'Биография',
     abilities: 'Способности',
+    magic: 'Магия',
     weaknesses: 'Слабости',
     marriage: 'Семейное положение',
     training: 'Обучение',
@@ -197,7 +197,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
     const { currentUser, gameDate, teachings } = useUser();
     const isAdmin = currentUser?.role === 'admin';
     const [formData, setFormData] = React.useState<Character>({ ...initialFormData, id: `c-${Date.now()}`});
-    
+
     const [currentItem, setCurrentItem] = React.useState<Relationship | Accomplishment | null>(null);
 
     const [baseRace, setBaseRace] = React.useState('');
@@ -266,7 +266,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
             }
         }
     }, [baseRace, raceDetails, editingState, formData.race]);
-    
+
 
     const characterOptions = React.useMemo(() => {
         if (!allUsers) return [];
@@ -289,7 +289,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                 }))
         );
     }, [allUsers, formData.id, formData.relationships, editingState]);
-    
+
     const allCharacterOptionsForGallery = React.useMemo(() => {
         return allUsers.flatMap(user =>
             user.characters.map(c => ({
@@ -303,17 +303,17 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
     const handleFieldChange = (field: keyof Character, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
-    
+
     const handleMagicChange = (field: keyof Magic, value: any) => {
         setFormData(prev => ({
             ...prev,
             magic: {
-                ...(prev.magic || {}),
+                ...(prev.magic || initialFormData.magic),
                 [field]: value,
             },
         }));
     };
-    
+
     const handleAgeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const ageStr = e.target.value;
         setAgeInput(ageStr);
@@ -330,16 +330,16 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
             if (!isNaN(birthDay) && !isNaN(birthMonth) && birthDay > 0 && birthMonth > 0) {
                 const gameMonth = gameDate.getMonth() + 1; // getMonth is 0-11, so +1
                 const gameDay = gameDate.getDate();
-                
+
                 // If birthday for this year hasn't happened yet, subtract a year
                 if (birthMonth > gameMonth || (birthMonth === gameMonth && birthDay > gameDay)) {
                     birthYear -= 1;
                 }
             }
-            
+
             const day = /^\d{1,2}$/.test(dayPart) && parseInt(dayPart) > 0 && parseInt(dayPart) <= 31 ? dayPart : 'ДД';
             const month = /^\d{1,2}$/.test(monthPart) && parseInt(monthPart) > 0 && parseInt(monthPart) <= 12 ? monthPart : 'ММ';
-            
+
             handleFieldChange('birthDate', `${day}.${month}.${birthYear}`);
         }
     };
@@ -363,11 +363,11 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
     const handleMultiSelectChange = (id: 'marriedTo' | 'training', values: string[]) => {
         setFormData(prev => ({ ...prev, [id]: values }));
     };
-    
+
     const handleItemChange = (field: string, value: any) => {
         if (!currentItem) return;
         const updatedItem = { ...currentItem, [field]: value };
-        
+
         if ('targetCharacterId' in updatedItem && field === 'targetCharacterId') {
             const targetChar = characterOptions.find(opt => opt.value === value);
             updatedItem.targetCharacterName = targetChar ? targetChar.label.split(' (')[0] : 'Неизвестно';
@@ -391,10 +391,10 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (editingState?.type === 'relationship' || editingState?.type === 'accomplishment') {
              if (!currentItem) return;
-             
+
              let updatedData = { ...formData };
              if (editingState.type === 'relationship' && 'targetCharacterId' in currentItem) {
                 if (currentItem.targetCharacterId) {
@@ -479,7 +479,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
 
     const renderContent = () => {
         if (!editingState) return null;
-        
+
         switch(editingState.type) {
             case 'createCharacter':
                  return (
@@ -488,7 +488,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                         <div><Label htmlFor="activity">Деятельность/профессия</Label><Input id="activity" value={formData.activity ?? ''} onChange={(e) => handleFieldChange('activity', e.target.value)} required placeholder="Например, Охотник на чудовищ"/></div>
                     </div>
                 );
-            
+
             case 'section':
                 switch(editingState.section) {
                     case 'mainInfo':
@@ -602,11 +602,11 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                                 <div className="space-y-4 p-4 border rounded-md">
                                     <h4 className="font-semibold text-foreground">Магические способности</h4>
                                     <div>
-                                        <Label>Восприятие магии (не более 3)</Label>
+                                        <Label>Восприятие магии</Label>
                                         <SearchableMultiSelect
                                             options={MAGIC_PERCEPTION_OPTIONS}
                                             selected={formData.magic?.perception || []}
-                                            onChange={(v) => v.length <= 3 && handleMagicChange('perception', v)}
+                                            onChange={(v) => handleMagicChange('perception', v)}
                                             placeholder='Выберите восприятие...'
                                         />
                                     </div>
@@ -627,9 +627,6 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                                             onChange={(v) => v.length <= maxTeachings && handleMagicChange('teachings', v)}
                                             placeholder='Выберите учения...'
                                         />
-                                        <p className="text-xs text-muted-foreground mt-1">
-                                            Список учений будет подгружаться из базы данных.
-                                        </p>
                                     </div>
                                     <div>
                                         <Label>Уровень резерва</Label>
@@ -670,12 +667,12 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                                 </div>
                             </div>
                         );
-                    case 'weaknesses': 
+                    case 'weaknesses':
                         return (
                              <div className="space-y-4">
                                 <div>
                                     <Label htmlFor="weaknesses">Слабости</Label>
-                                    <Textarea id="weaknesses" value={formData.weaknesses ?? ''} onChange={(e) => handleFieldChange('weaknesses', e.target.value)} rows={8} placeholder="Укажите слабости, уязвимости или страхи..."/> 
+                                    <Textarea id="weaknesses" value={formData.weaknesses ?? ''} onChange={(e) => handleFieldChange('weaknesses', e.target.value)} rows={8} placeholder="Укажите слабости, уязвимости или страхи..."/>
                                     <FormattingHelp />
                                 </div>
                                 <div className="flex items-center space-x-2 pt-2">
@@ -811,7 +808,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                         <Input id={field as string} value={(formData[field] as string) ?? ''} onChange={(e) => handleFieldChange(field, e.target.value)} />
                     </div>
                 );
-            
+
             case 'accomplishment':
                 const acc = currentItem as Accomplishment;
                 if (!acc) return null;
@@ -880,14 +877,14 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                 );
         }
     }
-    
+
     return (
          <form onSubmit={handleSubmit} className="flex flex-col h-full max-h-[85vh] overflow-hidden">
              <DialogHeader>
                 <DialogTitle>{getDialogTitle()}</DialogTitle>
                 <DialogDescription>
-                    {isCreating 
-                        ? 'Заполните основные данные. Остальную анкету можно будет заполнить позже.' 
+                    {isCreating
+                        ? 'Заполните основные данные. Остальную анкету можно будет заполнить позже.'
                         : 'Внесите изменения и нажмите "Сохранить".'
                     }
                 </DialogDescription>
