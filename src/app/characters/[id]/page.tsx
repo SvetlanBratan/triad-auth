@@ -216,19 +216,18 @@ const FamiliarsSection = ({ character }: { character: Character }) => {
 
 export default function CharacterPage() {
     const { id } = useParams();
-    const { currentUser, updateCharacterInUser, gameDate, consumeInventoryItem, setCurrentUser, fetchCharacterById, fetchUsersForAdmin } = useUser();
+    const { currentUser, updateCharacterInUser, gameDate, consumeInventoryItem, setCurrentUser, fetchCharacterById, fetchUsersForAdmin, fetchAllShops } = useUser();
     const { loading } = useAuth();
     const queryClient = useQueryClient();
     const { toast } = useToast();
+    const isMobile = useIsMobile();
+    const [editingState, setEditingState] = useState<EditingState | null>(null);
+    const [selectedItem, setSelectedItem] = useState<(InventoryItem & { category: InventoryCategory }) | null>(null);
+    const [isConsuming, setIsConsuming] = useState(false);
+    const [consumeQuantity, setConsumeQuantity] = useState<number | ''>(1);
+    const [selectedGalleryItem, setSelectedGalleryItem] = useState<GalleryImage | null>(null);
+    const [inventorySearch, setInventorySearch] = useState('');
     
-    if (loading) {
-        return <CharacterPageSkeleton />;
-    }
-
-    if (!currentUser) {
-        return <AuthPage />;
-    }
-
     const charId = Array.isArray(id) ? id[0] : id;
 
     const { data: characterData, isLoading: isCharacterLoading, refetch } = useQuery({
@@ -242,17 +241,9 @@ export default function CharacterPage() {
         queryFn: fetchUsersForAdmin,
     });
 
-    const isMobile = useIsMobile();
-    const [editingState, setEditingState] = useState<EditingState | null>(null);
-    const [selectedItem, setSelectedItem] = useState<(InventoryItem & { category: InventoryCategory }) | null>(null);
-    const [isConsuming, setIsConsuming] = useState(false);
-    const [consumeQuantity, setConsumeQuantity] = useState<number | ''>(1);
-    const [selectedGalleryItem, setSelectedGalleryItem] = useState<GalleryImage | null>(null);
-    const [inventorySearch, setInventorySearch] = useState('');
-
     const { data: allShops = [] } = useQuery({
         queryKey: ['allShops'],
-        queryFn: useUser().fetchAllShops
+        queryFn: fetchAllShops,
     });
 
     const character = characterData?.character;
@@ -359,6 +350,18 @@ export default function CharacterPage() {
         return uniqueImages;
     }, [character, allUsers]);
 
+    if (loading || isCharacterLoading || areUsersLoading) {
+        return <CharacterPageSkeleton />;
+    }
+
+    if (!currentUser) {
+        return <AuthPage />;
+    }
+    
+    if (!characterData || !character || !owner) {
+        return notFound();
+    }
+
     const handleFormSubmit = (characterData: Character) => {
         mutation.mutate(characterData);
     };
@@ -403,14 +406,6 @@ export default function CharacterPage() {
             setIsConsuming(false);
         }
     };
-
-    if (isCharacterLoading || areUsersLoading) {
-        return <CharacterPageSkeleton />;
-    }
-
-    if (!characterData || !character || !owner) {
-        return notFound();
-    }
 
     const citizenshipStatus = character.citizenshipStatus || 'non-citizen';
     const CitizenshipIcon = citizenshipIcons[citizenshipStatus];
@@ -1530,3 +1525,4 @@ export default function CharacterPage() {
         </div>
     );
 }
+
