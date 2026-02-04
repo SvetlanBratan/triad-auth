@@ -283,6 +283,14 @@ export interface GalleryImage {
   taggedCharacterIds?: string[];
 }
 
+export interface Magic {
+  perception?: string[];
+  elements?: string[];
+  teachings?: string[];
+  reserveLevel?: string;
+  faithLevel?: string;
+}
+
 export interface OngoingHunt {
     huntId: string;
     characterId: string;
@@ -308,6 +316,7 @@ export interface Character {
   workLocation: string;
   factions?: string;
   abilities?: string;
+  magic?: Magic;
   weaknesses?: string;
   lifeGoal?: string;
   appearance: string;

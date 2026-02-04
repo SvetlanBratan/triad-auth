@@ -91,6 +91,72 @@ export const DEFAULT_GAME_SETTINGS: GameSettings = {
     ]
 }
 
+export const MAGIC_PERCEPTION_OPTIONS: OptionType[] = [
+    { value: 'зрительное', label: 'Зрительное' },
+    { value: 'слуховое', label: 'Слуховое' },
+    { value: 'осязательное', label: 'Осязательное' },
+    { value: 'обонятельное', label: 'Обонятельное' },
+    { value: 'вкусовое', label: 'Вкусовое' },
+    { value: 'канальное', label: 'Канальное' },
+    { value: 'образное', label: 'Образное' },
+    { value: 'эмоциональное', label: 'Эмоциональное' },
+];
+
+export const ELEMENTAL_MAGIC_OPTIONS: OptionType[] = [
+    { value: 'Огонь', label: 'Огонь' },
+    { value: 'Вода', label: 'Вода' },
+    { value: 'Земля', label: 'Земля' },
+    { value: 'Воздух', label: 'Воздух' },
+    { value: 'Тьма', label: 'Тьма' },
+    { value: 'Свет', label: 'Свет' },
+    { value: 'Эфир', label: 'Эфир' },
+    { value: 'Жизнь', label: 'Жизнь' },
+    { value: 'Смерть', label: 'Смерть' },
+    { value: 'Молния', label: 'Молния' },
+    { value: 'Металл', label: 'Металл' },
+    { value: 'Кровь', label: 'Кровь' },
+    { value: 'Лёд', label: 'Лёд' },
+    { value: 'Камень', label: 'Камень' },
+    { value: 'Лава', label: 'Лава' },
+    { value: 'Звук', label: 'Звук' },
+    { value: 'Растения', label: 'Растения' },
+];
+
+export const ADMIN_ELEMENTAL_MAGIC_OPTIONS: OptionType[] = [
+    ...ELEMENTAL_MAGIC_OPTIONS,
+    { value: 'Божественная энергия', label: 'Божественная энергия' },
+];
+
+export const RESERVE_LEVEL_OPTIONS: OptionType[] = [
+    { value: 'Н1 (неофит)', label: 'Н1 (неофит)' },
+    { value: 'А2 (адепт)', label: 'А2 (адепт)' },
+    { value: 'С3 (специалист)', label: 'С3 (специалист)' },
+    { value: 'М4 (мастер)', label: 'М4 (мастер)' },
+    { value: 'М5 (магистр)', label: 'М5 (магистр)' },
+    { value: 'А6 (архимаг)', label: 'А6 (архимаг)' },
+    { value: 'А7 (архимагистр)', label: 'А7 (архимагистр)' },
+];
+
+export const ADMIN_RESERVE_LEVEL_OPTIONS: OptionType[] = [
+    ...RESERVE_LEVEL_OPTIONS,
+    { value: 'Б8 (божественный)', label: 'Б8 (божественный)' },
+];
+
+export const FAITH_LEVEL_OPTIONS: OptionType[] = [
+    { value: '-1 Ненависть/Проклят', label: '-1 Ненависть/Проклят' },
+    { value: '0 Равнодушие', label: '0 Равнодушие' },
+    { value: '1 Верующий', label: '1 Верующий' },
+    { value: '2 Прихожанин', label: '2 Прихожанин' },
+    { value: '3 Неофит', label: '3 Неофит' },
+    { value: '4 Храмовник', label: '4 Храмовник' },
+    { value: '5 Послушник', label: '5 Послушник' },
+    { value: '6 Священник', label: '6 Священник' },
+    { value: '7 Прорицатель/Духовник', label: '7 Прорицатель/Духовник' },
+    { value: '8 Наместник храма', label: '8 Наместник храма' },
+    { value: '9 Первожрец', label: '9 Первожрец' },
+    { value: '10 Верховный жрец/Мессия', label: '10 Верховный жрец/Мессия' },
+];
+
 export const RACE_OPTIONS: OptionType[] = [
     { value: 'Алахор', label: 'Алахор' },
     { value: 'Алариен', label: 'Алариен' },
