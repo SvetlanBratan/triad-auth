@@ -5,13 +5,13 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, notFound } from 'next/navigation';
 import { useUser } from '@/hooks/use-user';
-import { User, Character, FamiliarCard, FamiliarRank, Moodlet, Relationship, RelationshipType, WealthLevel, BankAccount, Accomplishment, BankTransaction, OwnedFamiliarCard, InventoryCategory, InventoryItem, CitizenshipStatus, TaxpayerStatus, PopularityLog, GalleryImage, Shop } from '@/lib/types';
+import { User, Character, FamiliarCard, FamiliarRank, Moodlet, Relationship, RelationshipType, WealthLevel, BankAccount, Accomplishment, BankTransaction, OwnedFamiliarCard, InventoryCategory, InventoryItem, CitizenshipStatus, TaxpayerStatus, PopularityLog, GalleryImage, Shop, Magic } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FAMILIARS_BY_ID, MOODLETS_DATA, TRAINING_OPTIONS, CRIME_LEVELS, INVENTORY_CATEGORIES, POPULARITY_LEVELS } from '@/lib/data';
 import FamiliarCardDisplay from '@/components/dashboard/familiar-card';
-import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users, HeartHandshake, Wallet, Coins, Award, Zap, ShieldOff, History, Info, PlusCircle, BookUser, Gavel, Group, Building, Package, LandPlot, ShieldCheck, FileQuestion, BadgeCheck, BadgeAlert, Landmark, Eye, Lock, Cat, Handshake, FileText, ChevronDown, Camera, Search } from 'lucide-react';
+import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users, HeartHandshake, Wallet, Coins, Award, Zap, ShieldOff, History, Info, PlusCircle, BookUser, Gavel, Group, Building, Package, LandPlot, ShieldCheck, FileQuestion, BadgeCheck, BadgeAlert, Landmark, Eye, Lock, Cat, Handshake, FileText, ChevronDown, Camera, Search, Wand2 } from 'lucide-react';
 import Link from 'next/link';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -219,16 +219,10 @@ export default function CharacterPage() {
     const { currentUser, updateCharacterInUser, gameDate, consumeInventoryItem, setCurrentUser, fetchCharacterById, fetchUsersForAdmin } = useUser();
     const { loading } = useAuth();
     const queryClient = useQueryClient();
-
-    if (loading) {
-        return <CharacterPageSkeleton />;
-    }
-
-    if (!currentUser) {
-        return <AuthPage />;
-    }
+    const { toast } = useToast();
     
     const charId = Array.isArray(id) ? id[0] : id;
+
     const { data: characterData, isLoading: isCharacterLoading, refetch } = useQuery({
         queryKey: ['character', charId],
         queryFn: () => charId ? fetchCharacterById(charId) : Promise.resolve(null),
@@ -247,14 +241,6 @@ export default function CharacterPage() {
     const [consumeQuantity, setConsumeQuantity] = useState<number | ''>(1);
     const [selectedGalleryItem, setSelectedGalleryItem] = useState<GalleryImage | null>(null);
     const [inventorySearch, setInventorySearch] = useState('');
-
-    const { toast } = useToast();
-
-    useEffect(() => {
-        if (selectedItem) {
-            setConsumeQuantity(1);
-        }
-    }, [selectedItem]);
 
     const { data: allShops = [] } = useQuery({
         queryKey: ['allShops'],
@@ -292,51 +278,11 @@ export default function CharacterPage() {
         }
     });
 
-    const handleFormSubmit = (characterData: Character) => {
-        mutation.mutate(characterData);
-    };
-    
-    const closeDialog = () => {
-        setEditingState(null);
-    }
-    
-    const handleConsumeItem = async () => {
-        if (!selectedItem || !character || !owner) return;
-        
-        if (selectedItem.quantity > 1 && (!consumeQuantity || consumeQuantity <= 0)) {
-            toast({
-                variant: 'destructive',
-                title: 'Неверное количество',
-                description: 'Пожалуйста, введите корректное количество для использования.'
-            });
-            return;
+    useEffect(() => {
+        if (selectedItem) {
+            setConsumeQuantity(1);
         }
-
-        setIsConsuming(true);
-        try {
-            const quantityToRemove = selectedItem.quantity > 1 ? Number(consumeQuantity) : 1;
-            await consumeInventoryItem(owner.id, character.id, selectedItem.id, selectedItem.category, quantityToRemove);
-            toast({ title: "Предмет использован", description: `"${selectedItem.name}" (x${quantityToRemove}) был удален из инвентаря.` });
-            
-            const { data: refreshedCharacterData } = await refetch();
-
-            if (currentUser?.id === owner.id && refreshedCharacterData) {
-                const updatedCurrentUser = { ...currentUser };
-                const charIndex = updatedCurrentUser.characters.findIndex(c => c.id === character.id);
-                if (charIndex > -1) {
-                    updatedCurrentUser.characters[charIndex] = refreshedCharacterData.character;
-                    setCurrentUser(updatedCurrentUser);
-                }
-            }
-            setSelectedItem(null);
-        } catch (e) {
-            const message = e instanceof Error ? e.message : "Произошла неизвестная ошибка.";
-            toast({ variant: 'destructive', title: "Ошибка", description: message });
-        } finally {
-            setIsConsuming(false);
-        }
-    };
-
+    }, [selectedItem]);
 
     const spouses = useMemo(() => {
         if (!character?.marriedTo || allUsers.length === 0) return [];
@@ -405,7 +351,58 @@ export default function CharacterPage() {
         return uniqueImages;
     }, [character, allUsers]);
 
+    if (loading) {
+        return <CharacterPageSkeleton />;
+    }
 
+    if (!currentUser) {
+        return <AuthPage />;
+    }
+
+    const handleFormSubmit = (characterData: Character) => {
+        mutation.mutate(characterData);
+    };
+    
+    const closeDialog = () => {
+        setEditingState(null);
+    }
+    
+    const handleConsumeItem = async () => {
+        if (!selectedItem || !character || !owner) return;
+        
+        if (selectedItem.quantity > 1 && (!consumeQuantity || consumeQuantity <= 0)) {
+            toast({
+                variant: 'destructive',
+                title: 'Неверное количество',
+                description: 'Пожалуйста, введите корректное количество для использования.'
+            });
+            return;
+        }
+
+        setIsConsuming(true);
+        try {
+            const quantityToRemove = selectedItem.quantity > 1 ? Number(consumeQuantity) : 1;
+            await consumeInventoryItem(owner.id, character.id, selectedItem.id, selectedItem.category, quantityToRemove);
+            toast({ title: "Предмет использован", description: `"${selectedItem.name}" (x${quantityToRemove}) был удален из инвентаря.` });
+            
+            const { data: refreshedCharacterData } = await refetch();
+
+            if (currentUser?.id === owner.id && refreshedCharacterData) {
+                const updatedCurrentUser = { ...currentUser };
+                const charIndex = updatedCurrentUser.characters.findIndex(c => c.id === character.id);
+                if (charIndex > -1) {
+                    updatedCurrentUser.characters[charIndex] = refreshedCharacterData.character;
+                    setCurrentUser(updatedCurrentUser);
+                }
+            }
+            setSelectedItem(null);
+        } catch (e) {
+            const message = e instanceof Error ? e.message : "Произошла неизвестная ошибка.";
+            toast({ variant: 'destructive', title: "Ошибка", description: message });
+        } finally {
+            setIsConsuming(false);
+        }
+    };
 
     if (isCharacterLoading || areUsersLoading) {
         return <CharacterPageSkeleton />;
@@ -670,11 +667,53 @@ export default function CharacterPage() {
                     </AccordionContent>
                 </AccordionItem>
 
+                 <AccordionItem value="magic" className="border-b-0 rounded-lg bg-card shadow-sm">
+                    <SectionTrigger title="Магия" icon={<Wand2 />} section="magic" />
+                    <AccordionContent className="p-6 pt-0 text-sm">
+                        {character.magic ? (
+                            <div className="space-y-4">
+                                {character.magic.perception && character.magic.perception.length > 0 && (
+                                <div>
+                                    <h4 className="font-semibold text-muted-foreground">Восприятие магии:</h4>
+                                    <p>{character.magic.perception.join(', ')}</p>
+                                </div>
+                                )}
+                                {character.magic.elements && character.magic.elements.length > 0 && (
+                                <div>
+                                    <h4 className="font-semibold text-muted-foreground">Стихийная магия:</h4>
+                                    <p>{character.magic.elements.join(', ')}</p>
+                                </div>
+                                )}
+                                {character.magic.teachings && character.magic.teachings.length > 0 && (
+                                <div>
+                                    <h4 className="font-semibold text-muted-foreground">Учения:</h4>
+                                    <p>{character.magic.teachings.join(', ')}</p>
+                                </div>
+                                )}
+                                {character.magic.reserveLevel && (
+                                <div>
+                                    <h4 className="font-semibold text-muted-foreground">Уровень резерва:</h4>
+                                    <p>{character.magic.reserveLevel}</p>
+                                </div>
+                                )}
+                                {character.magic.faithLevel && (
+                                <div>
+                                    <h4 className="font-semibold text-muted-foreground">Уровень веры:</h4>
+                                    <p>{character.magic.faithLevel}</p>
+                                </div>
+                                )}
+                            </div>
+                        ) : (
+                            <p className="italic text-muted-foreground">Магические способности не указаны.</p>
+                        )}
+                    </AccordionContent>
+                </AccordionItem>
+
                 {(character.abilities || isOwnerOrAdmin) && (
                     <AccordionItem value="abilities" className="border-b-0 rounded-lg bg-card shadow-sm">
                             <div className="flex justify-between items-center w-full p-4">
                             <AccordionTrigger className="flex-1 hover:no-underline p-0">
-                                <CardTitle className="flex items-center gap-2 text-lg"><Zap /> Способности</CardTitle>
+                                <CardTitle className="flex items-center gap-2 text-lg"><Zap /> Немагические способности</CardTitle>
                             </AccordionTrigger>
                             {isOwnerOrAdmin && (
                                 <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setEditingState({type: 'section', section: "abilities"})}} className="shrink-0 h-8 w-8 ml-2">
