@@ -24,7 +24,7 @@ export type EditableSection =
     | 'appearance' | 'personality' 
     | 'biography' | 'abilities' | 'weaknesses' | 'marriage' 
     | 'training' | 'lifeGoal' | 'diary' | 'criminalRecords' | 'mainInfo'
-    | 'gallery' | 'magic';
+    | 'gallery';
 
 export type EditingState = {
     type: 'section',
@@ -84,7 +84,9 @@ const initialFormData: Omit<Character, 'id'> = {
     relationships: [],
     marriedTo: [],
     abilities: '',
+    abilitiesAreHidden: false,
     weaknesses: '',
+    weaknessesAreHidden: false,
     lifeGoal: '',
     criminalRecords: '',
     familiarCards: [],
@@ -148,7 +150,6 @@ const SectionTitles: Record<EditableSection, string> = {
     personality: 'Характер',
     biography: 'Биография',
     abilities: 'Способности',
-    magic: 'Магия',
     weaknesses: 'Слабости',
     marriage: 'Семейное положение',
     training: 'Обучение',
@@ -434,7 +435,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                 let sectionIsEmpty: boolean;
                 if (sectionKey === 'marriage') {
                     sectionIsEmpty = !formData.marriedTo || formData.marriedTo.length === 0;
-                } else if (sectionKey === 'abilities' || sectionKey === 'magic') {
+                } else if (sectionKey === 'abilities') {
                     const magicIsEmpty = !formData.magic || (
                         (formData.magic.perception?.length ?? 0) === 0 &&
                         (formData.magic.elements?.length ?? 0) === 0 &&
@@ -445,7 +446,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                     );
                     sectionIsEmpty = !formData.abilities && magicIsEmpty;
                 } else {
-                    const sectionData = formData[sectionKey as keyof Omit<Character, 'marriedTo' | 'abilities' | 'magic'>];
+                    const sectionData = formData[sectionKey as keyof Omit<Character, 'marriedTo' | 'abilities'>];
                     sectionIsEmpty = !sectionData || (Array.isArray(sectionData) && sectionData.length === 0);
                 }
                  const titleAction = sectionIsEmpty ? "Добавить" : "Редактировать";
@@ -594,7 +595,6 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                         </div>
                     );
                     case 'abilities':
-                    case 'magic':
                         const maxElements = formData.magic?.maxElements ?? 4;
                         const maxTeachings = formData.magic?.maxTeachings ?? 3;
                         return (
@@ -660,9 +660,34 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                                     <Textarea id="abilities" value={formData.abilities ?? ''} onChange={(e) => handleFieldChange('abilities', e.target.value)} rows={8} placeholder="Опишите уникальные немагические способности или навыки..."/>
                                     <FormattingHelp />
                                 </div>
+                                 <div className="flex items-center space-x-2 pt-4 border-t">
+                                    <Switch
+                                        id="abilities-hidden-switch"
+                                        checked={!!formData.abilitiesAreHidden}
+                                        onCheckedChange={(checked) => handleFieldChange('abilitiesAreHidden', checked)}
+                                    />
+                                    <Label htmlFor="abilities-hidden-switch">Скрыть способности от других игроков</Label>
+                                </div>
                             </div>
                         );
-                    case 'weaknesses': return <div><Label htmlFor="weaknesses">Слабости</Label><Textarea id="weaknesses" value={formData.weaknesses ?? ''} onChange={(e) => handleFieldChange('weaknesses', e.target.value)} rows={8} placeholder="Укажите слабости, уязвимости или страхи..."/> <FormattingHelp /></div>;
+                    case 'weaknesses': 
+                        return (
+                             <div className="space-y-4">
+                                <div>
+                                    <Label htmlFor="weaknesses">Слабости</Label>
+                                    <Textarea id="weaknesses" value={formData.weaknesses ?? ''} onChange={(e) => handleFieldChange('weaknesses', e.target.value)} rows={8} placeholder="Укажите слабости, уязвимости или страхи..."/> 
+                                    <FormattingHelp />
+                                </div>
+                                <div className="flex items-center space-x-2 pt-2">
+                                    <Switch
+                                        id="weaknesses-hidden-switch"
+                                        checked={!!formData.weaknessesAreHidden}
+                                        onCheckedChange={(checked) => handleFieldChange('weaknessesAreHidden', checked)}
+                                    />
+                                    <Label htmlFor="weaknesses-hidden-switch">Скрыть слабости от других игроков</Label>
+                                </div>
+                            </div>
+                        );
                     case 'marriage': return <div><Label htmlFor="marriedTo">В браке с</Label><SearchableMultiSelect placeholder="Выберите персонажей..." options={characterOptions} selected={formData.marriedTo ?? []} onChange={(v) => handleMultiSelectChange('marriedTo', v)} /></div>;
                     case 'training': return <div><Label htmlFor="training">Обучение</Label><SearchableMultiSelect placeholder="Выберите варианты..." options={TRAINING_OPTIONS} selected={formData.training ?? []} onChange={(v) => handleMultiSelectChange('training', v)} /></div>;
                     case 'lifeGoal': return <div><Label htmlFor="lifeGoal">Жизненная цель</Label><Textarea id="lifeGoal" value={formData.lifeGoal ?? ''} onChange={(e) => handleFieldChange('lifeGoal', e.target.value)} rows={4} placeholder="Какова главная цель или мечта вашего персонажа?"/></div>;

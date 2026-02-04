@@ -318,8 +318,10 @@ export interface Character {
   workLocation: string;
   factions?: string;
   abilities?: string;
+  abilitiesAreHidden?: boolean;
   magic?: Magic;
   weaknesses?: string;
+  weaknessesAreHidden?: boolean;
   lifeGoal?: string;
   appearance: string;
   appearanceImage?: string;
