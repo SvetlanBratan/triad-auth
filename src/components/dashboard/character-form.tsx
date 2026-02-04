@@ -3,8 +3,8 @@
 'use client';
 
 import React from 'react';
-import type { Character, User, Accomplishment, Relationship, RelationshipType, CrimeLevel, CitizenshipStatus, Inventory, GalleryImage } from '@/lib/types';
-import { SKILL_LEVELS, FAME_LEVELS, TRAINING_OPTIONS, CRIME_LEVELS, COUNTRIES, RACE_OPTIONS } from '@/lib/data';
+import type { Character, User, Accomplishment, Relationship, RelationshipType, CrimeLevel, CitizenshipStatus, Inventory, GalleryImage, Magic } from '@/lib/types';
+import { SKILL_LEVELS, FAME_LEVELS, TRAINING_OPTIONS, CRIME_LEVELS, COUNTRIES, RACE_OPTIONS, MAGIC_PERCEPTION_OPTIONS, ADMIN_ELEMENTAL_MAGIC_OPTIONS, ELEMENTAL_MAGIC_OPTIONS, ADMIN_RESERVE_LEVEL_OPTIONS, RESERVE_LEVEL_OPTIONS, FAITH_LEVEL_OPTIONS } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { DialogClose, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -24,7 +24,7 @@ export type EditableSection =
     | 'appearance' | 'personality' 
     | 'biography' | 'abilities' | 'weaknesses' | 'marriage' 
     | 'training' | 'lifeGoal' | 'diary' | 'criminalRecords' | 'mainInfo'
-    | 'gallery';
+    | 'gallery' | 'magic';
 
 export type EditingState = {
     type: 'section',
@@ -120,6 +120,13 @@ const initialFormData: Omit<Character, 'id'> = {
     pets: '',
     galleryImages: [],
     bannerImage: '',
+    magic: {
+        perception: [],
+        elements: [],
+        teachings: [],
+        reserveLevel: '',
+        faithLevel: '',
+    }
 };
 
 const fameLevelOptions = FAME_LEVELS.map(level => ({ value: level, label: level }));
@@ -145,6 +152,7 @@ const SectionTitles: Record<EditableSection, string> = {
     diary: 'Личный дневник',
     criminalRecords: 'Судимости',
     gallery: 'Баннер и галерея',
+    magic: 'Магия',
 };
 
 const FieldLabels: Partial<Record<keyof Character, string>> = {
@@ -213,6 +221,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                     bankAccount: character.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] },
                     wealthLevel: character.wealthLevel || 'Бедный',
                     galleryImages: (character.galleryImages || []).map(img => ({...img, id: img.id || `img-${Date.now()}-${Math.random()}`})),
+                    magic: character.magic || initialFormData.magic,
                 };
                 setFormData(initializedCharacter);
 
@@ -289,6 +298,16 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
 
     const handleFieldChange = (field: keyof Character, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
+    };
+    
+    const handleMagicChange = (field: keyof Magic, value: any) => {
+        setFormData(prev => ({
+            ...prev,
+            magic: {
+                ...(prev.magic || {}),
+                [field]: value,
+            },
+        }));
     };
     
     const handleAgeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -406,11 +425,16 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                  if (sectionKey === 'mainInfo') {
                      return SectionTitles.mainInfo;
                  }
+                 if (!SectionTitles[sectionKey]) {
+                    return "Редактирование";
+                 }
                  let sectionIsEmpty: boolean;
                  if (sectionKey === 'marriage') {
                     sectionIsEmpty = !formData.marriedTo || formData.marriedTo.length === 0;
+                 } else if (sectionKey === 'magic') {
+                    sectionIsEmpty = !formData.magic;
                  } else {
-                    const sectionData = formData[sectionKey as keyof Omit<Character, 'marriedTo'>];
+                    const sectionData = formData[sectionKey as keyof Omit<Character, 'marriedTo' | 'magic'>];
                     sectionIsEmpty = !sectionData || (Array.isArray(sectionData) && sectionData.length === 0);
                  }
                  const titleAction = sectionIsEmpty ? "Добавить" : "Редактировать";
@@ -597,6 +621,59 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                             </div>
                         </div>
                     );
+                    case 'magic':
+                        return (
+                            <div className="space-y-4">
+                                <div>
+                                    <Label>Восприятие магии (не более 3)</Label>
+                                    <SearchableMultiSelect
+                                        options={MAGIC_PERCEPTION_OPTIONS}
+                                        selected={formData.magic?.perception || []}
+                                        onChange={(v) => v.length <= 3 && handleMagicChange('perception', v)}
+                                        placeholder='Выберите восприятие...'
+                                    />
+                                </div>
+                                <div>
+                                    <Label>Стихийная магия (не более 4)</Label>
+                                    <SearchableMultiSelect
+                                        options={isAdmin ? ADMIN_ELEMENTAL_MAGIC_OPTIONS : ELEMENTAL_MAGIC_OPTIONS}
+                                        selected={formData.magic?.elements || []}
+                                        onChange={(v) => v.length <= 4 && handleMagicChange('elements', v)}
+                                        placeholder='Выберите стихии...'
+                                    />
+                                </div>
+                                <div>
+                                    <Label>Учения (не более 3)</Label>
+                                    <SearchableMultiSelect
+                                        options={[]} // TODO: Populate from RTDB
+                                        selected={formData.magic?.teachings || []}
+                                        onChange={(v) => v.length <= 3 && handleMagicChange('teachings', v)}
+                                        placeholder='Выберите учения...'
+                                    />
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        Список учений будет подгружаться из базы данных.
+                                    </p>
+                                </div>
+                                <div>
+                                    <Label>Уровень резерва</Label>
+                                    <SearchableSelect
+                                        options={isAdmin ? ADMIN_RESERVE_LEVEL_OPTIONS : RESERVE_LEVEL_OPTIONS}
+                                        value={formData.magic?.reserveLevel || ''}
+                                        onValueChange={(v) => handleMagicChange('reserveLevel', v)}
+                                        placeholder="Выберите уровень..."
+                                    />
+                                </div>
+                                <div>
+                                    <Label>Уровень веры</Label>
+                                    <SearchableSelect
+                                        options={FAITH_LEVEL_OPTIONS}
+                                        value={formData.magic?.faithLevel || ''}
+                                        onValueChange={(v) => handleMagicChange('faithLevel', v)}
+                                        placeholder="Выберите уровень..."
+                                    />
+                                </div>
+                            </div>
+                        );
 
                     default: return <p>Неизвестная секция для редактирования.</p>;
                 }
@@ -784,3 +861,4 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
 export default CharacterForm;
 
     
+
