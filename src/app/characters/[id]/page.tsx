@@ -1,5 +1,6 @@
 
 
+
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -667,82 +668,82 @@ export default function CharacterPage() {
                     </AccordionContent>
                 </AccordionItem>
 
-                 <AccordionItem value="magic" className="border-b-0 rounded-lg bg-card shadow-sm">
-                    <SectionTrigger title="Магия" icon={<Wand2 />} section="magic" />
+                <AccordionItem value="abilities" className="border-b-0 rounded-lg bg-card shadow-sm">
+                    <SectionTrigger title="Способности" icon={<Zap />} section="abilities" />
                     <AccordionContent className="p-6 pt-0 text-sm">
-                        {character.magic ? (
-                            <div className="space-y-4">
-                                {character.magic.perception && character.magic.perception.length > 0 && (
-                                <div>
-                                    <h4 className="font-semibold text-muted-foreground">Восприятие магии:</h4>
-                                    <p>{character.magic.perception.join(', ')}</p>
-                                </div>
-                                )}
-                                {character.magic.elements && character.magic.elements.length > 0 && (
-                                <div>
-                                    <h4 className="font-semibold text-muted-foreground">Стихийная магия:</h4>
-                                    <p>{character.magic.elements.join(', ')}</p>
-                                </div>
-                                )}
-                                {character.magic.teachings && character.magic.teachings.length > 0 && (
-                                <div>
-                                    <h4 className="font-semibold text-muted-foreground">Учения:</h4>
-                                    <p>{character.magic.teachings.join(', ')}</p>
-                                </div>
-                                )}
-                                {character.magic.reserveLevel && (
-                                <div>
-                                    <h4 className="font-semibold text-muted-foreground">Уровень резерва:</h4>
-                                    <p>{character.magic.reserveLevel}</p>
-                                </div>
-                                )}
-                                {character.magic.faithLevel && (
-                                <div>
-                                    <h4 className="font-semibold text-muted-foreground">Уровень веры:</h4>
-                                    <p>{character.magic.faithLevel}</p>
-                                </div>
+                        <div className="space-y-6">
+                            <div>
+                                <h4 className="font-semibold text-muted-foreground mb-2">Магические способности</h4>
+                                {character.magic && (character.magic.perception?.length || character.magic.elements?.length || character.magic.teachings?.length || character.magic.reserveLevel || character.magic.faithLevel) ? (
+                                    <div className="space-y-4 pl-2">
+                                        {character.magic.perception && character.magic.perception.length > 0 && (
+                                        <div>
+                                            <h5 className="font-medium">Восприятие магии:</h5>
+                                            <p className="text-muted-foreground">{character.magic.perception.join(', ')}</p>
+                                        </div>
+                                        )}
+                                        {character.magic.elements && character.magic.elements.length > 0 && (
+                                        <div>
+                                            <h5 className="font-medium">Стихийная магия:</h5>
+                                            <p className="text-muted-foreground">{character.magic.elements.join(', ')}</p>
+                                        </div>
+                                        )}
+                                        {character.magic.teachings && character.magic.teachings.length > 0 && (
+                                        <div>
+                                            <h5 className="font-medium">Учения:</h5>
+                                            <p className="text-muted-foreground">{character.magic.teachings.join(', ')}</p>
+                                        </div>
+                                        )}
+                                        {character.magic.reserveLevel && (
+                                        <div>
+                                            <h5 className="font-medium">Уровень резерва:</h5>
+                                            <p className="text-muted-foreground">{character.magic.reserveLevel}</p>
+                                        </div>
+                                        )}
+                                        {character.magic.faithLevel && (
+                                        <div>
+                                            <h5 className="font-medium">Уровень веры:</h5>
+                                            <p className="text-muted-foreground">{character.magic.faithLevel}</p>
+                                        </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <p className="italic text-muted-foreground pl-2">Магические способности не указаны.</p>
                                 )}
                             </div>
-                        ) : (
-                            <p className="italic text-muted-foreground">Магические способности не указаны.</p>
-                        )}
+
+                            {(character.magic?.magicClarifications || isOwnerOrAdmin) && (
+                                <div>
+                                    <h4 className="font-semibold text-muted-foreground mb-2">Уточнения по магии</h4>
+                                    {character.magic?.magicClarifications ? (
+                                        <div className="pl-2">
+                                            <FormattedTextRenderer text={character.magic.magicClarifications} />
+                                        </div>
+                                    ) : (
+                                        isOwnerOrAdmin && <p className="italic text-muted-foreground pl-2">Описание отсутствует.</p>
+                                    )}
+                                </div>
+                            )}
+
+                            {(character.abilities || isOwnerOrAdmin) && (
+                                <div>
+                                    <h4 className="font-semibold text-muted-foreground mb-2">Немагические навыки</h4>
+                                    {character.abilities ? (
+                                        <div className="pl-2">
+                                            <FormattedTextRenderer text={character.abilities} />
+                                        </div>
+                                    ) : (
+                                        isOwnerOrAdmin && <p className="italic text-muted-foreground pl-2">Описание отсутствует.</p>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     </AccordionContent>
                 </AccordionItem>
-
-                {(character.abilities || isOwnerOrAdmin) && (
-                    <AccordionItem value="abilities" className="border-b-0 rounded-lg bg-card shadow-sm">
-                            <div className="flex justify-between items-center w-full p-4">
-                            <AccordionTrigger className="flex-1 hover:no-underline p-0">
-                                <CardTitle className="flex items-center gap-2 text-lg"><Zap /> Немагические способности</CardTitle>
-                            </AccordionTrigger>
-                            {isOwnerOrAdmin && (
-                                <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setEditingState({type: 'section', section: "abilities"})}} className="shrink-0 h-8 w-8 ml-2">
-                                    {character.abilities ? <Edit className="w-4 h-4" /> : <PlusCircle className="h-4 w-4" />}
-                                </Button>
-                            )}
-                        </div>
-                        {character.abilities && (
-                            <AccordionContent className="p-6 pt-0">
-                                <ScrollArea className="h-40 w-full">
-                                    <div className="pr-4"><FormattedTextRenderer text={character.abilities} /></div>
-                                </ScrollArea>
-                            </AccordionContent>
-                        )}
-                    </AccordionItem>
-                )}
-
-                    {(character.weaknesses || isOwnerOrAdmin) && (
+                
+                {(character.weaknesses || isOwnerOrAdmin) && (
                     <AccordionItem value="weaknesses" className="border-b-0 rounded-lg bg-card shadow-sm">
-                        <div className="flex justify-between items-center w-full p-4">
-                            <AccordionTrigger className="flex-1 hover:no-underline p-0">
-                                <CardTitle className="flex items-center gap-2 text-lg"><ShieldOff /> Слабости</CardTitle>
-                            </AccordionTrigger>
-                            {isOwnerOrAdmin && (
-                                <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setEditingState({ type: 'section', section: "weaknesses"})}} className="shrink-0 h-8 w-8 ml-2">
-                                    {character.weaknesses ? <Edit className="w-4 h-4" /> : <PlusCircle className="h-4 w-4" />}
-                                </Button>
-                            )}
-                        </div>
+                        <SectionTrigger title="Слабости" icon={<ShieldOff />} section="weaknesses" />
                         {character.weaknesses && (
                             <AccordionContent className="p-6 pt-0">
                                 <ScrollArea className="h-40 w-full">

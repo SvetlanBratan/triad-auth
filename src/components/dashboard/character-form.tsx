@@ -1,5 +1,6 @@
 
 
+
 'use client';
 
 import React from 'react';
@@ -24,7 +25,7 @@ export type EditableSection =
     | 'appearance' | 'personality' 
     | 'biography' | 'abilities' | 'weaknesses' | 'marriage' 
     | 'training' | 'lifeGoal' | 'diary' | 'criminalRecords' | 'mainInfo'
-    | 'gallery' | 'magic';
+    | 'gallery';
 
 export type EditingState = {
     type: 'section',
@@ -126,6 +127,7 @@ const initialFormData: Omit<Character, 'id'> = {
         teachings: [],
         reserveLevel: '',
         faithLevel: '',
+        magicClarifications: '',
     }
 };
 
@@ -152,7 +154,6 @@ const SectionTitles: Record<EditableSection, string> = {
     diary: 'Личный дневник',
     criminalRecords: 'Судимости',
     gallery: 'Баннер и галерея',
-    magic: 'Магия',
 };
 
 const FieldLabels: Partial<Record<keyof Character, string>> = {
@@ -221,7 +222,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                     bankAccount: character.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] },
                     wealthLevel: character.wealthLevel || 'Бедный',
                     galleryImages: (character.galleryImages || []).map(img => ({...img, id: img.id || `img-${Date.now()}-${Math.random()}`})),
-                    magic: character.magic || initialFormData.magic,
+                    magic: character.magic ? { ...initialFormData.magic, ...character.magic } : initialFormData.magic,
                 };
                 setFormData(initializedCharacter);
 
@@ -428,15 +429,24 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                  if (!SectionTitles[sectionKey]) {
                     return "Редактирование";
                  }
-                 let sectionIsEmpty: boolean;
-                 if (sectionKey === 'marriage') {
+                let sectionIsEmpty: boolean;
+                if (sectionKey === 'marriage') {
                     sectionIsEmpty = !formData.marriedTo || formData.marriedTo.length === 0;
-                 } else if (sectionKey === 'magic') {
-                    sectionIsEmpty = !formData.magic;
-                 } else {
-                    const sectionData = formData[sectionKey as keyof Omit<Character, 'marriedTo' | 'magic'>];
+                } else if (sectionKey === 'abilities') {
+                    // Considered empty if no abilities AND no magic data at all.
+                    const magicIsEmpty = !formData.magic || (
+                        (formData.magic.perception?.length ?? 0) === 0 &&
+                        (formData.magic.elements?.length ?? 0) === 0 &&
+                        (formData.magic.teachings?.length ?? 0) === 0 &&
+                        !formData.magic.reserveLevel &&
+                        !formData.magic.faithLevel &&
+                        !formData.magic.magicClarifications
+                    );
+                    sectionIsEmpty = !formData.abilities && magicIsEmpty;
+                } else {
+                    const sectionData = formData[sectionKey as keyof Omit<Character, 'marriedTo' | 'abilities' | 'magic'>];
                     sectionIsEmpty = !sectionData || (Array.isArray(sectionData) && sectionData.length === 0);
-                 }
+                }
                  const titleAction = sectionIsEmpty ? "Добавить" : "Редактировать";
                  return `${titleAction}: ${SectionTitles[sectionKey]}`;
             }
@@ -478,87 +488,86 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                 );
             
             case 'section':
-                if (editingState.section === 'mainInfo') {
-                    return (
-                        <div className="space-y-4">
-                            <div>
-                                <Label htmlFor="name">Имя персонажа</Label>
-                                <Input id="name" value={formData.name ?? ''} onChange={(e) => handleFieldChange('name', e.target.value)} />
-                            </div>
-                            <div>
-                                <Label htmlFor="activity">Деятельность/профессия</Label>
-                                <Input id="activity" value={formData.activity ?? ''} onChange={(e) => handleFieldChange('activity', e.target.value)} />
-                            </div>
-                             <div>
-                                <Label htmlFor="countryOfResidence">Страна проживания</Label>
-                                 <SearchableSelect
-                                    options={countryOptions}
-                                    value={String(formData.countryOfResidence ?? '')}
-                                    onValueChange={(v) => handleFieldChange('countryOfResidence', v)}
-                                    placeholder="Выберите страну..."
-                                />
-                            </div>
-                            <div>
-                                <Label htmlFor="residenceLocation">{FieldLabels['residenceLocation']}</Label>
-                                <Input id="residenceLocation" value={(formData['residenceLocation'] as string) ?? ''} onChange={(e) => handleFieldChange('residenceLocation', e.target.value)} />
-                            </div>
-                             <div>
-                                <Label htmlFor="citizenshipStatus">Статус гражданства</Label>
-                                <SearchableSelect
-                                    options={citizenshipStatusOptions}
-                                    value={formData.citizenshipStatus ?? 'non-citizen'}
-                                    onValueChange={(v) => handleFieldChange('citizenshipStatus', v as CitizenshipStatus)}
-                                    placeholder="Выберите статус..."
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="race">Раса</Label>
-                                <SearchableSelect
-                                    options={RACE_OPTIONS}
-                                    value={baseRace}
-                                    onValueChange={setBaseRace}
-                                    placeholder="Выберите расу..."
-                                    disabled={!isAdmin && formData.raceIsConfirmed}
-                                />
-                                <Input
-                                    value={raceDetails}
-                                    onChange={(e) => setRaceDetails(e.target.value)}
-                                    placeholder="Уточнение в скобках (необязательно)"
-                                    disabled={!isAdmin && formData.raceIsConfirmed}
-                                />
-                                {isAdmin && (
-                                     <div className="flex items-center space-x-2 pt-2">
-                                        <Switch
-                                            id="race-confirmed-switch"
-                                            checked={formData.raceIsConfirmed}
-                                            onCheckedChange={(checked) => handleFieldChange('raceIsConfirmed', checked)}
-                                        />
-                                        <Label htmlFor="race-confirmed-switch">Раса подтверждена</Label>
-                                    </div>
-                                )}
-                            </div>
-                            {renderBirthDateField()}
-                             <div>
-                                <Label htmlFor="crimeLevel">Уровень преступности</Label>
-                                 <SearchableSelect
-                                    options={crimeLevelOptions}
-                                    value={String(formData.crimeLevel || 5)}
-                                    onValueChange={(v) => handleFieldChange('crimeLevel', Number(v) as CrimeLevel)}
-                                    placeholder="Выберите уровень..."
-                                />
-                            </div>
-                            <div>
-                                <Label htmlFor="workLocation">Место работы</Label>
-                                <Input id="workLocation" value={formData.workLocation ?? ''} onChange={(e) => handleFieldChange('workLocation', e.target.value)} />
-                            </div>
-                            <div>
-                                <Label htmlFor="factions">Фракции/гильдии</Label>
-                                <Input id="factions" value={formData.factions ?? ''} onChange={(e) => handleFieldChange('factions', e.target.value)} />
-                            </div>
-                        </div>
-                    );
-                }
                 switch(editingState.section) {
+                    case 'mainInfo':
+                        return (
+                            <div className="space-y-4">
+                                <div>
+                                    <Label htmlFor="name">Имя персонажа</Label>
+                                    <Input id="name" value={formData.name ?? ''} onChange={(e) => handleFieldChange('name', e.target.value)} />
+                                </div>
+                                <div>
+                                    <Label htmlFor="activity">Деятельность/профессия</Label>
+                                    <Input id="activity" value={formData.activity ?? ''} onChange={(e) => handleFieldChange('activity', e.target.value)} />
+                                </div>
+                                <div>
+                                    <Label htmlFor="countryOfResidence">Страна проживания</Label>
+                                    <SearchableSelect
+                                        options={countryOptions}
+                                        value={String(formData.countryOfResidence ?? '')}
+                                        onValueChange={(v) => handleFieldChange('countryOfResidence', v)}
+                                        placeholder="Выберите страну..."
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="residenceLocation">{FieldLabels['residenceLocation']}</Label>
+                                    <Input id="residenceLocation" value={(formData['residenceLocation'] as string) ?? ''} onChange={(e) => handleFieldChange('residenceLocation', e.target.value)} />
+                                </div>
+                                <div>
+                                    <Label htmlFor="citizenshipStatus">Статус гражданства</Label>
+                                    <SearchableSelect
+                                        options={citizenshipStatusOptions}
+                                        value={formData.citizenshipStatus ?? 'non-citizen'}
+                                        onValueChange={(v) => handleFieldChange('citizenshipStatus', v as CitizenshipStatus)}
+                                        placeholder="Выберите статус..."
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="race">Раса</Label>
+                                    <SearchableSelect
+                                        options={RACE_OPTIONS}
+                                        value={baseRace}
+                                        onValueChange={setBaseRace}
+                                        placeholder="Выберите расу..."
+                                        disabled={!isAdmin && formData.raceIsConfirmed}
+                                    />
+                                    <Input
+                                        value={raceDetails}
+                                        onChange={(e) => setRaceDetails(e.target.value)}
+                                        placeholder="Уточнение в скобках (необязательно)"
+                                        disabled={!isAdmin && formData.raceIsConfirmed}
+                                    />
+                                    {isAdmin && (
+                                        <div className="flex items-center space-x-2 pt-2">
+                                            <Switch
+                                                id="race-confirmed-switch"
+                                                checked={formData.raceIsConfirmed}
+                                                onCheckedChange={(checked) => handleFieldChange('raceIsConfirmed', checked)}
+                                            />
+                                            <Label htmlFor="race-confirmed-switch">Раса подтверждена</Label>
+                                        </div>
+                                    )}
+                                </div>
+                                {renderBirthDateField()}
+                                <div>
+                                    <Label htmlFor="crimeLevel">Уровень преступности</Label>
+                                    <SearchableSelect
+                                        options={crimeLevelOptions}
+                                        value={String(formData.crimeLevel || 5)}
+                                        onValueChange={(v) => handleFieldChange('crimeLevel', Number(v) as CrimeLevel)}
+                                        placeholder="Выберите уровень..."
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="workLocation">Место работы</Label>
+                                    <Input id="workLocation" value={formData.workLocation ?? ''} onChange={(e) => handleFieldChange('workLocation', e.target.value)} />
+                                </div>
+                                <div>
+                                    <Label htmlFor="factions">Фракции/гильдии</Label>
+                                    <Input id="factions" value={formData.factions ?? ''} onChange={(e) => handleFieldChange('factions', e.target.value)} />
+                                </div>
+                            </div>
+                        );
                     case 'appearance': return <div className="space-y-4"><ImageUploader
                                     currentImageUrl={formData.appearanceImage}
                                     onUpload={(url) => handleFieldChange('appearanceImage', url)}
@@ -583,7 +592,71 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                             </div>
                         </div>
                     );
-                    case 'abilities': return <div><Label htmlFor="abilities">Способности</Label><Textarea id="abilities" value={formData.abilities ?? ''} onChange={(e) => handleFieldChange('abilities', e.target.value)} rows={8} placeholder="Опишите уникальные способности или навыки..."/> <FormattingHelp /></div>;
+                    case 'abilities': return (
+                        <div className="space-y-6">
+                            <div className="space-y-4 p-4 border rounded-md">
+                                <h4 className="font-semibold text-foreground">Магические способности</h4>
+                                <div>
+                                    <Label>Восприятие магии (не более 3)</Label>
+                                    <SearchableMultiSelect
+                                        options={MAGIC_PERCEPTION_OPTIONS}
+                                        selected={formData.magic?.perception || []}
+                                        onChange={(v) => v.length <= 3 && handleMagicChange('perception', v)}
+                                        placeholder='Выберите восприятие...'
+                                    />
+                                </div>
+                                <div>
+                                    <Label>Стихийная магия (не более 4)</Label>
+                                    <SearchableMultiSelect
+                                        options={isAdmin ? ADMIN_ELEMENTAL_MAGIC_OPTIONS : ELEMENTAL_MAGIC_OPTIONS}
+                                        selected={formData.magic?.elements || []}
+                                        onChange={(v) => v.length <= 4 && handleMagicChange('elements', v)}
+                                        placeholder='Выберите стихии...'
+                                    />
+                                </div>
+                                <div>
+                                    <Label>Учения (до 3 штук)</Label>
+                                    <SearchableMultiSelect
+                                        options={[]} // TODO: Populate from RTDB
+                                        selected={formData.magic?.teachings || []}
+                                        onChange={(v) => v.length <= 3 && handleMagicChange('teachings', v)}
+                                        placeholder='Выберите учения...'
+                                    />
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        Список учений будет подгружаться из базы данных.
+                                    </p>
+                                </div>
+                                <div>
+                                    <Label>Уровень резерва</Label>
+                                    <SearchableSelect
+                                        options={isAdmin ? ADMIN_RESERVE_LEVEL_OPTIONS : RESERVE_LEVEL_OPTIONS}
+                                        value={formData.magic?.reserveLevel || ''}
+                                        onValueChange={(v) => handleMagicChange('reserveLevel', v)}
+                                        placeholder="Выберите уровень..."
+                                    />
+                                </div>
+                                <div>
+                                    <Label>Уровень веры</Label>
+                                    <SearchableSelect
+                                        options={FAITH_LEVEL_OPTIONS}
+                                        value={formData.magic?.faithLevel || ''}
+                                        onValueChange={(v) => handleMagicChange('faithLevel', v)}
+                                        placeholder="Выберите уровень..."
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="magicClarifications">Уточнения по магии</Label>
+                                <Textarea id="magicClarifications" value={formData.magic?.magicClarifications || ''} onChange={(e) => handleMagicChange('magicClarifications', e.target.value)} rows={6} placeholder="Любые детали и нюансы, не вошедшие в шаблон..."/>
+                                <FormattingHelp />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="abilities">Немагические навыки</Label>
+                                <Textarea id="abilities" value={formData.abilities ?? ''} onChange={(e) => handleFieldChange('abilities', e.target.value)} rows={8} placeholder="Опишите уникальные немагические способности или навыки..."/>
+                                <FormattingHelp />
+                            </div>
+                        </div>
+                    );
                     case 'weaknesses': return <div><Label htmlFor="weaknesses">Слабости</Label><Textarea id="weaknesses" value={formData.weaknesses ?? ''} onChange={(e) => handleFieldChange('weaknesses', e.target.value)} rows={8} placeholder="Укажите слабости, уязвимости или страхи..."/> <FormattingHelp /></div>;
                     case 'marriage': return <div><Label htmlFor="marriedTo">В браке с</Label><SearchableMultiSelect placeholder="Выберите персонажей..." options={characterOptions} selected={formData.marriedTo ?? []} onChange={(v) => handleMultiSelectChange('marriedTo', v)} /></div>;
                     case 'training': return <div><Label htmlFor="training">Обучение</Label><SearchableMultiSelect placeholder="Выберите варианты..." options={TRAINING_OPTIONS} selected={formData.training ?? []} onChange={(v) => handleMultiSelectChange('training', v)} /></div>;
@@ -621,60 +694,6 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                             </div>
                         </div>
                     );
-                    case 'magic':
-                        return (
-                            <div className="space-y-4">
-                                <div>
-                                    <Label>Восприятие магии (не более 3)</Label>
-                                    <SearchableMultiSelect
-                                        options={MAGIC_PERCEPTION_OPTIONS}
-                                        selected={formData.magic?.perception || []}
-                                        onChange={(v) => v.length <= 3 && handleMagicChange('perception', v)}
-                                        placeholder='Выберите восприятие...'
-                                    />
-                                </div>
-                                <div>
-                                    <Label>Стихийная магия (не более 4)</Label>
-                                    <SearchableMultiSelect
-                                        options={isAdmin ? ADMIN_ELEMENTAL_MAGIC_OPTIONS : ELEMENTAL_MAGIC_OPTIONS}
-                                        selected={formData.magic?.elements || []}
-                                        onChange={(v) => v.length <= 4 && handleMagicChange('elements', v)}
-                                        placeholder='Выберите стихии...'
-                                    />
-                                </div>
-                                <div>
-                                    <Label>Учения (не более 3)</Label>
-                                    <SearchableMultiSelect
-                                        options={[]} // TODO: Populate from RTDB
-                                        selected={formData.magic?.teachings || []}
-                                        onChange={(v) => v.length <= 3 && handleMagicChange('teachings', v)}
-                                        placeholder='Выберите учения...'
-                                    />
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                        Список учений будет подгружаться из базы данных.
-                                    </p>
-                                </div>
-                                <div>
-                                    <Label>Уровень резерва</Label>
-                                    <SearchableSelect
-                                        options={isAdmin ? ADMIN_RESERVE_LEVEL_OPTIONS : RESERVE_LEVEL_OPTIONS}
-                                        value={formData.magic?.reserveLevel || ''}
-                                        onValueChange={(v) => handleMagicChange('reserveLevel', v)}
-                                        placeholder="Выберите уровень..."
-                                    />
-                                </div>
-                                <div>
-                                    <Label>Уровень веры</Label>
-                                    <SearchableSelect
-                                        options={FAITH_LEVEL_OPTIONS}
-                                        value={formData.magic?.faithLevel || ''}
-                                        onValueChange={(v) => handleMagicChange('faithLevel', v)}
-                                        placeholder="Выберите уровень..."
-                                    />
-                                </div>
-                            </div>
-                        );
-
                     default: return <p>Неизвестная секция для редактирования.</p>;
                 }
 
@@ -861,4 +880,5 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
 export default CharacterForm;
 
     
+
 

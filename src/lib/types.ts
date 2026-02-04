@@ -290,6 +290,7 @@ export interface Magic {
   teachings?: string[];
   reserveLevel?: string;
   faithLevel?: string;
+  magicClarifications?: string;
 }
 
 export interface OngoingHunt {
