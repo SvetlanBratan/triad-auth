@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -134,8 +132,8 @@ export default function MailTab() {
   
   const canReply = useMemo(() => {
       if (!selectedMail || !currentUser || selectedMail.type !== 'personal') return false;
-      // The current user must be the recipient to reply
-      return currentUser.characters.some(c => c.id === selectedMail.recipientCharacterId);
+      // The current user must be the recipient to reply AND the sender must be a character with an ID
+      return !!selectedMail.senderCharacterId && currentUser.characters.some(c => c.id === selectedMail.recipientCharacterId);
   }, [selectedMail, currentUser]);
 
   return (
