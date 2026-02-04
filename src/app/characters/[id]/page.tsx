@@ -221,6 +221,14 @@ export default function CharacterPage() {
     const queryClient = useQueryClient();
     const { toast } = useToast();
     
+    if (loading) {
+        return <CharacterPageSkeleton />;
+    }
+
+    if (!currentUser) {
+        return <AuthPage />;
+    }
+
     const charId = Array.isArray(id) ? id[0] : id;
 
     const { data: characterData, isLoading: isCharacterLoading, refetch } = useQuery({
@@ -351,14 +359,6 @@ export default function CharacterPage() {
         return uniqueImages;
     }, [character, allUsers]);
 
-    if (loading) {
-        return <CharacterPageSkeleton />;
-    }
-
-    if (!currentUser) {
-        return <AuthPage />;
-    }
-
     const handleFormSubmit = (characterData: Character) => {
         mutation.mutate(characterData);
     };
@@ -441,6 +441,8 @@ export default function CharacterPage() {
     const canViewHistory = isOwnerOrAdmin;
     const accomplishments = character.accomplishments || [];
     const isBiographyVisible = !character.biographyIsHidden || isOwnerOrAdmin;
+    const areAbilitiesVisible = !character.abilitiesAreHidden || isOwnerOrAdmin;
+    const areWeaknessesVisible = !character.weaknessesAreHidden || isOwnerOrAdmin;
     
     const backLink = currentUser?.id === owner.id ? '/' : `/users/${owner.id}`;
     const backLinkText = currentUser?.id === owner.id ? 'Вернуться в профиль' : 'Вернуться в профиль игрока';
@@ -670,88 +672,104 @@ export default function CharacterPage() {
                 <AccordionItem value="abilities" className="border-b-0 rounded-lg bg-card shadow-sm">
                     <SectionTrigger title="Способности" icon={<Zap />} section="abilities" />
                     <AccordionContent className="p-6 pt-0 text-sm">
-                        <div className="space-y-6">
-                            <div>
-                                <h4 className="font-semibold text-muted-foreground mb-2">Магические способности</h4>
-                                {character.magic && (character.magic.perception?.length || character.magic.elements?.length || character.magic.teachings?.length || character.magic.reserveLevel || character.magic.faithLevel) ? (
-                                    <div className="space-y-4 pl-2">
-                                        {character.magic.perception && character.magic.perception.length > 0 && (
-                                        <div>
-                                            <h5 className="font-medium">Восприятие магии:</h5>
-                                            <p className="text-muted-foreground">{character.magic.perception.join(', ')}</p>
+                        {areAbilitiesVisible ? (
+                            <div className="space-y-6">
+                                <div>
+                                    <h4 className="font-semibold text-muted-foreground mb-2">Магические способности</h4>
+                                    {(character.magic && (character.magic.perception?.length || character.magic.elements?.length || character.magic.teachings?.length || character.magic.reserveLevel || character.magic.faithLevel)) ? (
+                                        <div className="space-y-4 pl-2">
+                                            {character.magic.perception && character.magic.perception.length > 0 && (
+                                            <div>
+                                                <h5 className="font-medium">Восприятие магии:</h5>
+                                                <p>{character.magic.perception.join(', ')}</p>
+                                            </div>
+                                            )}
+                                            {character.magic.elements && character.magic.elements.length > 0 && (
+                                            <div>
+                                                <h5 className="font-medium">Стихийная магия:</h5>
+                                                <p>{character.magic.elements.join(', ')}</p>
+                                            </div>
+                                            )}
+                                            {character.magic.teachings && character.magic.teachings.length > 0 && (
+                                            <div>
+                                                <h5 className="font-medium">Учения:</h5>
+                                                <p>{character.magic.teachings.join(', ')}</p>
+                                            </div>
+                                            )}
+                                            {character.magic.reserveLevel && (
+                                            <div>
+                                                <h5 className="font-medium">Уровень резерва:</h5>
+                                                <p>{character.magic.reserveLevel}</p>
+                                            </div>
+                                            )}
+                                            {character.magic.faithLevel && (
+                                            <div>
+                                                <h5 className="font-medium">Уровень веры:</h5>
+                                                <p>{character.magic.faithLevel}</p>
+                                            </div>
+                                            )}
                                         </div>
-                                        )}
-                                        {character.magic.elements && character.magic.elements.length > 0 && (
-                                        <div>
-                                            <h5 className="font-medium">Стихийная магия:</h5>
-                                            <p className="text-muted-foreground">{character.magic.elements.join(', ')}</p>
-                                        </div>
-                                        )}
-                                        {character.magic.teachings && character.magic.teachings.length > 0 && (
-                                        <div>
-                                            <h5 className="font-medium">Учения:</h5>
-                                            <p className="text-muted-foreground">{character.magic.teachings.join(', ')}</p>
-                                        </div>
-                                        )}
-                                        {character.magic.reserveLevel && (
-                                        <div>
-                                            <h5 className="font-medium">Уровень резерва:</h5>
-                                            <p className="text-muted-foreground">{character.magic.reserveLevel}</p>
-                                        </div>
-                                        )}
-                                        {character.magic.faithLevel && (
-                                        <div>
-                                            <h5 className="font-medium">Уровень веры:</h5>
-                                            <p className="text-muted-foreground">{character.magic.faithLevel}</p>
-                                        </div>
+                                    ) : (
+                                        <p className="pl-2">Магические способности не указаны.</p>
+                                    )}
+                                </div>
+                                
+                                 {(character.magic?.magicClarifications || (isOwnerOrAdmin && areAbilitiesVisible)) && (
+                                    <div>
+                                        <h4 className="font-semibold text-muted-foreground mb-2">Уточнения по магии</h4>
+                                        {character.magic?.magicClarifications ? (
+                                            <div className="pl-2">
+                                                <FormattedTextRenderer text={character.magic.magicClarifications} />
+                                            </div>
+                                        ) : (
+                                            isOwnerOrAdmin && <p className="pl-2">Описание отсутствует.</p>
                                         )}
                                     </div>
-                                ) : (
-                                    <p className="pl-2">Магические способности не указаны.</p>
+                                )}
+
+
+                                {(character.abilities || (isOwnerOrAdmin && areAbilitiesVisible)) && (
+                                    <div>
+                                        <h4 className="font-semibold text-muted-foreground mb-2">Немагические навыки</h4>
+                                        {character.abilities ? (
+                                            <div className="pl-2">
+                                                <FormattedTextRenderer text={character.abilities} />
+                                            </div>
+                                        ) : (
+                                            isOwnerOrAdmin && <p className="pl-2">Описание отсутствует.</p>
+                                        )}
+                                    </div>
                                 )}
                             </div>
-
-                            {(character.magic?.magicClarifications || isOwnerOrAdmin) && (
-                                <div>
-                                    <h4 className="font-semibold text-muted-foreground mb-2">Уточнения по магии</h4>
-                                    {character.magic?.magicClarifications ? (
-                                        <div className="pl-2">
-                                            <FormattedTextRenderer text={character.magic.magicClarifications} />
-                                        </div>
-                                    ) : (
-                                        isOwnerOrAdmin && <p className="pl-2">Описание отсутствует.</p>
-                                    )}
-                                </div>
-                            )}
-
-                            {(character.abilities || isOwnerOrAdmin) && (
-                                <div>
-                                    <h4 className="font-semibold text-muted-foreground mb-2">Немагические навыки</h4>
-                                    {character.abilities ? (
-                                        <div className="pl-2">
-                                            <FormattedTextRenderer text={character.abilities} />
-                                        </div>
-                                    ) : (
-                                        isOwnerOrAdmin && <p className="pl-2">Описание отсутствует.</p>
-                                    )}
-                                </div>
-                            )}
-                        </div>
+                         ) : (
+                            <div className="flex flex-col items-center justify-center h-32 text-center text-muted-foreground bg-muted/50 rounded-md">
+                                <Lock className="w-8 h-8 mb-2" />
+                                <p className="font-semibold">Способности скрыты</p>
+                            </div>
+                        )}
                     </AccordionContent>
                 </AccordionItem>
                 
-                {(character.weaknesses || isOwnerOrAdmin) && (
-                    <AccordionItem value="weaknesses" className="border-b-0 rounded-lg bg-card shadow-sm">
-                        <SectionTrigger title="Слабости" icon={<ShieldOff />} section="weaknesses" />
-                        {character.weaknesses && (
-                            <AccordionContent className="p-6 pt-0">
+                <AccordionItem value="weaknesses" className="border-b-0 rounded-lg bg-card shadow-sm">
+                    <SectionTrigger title="Слабости" icon={<ShieldOff />} section="weaknesses" />
+                    <AccordionContent className="p-6 pt-0">
+                        {areWeaknessesVisible ? (
+                           character.weaknesses ? (
                                 <ScrollArea className="h-40 w-full">
                                     <div className="pr-4"><FormattedTextRenderer text={character.weaknesses} /></div>
                                 </ScrollArea>
-                            </AccordionContent>
+                           ) : (
+                               <p className="text-sm">Информация отсутствует.</p>
+                           )
+                        ) : (
+                            <div className="flex flex-col items-center justify-center h-32 text-center text-muted-foreground bg-muted/50 rounded-md">
+                                <Lock className="w-8 h-8 mb-2" />
+                                <p className="font-semibold">Слабости скрыты</p>
+                            </div>
                         )}
-                    </AccordionItem>
-                )}
+                    </AccordionContent>
+                </AccordionItem>
+
                 <AccordionItem value="additional" className="border-b-0 rounded-lg bg-card shadow-sm">
                     <AccordionTrigger className="w-full p-4 hover:no-underline">
                         <CardTitle className="flex items-center gap-2 text-lg"><BookUser /> Дополнительно</CardTitle>
