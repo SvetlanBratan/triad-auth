@@ -38,7 +38,9 @@
        ".write": "auth != null"
     },
     "magic": {
-        ".read": "auth != null",
+        "teachings": {
+            ".read": "auth != null"
+        },
         ".write": "auth != null && (auth.uid === 'yawuIwXKVbNhsBQSqWfGZyAzZ3A3' || auth.uid === 'DH3G5YCIR5WsAljrQBEw3zK0jw12' || auth.uid === 'ZMzJOQ4X5QYajS9vIEiPgrwr5g72' || auth.uid === 'Bt3DidqzFkaAlyNuILctdRxNytH2')"
     },
     "races": {

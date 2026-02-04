@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
@@ -742,19 +741,23 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             }
         );
 
-        const teachingsRef = rtdbRef(database, 'magic');
+        const teachingsRef = rtdbRef(database, 'magic/teachings');
         const teachingsUnsubscribe = onValue(teachingsRef, (snapshot) => {
             if (snapshot.exists()) {
                 const teachingsData = snapshot.val();
-                if (typeof teachingsData === 'object' && teachingsData !== null) {
-                    const teachingsArray = Object.values(teachingsData) as any[];
-                    if (Array.isArray(teachingsArray)) {
-                        const formattedTeachings = teachingsArray
-                            .filter(t => t && t.name)
-                            .map(t => ({ value: t.name, label: t.name }));
-                        setTeachings(formattedTeachings);
-                    }
+                let teachingsArray: any[] = [];
+                if (Array.isArray(teachingsData)) {
+                    teachingsArray = teachingsData;
+                } else if (typeof teachingsData === 'object' && teachingsData !== null) {
+                    teachingsArray = Object.values(teachingsData);
                 }
+        
+                const formattedTeachings = teachingsArray
+                    .filter(t => t && typeof t === 'object' && t.name)
+                    .map(t => ({ value: t.name, label: t.name }));
+                setTeachings(formattedTeachings);
+            } else {
+                setTeachings([]);
             }
         }, (error: Error) => {
             console.error("Firebase Realtime Database read failed for teachings:", error);
@@ -3556,14 +3559,3 @@ export const useUser = () => {
 
     
 
-    
-
-
-
- 
-
-
-
-    
-
-    
