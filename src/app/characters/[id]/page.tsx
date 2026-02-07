@@ -215,7 +215,7 @@ const FamiliarsSection = ({ character }: { character: Character }) => {
 
 
 export default function CharacterPage() {
-    const { id } = useParams();
+    const params = useParams();
     const { currentUser, updateCharacterInUser, gameDate, consumeInventoryItem, setCurrentUser, fetchCharacterById, fetchUsersForAdmin, fetchAllShops } = useUser();
     const { loading } = useAuth();
     const queryClient = useQueryClient();
@@ -228,24 +228,25 @@ export default function CharacterPage() {
     const [selectedGalleryItem, setSelectedGalleryItem] = useState<GalleryImage | null>(null);
     const [inventorySearch, setInventorySearch] = useState('');
     
+    const id = params.id;
     const charId = Array.isArray(id) ? id[0] : id;
-
-    const { data: characterData, isLoading: isCharacterLoading, refetch } = useQuery({
-        queryKey: ['character', charId],
-        queryFn: () => charId ? fetchCharacterById(charId) : Promise.resolve(null),
-        enabled: !!charId,
-    });
 
     const { data: allUsers = [], isLoading: areUsersLoading } = useQuery<User[]>({
         queryKey: ['adminUsers'],
         queryFn: fetchUsersForAdmin,
     });
-
+    
     const { data: allShops = [] } = useQuery({
         queryKey: ['allShops'],
         queryFn: fetchAllShops,
     });
-
+    
+    const { data: characterData, isLoading: isCharacterLoading, refetch } = useQuery({
+        queryKey: ['character', charId],
+        queryFn: () => charId ? fetchCharacterById(charId) : Promise.resolve(null),
+        enabled: !!charId,
+    });
+    
     const character = characterData?.character;
     const owner = characterData?.owner;
 
@@ -1442,14 +1443,14 @@ export default function CharacterPage() {
             
              <Dialog open={!!selectedItem} onOpenChange={(isOpen) => !isOpen && setSelectedItem(null)}>
                 {selectedItem && (
-                    <DialogContent className="max-w-md p-0">
-                        <div className="grid md:grid-cols-2 gap-6 items-start">
+                    <DialogContent className="max-w-md sm:max-w-2xl p-0">
+                        <div className="sm:grid sm:grid-cols-2 sm:items-start">
                             {selectedItem.image && (
-                                <div className="relative w-full h-80 bg-muted rounded-t-lg sm:rounded-md overflow-hidden">
+                                <div className="relative w-full aspect-square sm:h-full bg-muted rounded-t-lg sm:rounded-l-lg sm:rounded-tr-none overflow-hidden">
                                     <Image src={selectedItem.image} alt={selectedItem.name} fill style={{objectFit: "contain"}} data-ai-hint="inventory item" />
                                 </div>
                             )}
-                            <div className={cn("flex flex-col h-full p-6", !selectedItem.image && "md:col-span-2")}>
+                            <div className={cn("flex flex-col h-full p-6", !selectedItem.image && "sm:col-span-2")}>
                                 <DialogHeader className="flex-grow">
                                     <DialogTitle>{selectedItem.name}</DialogTitle>
                                     <ScrollArea className="max-h-64 pr-4 mt-2">
@@ -1525,4 +1526,3 @@ export default function CharacterPage() {
         </div>
     );
 }
-
