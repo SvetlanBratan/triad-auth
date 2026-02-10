@@ -824,12 +824,12 @@ export default function CharacterPage() {
                                     {combinedGallery.map((img, index) => {
                                         if (!img || !img.url) return null;
                                         return (
-                                            <button key={img.id || index} className="relative aspect-square" onClick={() => setSelectedGalleryItem(img)}>
+                                            <button key={img.id || index} className="relative aspect-square bg-muted/50 rounded-lg" onClick={() => setSelectedGalleryItem(img)}>
                                                 <Image
                                                     src={img.url}
                                                     alt={`Gallery image ${img.id}`}
                                                     fill
-                                                    style={{ objectFit: 'cover' }}
+                                                    style={{ objectFit: 'contain' }}
                                                     className="rounded-lg"
                                                 />
                                             </button>
