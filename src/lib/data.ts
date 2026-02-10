@@ -1,6 +1,5 @@
 
 
-
 import type { Reward, FamiliarCard, Achievement, GameSettings, WealthLevel, BankAccount, CapitalLevel, CrimeLevel, Shop, InventoryCategory, PopularityEvent, HuntingLocation } from './types';
 import type { OptionType } from '@/components/ui/multi-select';
 
@@ -159,6 +158,7 @@ export const FAITH_LEVEL_OPTIONS: OptionType[] = [
 ];
 
 export const RACE_OPTIONS: OptionType[] = [
+    { value: 'Человек', label: 'Человек' },
     { value: 'Алахор', label: 'Алахор' },
     { value: 'Алариен', label: 'Алариен' },
     { value: 'Амфибия', label: 'Амфибия' },
@@ -390,6 +390,10 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
   { id: 'ach-era-face', name: 'Лицо эпохи', description: 'Даётся за покупку награды "Арт от ИИ"', iconName: 'Image' },
   { id: 'ach-first-brew', name: 'Юный алхимик', description: 'Выдаётся за первое созданное зелье или артефакт.', iconName: 'Beaker' },
   { id: 'ach-first-purchase', name: 'Шопоголик', description: 'Выдается за первую совершенную покупку в любом магазине.', iconName: 'ShoppingCart' },
+  { id: 'ach-questionnaire', name: 'Сделал первый шаг', description: 'Отправил анкету персонажа через сайт.', iconName: 'ach-questionnaire' },
+  { id: 'ach-first-hunt', name: 'Первая охота', description: 'Впервые отправил фамильяра на охоту.', iconName: 'ach-hunting' },
+  { id: 'ach-favorites', name: 'В поле зрения', description: 'Добавил другого игрока в избранное.', iconName: 'ach-favorites' },
+  { id: 'ach-vip', name: 'VIP персона', description: 'Установка особенного статуса. Такой только у избранных!', iconName: 'ach-vip' },
 
   // Manual & Popularity-based
   { id: 'ach-rumor-of-the-week', name: 'Слух недели', description: 'Персонаж был упомянут в газете, став предметом обсуждений и сплетен.', iconName: 'Newspaper' },
@@ -414,10 +418,6 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
   { id: 'ach-winner3', name: 'Третье место', description: 'Вошёл в тройку лучших участников конкурса.', iconName: 'ach-winner3' },
   { id: 'ach-participant', name: 'Участник конкурса', description: 'Принял участие в конкурсе и проявил себя.', iconName: 'ach-participant' },
   { id: 'ach-writer', name: 'Искра сюжета', description: 'Предложил идею, ставшую основой или частью игрового сюжета.', iconName: 'ach-writer' },
-  { id: 'ach-questionnaire', name: 'Сделал первый шаг', description: 'Отправил анкету персонажа через сайт.', iconName: 'ach-questionnaire' },
-  { id: 'ach-hunting', name: 'Первая охота', description: 'Впервые отправил фамильяра на охоту.', iconName: 'ach-hunting' },
-  { id: 'ach-favorites', name: 'В поле зрения', description: 'Добавил другого игрока в избранное.', iconName: 'ach-favorites' },
-  { id: 'ach-vip', name: 'VIP персона', description: 'Установка особенного статуса. Такой только у избранных!', iconName: 'ach-vip' },
 ];
 
 export const ACHIEVEMENTS_BY_ID: Record<string, Achievement> = ALL_ACHIEVEMENTS.reduce((acc, ach) => {
