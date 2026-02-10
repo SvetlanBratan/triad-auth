@@ -11,8 +11,7 @@ import { Trophy, Users, Search, Send, Trash2, Link as LinkIcon, Gamepad2 } from 
 import type { User, UserStatus, PlayerPing } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { useInfiniteQuery, useQuery, type InfiniteData, type QueryClient } from '@tanstack/react-query';
-import type { DocumentSnapshot, DocumentData } from 'firebase/firestore';
+import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import Image from 'next/image';
 import { CustomIcon } from '../ui/custom-icon';
@@ -35,36 +34,18 @@ const getStatusClass = (status: UserStatus) => {
     }
   };
 
-type LeaderboardPage = {
-    users: User[];
-    lastVisible?: DocumentSnapshot<DocumentData, DocumentData>;
-};
-
-type PageParam = DocumentSnapshot<DocumentData> | null;
-
 const LeaderboardTable = () => {
     const { fetchLeaderboardUsers } = useUser();
     const { toast } = useToast();
     const [statusFilter, setStatusFilter] = React.useState<UserStatus | 'all'>('активный');
 
     const {
-        data,
+        data: allUsers = [],
         isLoading,
         isError,
-        fetchNextPage,
-        hasNextPage,
-        isFetchingNextPage,
-    } = useInfiniteQuery<
-        LeaderboardPage,
-        Error,
-        InfiniteData<LeaderboardPage>,
-        string[],
-        PageParam
-      >({
+    } = useQuery<User[]>({
         queryKey: ['leaderboard'],
-        queryFn: ({ pageParam }) => fetchLeaderboardUsers(pageParam),
-        initialPageParam: null,
-        getNextPageParam: (lastPage) => lastPage.lastVisible ?? null,
+        queryFn: fetchLeaderboardUsers,
     });
     
     React.useEffect(() => {
@@ -77,8 +58,6 @@ const LeaderboardTable = () => {
         }
     }, [isError, toast]);
 
-    const allUsers = React.useMemo(() => data?.pages.flatMap(page => page.users) || [], [data]);
-
     const filteredUsers = React.useMemo(() => {
       if (statusFilter === 'all') {
         return allUsers;
@@ -86,7 +65,7 @@ const LeaderboardTable = () => {
       return allUsers.filter(user => user.status === statusFilter);
     }, [allUsers, statusFilter]);
 
-    if (isLoading && !data) {
+    if (isLoading) {
         return <div className="flex justify-center items-center h-64"><p>Загрузка...</p></div>
     }
 
@@ -160,13 +139,6 @@ const LeaderboardTable = () => {
                     ))}
                 </TableBody>
             </Table>
-            {hasNextPage && (
-                <div className="mt-4 text-center">
-                    <Button onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
-                        {isFetchingNextPage ? 'Загрузка...' : 'Загрузить ещё'}
-                    </Button>
-                </div>
-            )}
         </>
     );
 };

@@ -40,7 +40,7 @@ export interface UserContextType {
   fetchUserById: (userId: string) => Promise<User | null>;
   fetchCharacterById: (characterId: string) => Promise<{ character: Character; owner: User } | null>;
   fetchUsersForAdmin: () => Promise<User[]>;
-  fetchLeaderboardUsers: (lastVisible?: DocumentSnapshot<DocumentData, DocumentData> | null) => Promise<{ users: User[], lastVisible?: DocumentSnapshot<DocumentData> }>;
+  fetchLeaderboardUsers: () => Promise<User[]>;
   fetchAllRewardRequests: () => Promise<RewardRequest[]>;
   fetchRewardRequestsForUser: (userId: string, fetchLimit?: number) => Promise<RewardRequest[]>;
   fetchAvailableMythicCardsCount: () => Promise<number>;
@@ -297,7 +297,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         relationships: [],
         marriedTo: [],
         abilities: '',
+        abilitiesAreHidden: false,
         weaknesses: '',
+        weaknessesAreHidden: false,
         lifeGoal: '',
         criminalRecords: '',
         familiarCards: [],
@@ -318,6 +320,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             reserveLevel: '',
             faithLevel: '',
             magicClarifications: '',
+            maxElements: 4,
+            maxTeachings: 3,
         }
     }), []);
 
@@ -385,27 +389,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
     }, [processUserDoc]);
     
-    const fetchLeaderboardUsers = useCallback(async (lastVisible: DocumentSnapshot<DocumentData> | null = null): Promise<{ users: User[], lastVisible?: DocumentSnapshot<DocumentData> }> => {
-        const PAGE_SIZE = 20;
+    const fetchLeaderboardUsers = useCallback(async (): Promise<User[]> => {
         const usersCollection = collection(db, "users");
-        let q;
-        if (lastVisible) {
-          q = query(usersCollection, orderBy("points", "desc"), startAfter(lastVisible), limit(PAGE_SIZE));
-        } else {
-          q = query(usersCollection, orderBy("points", "desc"), limit(PAGE_SIZE));
-        }
-
+        const q = query(usersCollection, orderBy("points", "desc"));
         const userSnapshot = await getDocs(q);
         const users = await Promise.all(userSnapshot.docs.map(doc => processUserDoc(doc.data() as User)));
-        
-        const newLastVisible = userSnapshot.docs.length >= PAGE_SIZE 
-            ? userSnapshot.docs[userSnapshot.docs.length - 1]
-            : undefined;
-        
-        return {
-            users: users.filter((user): user is User => user !== null),
-            lastVisible: newLastVisible,
-        };
+        return users.filter((user): user is User => user !== null);
     }, [processUserDoc]);
 
     const fetchCharacterById = useCallback(async (characterId: string): Promise<{ character: Character; owner: User } | null> => {
@@ -810,10 +799,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                     }
                 });
 
-                const stringFields: (keyof Character)[] = ['factions', 'abilities', 'weaknesses', 'lifeGoal', 'criminalRecords', 'appearanceImage', 'diary', 'workLocation', 'blessingExpires', 'bannerImage'];
+                const stringFields: (keyof Character)[] = ['factions', 'abilities', 'abilitiesAreHidden', 'weaknesses', 'weaknessesAreHidden', 'lifeGoal', 'criminalRecords', 'appearanceImage', 'diary', 'workLocation', 'blessingExpires', 'bannerImage'];
                 stringFields.forEach(field => {
                     if (sanitized[field] === undefined || sanitized[field] === null) {
-                        (sanitized as any)[field] = '';
+                        if(typeof sanitized[field] === 'boolean') {
+                            (sanitized as any)[field] = false;
+                        } else {
+                            (sanitized as any)[field] = '';
+                        }
                     }
                 });
                 
@@ -997,7 +990,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                             characterToUpdate.hasLeviathanFriendship = true;
                         } else if (request.rewardId === 'r-crime-connections') {
                             characterToUpdate.hasCrimeConnections = true;
+                        } else if (request.rewardId === 'r-extra-element') {
+                            if(!characterToUpdate.magic) characterToUpdate.magic = {};
+                            characterToUpdate.magic.maxElements = (characterToUpdate.magic.maxElements || 4) + 1;
+                        } else if (request.rewardId === 'r-extra-doctrine') {
+                            if(!characterToUpdate.magic) characterToUpdate.magic = {};
+                            characterToUpdate.magic.maxTeachings = (characterToUpdate.magic.maxTeachings || 3) + 1;
+                        } else if (request.rewardId === 'r-swap-element') {
+                           if(!characterToUpdate.magic) characterToUpdate.magic = {};
+                            characterToUpdate.magic.maxElements = (characterToUpdate.magic.maxElements || 4) - 1;
+                            characterToUpdate.magic.maxTeachings = (characterToUpdate.magic.maxTeachings || 3) + 2;
                         }
+
                         
                         characterToUpdate.familiarCards = familiarCards;
                         updatedCharacters[characterToUpdateIndex] = characterToUpdate;
@@ -3558,4 +3562,5 @@ export const useUser = () => {
     
 
     
+
 
