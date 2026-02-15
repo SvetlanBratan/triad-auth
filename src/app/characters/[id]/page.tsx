@@ -371,6 +371,27 @@ export default function CharacterPage() {
         return uniqueImages;
     }, [character, allUsers]);
 
+    const trainingRecords = useMemo(() => {
+        if (!character?.training || !Array.isArray(character.training)) return [];
+        
+        return character.training.map(t => {
+            if (typeof t === 'string') {
+                const option = TRAINING_OPTIONS.find(opt => opt.value === t);
+                return {
+                    name: option ? option.label : t,
+                    duration: '',
+                    specialization: ''
+                };
+            }
+            const option = TRAINING_OPTIONS.find(opt => opt.value === t.id);
+            return {
+                name: option ? option.label : t.id,
+                duration: t.duration || '',
+                specialization: t.specialization || ''
+            };
+        });
+    }, [character]);
+
     if (loading || isCharacterLoading || areUsersLoading) {
         return <CharacterPageSkeleton />;
     }
@@ -443,27 +464,6 @@ export default function CharacterPage() {
       транспорт: [], предприятия: [], услуги: [], документы: [], ингредиенты: [], ключи: [],
       ...(character.inventory ?? {})
     } as Character['inventory'];
-    
-    const trainingRecords = useMemo(() => {
-        if (!character.training || !Array.isArray(character.training)) return [];
-        
-        return character.training.map(t => {
-            if (typeof t === 'string') {
-                const option = TRAINING_OPTIONS.find(opt => opt.value === t);
-                return {
-                    name: option ? option.label : t,
-                    duration: '',
-                    specialization: ''
-                };
-            }
-            const option = TRAINING_OPTIONS.find(opt => opt.value === t.id);
-            return {
-                name: option ? option.label : t.id,
-                duration: t.duration || '',
-                specialization: t.specialization || ''
-            };
-        });
-    }, [character.training]);
     
     const isBlessed = character.blessingExpires && new Date(character.blessingExpires) > new Date();
     const activeMoodlets = (character.moodlets || []).filter(m => new Date(m.expiresAt) > new Date());
