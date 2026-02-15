@@ -24,7 +24,7 @@ export type EditableSection =
     | 'appearance' | 'personality'
     | 'biography' | 'abilities' | 'weaknesses' | 'marriage'
     | 'training' | 'lifeGoal' | 'diary' | 'criminalRecords' | 'mainInfo'
-    | 'gallery' | 'magic';
+    | 'gallery';
 
 export type EditingState = {
     type: 'section',
@@ -150,7 +150,6 @@ const SectionTitles: Record<EditableSection, string> = {
     personality: 'Характер',
     biography: 'Биография',
     abilities: 'Способности',
-    magic: 'Магия',
     weaknesses: 'Слабости',
     marriage: 'Семейное положение',
     training: 'Обучение',
@@ -642,6 +641,8 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                         </div>
                     );
                     case 'abilities':
+                        const maxElements = formData.magic?.maxElements ?? 4;
+                        const maxTeachings = formData.magic?.maxTeachings ?? 3;
                         return (
                             <div className="space-y-6">
                                 <div className="space-y-2">
@@ -649,75 +650,72 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                                     <Textarea id="abilities" value={formData.abilities ?? ''} onChange={(e) => handleFieldChange('abilities', e.target.value)} rows={8} placeholder="Опишите уникальные немагические способности или навыки..."/>
                                     <FormattingHelp />
                                 </div>
-                                 <div className="flex items-center space-x-2 pt-4 border-t">
+                    
+                                <div className="space-y-4 pt-4 border-t">
+                                    <h4 className="font-semibold text-foreground">Магические способности</h4>
+                                    <div>
+                                        <Label>Восприятие магии</Label>
+                                        <SearchableMultiSelect
+                                            options={MAGIC_PERCEPTION_OPTIONS}
+                                            selected={formData.magic?.perception || []}
+                                            onChange={(v) => handleMagicChange('perception', v)}
+                                            placeholder='Выберите восприятие...'
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Стихийная магия (не более {maxElements})</Label>
+                                        {(formData.magic?.elements || []).map((el, index) => (
+                                            <div key={index} className="flex items-center gap-2 p-2 border rounded-md">
+                                                <SearchableSelect options={isAdmin ? ADMIN_ELEMENTAL_MAGIC_OPTIONS : ELEMENTAL_MAGIC_OPTIONS} value={el.name} onValueChange={v => handleMagicAbilityChange('elements', index, 'name', v)} placeholder="Стихия" className="flex-1" />
+                                                <SearchableSelect options={isAdmin ? ADMIN_KNOWLEDGE_LEVELS : KNOWLEDGE_LEVELS} value={el.level} onValueChange={v => handleMagicAbilityChange('elements', index, 'level', v)} placeholder="Уровень" className="flex-1" />
+                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeMagicAbility('elements', index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                            </div>
+                                        ))}
+                                        {(formData.magic?.elements || []).length < maxElements && <Button type="button" variant="outline" size="sm" onClick={() => addMagicAbility('elements')}><PlusCircle className="mr-2 h-4 w-4" /> Добавить стихию</Button>}
+                                    </div>
+                                        <div className="space-y-2">
+                                        <Label>Учения (до {maxTeachings} штук)</Label>
+                                        {(formData.magic?.teachings || []).map((t, index) => (
+                                            <div key={index} className="flex items-center gap-2 p-2 border rounded-md">
+                                                <SearchableSelect options={teachings} value={t.name} onValueChange={v => handleMagicAbilityChange('teachings', index, 'name', v)} placeholder="Учение" className="flex-1" />
+                                                <SearchableSelect options={isAdmin ? ADMIN_KNOWLEDGE_LEVELS : KNOWLEDGE_LEVELS} value={t.level} onValueChange={v => handleMagicAbilityChange('teachings', index, 'level', v)} placeholder="Уровень" className="flex-1" />
+                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeMagicAbility('teachings', index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                            </div>
+                                        ))}
+                                        {(formData.magic?.teachings || []).length < maxTeachings && <Button type="button" variant="outline" size="sm" onClick={() => addMagicAbility('teachings')}><PlusCircle className="mr-2 h-4 w-4" /> Добавить учение</Button>}
+                                    </div>
+                                    <div>
+                                        <Label>Уровень резерва</Label>
+                                        <SearchableSelect
+                                            options={isAdmin ? ADMIN_RESERVE_LEVEL_OPTIONS : RESERVE_LEVEL_OPTIONS}
+                                            value={formData.magic?.reserveLevel || ''}
+                                            onValueChange={(v) => handleMagicChange('reserveLevel', v)}
+                                            placeholder="Выберите уровень..."
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label>Уровень веры</Label>
+                                        <SearchableSelect
+                                            options={FAITH_LEVEL_OPTIONS}
+                                            value={formData.magic?.faithLevel || ''}
+                                            onValueChange={(v) => handleMagicChange('faithLevel', v)}
+                                            placeholder="Выберите уровень..."
+                                        />
+                                    </div>
+                                        <div className="space-y-2">
+                                        <Label htmlFor="magicClarifications">Уточнения по магии</Label>
+                                        <Textarea id="magicClarifications" value={formData.magic?.magicClarifications || ''} onChange={(e) => handleMagicChange('magicClarifications', e.target.value)} rows={6} placeholder="Любые детали и нюансы, не вошедшие в шаблон..."/>
+                                        <FormattingHelp />
+                                    </div>
+                                </div>
+                    
+                                <div className="flex items-center space-x-2 pt-4 border-t">
                                     <Switch
                                         id="abilities-hidden-switch"
                                         checked={!!formData.abilitiesAreHidden}
                                         onCheckedChange={(checked) => handleFieldChange('abilitiesAreHidden', checked)}
                                     />
                                     <Label htmlFor="abilities-hidden-switch">Скрыть способности от других игроков</Label>
-                                </div>
-                            </div>
-                        );
-                    case 'magic':
-                        const maxElements = formData.magic?.maxElements ?? 4;
-                        const maxTeachings = formData.magic?.maxTeachings ?? 3;
-                        return (
-                           <div className="space-y-4 p-4 border rounded-md">
-                                <h4 className="font-semibold text-foreground">Магические способности</h4>
-                                <div>
-                                    <Label>Восприятие магии</Label>
-                                    <SearchableMultiSelect
-                                        options={MAGIC_PERCEPTION_OPTIONS}
-                                        selected={formData.magic?.perception || []}
-                                        onChange={(v) => handleMagicChange('perception', v)}
-                                        placeholder='Выберите восприятие...'
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Стихийная магия (не более {maxElements})</Label>
-                                    {(formData.magic?.elements || []).map((el, index) => (
-                                        <div key={index} className="flex items-center gap-2 p-2 border rounded-md">
-                                            <SearchableSelect options={isAdmin ? ADMIN_ELEMENTAL_MAGIC_OPTIONS : ELEMENTAL_MAGIC_OPTIONS} value={el.name} onValueChange={v => handleMagicAbilityChange('elements', index, 'name', v)} placeholder="Стихия" className="flex-1" />
-                                            <SearchableSelect options={isAdmin ? ADMIN_KNOWLEDGE_LEVELS : KNOWLEDGE_LEVELS} value={el.level} onValueChange={v => handleMagicAbilityChange('elements', index, 'level', v)} placeholder="Уровень" className="flex-1" />
-                                            <Button type="button" variant="ghost" size="icon" onClick={() => removeMagicAbility('elements', index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                                        </div>
-                                    ))}
-                                    {(formData.magic?.elements || []).length < maxElements && <Button type="button" variant="outline" size="sm" onClick={() => addMagicAbility('elements')}><PlusCircle className="mr-2 h-4 w-4" /> Добавить стихию</Button>}
-                                </div>
-                                 <div className="space-y-2">
-                                    <Label>Учения (до {maxTeachings} штук)</Label>
-                                    {(formData.magic?.teachings || []).map((t, index) => (
-                                        <div key={index} className="flex items-center gap-2 p-2 border rounded-md">
-                                            <SearchableSelect options={teachings} value={t.name} onValueChange={v => handleMagicAbilityChange('teachings', index, 'name', v)} placeholder="Учение" className="flex-1" />
-                                            <SearchableSelect options={isAdmin ? ADMIN_KNOWLEDGE_LEVELS : KNOWLEDGE_LEVELS} value={t.level} onValueChange={v => handleMagicAbilityChange('teachings', index, 'level', v)} placeholder="Уровень" className="flex-1" />
-                                            <Button type="button" variant="ghost" size="icon" onClick={() => removeMagicAbility('teachings', index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                                        </div>
-                                    ))}
-                                    {(formData.magic?.teachings || []).length < maxTeachings && <Button type="button" variant="outline" size="sm" onClick={() => addMagicAbility('teachings')}><PlusCircle className="mr-2 h-4 w-4" /> Добавить учение</Button>}
-                                </div>
-                                <div>
-                                    <Label>Уровень резерва</Label>
-                                    <SearchableSelect
-                                        options={isAdmin ? ADMIN_RESERVE_LEVEL_OPTIONS : RESERVE_LEVEL_OPTIONS}
-                                        value={formData.magic?.reserveLevel || ''}
-                                        onValueChange={(v) => handleMagicChange('reserveLevel', v)}
-                                        placeholder="Выберите уровень..."
-                                    />
-                                </div>
-                                <div>
-                                    <Label>Уровень веры</Label>
-                                    <SearchableSelect
-                                        options={FAITH_LEVEL_OPTIONS}
-                                        value={formData.magic?.faithLevel || ''}
-                                        onValueChange={(v) => handleMagicChange('faithLevel', v)}
-                                        placeholder="Выберите уровень..."
-                                    />
-                                </div>
-                                 <div className="space-y-2">
-                                    <Label htmlFor="magicClarifications">Уточнения по магии</Label>
-                                    <Textarea id="magicClarifications" value={formData.magic?.magicClarifications || ''} onChange={(e) => handleMagicChange('magicClarifications', e.target.value)} rows={6} placeholder="Любые детали и нюансы, не вошедшие в шаблон..."/>
-                                    <FormattingHelp />
                                 </div>
                             </div>
                         );
