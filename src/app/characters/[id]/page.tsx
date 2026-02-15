@@ -444,12 +444,26 @@ export default function CharacterPage() {
       ...(character.inventory ?? {})
     } as Character['inventory'];
     
-    const trainingValues = Array.isArray(character.training) ? character.training : [];
-    const uniqueTrainingValues = [...new Set(trainingValues)];
-    const trainingLabels = uniqueTrainingValues.map(value => {
-        const option = TRAINING_OPTIONS.find(opt => opt.value === value);
-        return option ? option.label : value;
-    });
+    const trainingRecords = useMemo(() => {
+        if (!character.training || !Array.isArray(character.training)) return [];
+        
+        return character.training.map(t => {
+            if (typeof t === 'string') {
+                const option = TRAINING_OPTIONS.find(opt => opt.value === t);
+                return {
+                    name: option ? option.label : t,
+                    duration: '',
+                    specialization: ''
+                };
+            }
+            const option = TRAINING_OPTIONS.find(opt => opt.value === t.id);
+            return {
+                name: option ? option.label : t.id,
+                duration: t.duration || '',
+                specialization: t.specialization || ''
+            };
+        });
+    }, [character.training]);
     
     const isBlessed = character.blessingExpires && new Date(character.blessingExpires) > new Date();
     const activeMoodlets = (character.moodlets || []).filter(m => new Date(m.expiresAt) > new Date());
@@ -785,10 +799,16 @@ export default function CharacterPage() {
                             title="Обучение"
                             section="training"
                             isVisible={true}
-                            isEmpty={!character.training || character.training.length === 0}
+                            isEmpty={!trainingRecords || trainingRecords.length === 0}
                             content={
-                                <ul className="list-disc pl-5 space-y-1 text-sm pt-2">
-                                    {trainingLabels.map((label, index) => <li key={`${label}-${index}`}>{label}</li>)}
+                                <ul className="list-disc pl-5 space-y-2 text-sm pt-2">
+                                    {trainingRecords.map((record, index) => (
+                                        <li key={index}>
+                                            <span className="font-semibold">{record.name}</span>
+                                            {record.specialization && <span className="text-primary"> – {record.specialization}</span>}
+                                            {record.duration && <span className="text-muted-foreground"> ({record.duration})</span>}
+                                        </li>
+                                    ))}
                                 </ul>
                             }
                         />

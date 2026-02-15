@@ -308,6 +308,12 @@ export interface OngoingHunt {
     endsAt: string; // ISO string
 }
 
+export interface TrainingRecord {
+  id: string; // e.g., 'peasant_school'
+  duration?: string; // e.g., '2 года'
+  specialization?: string; // e.g., 'Травничество'
+}
+
 export interface Character {
   id: string;
   name: string;
@@ -334,7 +340,7 @@ export interface Character {
   biography: string;
   biographyIsHidden?: boolean;
   diary: string;
-  training: string[];
+  training: TrainingRecord[];
   relationships: Relationship[];
   marriedTo?: string[];
   inventory: Partial<Inventory>;

@@ -3,7 +3,7 @@
 'use client';
 
 import React from 'react';
-import type { Character, User, Accomplishment, Relationship, RelationshipType, CrimeLevel, CitizenshipStatus, Inventory, GalleryImage, Magic, MagicAbility } from '@/lib/types';
+import type { Character, User, Accomplishment, Relationship, RelationshipType, CrimeLevel, CitizenshipStatus, Inventory, GalleryImage, Magic, MagicAbility, TrainingRecord } from '@/lib/types';
 import { SKILL_LEVELS, FAME_LEVELS, TRAINING_OPTIONS, CRIME_LEVELS, COUNTRIES, RACE_OPTIONS, MAGIC_PERCEPTION_OPTIONS, ADMIN_ELEMENTAL_MAGIC_OPTIONS, ELEMENTAL_MAGIC_OPTIONS, ADMIN_RESERVE_LEVEL_OPTIONS, RESERVE_LEVEL_OPTIONS, FAITH_LEVEL_OPTIONS, KNOWLEDGE_LEVELS, ADMIN_KNOWLEDGE_LEVELS } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { DialogClose, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -212,6 +212,10 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                 setBaseRace('');
                 setRaceDetails('');
             } else if (character) {
+                const trainingData = (character.training || []).map(t => 
+                    typeof t === 'string' ? { id: t, duration: '', specialization: '' } : t
+                );
+
                 const initializedCharacter = {
                     ...initialFormData,
                     ...character,
@@ -219,7 +223,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                     accomplishments: character.accomplishments || [],
                     inventory: { ...initialFormData.inventory, ...(character.inventory || {}) },
                     familiarCards: character.familiarCards || [],
-                    training: Array.isArray(character.training) ? character.training : [],
+                    training: trainingData,
                     marriedTo: Array.isArray(character.marriedTo) ? character.marriedTo : [],
                     relationships: (Array.isArray(character.relationships) ? character.relationships : []).map(r => ({...r, id: r.id || `rel-${Math.random()}`})),
                     bankAccount: character.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] },
@@ -359,6 +363,21 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
         });
     };
 
+    const handleTrainingChange = (index: number, field: keyof TrainingRecord, value: string) => {
+        const newTraining = [...(formData.training || [])];
+        (newTraining[index] as any)[field] = value;
+        handleFieldChange('training', newTraining);
+    };
+
+    const addTraining = () => {
+        const newTrainingEntry: TrainingRecord = { id: '', duration: '', specialization: '' };
+        handleFieldChange('training', [...(formData.training || []), newTrainingEntry]);
+    };
+
+    const removeTraining = (index: number) => {
+        handleFieldChange('training', (formData.training || []).filter((_, i) => i !== index));
+    };
+
 
     const handleAgeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const ageStr = e.target.value;
@@ -406,7 +425,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
     };
 
 
-    const handleMultiSelectChange = (id: 'marriedTo' | 'training', values: string[]) => {
+    const handleMultiSelectChange = (id: 'marriedTo', values: string[]) => {
         setFormData(prev => ({ ...prev, [id]: values }));
     };
 
@@ -738,7 +757,53 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                             </div>
                         );
                     case 'marriage': return <div><Label htmlFor="marriedTo">В браке с</Label><SearchableMultiSelect placeholder="Выберите персонажей..." options={characterOptions} selected={formData.marriedTo ?? []} onChange={(v) => handleMultiSelectChange('marriedTo', v)} /></div>;
-                    case 'training': return <div><Label htmlFor="training">Обучение</Label><SearchableMultiSelect placeholder="Выберите варианты..." options={TRAINING_OPTIONS} selected={formData.training ?? []} onChange={(v) => handleMultiSelectChange('training', v)} /></div>;
+                    case 'training':
+                        return (
+                            <div className="space-y-4">
+                                <Label>Обучение</Label>
+                                {(formData.training || []).map((train, index) => (
+                                    <div key={index} className="space-y-3 rounded-md border p-3 relative">
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="absolute top-1 right-1 h-7 w-7"
+                                            onClick={() => removeTraining(index)}
+                                        >
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                        <div>
+                                            <Label>Учебное заведение</Label>
+                                            <SearchableSelect
+                                                options={TRAINING_OPTIONS}
+                                                value={train.id}
+                                                onValueChange={(value) => handleTrainingChange(index, 'id', value)}
+                                                placeholder="Выберите место..."
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label>Специальность/На кого учился</Label>
+                                            <Input
+                                                value={train.specialization || ''}
+                                                onChange={(e) => handleTrainingChange(index, 'specialization', e.target.value)}
+                                                placeholder="Например, Боевой маг"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label>Срок обучения</Label>
+                                            <Input
+                                                value={train.duration || ''}
+                                                onChange={(e) => handleTrainingChange(index, 'duration', e.target.value)}
+                                                placeholder="Например, 5 лет"
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+                                <Button type="button" variant="outline" size="sm" onClick={addTraining}>
+                                    <PlusCircle className="mr-2 h-4 w-4"/>Добавить обучение
+                                </Button>
+                            </div>
+                        );
                     case 'lifeGoal': return <div><Label htmlFor="lifeGoal">Жизненная цель</Label><Textarea id="lifeGoal" value={formData.lifeGoal ?? ''} onChange={(e) => handleFieldChange('lifeGoal', e.target.value)} rows={4} placeholder="Какова главная цель или мечта вашего персонажа?"/></div>;
                     case 'criminalRecords': return <div><Label htmlFor="criminalRecords">Судимости</Label><Textarea id="criminalRecords" value={formData.criminalRecords ?? ''} onChange={(e) => handleFieldChange('criminalRecords', e.target.value)} rows={4} placeholder="Опишите судимости персонажа."/></div>;
                     case 'diary': return <div><Label htmlFor="diary">Личный дневник</Label><Textarea id="diary" value={formData.diary ?? ''} onChange={(e) => handleFieldChange('diary', e.target.value)} rows={8} placeholder="Здесь можно вести записи от лица персонажа. Этот раздел виден только вам и администраторам."/></div>;
