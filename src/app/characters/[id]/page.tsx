@@ -5,7 +5,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, notFound } from 'next/navigation';
 import { useUser } from '@/hooks/use-user';
-import { User, Character, FamiliarCard, FamiliarRank, Moodlet, Relationship, RelationshipType, WealthLevel, BankAccount, Accomplishment, BankTransaction, OwnedFamiliarCard, InventoryCategory, InventoryItem, CitizenshipStatus, TaxpayerStatus, PopularityLog, GalleryImage, Shop, Magic } from '@/lib/types';
+import { User, Character, FamiliarCard, FamiliarRank, Moodlet, Relationship, RelationshipType, WealthLevel, BankAccount, Accomplishment, BankTransaction, OwnedFamiliarCard, InventoryCategory, InventoryItem, CitizenshipStatus, TaxpayerStatus, PopularityLog, GalleryImage, Shop, MagicAbility } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -209,6 +209,26 @@ const FamiliarsSection = ({ character }: { character: Character }) => {
             ) : (
                 <p className="text-sm text-muted-foreground text-center py-4">У этого персонажа нет фамильяров.</p>
             )}
+        </div>
+    );
+};
+
+const MagicAbilityGrid = ({ title, abilities }: { title: string, abilities?: MagicAbility[] }) => {
+    if (!abilities || abilities.length === 0) {
+        return null;
+    }
+
+    return (
+        <div>
+            <h5 className="font-medium">{title}:</h5>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 pl-2">
+                {abilities.map((ability, index) => (
+                    <div key={index} className="flex justify-between">
+                        <span>{ability.name}</span>
+                        <span className="font-semibold">{ability.level}</span>
+                    </div>
+                ))}
+            </div>
         </div>
     );
 };
@@ -680,18 +700,8 @@ export default function CharacterPage() {
                                                 <p>{character.magic.perception.join(', ')}</p>
                                             </div>
                                             )}
-                                            {character.magic.elements && character.magic.elements.length > 0 && (
-                                            <div>
-                                                <h5 className="font-medium">Стихийная магия:</h5>
-                                                <p>{character.magic.elements.join(', ')}</p>
-                                            </div>
-                                            )}
-                                            {character.magic.teachings && character.magic.teachings.length > 0 && (
-                                            <div>
-                                                <h5 className="font-medium">Учения:</h5>
-                                                <p>{character.magic.teachings.join(', ')}</p>
-                                            </div>
-                                            )}
+                                            <MagicAbilityGrid title="Стихийная магия" abilities={character.magic.elements} />
+                                            <MagicAbilityGrid title="Учения" abilities={character.magic.teachings} />
                                             {character.magic.reserveLevel && (
                                             <div>
                                                 <h5 className="font-medium">Уровень резерва:</h5>
@@ -1140,7 +1150,7 @@ export default function CharacterPage() {
                                     </AccordionContent>
                                 </AccordionItem>
                             </Accordion>
-                            {isOwnerOrAdmin && (
+                            {canViewHistory && (
                                 <Card>
                                     <CardHeader className="flex flex-row items-center justify-between">
                                         <CardTitle className="flex items-center gap-2"><Wallet /> Финансы</CardTitle>

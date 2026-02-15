@@ -2,7 +2,7 @@
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
-import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage, Cooldowns, PopularityLog, CharacterPopularityUpdate, OwnedFamiliarCard, AlchemyRecipe, Potion, AlchemyIngredient, PlayerPing, OngoingHunt, PlayerStatus, PlayPlatform, SocialLink, HuntingLocation, HuntReward } from '@/lib/types';
+import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage, Cooldowns, PopularityLog, CharacterPopularityUpdate, OwnedFamiliarCard, AlchemyRecipe, Potion, AlchemyIngredient, PlayerPing, OngoingHunt, PlayerStatus, PlayPlatform, SocialLink, HuntingLocation, HuntReward, MagicAbility } from '@/lib/types';
 import { auth, db, database } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut, reauthenticateWithCredential, EmailAuthProvider, updatePassword, updateEmail } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter, increment, FieldValue, arrayUnion, arrayRemove, deleteField, DocumentSnapshot, DocumentData } from "firebase/firestore";
@@ -329,32 +329,53 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     
     const processUserDoc = useCallback((userDoc: User): User => {
         const userData = { ...userDoc };
-        userData.characters = userData.characters?.map(char => ({
-            ...initialFormData,
-            ...char,
-            inventory: { ...defaultInventory, ...(char.inventory || {}) },
-            familiarCards: char.familiarCards || [],
-            ongoingHunts: char.ongoingHunts || [],
-            crimeLevel: char.crimeLevel ?? 5,
-            bankAccount: typeof char.bankAccount !== 'object' || char.bankAccount === null
-                ? { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] }
-                : {
-                    platinum: char.bankAccount.platinum ?? 0,
-                    gold: char.bankAccount.gold ?? 0,
-                    silver: char.bankAccount.silver ?? 0,
-                    copper: char.bankAccount.copper ?? 0,
-                    history: Array.isArray(char.bankAccount.history) ? char.bankAccount.history : []
-                  },
-            accomplishments: char.accomplishments || [],
-            training: Array.isArray(char.training) ? char.training : [],
-            marriedTo: Array.isArray(char.marriedTo) ? char.marriedTo : [],
-            relationships: (Array.isArray(char.relationships) ? char.relationships : []).map(r => ({...r, id: r.id || `rel-${Math.random()}`})),
-            moodlets: char.moodlets || [],
-            popularity: char.popularity ?? 0,
-            popularityHistory: char.popularityHistory || [],
-            galleryImages: char.galleryImages || [],
-            magic: char.magic ? { ...initialFormData.magic, ...char.magic } : initialFormData.magic,
-        })) || [];
+        userData.characters = userData.characters?.map(char => {
+            const processedChar = {
+                ...initialFormData,
+                ...char,
+                inventory: { ...defaultInventory, ...(char.inventory || {}) },
+                familiarCards: char.familiarCards || [],
+                ongoingHunts: char.ongoingHunts || [],
+                crimeLevel: char.crimeLevel ?? 5,
+                bankAccount: typeof char.bankAccount !== 'object' || char.bankAccount === null
+                    ? { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] }
+                    : {
+                        platinum: char.bankAccount.platinum ?? 0,
+                        gold: char.bankAccount.gold ?? 0,
+                        silver: char.bankAccount.silver ?? 0,
+                        copper: char.bankAccount.copper ?? 0,
+                        history: Array.isArray(char.bankAccount.history) ? char.bankAccount.history : []
+                      },
+                accomplishments: char.accomplishments || [],
+                training: Array.isArray(char.training) ? char.training : [],
+                marriedTo: Array.isArray(char.marriedTo) ? char.marriedTo : [],
+                relationships: (Array.isArray(char.relationships) ? char.relationships : []).map(r => ({...r, id: r.id || `rel-${Math.random()}`})),
+                moodlets: char.moodlets || [],
+                popularity: char.popularity ?? 0,
+                popularityHistory: char.popularityHistory || [],
+                galleryImages: char.galleryImages || [],
+                magic: char.magic ? { ...initialFormData.magic, ...char.magic } : initialFormData.magic,
+            };
+
+            // MIGRATION LOGIC for magic elements and teachings
+            if (processedChar.magic) {
+                if (Array.isArray(processedChar.magic.elements) && processedChar.magic.elements.length > 0 && typeof processedChar.magic.elements[0] === 'string') {
+                    processedChar.magic.elements = (processedChar.magic.elements as string[]).map(name => ({ name, level: 'Неофит' }));
+                }
+                 if (Array.isArray(processedChar.magic.teachings) && processedChar.magic.teachings.length > 0 && typeof processedChar.magic.teachings[0] === 'string') {
+                    processedChar.magic.teachings = (processedChar.magic.teachings as string[]).map(name => ({ name, level: 'Неофит' }));
+                }
+                 // Ensure they are arrays even if they are empty or non-existent
+                if (!Array.isArray(processedChar.magic.elements)) {
+                    processedChar.magic.elements = [];
+                }
+                if (!Array.isArray(processedChar.magic.teachings)) {
+                    processedChar.magic.teachings = [];
+                }
+            }
+
+            return processedChar;
+        }) || [];
         userData.achievementIds = userData.achievementIds || [];
         userData.extraCharacterSlots = userData.extraCharacterSlots || 0;
         userData.pointHistory = userData.pointHistory || [];
@@ -3527,7 +3548,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         deleteUserFromAuth,
         adminAddShop,
     }),
-        [currentUser, setCurrentUser, gameDate, gameDateString, gameSettings, teachings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, allFamiliars, familiarsById, startHunt, startMultipleHunts, claimHuntReward, claimAllHuntRewards, recallHunt, claimRewardsForOtherPlayer, adminClaimHuntEarly, changeUserPassword, changeUserEmail, mergeUserData, imageGeneration, deleteUserFromAuth, adminAddShop]
+        [currentUser, setCurrentUser, gameDate, gameDateString, gameSettings, teachings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, allFamiliars, familiarsById, startHunt, startMultipleHunts, claimHuntReward, claimAllHuntRewards, recallHunt, claimRewardsForOtherPlayer, changeUserPassword, changeUserEmail, mergeUserData, imageGeneration, deleteUserFromAuth, adminAddShop]
     );
     
     return (
@@ -3562,5 +3583,6 @@ export const useUser = () => {
     
 
     
+
 
 

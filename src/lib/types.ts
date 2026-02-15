@@ -282,10 +282,15 @@ export interface GalleryImage {
   taggedCharacterIds?: string[];
 }
 
+export interface MagicAbility {
+  name: string;
+  level: string;
+}
+
 export interface Magic {
   perception?: string[];
-  elements?: string[];
-  teachings?: string[];
+  elements?: MagicAbility[];
+  teachings?: MagicAbility[];
   reserveLevel?: string;
   faithLevel?: string;
   magicClarifications?: string;

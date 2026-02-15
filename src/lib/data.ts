@@ -127,6 +127,21 @@ export const ADMIN_ELEMENTAL_MAGIC_OPTIONS: OptionType[] = [
     { value: 'Божественная энергия', label: 'Божественная энергия' },
 ];
 
+export const KNOWLEDGE_LEVELS: OptionType[] = [
+    { value: 'Неофит', label: 'Неофит' },
+    { value: 'Адепт', label: 'Адепт' },
+    { value: 'Специалист', label: 'Специалист' },
+    { value: 'Мастер', label: 'Мастер' },
+    { value: 'Магистр', label: 'Магистр' },
+    { value: 'Архимаг', label: 'Архимаг' },
+];
+
+export const ADMIN_KNOWLEDGE_LEVELS: OptionType[] = [
+    ...KNOWLEDGE_LEVELS,
+    { value: 'Архимагистр', label: 'Архимагистр' },
+    { value: 'Божественный Сын', label: 'Божественный Сын' },
+];
+
 export const RESERVE_LEVEL_OPTIONS: OptionType[] = [
     { value: 'Н1 (неофит)', label: 'Н1 (неофит)' },
     { value: 'А2 (адепт)', label: 'А2 (адепт)' },
