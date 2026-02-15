@@ -196,7 +196,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
     const isCreating = editingState?.type === 'createCharacter';
     const { currentUser, gameDate, teachings } = useUser();
     const isAdmin = currentUser?.role === 'admin';
-    const [formData, setFormData] = React.useState<Character>({ ...initialFormData, id: `c-${Date.now()}`});
+    const [formData, setFormData] = React.useState<Character & { training?: (TrainingRecord & { _formKey?: string })[] }>({ ...initialFormData, id: `c-${Date.now()}`});
 
     const [currentItem, setCurrentItem] = React.useState<Relationship | Accomplishment | null>(null);
 
@@ -212,9 +212,10 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                 setBaseRace('');
                 setRaceDetails('');
             } else if (character) {
-                const trainingData = (character.training || []).map(t => 
-                    typeof t === 'string' ? { id: t, duration: '', specialization: '' } : t
-                );
+                const trainingData = (character.training || []).map((t, i) => {
+                    const record = typeof t === 'string' ? { id: t, duration: '', specialization: '' } : t;
+                    return { ...record, _formKey: `train-${Date.now()}-${i}` };
+                });
 
                 const initializedCharacter = {
                     ...initialFormData,
@@ -364,18 +365,27 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
     };
 
     const handleTrainingChange = (index: number, field: keyof TrainingRecord, value: string) => {
-        const newTraining = [...(formData.training || [])];
-        (newTraining[index] as any)[field] = value;
+        const newTraining = (formData.training || []).map((record, i) => {
+            if (i === index) {
+                return { ...record, [field]: value };
+            }
+            return record;
+        });
         handleFieldChange('training', newTraining);
     };
 
     const addTraining = () => {
-        const newTrainingEntry: TrainingRecord = { id: '', duration: '', specialization: '' };
+        const newTrainingEntry = { 
+            id: '', 
+            duration: '', 
+            specialization: '',
+            _formKey: `train-new-${Date.now()}`
+        };
         handleFieldChange('training', [...(formData.training || []), newTrainingEntry]);
     };
 
-    const removeTraining = (index: number) => {
-        handleFieldChange('training', (formData.training || []).filter((_, i) => i !== index));
+    const removeTraining = (keyToRemove: string) => {
+        handleFieldChange('training', (formData.training || []).filter(t => t._formKey !== keyToRemove));
     };
 
 
@@ -450,36 +460,46 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
         } else if (editingState.type === 'accomplishment' && 'fameLevel' in currentItem) {
             updatedData.accomplishments = (formData.accomplishments || []).filter(a => a.id !== currentItem.id);
         }
-        onSubmit(updatedData);
+        
+        const finalData = JSON.parse(JSON.stringify(updatedData), (key, value) => (key === '_formKey' ? undefined : value));
+        onSubmit(finalData);
     };
 
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
+        let dataToSave: any = { ...formData };
+
         if (editingState?.type === 'relationship' || editingState?.type === 'accomplishment') {
              if (!currentItem) return;
 
-             let updatedData = { ...formData };
              if (editingState.type === 'relationship' && 'targetCharacterId' in currentItem) {
                 if (currentItem.targetCharacterId) {
-                    const items = [...(formData.relationships || [])];
+                    const items = [...(dataToSave.relationships || [])];
                     const index = items.findIndex(r => r.id === currentItem.id);
                     if (index > -1) items[index] = currentItem as Relationship;
                     else items.push(currentItem as Relationship);
-                    updatedData.relationships = items;
+                    dataToSave.relationships = items;
                 }
              } else if (editingState.type === 'accomplishment' && 'fameLevel' in currentItem) {
-                 const items = [...(formData.accomplishments || [])];
+                 const items = [...(dataToSave.accomplishments || [])];
                  const index = items.findIndex(a => a.id === currentItem.id);
                  if (index > -1) items[index] = currentItem as Accomplishment;
                  else items.push(currentItem as Accomplishment);
-                 updatedData.accomplishments = items;
+                 dataToSave.accomplishments = items;
              }
-             onSubmit(updatedData);
-        } else {
-             onSubmit(formData);
         }
+        
+        // Always strip the form key before submitting
+        if (dataToSave.training) {
+            dataToSave.training = (dataToSave.training as any[]).map(t => {
+                const { _formKey, ...rest } = t;
+                return rest;
+            });
+        }
+        
+        onSubmit(dataToSave);
     };
 
 
@@ -762,13 +782,13 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                             <div className="space-y-4">
                                 <Label>Обучение</Label>
                                 {(formData.training || []).map((train, index) => (
-                                    <div key={index} className="space-y-3 rounded-md border p-3 relative">
+                                    <div key={train._formKey} className="space-y-3 rounded-md border p-3 relative">
                                         <Button
                                             type="button"
                                             variant="ghost"
                                             size="icon"
                                             className="absolute top-1 right-1 h-7 w-7"
-                                            onClick={() => removeTraining(index)}
+                                            onClick={() => removeTraining(train._formKey!)}
                                         >
                                             <Trash2 className="h-4 w-4 text-destructive" />
                                         </Button>
@@ -1022,3 +1042,4 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
 };
 
 export default CharacterForm;
+
