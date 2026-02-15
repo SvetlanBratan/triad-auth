@@ -663,7 +663,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label>Стихийная магия (не более {maxElements})</Label>
+                                        <Label>{isAdmin ? 'Стихийная магия' : `Стихийная магия (не более ${maxElements})`}</Label>
                                         {(formData.magic?.elements || []).map((el, index) => (
                                             <div key={index} className="flex items-center gap-2 p-2 border rounded-md">
                                                 <SearchableSelect options={isAdmin ? ADMIN_ELEMENTAL_MAGIC_OPTIONS : ELEMENTAL_MAGIC_OPTIONS} value={el.name} onValueChange={v => handleMagicAbilityChange('elements', index, 'name', v)} placeholder="Стихия" className="flex-1" />
@@ -671,10 +671,10 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                                                 <Button type="button" variant="ghost" size="icon" onClick={() => removeMagicAbility('elements', index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                                             </div>
                                         ))}
-                                        {(formData.magic?.elements || []).length < maxElements && <Button type="button" variant="outline" size="sm" onClick={() => addMagicAbility('elements')}><PlusCircle className="mr-2 h-4 w-4" /> Добавить стихию</Button>}
+                                        {((formData.magic?.elements || []).length < maxElements || isAdmin) && <Button type="button" variant="outline" size="sm" onClick={() => addMagicAbility('elements')}><PlusCircle className="mr-2 h-4 w-4" /> Добавить стихию</Button>}
                                     </div>
                                         <div className="space-y-2">
-                                        <Label>Учения (до {maxTeachings} штук)</Label>
+                                        <Label>{isAdmin ? 'Учения' : `Учения (до ${maxTeachings} штук)`}</Label>
                                         {(formData.magic?.teachings || []).map((t, index) => (
                                             <div key={index} className="flex items-center gap-2 p-2 border rounded-md">
                                                 <SearchableSelect options={teachings} value={t.name} onValueChange={v => handleMagicAbilityChange('teachings', index, 'name', v)} placeholder="Учение" className="flex-1" />
@@ -682,7 +682,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                                                 <Button type="button" variant="ghost" size="icon" onClick={() => removeMagicAbility('teachings', index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                                             </div>
                                         ))}
-                                        {(formData.magic?.teachings || []).length < maxTeachings && <Button type="button" variant="outline" size="sm" onClick={() => addMagicAbility('teachings')}><PlusCircle className="mr-2 h-4 w-4" /> Добавить учение</Button>}
+                                        {((formData.magic?.teachings || []).length < maxTeachings || isAdmin) && <Button type="button" variant="outline" size="sm" onClick={() => addMagicAbility('teachings')}><PlusCircle className="mr-2 h-4 w-4" /> Добавить учение</Button>}
                                     </div>
                                     <div>
                                         <Label>Уровень резерва</Label>
