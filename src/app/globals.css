@@ -19,7 +19,7 @@ body {
     --secondary: 300 29% 90%;
     --secondary-foreground: 300 10% 20%;
     --muted: 240 50% 92%; /* Bluish color with a hint of purple for navigation */
-    --muted-foreground: 300 10% 35%;
+    --muted-foreground: 300 10% 25%;
     --accent: 210 100% 95%; /* Pale Blue */
     --accent-foreground: 210 40% 40%;
     --destructive: 0 84.2% 60.2%;

@@ -34,6 +34,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/components/providers/user-provider';
 import AuthPage from '@/components/auth/auth-page';
+import { Switch } from '@/components/ui/switch';
 
 
 const CustomIcon = ({ src, className }: { src: string, className?: string }) => (
@@ -247,6 +248,7 @@ export default function CharacterPage() {
     const [consumeQuantity, setConsumeQuantity] = useState<number | ''>(1);
     const [selectedGalleryItem, setSelectedGalleryItem] = useState<GalleryImage | null>(null);
     const [inventorySearch, setInventorySearch] = useState('');
+    const [viewAsVisitor, setViewAsVisitor] = useState(false);
     
     const id = params.id;
     const charId = Array.isArray(id) ? id[0] : id;
@@ -295,6 +297,7 @@ export default function CharacterPage() {
         onSuccess: () => {
             toast({ title: "Анкета обновлена", description: "Данные персонажа успешно сохранены." });
             setEditingState(null);
+            refetch();
         }
     });
 
@@ -462,6 +465,7 @@ export default function CharacterPage() {
 
     const isOwnerOrAdmin = currentUser?.id === owner.id || currentUser?.role === 'admin';
     const isAdmin = currentUser?.role === 'admin';
+    const canEdit = isOwnerOrAdmin && !viewAsVisitor;
     
     const inventory = {
       оружие: [], доспехи: [], артефакты: [], зелья: [], гардероб: [],
@@ -474,11 +478,11 @@ export default function CharacterPage() {
     const isBlessed = character.blessingExpires && new Date(character.blessingExpires) > new Date();
     const activeMoodlets = (character.moodlets || []).filter(m => new Date(m.expiresAt) > new Date());
     const age = gameDate ? calculateAge(character.birthDate, gameDate) : null;
-    const canViewHistory = isOwnerOrAdmin;
+    const canViewHistory = isOwnerOrAdmin && !viewAsVisitor;
     const accomplishments = character.accomplishments || [];
-    const isBiographyVisible = !character.biographyIsHidden || isOwnerOrAdmin;
-    const areAbilitiesVisible = !character.abilitiesAreHidden || isOwnerOrAdmin;
-    const areWeaknessesVisible = !character.weaknessesAreHidden || isOwnerOrAdmin;
+    const isBiographyVisible = !character.biographyIsHidden || canEdit;
+    const areAbilitiesVisible = !character.abilitiesAreHidden || canEdit;
+    const areWeaknessesVisible = !character.weaknessesAreHidden || canEdit;
     
     const backLink = currentUser?.id === owner.id ? '/' : `/users/${owner.id}`;
     const backLinkText = currentUser?.id === owner.id ? 'Вернуться в профиль' : 'Вернуться в профиль игрока';
@@ -488,7 +492,7 @@ export default function CharacterPage() {
             <AccordionTrigger className="flex-1 hover:no-underline p-0">
                 <CardTitle className="flex items-center gap-2 text-lg">{icon} {title}</CardTitle>
             </AccordionTrigger>
-            {isOwnerOrAdmin && (
+            {canEdit && (
                 <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setEditingState({ type: 'section', section })}} className="shrink-0 h-8 w-8 ml-2">
                     <Edit className="w-4 h-4" />
                 </Button>
@@ -502,7 +506,7 @@ export default function CharacterPage() {
              <div className="py-2">
                 <div className="flex justify-between items-center mb-1">
                     <h4 className="font-semibold text-muted-foreground">{title}</h4>
-                    {isOwnerOrAdmin && (
+                    {canEdit && (
                         <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'section', section })} className="h-7 w-7">
                             {isEmpty ? <PlusCircle className="w-4 h-4 text-muted-foreground" /> : <Edit className="w-4 h-4" />}
                         </Button>
@@ -514,7 +518,7 @@ export default function CharacterPage() {
      };
     
      const InfoRow = ({ label, value, field, section, isVisible = true, icon, children }: { label: string, value?: React.ReactNode, field: keyof Character, section: EditableSection | 'mainInfo', isVisible?: boolean, icon?: React.ReactNode, children?: React.ReactNode }) => {
-        if (!isVisible && !isOwnerOrAdmin) return null;
+        if (!isVisible && !canEdit) return null;
         const finalValue = children || value;
         const isEmpty = !finalValue;
         return (
@@ -522,9 +526,9 @@ export default function CharacterPage() {
                 <span className="text-muted-foreground col-span-1 flex items-center gap-1.5">{icon}{label}:</span>
                 <div className="flex items-center justify-between col-span-1 sm:col-span-2">
                     <div className="flex-1 text-left">
-                        {isEmpty && isOwnerOrAdmin ? <span className="italic">Не указано</span> : finalValue}
+                        {isEmpty && canEdit ? <span className="italic">Не указано</span> : finalValue}
                     </div>
-                     {isOwnerOrAdmin && (field !== 'race' || (field === 'race' && (isAdmin || !character.raceIsConfirmed))) && (
+                     {canEdit && (field !== 'race' || (field === 'race' && (isAdmin || !character.raceIsConfirmed))) && (
                          <Button
                             variant="ghost"
                             size="icon"
@@ -576,7 +580,7 @@ export default function CharacterPage() {
                                 </Tooltip>
                             </TooltipProvider>
                         ) : (
-                            isAdmin && (
+                            isAdmin && canEdit && (
                                 <TooltipProvider>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
@@ -617,10 +621,10 @@ export default function CharacterPage() {
                     } 
                     field="countryOfResidence" 
                     section="mainInfo" 
-                    isVisible={!!character.countryOfResidence || isOwnerOrAdmin} 
+                    isVisible={!!character.countryOfResidence || canEdit} 
                     icon={<Landmark className="w-4 h-4" />}
                 />
-                <InfoRow label="Место проживания" value={character.residenceLocation} field="residenceLocation" section="mainInfo" isVisible={!!character.residenceLocation || isOwnerOrAdmin} icon={<Home className="w-4 h-4" />} />
+                <InfoRow label="Место проживания" value={character.residenceLocation} field="residenceLocation" section="mainInfo" isVisible={!!character.residenceLocation || canEdit} icon={<Home className="w-4 h-4" />} />
                 <InfoRow 
                     label="Уровень преступности" 
                     value={crimeLevelInfo ? crimeLevelInfo.title : ''} 
@@ -646,7 +650,7 @@ export default function CharacterPage() {
                     </div>
                 </div>
                 <InfoRow label="Место работы" value={character.workLocation} field="workLocation" section="mainInfo" isVisible={!!character.workLocation}/>
-                <InfoRow label="Фракции/гильдии" value={character.factions} field="factions" section="mainInfo" isVisible={!!character.factions || isOwnerOrAdmin} icon={<Group className="w-4 h-4" />} />
+                <InfoRow label="Фракции/гильдии" value={character.factions} field="factions" section="mainInfo" isVisible={!!character.factions || canEdit} icon={<Group className="w-4 h-4" />} />
             </CardContent>
         </Card>
     );
@@ -740,7 +744,7 @@ export default function CharacterPage() {
                                     )}
                                 </div>
                                 
-                                 {(character.magic?.magicClarifications || (isOwnerOrAdmin && areAbilitiesVisible)) && (
+                                 {(character.magic?.magicClarifications || (canEdit && areAbilitiesVisible)) && (
                                     <div>
                                         <h4 className="font-semibold text-muted-foreground mb-2">Уточнения по магии</h4>
                                         {character.magic?.magicClarifications ? (
@@ -748,13 +752,13 @@ export default function CharacterPage() {
                                                 <FormattedTextRenderer text={character.magic.magicClarifications} />
                                             </div>
                                         ) : (
-                                            isOwnerOrAdmin && <p className="pl-2">Описание отсутствует.</p>
+                                            canEdit && <p className="pl-2">Описание отсутствует.</p>
                                         )}
                                     </div>
                                 )}
 
 
-                                {(character.abilities || (isOwnerOrAdmin && areAbilitiesVisible)) && (
+                                {(character.abilities || (canEdit && areAbilitiesVisible)) && (
                                     <div>
                                         <h4 className="font-semibold text-muted-foreground mb-2">Немагические навыки</h4>
                                         {character.abilities ? (
@@ -762,7 +766,7 @@ export default function CharacterPage() {
                                                 <FormattedTextRenderer text={character.abilities} />
                                             </div>
                                         ) : (
-                                            isOwnerOrAdmin && <p className="pl-2">Описание отсутствует.</p>
+                                            canEdit && <p className="pl-2">Описание отсутствует.</p>
                                         )}
                                     </div>
                                 )}
@@ -809,7 +813,7 @@ export default function CharacterPage() {
                             content={
                                 <ul className="list-disc pl-5 space-y-2 text-sm pt-2">
                                     {trainingRecords.map((record, index) => (
-                                        <li key={index}>
+                                        <li key={index} className="text-foreground">
                                             <span className="font-semibold">{record.name}</span>
                                             {record.specialization && <span className="text-primary"> – {record.specialization}</span>}
                                             {record.duration && <span className="text-muted-foreground"> ({record.duration})</span>}
@@ -821,21 +825,21 @@ export default function CharacterPage() {
                         <SubSection 
                             title="Жизненная цель"
                             section="lifeGoal"
-                            isVisible={!!character.lifeGoal || isOwnerOrAdmin}
+                            isVisible={!!character.lifeGoal || canEdit}
                             isEmpty={!character.lifeGoal}
                             content={<p className="whitespace-pre-wrap text-sm pt-2">{character.lifeGoal}</p>}
                         />
                         <SubSection 
                             title="Судимости"
                             section="criminalRecords"
-                            isVisible={!!character.criminalRecords || isOwnerOrAdmin}
+                            isVisible={!!character.criminalRecords || canEdit}
                             isEmpty={!character.criminalRecords}
                             content={<p className="whitespace-pre-wrap text-sm pt-2">{character.criminalRecords}</p>}
                         />
                         <SubSection 
                             title="Личный дневник"
                             section="diary"
-                            isVisible={!!character.diary}
+                            isVisible={!!character.diary && canEdit}
                             isEmpty={!character.diary}
                             content={<p className="whitespace-pre-wrap text-sm pt-2">{character.diary}</p>}
                         />
@@ -843,11 +847,11 @@ export default function CharacterPage() {
                 </AccordionItem>
             </Accordion>
             
-            {(combinedGallery.length > 0 || isAdmin) && (
+            {(combinedGallery.length > 0 || (isAdmin && canEdit)) && (
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
                         <CardTitle className="flex items-center gap-2"><Camera /> Колдоснимки</CardTitle>
-                        {isAdmin && (
+                        {isAdmin && canEdit && (
                             <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'section', section: 'gallery' })} className="shrink-0 h-8 w-8 self-center">
                                 <PlusCircle className="w-4 h-4" />
                             </Button>
@@ -889,7 +893,7 @@ export default function CharacterPage() {
                     <AccordionTrigger className="flex-1 hover:no-underline p-0">
                         <CardTitle className="flex items-center gap-2 text-lg"><HeartHandshake /> Отношения</CardTitle>
                     </AccordionTrigger>
-                    {isOwnerOrAdmin && (
+                    {canEdit && (
                         <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setEditingState({ type: 'relationship', mode: 'add' })}} className="shrink-0 self-center ml-2 h-8 w-8">
                             <PlusCircle className="h-4 h-4" />
                         </Button>
@@ -903,7 +907,7 @@ export default function CharacterPage() {
                                 const pointsInCurrentLevel = rel.points - (level * 100);
                                 return (
                                 <div key={rel.id || `${rel.targetCharacterId}-${rel.type}-${index}`} className="relative group">
-                                    {isOwnerOrAdmin && (
+                                    {canEdit && (
                                         <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'relationship', mode: 'edit', relationship: rel })} className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <Edit className="w-4 h-4" />
                                         </Button>
@@ -930,7 +934,7 @@ export default function CharacterPage() {
             <Card>
                 <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <CardTitle className="flex items-center gap-2"><Users /> Семейное положение</CardTitle>
-                    {isOwnerOrAdmin && (
+                    {canEdit && (
                             <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'section', section: 'marriage' })} className="shrink-0 h-8 w-8 self-start sm:self-center">
                             <Edit className="w-4 h-4" />
                         </Button>
@@ -973,7 +977,7 @@ export default function CharacterPage() {
                 {inventoryLayout.map(section => {
                     const filteredCategories = section.categories
                         .map(cat => {
-                            if (cat.key === 'ключи' && !isOwnerOrAdmin) {
+                            if (cat.key === 'ключи' && (!isOwnerOrAdmin || viewAsVisitor)) {
                                 return { cat, items: [], hasContent: false };
                             }
                             if (cat.key === 'предприятия') {
@@ -981,7 +985,7 @@ export default function CharacterPage() {
                                 return { cat, items: filteredShops, hasContent: filteredShops.length > 0 };
                             }
     
-                            if (!isAdmin && cat.key === 'услуги') {
+                            if ((!isAdmin || viewAsVisitor) && cat.key === 'услуги') {
                                 return { cat, items: [], hasContent: false };
                             }
     
@@ -1115,6 +1119,16 @@ export default function CharacterPage() {
                     <p className="text-muted-foreground">{character.activity}</p>
                     <p className="text-sm text-muted-foreground">Владелец: {owner.name}</p>
                 </div>
+                 {isOwnerOrAdmin && (
+                    <div className="flex items-center space-x-2 self-center sm:self-auto">
+                        <Switch
+                            id="view-as-visitor-switch"
+                            checked={viewAsVisitor}
+                            onCheckedChange={setViewAsVisitor}
+                        />
+                        <Label htmlFor="view-as-visitor-switch">Просмотр как гость</Label>
+                    </div>
+                )}
             </header>
             
             <div className="max-w-5xl mx-auto">
@@ -1129,7 +1143,7 @@ export default function CharacterPage() {
                             className="bg-muted/30"
                             data-ai-hint="character banner"
                         />
-                         {isAdmin && (
+                         {isAdmin && canEdit && (
                             <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'section', section: 'gallery' })} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/50 hover:bg-background/80">
                                 <Edit className="w-4 h-4" />
                             </Button>
@@ -1153,7 +1167,7 @@ export default function CharacterPage() {
                                         <AccordionTrigger className="flex-1 hover:no-underline p-0">
                                             <CardTitle className="flex items-center gap-2 text-lg"><Award /> Достижения</CardTitle>
                                         </AccordionTrigger>
-                                        {isOwnerOrAdmin && (
+                                        {canEdit && (
                                             <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setEditingState({ type: 'accomplishment', mode: 'add' })}} className="shrink-0 self-center ml-2 h-8 w-8">
                                                 <PlusCircle className="h-4 h-4" />
                                             </Button>
@@ -1164,7 +1178,7 @@ export default function CharacterPage() {
                                             <div className="space-y-2">
                                                 {accomplishments.map(acc => (
                                                     <div key={acc.id} className="text-sm p-2 bg-muted/50 rounded-md group relative">
-                                                        {isOwnerOrAdmin && (
+                                                        {canEdit && (
                                                             <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'accomplishment', mode: 'edit', accomplishment: acc })} className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7">
                                                                 <Edit className="w-4 h-4" />
                                                             </Button>
@@ -1332,7 +1346,7 @@ export default function CharacterPage() {
                                         <AccordionTrigger className="flex-1 hover:no-underline p-0">
                                             <CardTitle className="flex items-center gap-2 text-lg"><Award /> Достижения</CardTitle>
                                         </AccordionTrigger>
-                                        {isOwnerOrAdmin && (
+                                        {canEdit && (
                                             <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setEditingState({ type: 'accomplishment', mode: 'add' })}} className="shrink-0 self-center ml-2 h-8 w-8">
                                                 <PlusCircle className="h-4 h-4" />
                                             </Button>
@@ -1343,7 +1357,7 @@ export default function CharacterPage() {
                                             <div className="space-y-2">
                                                 {accomplishments.map(acc => (
                                                     <div key={acc.id} className="text-sm p-2 bg-muted/50 rounded-md group relative">
-                                                        {isOwnerOrAdmin && (
+                                                        {canEdit && (
                                                             <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'accomplishment', mode: 'edit', accomplishment: acc })} className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7">
                                                                 <Edit className="w-4 h-4" />
                                                             </Button>
@@ -1359,7 +1373,7 @@ export default function CharacterPage() {
                                     </AccordionContent>
                                 </AccordionItem>
                             </Accordion>
-                             {isOwnerOrAdmin && (
+                             {canViewHistory && (
                                 <Card>
                                     <CardHeader className="flex flex-row items-center justify-between">
                                         <CardTitle className="flex items-center gap-2"><Wallet /> Финансы</CardTitle>
@@ -1500,7 +1514,7 @@ export default function CharacterPage() {
                                     </ScrollArea>
                                 </DialogHeader>
 
-                                {isOwnerOrAdmin && selectedItem.quantity > 1 && (
+                                {canEdit && selectedItem.quantity > 1 && (
                                   <div className="mt-4 space-y-2">
                                     <Label htmlFor="consume-quantity">Количество</Label>
                                     <Input
@@ -1528,7 +1542,7 @@ export default function CharacterPage() {
                                   </div>
                                 )}
 
-                                {isOwnerOrAdmin && (
+                                {canEdit && (
                                     <DialogFooter className="mt-4">
                                         <Button 
                                             onClick={handleConsumeItem} 
