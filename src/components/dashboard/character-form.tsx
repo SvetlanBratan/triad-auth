@@ -58,7 +58,8 @@ export type EditingState = {
 interface CharacterFormProps {
     character: Character | null;
     allUsers: User[];
-    onSubmit: (characterData: Character) => void;
+    ownerId: string; // The ID of the user who will own the character
+    onSuccess: () => void;
     closeDialog: () => void;
     editingState: EditingState | null;
 }
@@ -196,8 +197,8 @@ const FormattingHelp = () => (
     </p>
 );
 
-const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingState }: CharacterFormProps) => {
-    const { currentUser, gameDate, teachings } = useUser();
+const CharacterForm = ({ character, allUsers, ownerId, onSuccess, closeDialog, editingState }: CharacterFormProps) => {
+    const { currentUser, gameDate, teachings, updateCharacterInUser } = useUser();
     const isCreating = editingState?.type === 'createCharacter';
     const isAdmin = currentUser?.role === 'admin';
     const [formData, setFormData] = React.useState<Character>({ ...initialFormData, id: `c-${Date.now()}`});
@@ -208,8 +209,8 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
     const [baseRace, setBaseRace] = React.useState('');
     const [raceDetails, setRaceDetails] = React.useState('');
     const [ageInput, setAgeInput] = React.useState('');
-    const [selectedUserId, setSelectedUserId] = React.useState<string>(isCreating && editingState?.targetUserId ? editingState.targetUserId : currentUser?.id || '');
-
+    const { toast } = useToast();
+    
      React.useEffect(() => {
         const initializeState = () => {
             if (isCreating) {
@@ -217,7 +218,6 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                 setFormData(newCharacterWithId);
                 setBaseRace('');
                 setRaceDetails('');
-                setSelectedUserId(editingState?.targetUserId || currentUser?.id || '');
             } else if (character) {
                 const initializedCharacter = {
                     ...initialFormData,
@@ -235,7 +235,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                     galleryImages: (character.galleryImages || []).map(img => ({...img, id: img.id || `img-${Date.now()}-${Math.random()}`})),
                     magic: character.magic ? { ...initialFormData.magic, ...character.magic } : initialFormData.magic,
                 };
-                setFormData(initializedCharacter);
+                setFormData(initializedCharacter as any);
 
                 const raceString = initializedCharacter.race || '';
                 const match = raceString.match(/^(.*?)\s*\((.*)\)$/);
@@ -273,7 +273,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                 handleFieldChange('race', combinedRace);
             }
         }
-    }, [baseRace, raceDetails, editingState, formData.race]);
+    }, [baseRace, raceDetails, editingState]);
 
 
     const characterOptions = React.useMemo(() => {
@@ -478,17 +478,20 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
             dataToSave.accomplishments = (formData.accomplishments || []).filter(a => a.id !== currentItem.id);
         }
 
-        // Clean up _formKey before submitting
-        if (dataToSave.training) {
-            dataToSave.training = dataToSave.training.map(t => {
-                const { _formKey, ...rest } = t;
-                return rest;
-            });
-        }
-        
-        onSubmit(dataToSave);
-        closeDialog();
+        handleSubmitInner(dataToSave);
     };
+    
+    const handleSubmitInner = async (data: Character) => {
+        try {
+            await updateCharacterInUser(ownerId, data);
+            toast({ title: "Успех", description: "Данные персонажа сохранены." });
+            onSuccess();
+            closeDialog();
+        } catch(err) {
+            const msg = err instanceof Error ? err.message : "Произошла неизвестная ошибка.";
+            toast({ variant: "destructive", title: "Ошибка сохранения", description: msg });
+        }
+    }
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -515,34 +518,14 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
              }
         }
         
-        // Clean up _formKey before submitting
         if (dataToSave.training) {
             dataToSave.training = dataToSave.training.map(t => {
                 const { _formKey, ...rest } = t;
-                return rest;
+                return rest as TrainingRecord;
             });
         }
-
-        const finalUserId = isCreating ? (selectedUserId || '') : (currentUser?.id || '');
-
-        if (!finalUserId) {
-            alert('Не выбран пользователь для создания персонажа.');
-            return;
-        }
-
-        if (isCreating) {
-            // This is a simplified version, in real app you'd call a function
-            // passed via props to create/update user data in the context/backend
-            const userToUpdate = allUsers.find(u => u.id === finalUserId);
-            if(userToUpdate) {
-                const updatedCharacters = [...userToUpdate.characters, dataToSave];
-                // In a real app: `updateUser(finalUserId, { characters: updatedCharacters })`
-                console.log("Creating character for user:", finalUserId, updatedCharacters);
-            }
-        }
         
-        onSubmit(dataToSave);
-        closeDialog();
+        handleSubmitInner(dataToSave);
     };
 
 
@@ -612,17 +595,6 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
             case 'createCharacter':
                  return (
                     <div className="space-y-4">
-                        {isAdmin && (
-                             <div>
-                                <Label htmlFor="user-select">Пользователь</Label>
-                                <SearchableSelect
-                                    options={allUsers.map(u => ({ value: u.id, label: u.name }))}
-                                    value={selectedUserId}
-                                    onValueChange={setSelectedUserId}
-                                    placeholder="Выберите пользователя..."
-                                />
-                            </div>
-                        )}
                         <div><Label htmlFor="name">Имя персонажа</Label><Input id="name" value={formData.name ?? ''} onChange={(e) => handleFieldChange('name', e.target.value)} required placeholder="Например, Артас Менетил"/></div>
                         <div><Label htmlFor="activity">Деятельность/профессия</Label><Input id="activity" value={formData.activity ?? ''} onChange={(e) => handleFieldChange('activity', e.target.value)} required placeholder="Например, Охотник на чудовищ"/></div>
                     </div>
@@ -1167,5 +1139,3 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
 };
 
 export default CharacterForm;
-
-    
