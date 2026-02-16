@@ -412,10 +412,6 @@ export default function CharacterPage() {
     if (!characterData || !character || !owner) {
         return notFound();
     }
-
-    const handleFormSubmit = (characterData: Character) => {
-        mutation.mutate(characterData);
-    };
     
     const closeDialog = () => {
         setEditingState(null);
@@ -1487,8 +1483,9 @@ export default function CharacterPage() {
                 <DialogContent>
                     <CharacterForm
                         character={character}
+                        ownerId={owner.id}
                         allUsers={allUsers}
-                        onSubmit={handleFormSubmit}
+                        onSuccess={refetch}
                         closeDialog={closeDialog}
                         editingState={editingState}
                     />
