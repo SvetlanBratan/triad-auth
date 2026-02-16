@@ -11,13 +11,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '../ui/textarea';
 import { ScrollArea } from '../ui/scroll-area';
-import { Trash2, PlusCircle, Check } from 'lucide-react';
+import { Trash2, PlusCircle, Check, X } from 'lucide-react';
 import { SearchableSelect } from '../ui/searchable-select';
 import ImageUploader from './image-uploader';
 import { SearchableMultiSelect } from '../ui/searchable-multi-select';
 import { Switch } from '../ui/switch';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { useUser } from '@/hooks/use-user';
+import { Badge } from '../ui/badge';
 
 
 export type EditableSection =
@@ -83,6 +84,7 @@ const initialFormData: Omit<Character, 'id'> = {
     training: [],
     relationships: [],
     marriedTo: [],
+    marriedToNpc: [],
     abilities: '',
     abilitiesAreHidden: false,
     weaknesses: '',
@@ -197,6 +199,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
     const { currentUser, gameDate, teachings } = useUser();
     const isAdmin = currentUser?.role === 'admin';
     const [formData, setFormData] = React.useState<Character & { training?: (TrainingRecord & { _formKey?: string })[] }>({ ...initialFormData, id: `c-${Date.now()}`});
+    const [npcSpouseInput, setNpcSpouseInput] = React.useState('');
 
     const [currentItem, setCurrentItem] = React.useState<Relationship | Accomplishment | null>(null);
 
@@ -226,6 +229,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                     familiarCards: character.familiarCards || [],
                     training: trainingData,
                     marriedTo: Array.isArray(character.marriedTo) ? character.marriedTo : [],
+                    marriedToNpc: Array.isArray(character.marriedToNpc) ? character.marriedToNpc : [],
                     relationships: (Array.isArray(character.relationships) ? character.relationships : []).map(r => ({...r, id: r.id || `rel-${Math.random()}`})),
                     bankAccount: character.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] },
                     wealthLevel: character.wealthLevel || 'Бедный',
@@ -307,6 +311,19 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
 
     const handleFieldChange = (field: keyof Character, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleAddNpcSpouse = () => {
+        const newNpc = npcSpouseInput.trim();
+        if (newNpc) {
+            handleFieldChange('marriedToNpc', [...(formData.marriedToNpc || []), newNpc]);
+            setNpcSpouseInput('');
+        }
+    };
+
+    const handleRemoveNpcSpouse = (index: number) => {
+        const newNpcs = (formData.marriedToNpc || []).filter((_, i) => i !== index);
+        handleFieldChange('marriedToNpc', newNpcs);
     };
     
     const handleMagicChange = (field: keyof Magic, value: any) => {
@@ -519,7 +536,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                  }
                 let sectionIsEmpty: boolean;
                 if (sectionKey === 'marriage') {
-                    sectionIsEmpty = !formData.marriedTo || formData.marriedTo.length === 0;
+                    sectionIsEmpty = (!formData.marriedTo || formData.marriedTo.length === 0) && (!formData.marriedToNpc || formData.marriedToNpc.length === 0);
                 } else if (sectionKey === 'abilities') {
                     const magicIsEmpty = !formData.magic || (
                         (formData.magic.perception?.length ?? 0) === 0 &&
@@ -776,7 +793,52 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                                 </div>
                             </div>
                         );
-                    case 'marriage': return <div><Label htmlFor="marriedTo">В браке с</Label><SearchableMultiSelect placeholder="Выберите персонажей..." options={characterOptions} selected={formData.marriedTo ?? []} onChange={(v) => handleMultiSelectChange('marriedTo', v)} /></div>;
+                    case 'marriage': 
+                        return (
+                             <div className="space-y-4">
+                                <div>
+                                    <Label htmlFor="marriedTo">В браке с (персонажи)</Label>
+                                    <SearchableMultiSelect 
+                                        placeholder="Выберите персонажей..." 
+                                        options={characterOptions} 
+                                        selected={formData.marriedTo ?? []} 
+                                        onChange={(v) => handleFieldChange('marriedTo', v)}
+                                    />
+                                </div>
+                                <div>
+                                    <Label>В браке с (НПС)</Label>
+                                    <div className="flex flex-wrap gap-1 p-2 border rounded-md min-h-10">
+                                        {(formData.marriedToNpc || []).map((npc, index) => (
+                                            <Badge key={index} variant="secondary">
+                                                {npc}
+                                                <button
+                                                    type="button"
+                                                    aria-label={`Удалить ${npc}`}
+                                                    onClick={() => handleRemoveNpcSpouse(index)}
+                                                    className="ml-1 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                                >
+                                                    <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                                                </button>
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                    <div className="flex gap-2 mt-2">
+                                        <Input
+                                            value={npcSpouseInput}
+                                            onChange={e => setNpcSpouseInput(e.target.value)}
+                                            placeholder="Имя НПС..."
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    handleAddNpcSpouse();
+                                                }
+                                            }}
+                                        />
+                                        <Button type="button" onClick={handleAddNpcSpouse} size="icon" className="shrink-0"><PlusCircle className="h-4 w-4" /></Button>
+                                    </div>
+                                </div>
+                            </div>
+                        );
                     case 'training':
                         return (
                             <div className="space-y-4">
@@ -1042,4 +1104,3 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
 };
 
 export default CharacterForm;
-

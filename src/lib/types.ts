@@ -343,6 +343,7 @@ export interface Character {
   training: TrainingRecord[];
   relationships: Relationship[];
   marriedTo?: string[];
+  marriedToNpc?: string[];
   inventory: Partial<Inventory>;
   familiarCards: OwnedFamiliarCard[];
   ongoingHunts?: OngoingHunt[];

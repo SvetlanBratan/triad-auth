@@ -305,17 +305,31 @@ export default function CharacterPage() {
     }, [selectedItem]);
 
     const spouses = useMemo(() => {
-        if (!character?.marriedTo || allUsers.length === 0) return [];
-        const spouseChars: {id: string, name: string}[] = [];
-        for (const spouseId of character.marriedTo) {
-            for (const user of allUsers) {
-                const foundSpouse = user.characters.find(c => c.id === spouseId);
-                if (foundSpouse) {
-                    spouseChars.push({ id: foundSpouse.id, name: foundSpouse.name });
-                    break;
+        if (!character || (!character.marriedTo && !character.marriedToNpc)) return [];
+        
+        const spouseChars: {id: string, name: string, isNpc: boolean}[] = [];
+    
+        // Process character spouses
+        if (character.marriedTo && allUsers.length > 0) {
+            for (const spouseId of character.marriedTo) {
+                for (const user of allUsers) {
+                    const foundSpouse = user.characters.find(c => c.id === spouseId);
+                    if (foundSpouse) {
+                        spouseChars.push({ id: foundSpouse.id, name: foundSpouse.name, isNpc: false });
+                        break;
+                    }
                 }
             }
         }
+        
+        // Process NPC spouses
+        if (character.marriedToNpc) {
+            for (const npcName of character.marriedToNpc) {
+                // Using name as ID for NPCs, prefixed to avoid collision
+                spouseChars.push({ id: `npc-${npcName}`, name: npcName, isNpc: true });
+            }
+        }
+    
         return spouseChars;
     }, [character, allUsers]);
 
@@ -375,14 +389,6 @@ export default function CharacterPage() {
         if (!character?.training || !Array.isArray(character.training)) return [];
         
         return character.training.map(t => {
-            if (typeof t === 'string') {
-                const option = TRAINING_OPTIONS.find(opt => opt.value === t);
-                return {
-                    name: option ? option.label : t,
-                    duration: '',
-                    specialization: ''
-                };
-            }
             const option = TRAINING_OPTIONS.find(opt => opt.value === t.id);
             return {
                 name: option ? option.label : t.id,
@@ -934,9 +940,13 @@ export default function CharacterPage() {
                     <div className="space-y-1">
                         <span className="text-sm">В браке с:</span>
                         {spouses.length > 0 ? spouses.map(spouse => (
-                            <Link key={spouse.id} href={`/characters/${spouse.id}`} className="block text-sm font-semibold text-primary hover:underline">
-                                {spouse.name}
-                            </Link>
+                            spouse.isNpc ? (
+                                <p key={spouse.id} className="block text-sm font-semibold text-primary">{spouse.name}</p>
+                            ) : (
+                                <Link key={spouse.id} href={`/characters/${spouse.id}`} className="block text-sm font-semibold text-primary hover:underline">
+                                    {spouse.name}
+                                </Link>
+                            )
                         )) : <p className="text-sm text-muted-foreground">Не в браке</p>}
                     </div>
                 </CardContent>
