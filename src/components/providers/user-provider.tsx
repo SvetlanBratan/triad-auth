@@ -580,6 +580,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       await fetchGameSettings(); // Refetch settings to update state
     }, [fetchGameSettings]);
 
+    const checkExtraCharacterSlots = useCallback(async (userId: string): Promise<number> => {
+        const requestsRef = collection(db, 'users', userId, 'reward_requests');
+        const q = query(requestsRef, where('rewardId', '==', EXTRA_CHARACTER_REWARD_ID), where('status', '==', 'одобрено'));
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.size;
+    }, []);
+
     const processWeeklyBonus = useCallback(async () => {
         await runTransaction(db, async (transaction) => {
             const settingsRef = doc(db, 'game_settings', 'main');
@@ -685,8 +692,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                     if (userData.status !== 'отпуск') {
                         updates.status = 'активный';
                     }
+                    
+                    const slots = await checkExtraCharacterSlots(user.uid);
+                    if ((userData.extraCharacterSlots || 0) !== slots) {
+                        updates.extraCharacterSlots = slots;
+                    }
+
                     await updateDoc(doc(db, "users", user.uid), updates);
                     userData = { ...userData, ...updates }; 
+
                     if(userData?.role === 'admin') {
                         await processWeeklyBonus();
                     }
@@ -709,7 +723,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         });
 
         return () => unsubscribe();
-    }, [createNewUser, fetchUserById, fetchGameSettings, processWeeklyBonus, fetchAndCombineFamiliars]);
+    }, [createNewUser, fetchUserById, fetchGameSettings, processWeeklyBonus, fetchAndCombineFamiliars, checkExtraCharacterSlots]);
     
     useEffect(() => {
         if (!firebaseUser) return;
@@ -1324,14 +1338,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         await updateUser(userId, { characters: updatedCharacters });
     }, [fetchUserById, updateUser]);
-
-    const checkExtraCharacterSlots = useCallback(async (userId: string): Promise<number> => {
-        const requestsRef = collection(db, 'users', userId, 'reward_requests');
-        const q = query(requestsRef, where('rewardId', '==', EXTRA_CHARACTER_REWARD_ID), where('status', '==', 'одобрено'));
-        const querySnapshot = await getDocs(q);
-        return querySnapshot.size;
-    }, []);
-
+    
     const performRelationshipAction = useCallback(async (params: PerformRelationshipActionParams) => {
         const { sourceUserId, sourceCharacterId, targetCharacterId, actionType, description, itemId, itemCategory, quantity, content } = params;
 
@@ -3590,9 +3597,4 @@ export const useUser = () => {
 
     
 
-
-
-
-
-
-
+    

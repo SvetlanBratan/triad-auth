@@ -234,20 +234,6 @@ export default function ProfileTab() {
     }
   }, [currentUser]);
 
-  useEffect(() => {
-    // Check and update extra slots when component mounts or currentUser changes
-    const updateUserSlots = async () => {
-        if (currentUser) {
-            const slots = await checkExtraCharacterSlots(currentUser.id);
-            if(currentUser.extraCharacterSlots !== slots) {
-                setCurrentUser({...currentUser, extraCharacterSlots: slots});
-            }
-        }
-    };
-    updateUserSlots();
-  }, [currentUser, checkExtraCharacterSlots, setCurrentUser]);
-
-
   if (!currentUser) return null;
   
   const isAdmin = currentUser.role === 'admin';
@@ -619,6 +605,7 @@ export default function ProfileTab() {
                     ownerId={currentUser.id}
                     onSuccess={() => {
                         queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+                        queryClient.invalidateQueries({ queryKey: ['allUsersForProfile'] });
                     }}
                     closeDialog={() => setEditingState(null)}
                     editingState={editingState}
