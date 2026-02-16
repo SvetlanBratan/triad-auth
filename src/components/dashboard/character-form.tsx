@@ -58,8 +58,7 @@ export type EditingState = {
 interface CharacterFormProps {
     character: Character | null;
     allUsers: User[];
-    onSubmit?: (characterData: Character) => void;
-    onSuccess?: () => void;
+    onSubmit: (characterData: Character) => void;
     closeDialog: () => void;
     editingState: EditingState | null;
 }
@@ -197,9 +196,8 @@ const FormattingHelp = () => (
     </p>
 );
 
-const CharacterForm = ({ character, allUsers, onSubmit, onSuccess, closeDialog, editingState }: CharacterFormProps) => {
-    const { currentUser, gameDate, teachings, updateCharacterInUser } = useUser();
-    const { toast } = useToast();
+const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingState }: CharacterFormProps) => {
+    const { currentUser, gameDate, teachings } = useUser();
     const isCreating = editingState?.type === 'createCharacter';
     const isAdmin = currentUser?.role === 'admin';
     const [formData, setFormData] = React.useState<Character & { training?: (TrainingRecord & { _formKey?: string })[] }>({ ...initialFormData, id: `c-${Date.now()}`});
@@ -474,18 +472,18 @@ const CharacterForm = ({ character, allUsers, onSubmit, onSuccess, closeDialog, 
         setCurrentItem(updatedItem);
     };
 
-    const handleRemoveItem = async () => {
-        if (!currentItem || !editingState || !character) return;
-        
-        let finalUserId = character.id;
-        let dataToSave: any = { ...formData };
+    const handleRemoveItem = () => {
+        if (!currentItem) return;
 
-        if (editingState.type === 'relationship' && 'targetCharacterId' in currentItem) {
+        let dataToSave = { ...formData };
+
+        if (editingState?.type === 'relationship' && 'targetCharacterId' in currentItem) {
             dataToSave.relationships = (formData.relationships || []).filter(r => r.id !== currentItem.id);
-        } else if (editingState.type === 'accomplishment' && 'fameLevel' in currentItem) {
+        } else if (editingState?.type === 'accomplishment' && 'fameLevel' in currentItem) {
             dataToSave.accomplishments = (formData.accomplishments || []).filter(a => a.id !== currentItem.id);
         }
-        
+
+        // Clean up _formKey before submitting
         if (dataToSave.training) {
             dataToSave.training = (dataToSave.training as any[]).map(t => {
                 const { _formKey, ...rest } = t;
@@ -493,20 +491,18 @@ const CharacterForm = ({ character, allUsers, onSubmit, onSuccess, closeDialog, 
             });
         }
         
-        await updateCharacterInUser(finalUserId, dataToSave);
-        toast({ title: "Удалено" });
+        onSubmit(dataToSave);
         closeDialog();
     };
 
-
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-    
+        
         let dataToSave: any = { ...formData };
-    
+
         if (editingState?.type === 'relationship' || editingState?.type === 'accomplishment') {
              if (!currentItem) return;
-    
+
              if (editingState.type === 'relationship' && 'targetCharacterId' in currentItem) {
                 if (currentItem.targetCharacterId) {
                     const items = [...(dataToSave.relationships || [])];
@@ -524,36 +520,34 @@ const CharacterForm = ({ character, allUsers, onSubmit, onSuccess, closeDialog, 
              }
         }
         
+        // Clean up _formKey before submitting
         if (dataToSave.training) {
             dataToSave.training = (dataToSave.training as any[]).map(t => {
                 const { _formKey, ...rest } = t;
                 return rest;
             });
         }
-        
-        if (onSubmit) {
-            onSubmit(dataToSave);
-        } else {
-            const isCreating = editingState?.type === 'createCharacter';
-            let finalUserId = isCreating && isAdmin ? selectedUserId : (character ? (currentUser?.id || '') : (currentUser?.id || ''));
-            if (isCreating && editingState?.targetUserId) {
-                finalUserId = editingState.targetUserId;
-            }
-    
-            if (!finalUserId) {
-                toast({ variant: "destructive", title: "Ошибка", description: "Не выбран пользователь для создания персонажа." });
-                return;
-            }
-    
-            await updateCharacterInUser(finalUserId, dataToSave);
-            toast({ title: "Успешно", description: "Данные персонажа сохранены." });
-            
-            if (onSuccess) {
-                onSuccess();
-            }
 
-            closeDialog();
+        const finalUserId = isCreating ? (selectedUserId || '') : (currentUser?.id || '');
+
+        if (!finalUserId) {
+            alert('Не выбран пользователь для создания персонажа.');
+            return;
         }
+
+        if (isCreating) {
+            // This is a simplified version, in real app you'd call a function
+            // passed via props to create/update user data in the context/backend
+            const userToUpdate = allUsers.find(u => u.id === finalUserId);
+            if(userToUpdate) {
+                const updatedCharacters = [...userToUpdate.characters, dataToSave];
+                // In a real app: `updateUser(finalUserId, { characters: updatedCharacters })`
+                console.log("Creating character for user:", finalUserId, updatedCharacters);
+            }
+        }
+        
+        onSubmit(dataToSave);
+        closeDialog();
     };
 
 
@@ -623,7 +617,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, onSuccess, closeDialog, 
             case 'createCharacter':
                  return (
                     <div className="space-y-4">
-                        {isAdmin && !editingState.targetUserId && (
+                        {isAdmin && (
                              <div>
                                 <Label htmlFor="user-select">Пользователь</Label>
                                 <SearchableSelect
@@ -1178,3 +1172,5 @@ const CharacterForm = ({ character, allUsers, onSubmit, onSuccess, closeDialog, 
 };
 
 export default CharacterForm;
+
+    
