@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -18,6 +19,7 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { useUser } from '@/hooks/use-user';
 import { Badge } from '../ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter } from '../ui/alert-dialog';
 
 
 export type EditableSection =
@@ -626,7 +628,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, onSuccess, closeDialog, 
                                 <Label htmlFor="user-select">Пользователь</Label>
                                 <SearchableSelect
                                     options={allUsers.map(u => ({ value: u.id, label: u.name }))}
-                                    value={selectedUserId}
+                                    value={selectedUserId || ''}
                                     onValueChange={setSelectedUserId}
                                     placeholder="Выберите пользователя..."
                                 />
