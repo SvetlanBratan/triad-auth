@@ -500,7 +500,7 @@ export const TRAINING_OPTIONS: OptionType[] = [
     { value: 'mind_management_school', label: 'Училище «Разум и управление»' },
     { value: 'ritual_burial_school', label: 'Ритуально-погребальное училище' },
     { value: 'geology_land_management_school', label: 'Училище геологии и землеустройства' },
-    { value: 'light_god_academy', label: 'Академия имени Светлого Бога.' },
+    { value: 'light_god_academy', label: 'Академия имени Светлого Бога' },
     { value: 'dark_god_academy', label: 'Академия имени Тёмного Бога' },
     { value: 'central_magic_academy', label: 'Центральная академия магов, ведьм и чародеев' },
 ];
