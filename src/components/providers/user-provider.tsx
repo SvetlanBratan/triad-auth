@@ -2287,7 +2287,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         await updateUser(userId, { characters: updatedCharacters });
     }, [fetchUserById, updateUser, initialFormData]);
 
-    const consumeInventoryItem = useCallback(async (userId: string, characterId: string, itemId: string, category: InventoryCategory, quantity: number = 1) => {
+    const consumeInventoryItem = useCallback(async (userId: string, characterId: string, itemId: string, category: InventoryCategory) => {
         const user = await fetchUserById(userId);
         if (!user) throw new Error("User not found");
 
@@ -2304,8 +2304,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const itemIndex = inventory[category].findIndex(i => i.id === itemId);
         if (itemIndex === -1) throw new Error("Item not found");
 
-        if (inventory[category][itemIndex].quantity > quantity) {
-            inventory[category][itemIndex].quantity -= quantity;
+        if (inventory[category][itemIndex].quantity > 1) {
+            inventory[category][itemIndex].quantity -= 1;
         } else {
             inventory[category] = inventory[category].filter(i => i.id !== itemId);
         }
@@ -2648,12 +2648,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             if (userHasChanges) {
                  const userToUpdate = usersToUpdate.get(user.id)!;
                  userToUpdate.characters = updatedCharacters;
-                 const userRef = doc(db, "users", user.id);
-                 batch.update(userRef, { 
-                     characters: userToUpdate.characters, 
-                     achievementIds: userToUpdate.achievementIds 
-                 });
             }
+        }
+
+         for (const user of usersToUpdate.values()) {
+            const userRef = doc(db, "users", user.id);
+            batch.update(userRef, { 
+                characters: user.characters, 
+                achievementIds: user.achievementIds 
+            });
         }
 
         await batch.commit();
@@ -3585,6 +3588,8 @@ export const useUser = () => {
     
 
     
+
+
 
 
 
