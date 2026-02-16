@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
@@ -226,8 +225,13 @@ const playPlatformOptions: { value: PlayPlatform, label: string }[] = [
     { value: 'Не указана', label: 'Не указана' },
 ];
 
+interface UserProfileDialogProps {
+  user: User;
+  refetch?: () => void;
+}
 
-export default function UserProfileDialog({ user }: { user: User }) {
+
+export default function UserProfileDialog({ user, refetch }: UserProfileDialogProps) {
   const { currentUser, updateUser, addFavoritePlayer, removeFavoritePlayer, fetchUsersForAdmin, deleteCharacterFromUser } = useUser();
   const { toast } = useToast();
   const [isPlayerStatusDialogOpen, setPlayerStatusDialogOpen] = useState(false);
@@ -336,9 +340,12 @@ export default function UserProfileDialog({ user }: { user: User }) {
     }
   };
   
-  const handleDeleteCharacter = (characterId: string) => {
-    deleteCharacterFromUser(user.id, characterId);
+  const handleDeleteCharacter = async (characterId: string) => {
+    await deleteCharacterFromUser(user.id, characterId);
     toast({ variant: 'destructive', title: "Персонаж удален" });
+    if (refetch) {
+      refetch();
+    }
   };
 
   const sortedPointHistory = [...(user.pointHistory || [])].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());

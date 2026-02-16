@@ -16,12 +16,12 @@ export default function UserProfilePage() {
     const { fetchUserById, currentUser } = useUser();
     const { loading: authLoading } = useAuth();
 
-    const { data: user, isLoading: userIsLoading, isError } = useQuery<User | null, Error>({
+    const { data: user, isLoading: userIsLoading, isError, refetch } = useQuery<User | null, Error>({
         queryKey: ['user', id],
         queryFn: () => fetchUserById(id as string),
         enabled: !!id,
     });
-
+    
     if (authLoading) {
         return <div className="container mx-auto p-4 md:p-8"><p>Загрузка профиля...</p></div>;
     }
@@ -44,7 +44,7 @@ export default function UserProfilePage() {
                 <ArrowLeft className="w-4 h-4" />
                 Вернуться в личный кабинет
             </Link>
-            <UserProfileDialog user={user} />
+            <UserProfileDialog user={user} refetch={refetch} />
         </div>
     );
 }
