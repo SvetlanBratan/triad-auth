@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
@@ -6,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Anchor, KeyRound, Sparkles, Pencil, Gamepad2, Link as LinkIcon, PlusCircle, X, Heart, Users, Award } from 'lucide-react';
+import { Anchor, KeyRound, Sparkles, Pencil, Gamepad2, Link as LinkIcon, PlusCircle, X, Heart, Users, Award, Trash2 } from 'lucide-react';
 import { cn, formatTimeLeft } from '@/lib/utils';
 import FamiliarCardDisplay from './familiar-card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
@@ -23,16 +24,16 @@ import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { useQuery } from '@tanstack/react-query';
 import { ScrollArea } from '../ui/scroll-area';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider } from '../ui/tooltip';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
+import CharacterForm, { type EditingState } from './character-form';
 
 const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
-    // If the name starts with 'ach-', assume it's a custom achievement icon
     if (name.startsWith('ach-')) {
         return (
             <CustomIcon src={`/icons/${name}.svg`} className={cn("icon-achievement", className)} />
         );
     }
-    // Fallback to Lucide icons for other cases
     const IconComponent = (import('lucide-react') as any)[name];
     if (!IconComponent) {
         return <CustomIcon src="/icons/points.svg" className={className} />;
@@ -50,8 +51,9 @@ const rankNames: Record<FamiliarRank, string> = {
     'обычный': 'Обычные'
 };
 
-const CharacterDisplay = ({ character }: { character: Character }) => {
-    const { familiarsById } = useUser();
+const CharacterDisplay = ({ character, onDelete }: { character: Character, onDelete: (characterId: string) => void }) => {
+    const { currentUser, familiarsById } = useUser();
+    const isAdmin = currentUser?.role === 'admin';
     const familiarCards = character.familiarCards || [];
     const isBlessed = character.blessingExpires && new Date(character.blessingExpires) > new Date();
     const activeMoodlets = (character.moodlets || []).filter(m => new Date(m.expiresAt) > new Date());
@@ -83,7 +85,7 @@ const CharacterDisplay = ({ character }: { character: Character }) => {
                     <p className="text-sm text-muted-foreground">({character.activity})</p>
                 </div>
             </AccordionTrigger>
-             <div className="flex items-center gap-1.5 pr-4">
+             <div className="flex items-center gap-1.5 pr-2">
                     {isBlessed && (
                     <Popover>
                         <PopoverTrigger asChild><button><Sparkles className="h-4 w-4 text-yellow-500 cursor-pointer" /></button></PopoverTrigger>
@@ -105,6 +107,29 @@ const CharacterDisplay = ({ character }: { character: Character }) => {
                             </PopoverTrigger>
                             <PopoverContent className="w-auto text-sm"><p>Связи в преступном мире</p></PopoverContent>
                         </Popover>
+                    )}
+                     {isAdmin && (
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8 hover:bg-destructive/10" onClick={e => e.stopPropagation()}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Вы уверены?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Это действие навсегда удалит персонажа <span className="font-bold">{character.name}</span>.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Отмена</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => onDelete(character.id)} className="bg-destructive hover:bg-destructive/90">
+                                        Да, удалить
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
                     )}
                 </div>
             </div>
@@ -203,13 +228,15 @@ const playPlatformOptions: { value: PlayPlatform, label: string }[] = [
 
 
 export default function UserProfileDialog({ user }: { user: User }) {
-  const { currentUser, updateUser, addFavoritePlayer, removeFavoritePlayer, fetchUsersForAdmin } = useUser();
+  const { currentUser, updateUser, addFavoritePlayer, removeFavoritePlayer, fetchUsersForAdmin, deleteCharacterFromUser } = useUser();
   const { toast } = useToast();
   const [isPlayerStatusDialogOpen, setPlayerStatusDialogOpen] = useState(false);
   const [isSocialsDialogOpen, setSocialsDialogOpen] = useState(false);
   const [socials, setSocials] = React.useState<SocialLink[]>([]);
   const [isSavingSocials, setIsSavingSocials] = React.useState(false);
   const [isAchievementsOpen, setIsAchievementsOpen] = useState(false);
+  const [editingState, setEditingState] = useState<EditingState | null>(null);
+
 
   const { data: allUsers = [] } = useQuery<User[]>({
     queryKey: ['allUsersForProfileDialog'],
@@ -309,6 +336,11 @@ export default function UserProfileDialog({ user }: { user: User }) {
     }
   };
   
+  const handleDeleteCharacter = (characterId: string) => {
+    deleteCharacterFromUser(user.id, characterId);
+    toast({ variant: 'destructive', title: "Персонаж удален" });
+  };
+
   const sortedPointHistory = [...(user.pointHistory || [])].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   const userAchievements = (user.achievementIds || []).map(id => ACHIEVEMENTS_BY_ID[id]).filter(Boolean);
 
@@ -474,14 +506,23 @@ export default function UserProfileDialog({ user }: { user: User }) {
         <div className="lg:col-span-2 space-y-6">
             <Card>
                 <CardHeader>
-                <CardTitle>Персонажи</CardTitle>
-                <CardDescription>Список персонажей игрока</CardDescription>
+                <div className="flex justify-between items-center">
+                    <div>
+                        <CardTitle>Персонажи</CardTitle>
+                        <CardDescription>Список персонажей игрока</CardDescription>
+                    </div>
+                    {isAdmin && (
+                        <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'createCharacter', targetUserId: user.id })}>
+                            <PlusCircle className="h-5 h-5" />
+                        </Button>
+                    )}
+                </div>
                 </CardHeader>
                 <CardContent>
                 {user.characters.length > 0 ? (
                     <Accordion type="single" collapsible className="w-full">
                     {user.characters.map(char => (
-                        <CharacterDisplay key={char.id} character={char} />
+                        <CharacterDisplay key={char.id} character={char} onDelete={handleDeleteCharacter}/>
                     ))}
                     </Accordion>
                 ) : (
@@ -625,6 +666,17 @@ export default function UserProfileDialog({ user }: { user: User }) {
                         {isSavingSocials ? 'Сохранение...' : 'Сохранить'}
                     </Button>
                 </div>
+        </DialogContent>
+    </Dialog>
+
+    <Dialog open={!!editingState} onOpenChange={(isOpen) => !isOpen && setEditingState(null)}>
+        <DialogContent>
+            <CharacterForm
+                character={null}
+                allUsers={allUsers}
+                closeDialog={() => setEditingState(null)}
+                editingState={editingState}
+            />
         </DialogContent>
     </Dialog>
     </>

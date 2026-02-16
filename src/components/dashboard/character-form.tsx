@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React from 'react';
@@ -18,6 +19,7 @@ import { Switch } from '../ui/switch';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { useUser } from '@/hooks/use-user';
 import { Badge } from '../ui/badge';
+import { useToast } from '@/hooks/use-toast';
 
 
 export type EditableSection =
@@ -48,14 +50,14 @@ export type EditingState = {
     mode: 'edit',
     accomplishment: Accomplishment
 } | {
-    type: 'createCharacter'
+    type: 'createCharacter',
+    targetUserId?: string;
 };
 
 
 interface CharacterFormProps {
     character: Character | null;
     allUsers: User[];
-    onSubmit: (data: Character) => void;
     closeDialog: () => void;
     editingState: EditingState | null;
 }
@@ -193,9 +195,10 @@ const FormattingHelp = () => (
     </p>
 );
 
-const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingState }: CharacterFormProps) => {
+const CharacterForm = ({ character, allUsers, closeDialog, editingState }: CharacterFormProps) => {
+    const { currentUser, gameDate, teachings, updateCharacterInUser } = useUser();
+    const { toast } = useToast();
     const isCreating = editingState?.type === 'createCharacter';
-    const { currentUser, gameDate, teachings } = useUser();
     const isAdmin = currentUser?.role === 'admin';
     const [formData, setFormData] = React.useState<Character & { training?: (TrainingRecord & { _formKey?: string })[] }>({ ...initialFormData, id: `c-${Date.now()}`});
     const [npcSpouseInput, setNpcSpouseInput] = React.useState('');
@@ -205,6 +208,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
     const [baseRace, setBaseRace] = React.useState('');
     const [raceDetails, setRaceDetails] = React.useState('');
     const [ageInput, setAgeInput] = React.useState('');
+    const [selectedUserId, setSelectedUserId] = React.useState<string | undefined>(isCreating && editingState?.targetUserId ? editingState.targetUserId : currentUser?.id);
 
      React.useEffect(() => {
         const initializeState = () => {
@@ -213,6 +217,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                 setFormData(newCharacterWithId);
                 setBaseRace('');
                 setRaceDetails('');
+                setSelectedUserId(editingState?.targetUserId || currentUser?.id);
             } else if (character) {
                 const trainingData = (character.training || []).map((t, i) => {
                     const record = typeof t === 'string' ? { id: t, duration: '', specialization: '' } : t;
@@ -261,7 +266,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
         } else {
             setCurrentItem(null);
         }
-    }, [editingState, character, isCreating]);
+    }, [editingState, character, isCreating, currentUser?.id]);
 
     React.useEffect(() => {
         if (editingState?.type === 'createCharacter' || (editingState?.type === 'field' && editingState.field === 'race') || (editingState?.type === 'section' && editingState.section === 'mainInfo')) {
@@ -391,7 +396,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
     };
 
     const addTraining = () => {
-        const newTrainingEntry = { 
+        const newTrainingEntry: TrainingRecord & { _formKey: string } = { 
             id: '', 
             duration: '', 
             specialization: '',
@@ -401,7 +406,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
     };
 
     const removeTraining = (keyToRemove: string) => {
-        handleFieldChange('training', (formData.training || []).filter((t: any) => t._formKey !== keyToRemove));
+        handleFieldChange('training', (formData.training || []).filter((t) => t._formKey !== keyToRemove));
     };
 
 
@@ -467,22 +472,32 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
         setCurrentItem(updatedItem);
     };
 
-    const handleRemoveItem = () => {
-        if (!currentItem || !editingState) return;
+    const handleRemoveItem = async () => {
+        if (!currentItem || !editingState || !character) return;
+        
+        let finalUserId = character.id;
+        let dataToSave: any = { ...formData };
 
-        let updatedData = { ...formData };
         if (editingState.type === 'relationship' && 'targetCharacterId' in currentItem) {
-            updatedData.relationships = (formData.relationships || []).filter(r => r.id !== currentItem.id);
+            dataToSave.relationships = (formData.relationships || []).filter(r => r.id !== currentItem.id);
         } else if (editingState.type === 'accomplishment' && 'fameLevel' in currentItem) {
-            updatedData.accomplishments = (formData.accomplishments || []).filter(a => a.id !== currentItem.id);
+            dataToSave.accomplishments = (formData.accomplishments || []).filter(a => a.id !== currentItem.id);
         }
         
-        const finalData = JSON.parse(JSON.stringify(updatedData), (key, value) => (key === '_formKey' ? undefined : value));
-        onSubmit(finalData);
+        if (dataToSave.training) {
+            dataToSave.training = (dataToSave.training as any[]).map(t => {
+                const { _formKey, ...rest } = t;
+                return rest;
+            });
+        }
+        
+        await updateCharacterInUser(finalUserId, dataToSave);
+        toast({ title: "Удалено" });
+        closeDialog();
     };
 
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         let dataToSave: any = { ...formData };
@@ -507,7 +522,6 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
              }
         }
         
-        // Always strip the form key before submitting
         if (dataToSave.training) {
             dataToSave.training = (dataToSave.training as any[]).map(t => {
                 const { _formKey, ...rest } = t;
@@ -515,7 +529,19 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
             });
         }
         
-        onSubmit(dataToSave);
+        let finalUserId = editingState?.type === 'createCharacter' && isAdmin ? selectedUserId : (character ? (currentUser?.id || '') : (currentUser?.id || ''));
+        if (isCreating && editingState?.targetUserId) {
+            finalUserId = editingState.targetUserId;
+        }
+
+        if (!finalUserId) {
+            toast({ variant: "destructive", title: "Ошибка", description: "Не выбран пользователь для создания персонажа." });
+            return;
+        }
+
+        await updateCharacterInUser(finalUserId, dataToSave);
+        toast({ title: "Успешно", description: "Данные персонажа сохранены." });
+        closeDialog();
     };
 
 
@@ -585,6 +611,17 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
             case 'createCharacter':
                  return (
                     <div className="space-y-4">
+                        {isAdmin && !editingState.targetUserId && (
+                             <div>
+                                <Label htmlFor="user-select">Пользователь</Label>
+                                <SearchableSelect
+                                    options={allUsers.map(u => ({ value: u.id, label: u.name }))}
+                                    value={selectedUserId}
+                                    onValueChange={setSelectedUserId}
+                                    placeholder="Выберите пользователя..."
+                                />
+                            </div>
+                        )}
                         <div><Label htmlFor="name">Имя персонажа</Label><Input id="name" value={formData.name ?? ''} onChange={(e) => handleFieldChange('name', e.target.value)} required placeholder="Например, Артас Менетил"/></div>
                         <div><Label htmlFor="activity">Деятельность/профессия</Label><Input id="activity" value={formData.activity ?? ''} onChange={(e) => handleFieldChange('activity', e.target.value)} required placeholder="Например, Охотник на чудовищ"/></div>
                     </div>
@@ -842,7 +879,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                         return (
                             <div className="space-y-4">
                                 <Label>Обучение</Label>
-                                {(formData.training || []).map((train: any, index) => (
+                                {(formData.training || []).map((train: TrainingRecord & { _formKey?: string }, index) => (
                                     <div key={train._formKey} className="space-y-3 rounded-md border p-3 relative">
                                         <Button
                                             type="button"
@@ -1014,9 +1051,22 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                     <div className="space-y-4">
                         <div className="space-y-3 rounded-md border p-3 relative">
                             {editingState.mode === 'edit' && (
-                                <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={handleRemoveItem}>
-                                    <Trash2 className="h-4 h-4 text-destructive" />
-                                </Button>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7">
+                                            <Trash2 className="h-4 h-4 text-destructive" />
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Удалить достижение?</AlertDialogTitle>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Отмена</AlertDialogCancel>
+                                            <AlertDialogAction onClick={handleRemoveItem} className="bg-destructive hover:bg-destructive/90">Удалить</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
                             )}
                              <div>
                                 <Label>Известность</Label>
@@ -1048,9 +1098,22 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                     <div className="space-y-4">
                         <div className="space-y-3 rounded-md border p-3 relative">
                             {editingState.mode === 'edit' && (
-                                <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={handleRemoveItem}>
-                                    <Trash2 className="h-4 h-4 text-destructive" />
-                                </Button>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7">
+                                            <Trash2 className="h-4 h-4 text-destructive" />
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Удалить отношение?</AlertDialogTitle>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Отмена</AlertDialogCancel>
+                                            <AlertDialogAction onClick={handleRemoveItem} className="bg-destructive hover:bg-destructive/90">Удалить</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
                             )}
                             <div>
                                 <Label>Персонаж</Label>
@@ -1103,5 +1166,3 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
 };
 
 export default CharacterForm;
-
-    

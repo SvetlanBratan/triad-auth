@@ -78,7 +78,8 @@ const rankNames: Record<FamiliarRank, string> = {
 
 
 const CharacterDisplay = ({ character, onDelete }: { character: Character, onDelete: (characterId: string) => void }) => {
-    const { familiarsById } = useUser();
+    const { currentUser, familiarsById } = useUser();
+    const isAdmin = currentUser?.role === 'admin';
     const isBlessed = character.blessingExpires && new Date(character.blessingExpires) > new Date();
     const activeMoodlets = (character.moodlets || []).filter(m => new Date(m.expiresAt) > new Date());
     const familiarCards = character.familiarCards || [];
@@ -123,29 +124,31 @@ const CharacterDisplay = ({ character, onDelete }: { character: Character, onDel
                         </div>
                     </div>
                 </AccordionTrigger>
-                 <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="shrink-0 hover:bg-destructive/10" onClick={e => e.stopPropagation()}>
-                            <Trash2 className="h-4 h-4 text-destructive" />
-                        </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>Вы уверены?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                Это действие невозможно отменить. Это навсегда удалит вашего персонажа
-                                <span className="font-bold"> {character.name} </span>
-                                и все его данные, включая анкету и инвентарь.
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>Отмена</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => onDelete(character.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                Да, удалить
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
+                 {isAdmin && (
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="shrink-0 hover:bg-destructive/10" onClick={e => e.stopPropagation()}>
+                                <Trash2 className="h-4 h-4 text-destructive" />
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Вы уверены?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Это действие невозможно отменить. Это навсегда удалит вашего персонажа
+                                    <span className="font-bold"> {character.name} </span>
+                                    и все его данные, включая анкету и инвентарь.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Отмена</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => onDelete(character.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                    Да, удалить
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                 )}
             </div>
             <AccordionContent>
                  {activeMoodlets.length > 0 && (
@@ -217,18 +220,14 @@ export default function ProfileTab() {
   const [isAchievementsOpen, setIsAchievementsOpen] = useState(false);
   const [showAllPointsHistory, setShowAllPointsHistory] = React.useState(false);
 
-  const { data: allUsers = [], refetch } = useQuery<User[]>({
+  const { data: allUsers = [] } = useQuery<User[]>({
     queryKey: ['allUsersForProfile'],
     queryFn: fetchUsersForAdmin,
   });
 
   const { toast } = useToast();
 
-  const freeSlots = 6;
-  const totalSlots = freeSlots + (currentUser?.extraCharacterSlots || 0);
-  const canAddCharacter = currentUser ? currentUser.characters.length < totalSlots : false;
-
-   useEffect(() => {
+  useEffect(() => {
     if(currentUser) {
         setSocials(currentUser.socials || []);
     }
@@ -253,14 +252,6 @@ export default function ProfileTab() {
   const isAdmin = currentUser.role === 'admin';
 
   const handleAddClick = () => {
-    if (!canAddCharacter) {
-        toast({
-            variant: "destructive",
-            title: "Достигнут лимит персонажей",
-            description: "Чтобы добавить больше персонажей, приобретите награду 'Дополнительный персонаж' в магазине.",
-        });
-        return;
-    }
     setEditingState({ type: 'createCharacter' });
   };
 
@@ -268,16 +259,6 @@ export default function ProfileTab() {
     if (!currentUser) return;
     deleteCharacterFromUser(currentUser.id, characterId);
     toast({ variant: 'destructive', title: "Персонаж удален", description: "Персонаж и все его данные были удалены." });
-  };
-
-  const handleFormSubmit = (characterData: Character) => {
-      if (!currentUser) return;
-
-      updateCharacterInUser(currentUser.id, characterData);
-      
-      toast({ title: "Успешно", description: "Данные персонажа сохранены." });
-
-      setEditingState(null);
   };
 
   const handlePlayerStatusChange = async (newStatus: PlayerStatus) => {
@@ -358,13 +339,6 @@ export default function ProfileTab() {
     currentUser.characters.forEach(c => map.set(c.id, c.name));
     return map;
   }, [currentUser.characters]);
-
-  const characterToEdit = useMemo(() => {
-    if (!editingState || editingState.type !== 'createCharacter') return null;
-    // This logic might need to be expanded if we edit existing characters from this component.
-    // For now, it only handles creation.
-    return null;
-  }, [editingState]);
   
   const playerStatusOptions: { value: PlayerStatus, label: string }[] = [
     { value: 'Должен пост', label: 'Должен пост' },
@@ -526,20 +500,15 @@ export default function ProfileTab() {
                 <div>
                     <CardTitle>Персонажи</CardTitle>
                     <CardDescription>
-                       ({currentUser.characters.length} / {totalSlots}) <span className="text-xs text-muted-foreground">Нажмите на иконку или имя, чтобы открыть анкету.</span>
+                        Список ваших персонажей
                     </CardDescription>
                 </div>
-                <Popover open={!canAddCharacter ? undefined : false}>
-                    <PopoverTrigger asChild>
-                        <Button variant="ghost" size="icon" onClick={handleAddClick}>
-                            <PlusCircle className="h-5 h-5" />
-                            <span className="sr-only">Добавить персонажа</span>
-                        </Button>
-                    </PopoverTrigger>
-                     <PopoverContent className="w-auto max-w-xs text-sm" side="top">
-                         Чтобы добавить больше персонажей, приобретите награду 'Дополнительный персонаж' в магазине.
-                     </PopoverContent>
-                </Popover>
+                 {isAdmin && (
+                    <Button variant="ghost" size="icon" onClick={handleAddClick}>
+                        <PlusCircle className="h-5 h-5" />
+                        <span className="sr-only">Добавить персонажа</span>
+                    </Button>
+                )}
             </div>
           </CardHeader>
           <CardContent>
@@ -644,8 +613,7 @@ export default function ProfileTab() {
       <Dialog open={!!editingState} onOpenChange={(isOpen) => !isOpen && setEditingState(null)}>
             <DialogContent>
                 <CharacterForm 
-                    onSubmit={handleFormSubmit as (data: Character) => void}
-                    character={characterToEdit}
+                    character={null}
                     allUsers={allUsers}
                     closeDialog={() => setEditingState(null)}
                     editingState={editingState}
