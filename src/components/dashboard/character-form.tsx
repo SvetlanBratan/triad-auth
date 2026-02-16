@@ -200,7 +200,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
     const { currentUser, gameDate, teachings } = useUser();
     const isCreating = editingState?.type === 'createCharacter';
     const isAdmin = currentUser?.role === 'admin';
-    const [formData, setFormData] = React.useState<Character & { training?: (TrainingRecord & { _formKey?: string })[] }>({ ...initialFormData, id: `c-${Date.now()}`});
+    const [formData, setFormData] = React.useState<Character>({ ...initialFormData, id: `c-${Date.now()}`});
     const [npcSpouseInput, setNpcSpouseInput] = React.useState('');
 
     const [currentItem, setCurrentItem] = React.useState<Relationship | Accomplishment | null>(null);
@@ -219,10 +219,10 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                 setRaceDetails('');
                 setSelectedUserId(editingState?.targetUserId || currentUser?.id);
             } else if (character) {
-                const trainingData = (character.training || []).map((t, i) => {
-                    const record = typeof t === 'string' ? { id: t, duration: '', specialization: '' } : t;
-                    return { ...record, _formKey: `train-${Date.now()}-${i}` };
-                });
+                const trainingData = (character.training || []).map((t, i) => ({
+                    ...t,
+                    _formKey: `train-${Date.now()}-${i}`
+                }));
 
                 const initializedCharacter = {
                     ...initialFormData,
@@ -396,7 +396,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
     };
 
     const addTraining = () => {
-        const newTrainingEntry: TrainingRecord & { _formKey: string } = { 
+        const newTrainingEntry: TrainingRecord = { 
             id: '', 
             duration: '', 
             specialization: '',
@@ -406,7 +406,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
     };
 
     const removeTraining = (keyToRemove: string) => {
-        handleFieldChange('training', (formData.training || []).filter((t: TrainingRecord & { _formKey?: string }) => t._formKey !== keyToRemove));
+        handleFieldChange('training', (formData.training || []).filter(t => t._formKey !== keyToRemove));
     };
 
 
@@ -475,7 +475,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
     const handleRemoveItem = () => {
         if (!currentItem) return;
 
-        let dataToSave = { ...formData };
+        let dataToSave: Character = { ...formData };
 
         if (editingState?.type === 'relationship' && 'targetCharacterId' in currentItem) {
             dataToSave.relationships = (formData.relationships || []).filter(r => r.id !== currentItem.id);
@@ -485,7 +485,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
 
         // Clean up _formKey before submitting
         if (dataToSave.training) {
-            dataToSave.training = (dataToSave.training as any[]).map(t => {
+            dataToSave.training = dataToSave.training.map(t => {
                 const { _formKey, ...rest } = t;
                 return rest;
             });
@@ -498,7 +498,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         
-        let dataToSave: any = { ...formData };
+        let dataToSave: Character = { ...formData };
 
         if (editingState?.type === 'relationship' || editingState?.type === 'accomplishment') {
              if (!currentItem) return;
@@ -522,7 +522,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
         
         // Clean up _formKey before submitting
         if (dataToSave.training) {
-            dataToSave.training = (dataToSave.training as any[]).map(t => {
+            dataToSave.training = dataToSave.training.map(t => {
                 const { _formKey, ...rest } = t;
                 return rest;
             });

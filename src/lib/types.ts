@@ -309,9 +309,10 @@ export interface OngoingHunt {
 }
 
 export interface TrainingRecord {
-  id: string; // e.g., 'peasant_school'
-  duration?: string; // e.g., '2 года'
-  specialization?: string; // e.g., 'Травничество'
+  id: string;
+  duration?: string;
+  specialization?: string;
+  _formKey?: string; // UI-only property
 }
 
 export interface Character {
