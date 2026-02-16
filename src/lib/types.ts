@@ -1,4 +1,5 @@
 
+
 export type UserRole = "admin" | "user";
 export type UserStatus = "активный" | "неактивный" | "отпуск";
 export type PlayerStatus =
@@ -312,7 +313,7 @@ export interface TrainingRecord {
   id: string;
   duration?: string;
   specialization?: string;
-  _formKey?: string; // UI-only property
+  _formKey?: string; 
 }
 
 export interface Character {

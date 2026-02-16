@@ -19,7 +19,7 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { useUser } from '@/hooks/use-user';
 import { Badge } from '../ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter } from '../ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogTrigger } from '../ui/alert-dialog';
 
 
 export type EditableSection =
@@ -208,7 +208,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
     const [baseRace, setBaseRace] = React.useState('');
     const [raceDetails, setRaceDetails] = React.useState('');
     const [ageInput, setAgeInput] = React.useState('');
-    const [selectedUserId, setSelectedUserId] = React.useState<string | undefined>(isCreating && editingState?.targetUserId ? editingState.targetUserId : currentUser?.id);
+    const [selectedUserId, setSelectedUserId] = React.useState<string>(isCreating && editingState?.targetUserId ? editingState.targetUserId : currentUser?.id || '');
 
      React.useEffect(() => {
         const initializeState = () => {
@@ -217,13 +217,8 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                 setFormData(newCharacterWithId);
                 setBaseRace('');
                 setRaceDetails('');
-                setSelectedUserId(editingState?.targetUserId || currentUser?.id);
+                setSelectedUserId(editingState?.targetUserId || currentUser?.id || '');
             } else if (character) {
-                const trainingData = (character.training || []).map((t, i) => ({
-                    ...t,
-                    _formKey: `train-${Date.now()}-${i}`
-                }));
-
                 const initializedCharacter = {
                     ...initialFormData,
                     ...character,
@@ -231,7 +226,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                     accomplishments: character.accomplishments || [],
                     inventory: { ...initialFormData.inventory, ...(character.inventory || {}) },
                     familiarCards: character.familiarCards || [],
-                    training: trainingData,
+                    training: (character.training || []).map((t, i) => ({ ...t, _formKey: `train-${Date.now()}-${i}` })),
                     marriedTo: Array.isArray(character.marriedTo) ? character.marriedTo : [],
                     marriedToNpc: Array.isArray(character.marriedToNpc) ? character.marriedToNpc : [],
                     relationships: (Array.isArray(character.relationships) ? character.relationships : []).map(r => ({...r, id: r.id || `rel-${Math.random()}`})),
@@ -622,7 +617,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                                 <Label htmlFor="user-select">Пользователь</Label>
                                 <SearchableSelect
                                     options={allUsers.map(u => ({ value: u.id, label: u.name }))}
-                                    value={selectedUserId || ''}
+                                    value={selectedUserId}
                                     onValueChange={setSelectedUserId}
                                     placeholder="Выберите пользователя..."
                                 />
