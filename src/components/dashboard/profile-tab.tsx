@@ -44,7 +44,7 @@ import { CustomIcon } from '../ui/custom-icon';
 import { SearchableSelect } from '../ui/searchable-select';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '../ui/scroll-area';
@@ -209,8 +209,9 @@ const CharacterDisplay = ({ character, onDelete }: { character: Character, onDel
 
 
 export default function ProfileTab() {
-  const { currentUser, updateCharacterInUser, deleteCharacterFromUser, fetchUsersForAdmin, checkExtraCharacterSlots, setCurrentUser, updateUser, addFavoritePlayer, removeFavoritePlayer } = useUser();
+  const { currentUser, deleteCharacterFromUser, fetchUsersForAdmin, checkExtraCharacterSlots, setCurrentUser, updateUser, addFavoritePlayer, removeFavoritePlayer } = useUser();
   const isMobile = useIsMobile();
+  const queryClient = useQueryClient();
   const [editingState, setEditingState] = useState<EditingState | null>(null);
   const [isAvatarDialogOpen, setAvatarDialogOpen] = React.useState(false);
   const [isPlayerStatusDialogOpen, setPlayerStatusDialogOpen] = React.useState(false);
@@ -615,6 +616,10 @@ export default function ProfileTab() {
                 <CharacterForm 
                     character={null}
                     allUsers={allUsers}
+                    ownerId={currentUser.id}
+                    onSuccess={() => {
+                        queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+                    }}
                     closeDialog={() => setEditingState(null)}
                     editingState={editingState}
                 />

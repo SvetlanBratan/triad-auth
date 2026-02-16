@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
@@ -683,6 +684,7 @@ export default function UserProfileDialog({ user, refetch }: UserProfileDialogPr
             <CharacterForm
                 character={null}
                 allUsers={allUsers}
+                ownerId={user.id}
                 onSuccess={refetch}
                 closeDialog={() => setEditingState(null)}
                 editingState={editingState}
