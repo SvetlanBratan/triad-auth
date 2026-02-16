@@ -283,6 +283,7 @@ export default function UserProfileDialog({ user, refetch }: UserProfileDialogPr
       await updateUser(user.id, { playerStatus: newStatus });
       toast({ title: "Игровой статус обновлен" });
       setPlayerStatusDialogOpen(false);
+      if (refetch) refetch();
   };
   
   const handleSocialsSave = async () => {
@@ -293,6 +294,7 @@ export default function UserProfileDialog({ user, refetch }: UserProfileDialogPr
         await updateUser(user.id, { socials: validSocials });
         toast({ title: 'Данные обновлены' });
         setSocialsDialogOpen(false);
+        if (refetch) refetch();
     } catch(e) {
         const msg = e instanceof Error ? e.message : 'Не удалось сохранить данные.';
         toast({ variant: 'destructive', title: 'Ошибка', description: msg });
@@ -681,6 +683,7 @@ export default function UserProfileDialog({ user, refetch }: UserProfileDialogPr
             <CharacterForm
                 character={null}
                 allUsers={allUsers}
+                onSuccess={refetch}
                 closeDialog={() => setEditingState(null)}
                 editingState={editingState}
             />

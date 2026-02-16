@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React from 'react';
@@ -59,6 +57,7 @@ interface CharacterFormProps {
     character: Character | null;
     allUsers: User[];
     onSubmit?: (characterData: Character) => void;
+    onSuccess?: () => void;
     closeDialog: () => void;
     editingState: EditingState | null;
 }
@@ -196,7 +195,7 @@ const FormattingHelp = () => (
     </p>
 );
 
-const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingState }: CharacterFormProps) => {
+const CharacterForm = ({ character, allUsers, onSubmit, onSuccess, closeDialog, editingState }: CharacterFormProps) => {
     const { currentUser, gameDate, teachings, updateCharacterInUser } = useUser();
     const { toast } = useToast();
     const isCreating = editingState?.type === 'createCharacter';
@@ -546,6 +545,11 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
     
             await updateCharacterInUser(finalUserId, dataToSave);
             toast({ title: "Успешно", description: "Данные персонажа сохранены." });
+            
+            if (onSuccess) {
+                onSuccess();
+            }
+
             closeDialog();
         }
     };
@@ -885,7 +889,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                         return (
                             <div className="space-y-4">
                                 <Label>Обучение</Label>
-                                {(formData.training || []).map((train: TrainingRecord & { _formKey?: string }, index) => (
+                                {(formData.training || []).map((train, index) => (
                                     <div key={train._formKey} className="space-y-3 rounded-md border p-3 relative">
                                         <Button
                                             type="button"
