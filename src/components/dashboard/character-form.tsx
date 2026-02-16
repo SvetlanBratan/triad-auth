@@ -402,7 +402,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
     };
 
     const removeTraining = (keyToRemove: string) => {
-        handleFieldChange('training', (formData.training || []).filter(t => t._formKey !== keyToRemove));
+        handleFieldChange('training', (formData.training || []).filter((t: any) => t._formKey !== keyToRemove));
     };
 
 
@@ -1104,3 +1104,5 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
 };
 
 export default CharacterForm;
+
+    
