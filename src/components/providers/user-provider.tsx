@@ -296,6 +296,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         training: [],
         relationships: [],
         marriedTo: [],
+        marriedToNpc: [],
         abilities: '',
         abilitiesAreHidden: false,
         weaknesses: '',
@@ -349,6 +350,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 accomplishments: char.accomplishments || [],
                 training: Array.isArray(char.training) ? char.training : [],
                 marriedTo: Array.isArray(char.marriedTo) ? char.marriedTo : [],
+                marriedToNpc: Array.isArray(char.marriedToNpc) ? char.marriedToNpc : [],
                 relationships: (Array.isArray(char.relationships) ? char.relationships : []).map(r => ({...r, id: r.id || `rel-${Math.random()}`})),
                 moodlets: char.moodlets || [],
                 popularity: char.popularity ?? 0,
@@ -360,10 +362,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             // MIGRATION LOGIC for magic elements and teachings
             if (processedChar.magic) {
                 if (Array.isArray(processedChar.magic.elements) && processedChar.magic.elements.length > 0 && typeof processedChar.magic.elements[0] === 'string') {
-                    processedChar.magic.elements = (processedChar.magic.elements as string[]).map(name => ({ name, level: 'Неофит' }));
+                    processedChar.magic.elements = (processedChar.magic.elements as unknown as string[]).map(name => ({ name, level: 'Неофит' }));
                 }
                  if (Array.isArray(processedChar.magic.teachings) && processedChar.magic.teachings.length > 0 && typeof processedChar.magic.teachings[0] === 'string') {
-                    processedChar.magic.teachings = (processedChar.magic.teachings as string[]).map(name => ({ name, level: 'Неофит' }));
+                    processedChar.magic.teachings = (processedChar.magic.teachings as unknown as string[]).map(name => ({ name, level: 'Неофит' }));
                 }
                  // Ensure they are arrays even if they are empty or non-existent
                 if (!Array.isArray(processedChar.magic.elements)) {
@@ -813,7 +815,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 sanitized.bankAccount = { ...initialFormData.bankAccount, ... (sanitized.bankAccount || {}) };
                 sanitized.familiarCards = sanitized.familiarCards || [];
                 
-                const arrayFields: (keyof Character)[] = ['accomplishments', 'training', 'relationships', 'marriedTo', 'moodlets', 'popularityHistory', 'galleryImages'];
+                const arrayFields: (keyof Character)[] = ['accomplishments', 'training', 'relationships', 'marriedTo', 'marriedToNpc', 'moodlets', 'popularityHistory', 'galleryImages'];
                 arrayFields.forEach(field => {
                     if (!Array.isArray(sanitized[field])) {
                         (sanitized as any)[field] = [];
@@ -2858,7 +2860,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             if (updatedUser) setCurrentUser(updatedUser);
         }
         return { createdItem: createdItemResult, recipeName: recipeNameResult };
-    }, [currentUser, fetchUserById, initialFormData]);
+    }, [currentUser, fetchUserById, initialFormData, fetchAllShops]);
 
     const addAlchemyRecipe = useCallback(async (recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
         const newRecipe = {
@@ -3583,6 +3585,7 @@ export const useUser = () => {
     
 
     
+
 
 
 
