@@ -310,10 +310,17 @@ export interface OngoingHunt {
 }
 
 export interface TrainingRecord {
+<<<<<<< HEAD
   id: string;
   duration?: string;
   specialization?: string;
   _formKey?: string; 
+=======
+  id: string; // e.g., 'peasant_school'
+  duration?: string; // e.g., '2 года'
+  specialization?: string; // e.g., 'Травничество'
+  _formKey?: string; // Internal key for form management
+>>>>>>> 3cf6ee9 (The app isn't starting. Please investigate what could be wrong based on)
 }
 
 export interface Character {
