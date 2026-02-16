@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React from 'react';
@@ -843,7 +842,7 @@ const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingStat
                         return (
                             <div className="space-y-4">
                                 <Label>Обучение</Label>
-                                {(formData.training || []).map((train, index) => (
+                                {(formData.training || []).map((train: any, index) => (
                                     <div key={train._formKey} className="space-y-3 rounded-md border p-3 relative">
                                         <Button
                                             type="button"
