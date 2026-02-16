@@ -58,6 +58,7 @@ export type EditingState = {
 interface CharacterFormProps {
     character: Character | null;
     allUsers: User[];
+    onSubmit?: (characterData: Character) => void;
     closeDialog: () => void;
     editingState: EditingState | null;
 }
@@ -195,7 +196,7 @@ const FormattingHelp = () => (
     </p>
 );
 
-const CharacterForm = ({ character, allUsers, closeDialog, editingState }: CharacterFormProps) => {
+const CharacterForm = ({ character, allUsers, onSubmit, closeDialog, editingState }: CharacterFormProps) => {
     const { currentUser, gameDate, teachings, updateCharacterInUser } = useUser();
     const { toast } = useToast();
     const isCreating = editingState?.type === 'createCharacter';
@@ -406,7 +407,7 @@ const CharacterForm = ({ character, allUsers, closeDialog, editingState }: Chara
     };
 
     const removeTraining = (keyToRemove: string) => {
-        handleFieldChange('training', (formData.training || []).filter((t) => t._formKey !== keyToRemove));
+        handleFieldChange('training', (formData.training || []).filter((t: TrainingRecord & { _formKey?: string }) => t._formKey !== keyToRemove));
     };
 
 
@@ -499,12 +500,12 @@ const CharacterForm = ({ character, allUsers, closeDialog, editingState }: Chara
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
+    
         let dataToSave: any = { ...formData };
-
+    
         if (editingState?.type === 'relationship' || editingState?.type === 'accomplishment') {
              if (!currentItem) return;
-
+    
              if (editingState.type === 'relationship' && 'targetCharacterId' in currentItem) {
                 if (currentItem.targetCharacterId) {
                     const items = [...(dataToSave.relationships || [])];
@@ -529,19 +530,24 @@ const CharacterForm = ({ character, allUsers, closeDialog, editingState }: Chara
             });
         }
         
-        let finalUserId = editingState?.type === 'createCharacter' && isAdmin ? selectedUserId : (character ? (currentUser?.id || '') : (currentUser?.id || ''));
-        if (isCreating && editingState?.targetUserId) {
-            finalUserId = editingState.targetUserId;
+        if (onSubmit) {
+            onSubmit(dataToSave);
+        } else {
+            const isCreating = editingState?.type === 'createCharacter';
+            let finalUserId = isCreating && isAdmin ? selectedUserId : (character ? (currentUser?.id || '') : (currentUser?.id || ''));
+            if (isCreating && editingState?.targetUserId) {
+                finalUserId = editingState.targetUserId;
+            }
+    
+            if (!finalUserId) {
+                toast({ variant: "destructive", title: "Ошибка", description: "Не выбран пользователь для создания персонажа." });
+                return;
+            }
+    
+            await updateCharacterInUser(finalUserId, dataToSave);
+            toast({ title: "Успешно", description: "Данные персонажа сохранены." });
+            closeDialog();
         }
-
-        if (!finalUserId) {
-            toast({ variant: "destructive", title: "Ошибка", description: "Не выбран пользователь для создания персонажа." });
-            return;
-        }
-
-        await updateCharacterInUser(finalUserId, dataToSave);
-        toast({ title: "Успешно", description: "Данные персонажа сохранены." });
-        closeDialog();
     };
 
 
