@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -15,9 +14,15 @@ import AuthPage from '@/components/auth/auth-page';
 export default function UserProfilePage() {
     const { id } = useParams();
     const { fetchUserById, currentUser } = useUser();
-    const { loading } = useAuth();
+    const { loading: authLoading } = useAuth();
 
-    if (loading) {
+    const { data: user, isLoading: userIsLoading, isError } = useQuery<User | null, Error>({
+        queryKey: ['user', id],
+        queryFn: () => fetchUserById(id as string),
+        enabled: !!id,
+    });
+
+    if (authLoading) {
         return <div className="container mx-auto p-4 md:p-8"><p>Загрузка профиля...</p></div>;
     }
 
@@ -25,13 +30,7 @@ export default function UserProfilePage() {
         return <AuthPage />;
     }
 
-    const { data: user, isLoading, isError } = useQuery<User | null, Error>({
-        queryKey: ['user', id],
-        queryFn: () => fetchUserById(id as string),
-        enabled: !!id,
-    });
-
-    if (isLoading) {
+    if (userIsLoading) {
         return <div className="container mx-auto p-4 md:p-8"><p>Загрузка профиля...</p></div>;
     }
 
