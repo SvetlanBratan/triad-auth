@@ -1,5 +1,4 @@
 
-
 export type UserRole = "admin" | "user";
 export type UserStatus = "активный" | "неактивный" | "отпуск";
 export type PlayerStatus =
@@ -330,6 +329,12 @@ export interface Character {
   accomplishments: Accomplishment[];
   workLocation: string;
   factions?: string;
+  appearance: string;
+  appearanceImage?: string;
+  personality: string;
+  biography: string;
+  biographyIsHidden?: boolean;
+  diary?: string;
   abilities?: string;
   abilitiesAreHidden?: boolean;
   magic?: Magic;
@@ -337,6 +342,7 @@ export interface Character {
   weaknessesAreHidden?: boolean;
   lifeGoal?: string;
   criminalRecords?: string;
+  inventory: Partial<Inventory>;
   familiarCards: OwnedFamiliarCard[];
   moodlets?: Moodlet[];
   blessingExpires?: string;
@@ -345,7 +351,6 @@ export interface Character {
   bankAccount: BankAccount;
   wealthLevel: WealthLevel;
   crimeLevel?: CrimeLevel;
-  criminalRecords?: string;
   popularity: number;
   popularityHistory: PopularityLog[];
   galleryImages?: GalleryImage[];
@@ -492,13 +497,6 @@ export interface CharacterPopularityUpdate {
 }
 
 // --- ALCHEMY & HUNTING TYPES ---
-export interface AlchemyIngredient extends Omit<InventoryItem, 'quantity' | 'inventoryTag'> {
-  note?: string;
-  tags: string[];
-  quantity?: number;
-  inventoryTag?: 'ингредиенты';
-}
-
 export interface Potion extends Omit<InventoryItem, 'quantity' | 'inventoryTag'> {
   note?: string;
   effects: {
@@ -511,6 +509,12 @@ export interface Potion extends Omit<InventoryItem, 'quantity' | 'inventoryTag'>
   inventoryTag?: 'зелья';
 }
 
+export interface AlchemyIngredient extends Omit<InventoryItem, 'quantity' | 'inventoryTag'> {
+  note?: string;
+  tags: string[];
+  quantity?: number;
+  inventoryTag?: 'ингредиенты';
+}
 
 export interface AlchemyRecipeComponent {
   ingredientId: string;
