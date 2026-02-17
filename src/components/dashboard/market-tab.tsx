@@ -34,7 +34,7 @@ export default function MarketTab() {
     return sortedShops.filter(shop => 
         (shop.items || []).some(item => 
             item.name.toLowerCase().includes(searchQuery.toLowerCase())
-        )
+        ) || shop.title.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [shops, searchQuery]);
   
@@ -50,7 +50,7 @@ export default function MarketTab() {
         <div className="relative max-w-lg mx-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
-                placeholder="Найти товар во всех лавках..."
+                placeholder="Найти товар или магазин..."
                 className="pl-9"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -71,7 +71,6 @@ export default function MarketTab() {
                         fill
                         style={{objectFit: "cover"}}
                         className="w-full h-full"
-                        data-ai-hint={shop.aiHint}
                         />
                     )}
                 </div>

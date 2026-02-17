@@ -179,7 +179,6 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
                             </div>
                         ) : (
                             <ImageKitUploader
-                                currentImageUrl={formData.image}
                                 onUpload={(url) => setFormData(p => ({...p, image: url}))}
                             />
                         )}
@@ -247,7 +246,6 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
                                     </div>
                                 ) : (
                                     <ImageKitUploader
-                                        currentImageUrl={formData.inventoryItemImage}
                                         onUpload={(url) => setFormData(p => ({...p, inventoryItemImage: url}))}
                                     />
                                 )}
@@ -398,4 +396,3 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
         </form>
     );
 }
-

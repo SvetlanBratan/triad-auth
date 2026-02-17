@@ -222,7 +222,7 @@ export default function AdminTab() {
   const [shopOwnerCharId, setShopOwnerCharId] = useState('');
   const [licenseShopId, setLicenseShopId] = useState('');
   const [shopHasLicense, setShopHasLicense] = useState(false);
-  const [newShop, setNewShop] = useState({ title: '', description: '', image: '', aiHint: '' });
+  const [newShop, setNewShop] = useState({ title: '', description: '', image: '' });
   const [isAddingShop, setIsAddingShop] = useState(false);
 
   
@@ -1150,6 +1150,26 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
             setIsSavingHunt(false);
         }
     }
+
+  const handleAdminAddShop = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newShop.title || !newShop.description || !newShop.image) {
+        toast({ variant: 'destructive', title: 'Ошибка', description: 'Пожалуйста, заполните все поля.' });
+        return;
+    }
+    setIsAddingShop(true);
+    try {
+        await adminAddShop(newShop);
+        toast({ title: 'Магазин добавлен!', description: `"${newShop.title}" появился на рынке.` });
+        setNewShop({ title: '', description: '', image: '' });
+        await queryClient.invalidateQueries({ queryKey: ['allShops'] });
+    } catch(err) {
+        const msg = err instanceof Error ? err.message : 'Произошла неизвестная ошибка.';
+        toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+    } finally {
+        setIsAddingShop(false);
+    }
+  };
 
 
   // --- Memos ---
@@ -2640,6 +2660,33 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
                 </Card>
             </div>
             <div className="break-inside-avoid mb-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Store/> Создать магазин</CardTitle>
+                        <CardDescription>Добавьте новое заведение на рынок.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <form onSubmit={handleAdminAddShop} className="space-y-4">
+                            <div>
+                                <Label htmlFor="new-shop-title">Название</Label>
+                                <Input id="new-shop-title" value={newShop.title} onChange={(e) => setNewShop(p => ({...p, title: e.target.value}))} />
+                            </div>
+                            <div>
+                                <Label htmlFor="new-shop-desc">Описание</Label>
+                                <Textarea id="new-shop-desc" value={newShop.description} onChange={(e) => setNewShop(p => ({...p, description: e.target.value}))} />
+                            </div>
+                            <div>
+                                <Label htmlFor="new-shop-image">URL изображения</Label>
+                                <Input id="new-shop-image" value={newShop.image} onChange={(e) => setNewShop(p => ({...p, image: e.target.value}))} placeholder="https://..." />
+                            </div>
+                            <Button type="submit" disabled={isAddingShop} className="w-full">
+                                {isAddingShop ? 'Добавление...' : 'Добавить магазин'}
+                            </Button>
+                        </form>
+                    </CardContent>
+                </Card>
+            </div>
+            <div className="break-inside-avoid mb-6">
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><PackagePlus /> Управление инвентарем</CardTitle>
@@ -2710,7 +2757,7 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="space-y-2">
+                                    <div>
                                         <Label>Существующий предмет</Label>
                                         <SearchableSelect
                                             options={allShopItems}

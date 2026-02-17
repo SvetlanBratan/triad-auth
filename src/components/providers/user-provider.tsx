@@ -86,7 +86,7 @@ export interface UserContextType {
   fetchShopById: (shopId: string) => Promise<Shop | null>;
   updateShopOwner: (shopId: string, ownerUserId: string, ownerCharacterId: string, ownerCharacterName: string) => Promise<void>;
   removeShopOwner: (shopId: string) => Promise<void>;
-  updateShopDetails: (shopId: string, details: Partial<Pick<Shop, 'title' | 'description' | 'defaultNewItemCategory'>>) => Promise<void>;
+  updateShopDetails: (shopId: string, details: Partial<Pick<Shop, 'title' | 'description' | 'defaultNewItemCategory' | 'image'>>) => Promise<void>;
   addShopItem: (shopId: string, item: Omit<ShopItem, 'id'>) => Promise<void>;
   updateShopItem: (shopId: string, item: ShopItem) => Promise<void>;
   deleteShopItem: (shopId: string, itemId: string) => Promise<void>;
@@ -132,7 +132,7 @@ export interface UserContextType {
   mergeUserData: (sourceUserId: string, targetUserId: string) => Promise<void>;
   imageGeneration: (prompt: string) => Promise<{url: string} | {error: string}>;
   deleteUserFromAuth: (uid: string) => Promise<{success: boolean; message: string}>;
-  adminAddShop: (shopData: Omit<Shop, 'id' | 'items' | 'purchaseCount'>) => Promise<void>;
+  adminAddShop: (shopData: Omit<Shop, 'id' | 'items' | 'purchaseCount' | 'aiHint'>) => Promise<void>;
 }
 
 export const UserContext = createContext<UserContextType | null>(null);
@@ -230,36 +230,6 @@ const sanitizeObjectForFirestore = (obj: any): any => {
     }
     return obj;
   };
-
-const fetchAllShops = async (): Promise<Shop[]> => {
-    const shopsCollection = collection(db, "shops");
-    const snapshot = await getDocs(shopsCollection);
-    const dbShops = new Map<string, Partial<Shop>>();
-    snapshot.forEach(doc => {
-        dbShops.set(doc.id, doc.data());
-    });
-
-    const allShopsWithData = ALL_SHOPS.map(baseShop => {
-        const dbData = dbShops.get(baseShop.id);
-        return { ...baseShop, ...(dbData || {}) };
-    });
-    
-    return allShopsWithData;
-};
-
-const fetchShopById = async (shopId: string): Promise<Shop | null> => {
-    const baseShop = SHOPS_BY_ID[shopId];
-    if (!baseShop) return null;
-
-    const shopRef = doc(db, "shops", shopId);
-    const docSnap = await getDoc(shopRef);
-
-    if (docSnap.exists()) {
-        return { ...baseShop, ...docSnap.data() };
-    }
-    return baseShop;
-};
-
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
     const { toast } = useToast();
@@ -2040,6 +2010,51 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           await updateDoc(requestRef, { status });
     }, []);
 
+    const fetchAllShops = useCallback(async (): Promise<Shop[]> => {
+      const shopsCollection = collection(db, "shops");
+      const snapshot = await getDocs(shopsCollection);
+      const dbShops = new Map<string, Partial<Shop>>();
+      snapshot.forEach(doc => {
+          dbShops.set(doc.id, doc.data());
+      });
+  
+      // Use a map to handle both static and dynamic shops, ensuring no duplicates
+      const allShopsMap = new Map<string, Shop>();
+  
+      // Add static shops first
+      ALL_SHOPS.forEach(baseShop => {
+          allShopsMap.set(baseShop.id, { ...baseShop });
+      });
+  
+      // Merge or add shops from the database
+      dbShops.forEach((dbData, shopId) => {
+          const existingShop = allShopsMap.get(shopId);
+          if (existingShop) {
+              // Merge with existing static shop
+              allShopsMap.set(shopId, { ...existingShop, ...dbData } as Shop);
+          } else {
+              // Add new dynamic shop
+              allShopsMap.set(shopId, dbData as Shop);
+          }
+      });
+  
+      return Array.from(allShopsMap.values());
+    }, []);
+
+  const fetchShopById = useCallback(async (shopId: string): Promise<Shop | null> => {
+          const baseShop = SHOPS_BY_ID[shopId];
+          const shopRef = doc(db, "shops", shopId);
+          const docSnap = await getDoc(shopRef);
+
+          if (docSnap.exists()) {
+             if (baseShop) {
+                return { ...baseShop, ...docSnap.data() };
+             }
+             return docSnap.data() as Shop;
+          }
+          return baseShop || null;
+  }, []);
+
     const updateShopOwner = useCallback(async (shopId: string, ownerUserId: string, ownerCharacterId: string, ownerCharacterName: string) => {
         const shopRef = doc(db, "shops", shopId);
          await setDoc(shopRef, {
@@ -2060,7 +2075,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }, { merge: true });
   }, []);
 
-    const updateShopDetails = useCallback(async (shopId: string, details: Partial<Pick<Shop, 'title' | 'description' | 'defaultNewItemCategory'>>) => {
+    const updateShopDetails = useCallback(async (shopId: string, details: Partial<Pick<Shop, 'title' | 'description' | 'defaultNewItemCategory' | 'image'>>) => {
         const shopRef = doc(db, "shops", shopId);
         await setDoc(shopRef, details, { merge: true });
   }, []);
@@ -3445,13 +3460,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     }, [firebaseUser, updateUser]);
 
-    const adminAddShop = useCallback(async (shopData: Omit<Shop, 'id' | 'items' | 'purchaseCount'>) => {
+    const adminAddShop = useCallback(async (shopData: Omit<Shop, 'id' | 'items' | 'purchaseCount' | 'aiHint'>) => {
         const newShopId = `shop-custom-${Date.now()}`;
-        const newShop: Shop = {
+        const newShop: Partial<Shop> = {
             id: newShopId,
             ...shopData,
             items: [],
-        }
+        };
         const shopRef = doc(db, 'shops', newShopId);
         await setDoc(shopRef, newShop);
     }, []);
@@ -3598,3 +3613,4 @@ export const useUser = () => {
     
 
     
+

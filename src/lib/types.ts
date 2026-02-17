@@ -336,19 +336,8 @@ export interface Character {
   weaknesses?: string;
   weaknessesAreHidden?: boolean;
   lifeGoal?: string;
-  appearance: string;
-  appearanceImage?: string;
-  personality: string;
-  biography: string;
-  biographyIsHidden?: boolean;
-  diary: string;
-  training: TrainingRecord[];
-  relationships: Relationship[];
-  marriedTo?: string[];
-  marriedToNpc?: string[];
-  inventory: Partial<Inventory>;
+  criminalRecords?: string;
   familiarCards: OwnedFamiliarCard[];
-  ongoingHunts?: OngoingHunt[];
   moodlets?: Moodlet[];
   blessingExpires?: string;
   hasLeviathanFriendship?: boolean;
@@ -361,10 +350,15 @@ export interface Character {
   popularityHistory: PopularityLog[];
   galleryImages?: GalleryImage[];
   bannerImage?: string;
+  ongoingHunts?: OngoingHunt[];
   // Deprecated fields, kept for migration
   skillLevels?: CharacterLevel[];
   fameLevels?: CharacterLevel[];
   pets?: string;
+  training: TrainingRecord[];
+  marriedTo?: string[];
+  marriedToNpc?: string[];
+  relationships: Relationship[];
 }
 
 export interface PointLog {
@@ -454,7 +448,7 @@ export interface Shop {
   title: string;
   description: string;
   image: string;
-  aiHint: string;
+  aiHint?: string;
   ownerUserId?: string;
   ownerCharacterId?: string;
   ownerCharacterName?: string;
