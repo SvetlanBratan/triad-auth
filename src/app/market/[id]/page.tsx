@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -286,7 +285,7 @@ export default function ShopPage() {
                     <div className="flex justify-between items-start flex-wrap gap-4">
                          {shop.ownerCharacterName ? (
                             <div className="flex items-center gap-2 text-muted-foreground">
-                                <UserCircle className="h-5 w-5" />
+                                <UserCircle className="h-5 v-5" />
                                 <span>Владелец: 
                                     <Link href={`/characters/${shop.ownerCharacterId}`} className="font-semibold text-primary hover:underline ml-1">
                                         {shop.ownerCharacterName}
@@ -324,7 +323,7 @@ export default function ShopPage() {
                         </div>
                        
                         {filteredItems.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-6">
                                 {filteredItems.map(item => {
                                     return (
                                     <Card key={item.id} className={cn("flex flex-col group overflow-hidden w-full h-full", item.isHidden && "opacity-60")}>
@@ -338,18 +337,18 @@ export default function ShopPage() {
                                                 />
                                             </div>
                                         )}
-                                        <CardHeader>
-                                            <div className="flex justify-between items-start">
-                                                <CardTitle className="text-lg flex items-center gap-2">
-                                                  {item.name}
-                                                  {item.isHidden && <Eye className="w-4 h-4 text-muted-foreground" />}
+                                        <CardHeader className="p-2 sm:p-6">
+                                            <div className="flex justify-between items-start gap-1">
+                                                <CardTitle className="text-sm sm:text-lg flex items-center gap-1 sm:gap-2">
+                                                  <span className="line-clamp-2">{item.name}</span>
+                                                  {item.isHidden && <Eye className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground" />}
                                                 </CardTitle>
                                                 {isOwnerOrAdmin && (
-                                                    <div className="flex gap-2">
-                                                        <Button size="icon" variant="secondary" className="h-8 w-8" onClick={() => { setEditingItem(item); setIsFormOpen(true); }}><Edit className="h-4 w-4"/></Button>
+                                                    <div className="flex gap-1 sm:gap-2">
+                                                        <Button size="icon" variant="secondary" className="h-7 w-7 sm:h-8 sm:w-8" onClick={() => { setEditingItem(item); setIsFormOpen(true); }}><Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4"/></Button>
                                                         <AlertDialog>
                                                             <AlertDialogTrigger asChild>
-                                                                <Button size="icon" variant="destructive" className="h-8 w-8"><Trash2 className="h-4 w-4"/></Button>
+                                                                <Button size="icon" variant="destructive" className="h-7 w-7 sm:h-8 sm:w-8"><Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4"/></Button>
                                                             </AlertDialogTrigger>
                                                             <AlertDialogContent>
                                                                 <AlertDialogHeader>
@@ -368,27 +367,27 @@ export default function ShopPage() {
                                                 )}
                                             </div>
                                         </CardHeader>
-                                        <CardContent className="pt-0 flex-grow">
+                                        <CardContent className="p-2 sm:p-6 pt-0 flex-grow">
                                             {item.description && 
-                                                <ScrollArea className="h-24 pr-2">
-                                                    <CardDescription className="text-sm">
+                                                <ScrollArea className="h-16 sm:h-24 pr-2">
+                                                    <CardDescription className="text-[10px] sm:text-sm">
                                                         <FormattedTextRenderer text={item.description} />
                                                     </CardDescription>
                                                 </ScrollArea>
                                             }
                                         </CardContent>
-                                        <CardFooter className="flex-col items-start gap-4 pt-4">
+                                        <CardFooter className="flex-col items-start gap-2 sm:gap-4 p-2 sm:p-6 pt-0 sm:pt-4">
                                              {item.quantity !== undefined && item.quantity >= 0 && (
-                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                    <Package className="h-4 w-4" />
+                                                <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-sm text-muted-foreground">
+                                                    <Package className="h-3 w-3 sm:h-4 sm:w-4" />
                                                     <span>Осталось: {item.quantity} шт.</span>
                                                 </div>
                                             )}
-                                            <div className="text-primary font-bold">
+                                            <div className="text-primary font-bold text-xs sm:text-base">
                                                 {formatCurrency(item.price)}
                                             </div>
-                                            <Button className="w-full" onClick={() => handlePurchaseClick(item)}>
-                                                <ShoppingCart className="mr-2 h-4 w-4" /> 
+                                            <Button className="w-full h-8 sm:h-10 text-xs sm:text-sm" onClick={() => handlePurchaseClick(item)}>
+                                                <ShoppingCart className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" /> 
                                                 Купить
                                             </Button>
                                         </CardFooter>
@@ -640,7 +639,3 @@ export default function ShopPage() {
         </div>
     );
 }
-
-    
-
-    
