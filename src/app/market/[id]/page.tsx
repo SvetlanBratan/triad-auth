@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -104,10 +105,11 @@ export default function ShopPage() {
         if (!currentUser || !totalPrice) return [];
         return currentUser.characters.filter(char => {
             const balance = char.bankAccount;
-            return (balance.platinum >= totalPrice.platinum) &&
-                   (balance.gold >= totalPrice.gold) &&
-                   (balance.silver >= totalPrice.silver) &&
-                   (balance.copper >= totalPrice.copper);
+            // If receiving money (negative totalPrice), balance check is always true
+            return (totalPrice.platinum <= 0 || balance.platinum >= totalPrice.platinum) &&
+                   (totalPrice.gold <= 0 || balance.gold >= totalPrice.gold) &&
+                   (totalPrice.silver <= 0 || balance.silver >= totalPrice.silver) &&
+                   (totalPrice.copper <= 0 || balance.copper >= totalPrice.copper);
         });
     }, [currentUser, totalPrice]);
 
@@ -325,8 +327,14 @@ export default function ShopPage() {
                         {filteredItems.length > 0 ? (
                             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-6">
                                 {filteredItems.map(item => {
+                                    // Shop affordability check for negative prices
+                                    const isAffordableByShop = Object.entries(item.price).every(([currency, val]) => {
+                                        if (val >= 0) return true;
+                                        return (shopBalance[currency as keyof BankAccount] as number || 0) >= Math.abs(val);
+                                    });
+
                                     return (
-                                    <Card key={item.id} className={cn("flex flex-col group overflow-hidden w-full h-full", item.isHidden && "opacity-60")}>
+                                    <Card key={item.id} className={cn("flex flex-col group overflow-hidden w-full h-full", (item.isHidden || (!isAffordableByShop && Object.values(item.price).some(v => v < 0))) && "opacity-60")}>
                                         {item.image && (
                                             <div className="relative w-full aspect-square bg-muted">
                                                  <Image
@@ -383,12 +391,16 @@ export default function ShopPage() {
                                                     <span>Осталось: {item.quantity} шт.</span>
                                                 </div>
                                             )}
-                                            <div className="text-primary font-bold text-xs sm:text-base">
+                                            <div className={cn("font-bold text-xs sm:text-base", Object.values(item.price).some(v => v < 0) ? "text-green-600" : "text-primary")}>
                                                 {formatCurrency(item.price)}
                                             </div>
-                                            <Button className="w-full h-8 sm:h-10 text-xs sm:text-sm" onClick={() => handlePurchaseClick(item)}>
+                                            <Button 
+                                                className="w-full h-8 sm:h-10 text-xs sm:text-sm" 
+                                                onClick={() => handlePurchaseClick(item)}
+                                                disabled={Object.values(item.price).some(v => v < 0) && !isAffordableByShop}
+                                            >
                                                 <ShoppingCart className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" /> 
-                                                Купить
+                                                {Object.values(item.price).some(v => v < 0) && !isAffordableByShop ? "Нет средств в кассе" : "Купить"}
                                             </Button>
                                         </CardFooter>
                                     </Card>
@@ -537,13 +549,20 @@ export default function ShopPage() {
                         const meetsDocumentRequirement = !buyerChar || !selectedItemForPurchase.requiredDocument || 
                             (buyerChar.inventory.документы || []).some(doc => doc.name === selectedItemForPurchase!.requiredDocument);
                             
-                        const canPurchase = buyerChar && !isOutOfStock && !alreadyPurchased && meetsRaceRequirement && meetsDocumentRequirement;
+                        const isShopPaying = Object.values(totalPrice || {}).some(v => v < 0);
+                        const isAffordableByShop = Object.entries(totalPrice || {}).every(([currency, val]) => {
+                            if (val >= 0) return true;
+                            return (shopBalance[currency as keyof BankAccount] as number || 0) >= Math.abs(val);
+                        });
+
+                        const canPurchase = buyerChar && !isOutOfStock && !alreadyPurchased && meetsRaceRequirement && meetsDocumentRequirement && (!isShopPaying || isAffordableByShop);
                         
                         let disabledReason = '';
                         if(isOutOfStock) disabledReason = "Нет в наличии";
                         else if (alreadyPurchased) disabledReason = "Уже приобретено";
                         else if (!meetsRaceRequirement) disabledReason = "Недоступно для вашей расы";
                         else if (!meetsDocumentRequirement) disabledReason = `Требуется документ: ${selectedItemForPurchase.requiredDocument}`;
+                        else if (isShopPaying && !isAffordableByShop) disabledReason = "В кассе заведения недостаточно средств для выплаты";
 
                         return (
                             <>
@@ -565,12 +584,14 @@ export default function ShopPage() {
                                     </div>
 
                                     <div className="text-right">
-                                        <p className="text-sm text-muted-foreground">Итоговая стоимость:</p>
-                                        <p className="font-bold text-primary">{formatCurrency(totalPrice as BankAccount)}</p>
+                                        <p className="text-sm text-muted-foreground">{isShopPaying ? "Вы получите:" : "Итоговая стоимость:"}</p>
+                                        <p className={cn("font-bold", isShopPaying ? "text-green-600" : "text-primary")}>
+                                            {formatCurrency(totalPrice as BankAccount)}
+                                        </p>
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label htmlFor="buyer-character" className="text-sm font-medium">Выберите персонажа для оплаты:</label>
+                                        <label htmlFor="buyer-character" className="text-sm font-medium">Выберите персонажа:</label>
                                         {buyerCharacterOptions && buyerCharacterOptions.length > 0 ? (
                                             <SearchableSelect
                                                 options={buyerCharacterOptions}
@@ -605,9 +626,9 @@ export default function ShopPage() {
                                         ) : (
                                             <Alert variant="destructive">
                                                 <Info className="h-4 w-4" />
-                                                <AlertTitle>Неподходящие персонажи</AlertTitle>
+                                                <AlertTitle>Нет подходящих персонажей</AlertTitle>
                                                 <AlertDescription>
-                                                    Ни у одного из ваших персонажей нет достаточно средств для совершения этой покупки, или они являются владельцами этого заведения.
+                                                    Ни у одного из ваших персонажей нет достаточно средств для совершения этой покупки.
                                                 </AlertDescription>
                                             </Alert>
                                         )}
@@ -615,7 +636,7 @@ export default function ShopPage() {
                                     {buyerCharacterId && disabledReason && (
                                         <Alert variant="destructive">
                                             <Info className="h-4 w-4" />
-                                            <AlertTitle>Невозможно купить</AlertTitle>
+                                            <AlertTitle>Невозможно совершить операцию</AlertTitle>
                                             <AlertDescription>
                                                 {disabledReason}
                                             </AlertDescription>

@@ -2018,22 +2018,17 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           dbShops.set(doc.id, doc.data());
       });
   
-      // Use a map to handle both static and dynamic shops, ensuring no duplicates
       const allShopsMap = new Map<string, Shop>();
   
-      // Add static shops first
       ALL_SHOPS.forEach(baseShop => {
           allShopsMap.set(baseShop.id, { ...baseShop });
       });
   
-      // Merge or add shops from the database
       dbShops.forEach((dbData, shopId) => {
           const existingShop = allShopsMap.get(shopId);
           if (existingShop) {
-              // Merge with existing static shop
               allShopsMap.set(shopId, { ...existingShop, ...dbData } as Shop);
           } else {
-              // Add new dynamic shop
               allShopsMap.set(shopId, dbData as Shop);
           }
       });
@@ -2061,7 +2056,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             ownerUserId,
             ownerCharacterId,
             ownerCharacterName,
-            bankAccount: { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] } // Reset till on new owner
         }, { merge: true });
   }, []);
 
@@ -2071,7 +2065,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             ownerUserId: deleteField(),
             ownerCharacterId: deleteField(),
             ownerCharacterName: deleteField(),
-            bankAccount: { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] }
         }, { merge: true });
   }, []);
 
@@ -2160,7 +2153,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 silver: (price.silver || 0) * quantity,
                 copper: (price.copper || 0) * quantity,
             }
+            
+            const shopBankAccount = shopData.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
+
+            // AFFORDABILITY CHECK FOR NEGATIVE PRICES (Shop Pays Buyer)
+            if (totalPrice.platinum < 0 && (shopBankAccount.platinum || 0) < Math.abs(totalPrice.platinum)) throw new Error("В кассе заведения недостаточно платины для этой операции.");
+            if (totalPrice.gold < 0 && (shopBankAccount.gold || 0) < Math.abs(totalPrice.gold)) throw new Error("В кассе заведения недостаточно золота для этой операции.");
+            if (totalPrice.silver < 0 && (shopBankAccount.silver || 0) < Math.abs(totalPrice.silver)) throw new Error("В кассе заведения недостаточно серебра для этой операции.");
+            if (totalPrice.copper < 0 && (shopBankAccount.copper || 0) < Math.abs(totalPrice.copper)) throw new Error("В кассе заведения недостаточно меди для этой операции.");
+
             const balance = buyerChar.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 };
+            
+            // Standard check for regular prices
             if (
                 balance.platinum < totalPrice.platinum ||
                 balance.gold < totalPrice.gold ||
@@ -2175,7 +2179,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             buyerChar.bankAccount.silver -= totalPrice.silver;
             buyerChar.bankAccount.copper -= totalPrice.copper;
             
-            const buyerTx: BankTransaction = { id: `txn-buy-${Date.now()}`, date: new Date().toISOString(), reason: `Покупка: ${item.name} x${quantity}`, amount: { platinum: -totalPrice.platinum, gold: -totalPrice.gold, silver: -totalPrice.silver, copper: -totalPrice.copper } };
+            const isShopPaying = Object.values(totalPrice).some(v => v < 0);
+            const buyerTx: BankTransaction = { 
+                id: `txn-buy-${Date.now()}`, 
+                date: new Date().toISOString(), 
+                reason: isShopPaying ? `Выплата от заведения: ${item.name} x${quantity}` : `Покупка: ${item.name} x${quantity}`, 
+                amount: { platinum: -totalPrice.platinum, gold: -totalPrice.gold, silver: -totalPrice.silver, copper: -totalPrice.copper } 
+            };
             buyerChar.bankAccount.history = [buyerTx, ...(buyerChar.bankAccount.history || [])];
 
             if (item.inventoryTag === 'проживание') {
@@ -2206,13 +2216,17 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 }
             }
 
-            const shopBankAccount = shopData.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
             shopBankAccount.platinum = (shopBankAccount.platinum || 0) + totalPrice.platinum;
             shopBankAccount.gold = (shopBankAccount.gold || 0) + totalPrice.gold;
             shopBankAccount.silver = (shopBankAccount.silver || 0) + totalPrice.silver;
             shopBankAccount.copper = (shopBankAccount.copper || 0) + totalPrice.copper;
 
-            const shopTx: BankTransaction = { id: `txn-sell-${Date.now()}`, date: new Date().toISOString(), reason: `Продажа: ${item.name} x${quantity}`, amount: totalPrice };
+            const shopTx: BankTransaction = { 
+                id: `txn-sell-${Date.now()}`, 
+                date: new Date().toISOString(), 
+                reason: isShopPaying ? `Выплата покупателю (${buyerChar.name}): ${item.name} x${quantity}` : `Продажа (${buyerChar.name}): ${item.name} x${quantity}`, 
+                amount: totalPrice 
+            };
             shopBankAccount.history = [shopTx, ...(shopBankAccount.history || [])];
 
             transaction.update(buyerUserRef, { characters: buyerUserData.characters });
@@ -3595,22 +3609,3 @@ export const useUser = () => {
     }
     return context;
 };
-    
-
-    
-
-
-
-
-
-
-    
-
-
-
-    
-
-    
-
-    
-
