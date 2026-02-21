@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser } from '@/hooks/use-user';
@@ -129,7 +128,7 @@ export default function RewardsTab() {
             characterName: character?.name || '',
         };
 
-        if (recipientType === 'gift' && targetUser) {
+        if (recipientType === 'gift' && targetUser && selectedReward.id !== 'r-custom-status') {
             rewardRequestData.targetUserId = targetUser.id;
             rewardRequestData.targetUserName = targetUser.name;
         }
@@ -210,27 +209,31 @@ export default function RewardsTab() {
                     <DialogHeader>
                         <DialogTitle>Запросить "{selectedReward.title}"</DialogTitle>
                         <DialogDescription>
-                            Выберите получателя и персонажа для этой награды.
+                            {selectedReward.id === 'r-custom-status' 
+                                ? 'Настройте свой статус. Эта награда доступна только для вашего личного профиля.' 
+                                : 'Выберите получателя и персонажа для этой награды.'}
                         </DialogDescription>
                     </DialogHeader>
                     
                     <div className="py-4 space-y-6">
-                        <RadioGroup value={recipientType} onValueChange={(v) => { setRecipientType(v as any); setTargetUserId(''); setSelectedCharacterId(''); }} className="grid grid-cols-2 gap-4">
-                            <div className="flex items-center space-x-2 border rounded-md p-3 cursor-pointer hover:bg-muted/50">
-                                <RadioGroupItem value="self" id="self" />
-                                <Label htmlFor="self" className="flex items-center gap-2 cursor-pointer">
-                                    <UserIcon className="w-4 h-4" /> Для себя
-                                </Label>
-                            </div>
-                            <div className="flex items-center space-x-2 border rounded-md p-3 cursor-pointer hover:bg-muted/50">
-                                <RadioGroupItem value="gift" id="gift" />
-                                <Label htmlFor="gift" className="flex items-center gap-2 cursor-pointer">
-                                    <Gift className="w-4 h-4" /> В подарок
-                                </Label>
-                            </div>
-                        </RadioGroup>
+                        {selectedReward.id !== 'r-custom-status' && (
+                            <RadioGroup value={recipientType} onValueChange={(v) => { setRecipientType(v as any); setTargetUserId(''); setSelectedCharacterId(''); }} className="grid grid-cols-2 gap-4">
+                                <div className="flex items-center space-x-2 border rounded-md p-3 cursor-pointer hover:bg-muted/50">
+                                    <RadioGroupItem value="self" id="self" />
+                                    <Label htmlFor="self" className="flex items-center gap-2 cursor-pointer">
+                                        <UserIcon className="w-4 h-4" /> Для себя
+                                    </Label>
+                                </div>
+                                <div className="flex items-center space-x-2 border rounded-md p-3 cursor-pointer hover:bg-muted/50">
+                                    <RadioGroupItem value="gift" id="gift" />
+                                    <Label htmlFor="gift" className="flex items-center gap-2 cursor-pointer">
+                                        <Gift className="w-4 h-4" /> В подарок
+                                    </Label>
+                                </div>
+                            </RadioGroup>
+                        )}
 
-                        {recipientType === 'gift' && (
+                        {recipientType === 'gift' && selectedReward.id !== 'r-custom-status' && (
                             <div className="space-y-2">
                                 <Label>Выберите игрока из избранных:</Label>
                                 {favoritePlayerOptions.length > 0 ? (
