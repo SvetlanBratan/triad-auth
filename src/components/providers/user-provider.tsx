@@ -3226,7 +3226,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
               const location = gameSettings.huntingLocations?.find(l => l.id === hunt.locationId);
               const familiar = familiarsById[hunt.familiarId];
               
-              if (!location || !familiar) continue; // Skip if data is missing
+              if (!location || !familiar) continue; 
   
               let effectiveRank = familiar.rank;
               if (effectiveRank === 'ивентовый') effectiveRank = 'мифический';

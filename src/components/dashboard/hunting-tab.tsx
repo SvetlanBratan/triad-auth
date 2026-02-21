@@ -99,7 +99,7 @@ export default function HuntingTab() {
         (char.ongoingHunts || []).map(hunt => ({
           ...hunt,
           userId: user.id,
-          characterName: hunt.characterName || char.name, // Backfill missing name
+          characterName: hunt.characterName || char.name,
         }))
       )
     );
@@ -396,6 +396,7 @@ export default function HuntingTab() {
                             {ongoingHunts.map(hunt => {
                                 const location = gameSettings.huntingLocations?.find(l => l.id === hunt.locationId);
                                 const familiar = familiarsById[hunt.familiarId];
+                                if (!familiar) return null;
                                 const isFinished = new Date(hunt.endsAt) <= now;
                                 
                                 return (
