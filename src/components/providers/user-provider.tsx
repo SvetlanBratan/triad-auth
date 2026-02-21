@@ -127,6 +127,7 @@ export interface UserContextType {
   claimAllHuntRewards: (characterId: string) => Promise<InventoryItem[]>;
   recallHunt: (characterId: string, huntId: string) => Promise<void>;
   claimRewardsForOtherPlayer: (ownerUserId: string, characterId: string) => Promise<void>;
+  adminClaimHuntEarly: (ownerUserId: string, characterId: string, huntId: string) => Promise<InventoryItem[]>;
   changeUserPassword: (currentPassword: string, newPassword: string) => Promise<void>;
   changeUserEmail: (currentPassword: string, newEmail: string) => Promise<void>;
   mergeUserData: (sourceUserId: string, targetUserId: string) => Promise<void>;
@@ -826,7 +827,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                     }
                 });
 
-                const stringFields: (keyof Character)[] = ['factions', 'abilities', 'abilitiesAreHidden', 'weaknesses', 'weaknessesAreHidden', 'lifeGoal', 'criminalRecords', 'appearanceImage', 'diary', 'workLocation', 'blessingExpires', 'bannerImage'];
+                const stringFields: (keyof Character)[] = ['factions', 'abilities', 'weaknesses', 'lifeGoal', 'criminalRecords', 'appearanceImage', 'diary', 'workLocation', 'blessingExpires', 'bannerImage'];
                 stringFields.forEach(field => {
                     if (sanitized[field] === undefined || sanitized[field] === null) {
                         if(typeof sanitized[field] === 'boolean') {
@@ -2098,12 +2099,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             ownerCharacterId: deleteField(),
             ownerCharacterName: deleteField(),
         }, { merge: true });
-  }, []);
+    }, []);
 
     const updateShopDetails = useCallback(async (shopId: string, details: Partial<Pick<Shop, 'title' | 'description' | 'defaultNewItemCategory' | 'image'>>) => {
         const shopRef = doc(db, "shops", shopId);
         await setDoc(shopRef, details, { merge: true });
-  }, []);
+    }, []);
   
   const addShopItem = useCallback(async (shopId: string, item: Omit<ShopItem, 'id'>) => {
         const shopRef = doc(db, "shops", shopId);
@@ -2732,7 +2733,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const updatedCurrentUser = await fetchUserById(currentUser.id);
             if (updatedCurrentUser) setCurrentUser(updatedCurrentUser);
         }
-    }, [fetchUsersForAdmin, currentUser, fetchUserById]);
+    }, [fetchUsersForAdmin, currentUser, fetchUserById, grantAchievementToUser]);
 
     const clearAllPopularityHistories = useCallback(async () => {
         const allUsers = await fetchUsersForAdmin();
@@ -2777,7 +2778,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             }
 
             const userRef = doc(db, "users", currentUser.id);
-            const userDoc = await getDoc(userRef);
+            const userDoc = await transaction.get(userRef);
             const userData = userDoc.data() as User;
             const charIndex = userData.characters.findIndex(c => c.id === ownerChar.id);
             const characterToUpdate = userData.characters[charIndex];
@@ -3287,7 +3288,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const charIndex = userData.characters.findIndex(c => c.id === characterId);
             if (charIndex === -1) throw new Error("Character not found");
 
-            const character = { ...userData.characters[charIndex] };
+            const character = { ...userData.characters[characterIndex] };
             const huntIndex = (character.ongoingHunts || []).findIndex(h => h.huntId === huntId);
             if (huntIndex === -1) throw new Error("Hunt not found");
             
@@ -3402,6 +3403,85 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       });
 
     }, [fetchUserById, gameSettings, familiarsById, toast, currentUser, fetchAllShops]);
+
+    const adminClaimHuntEarly = useCallback(async (ownerUserId: string, characterId: string, huntId: string): Promise<InventoryItem[]> => {
+        const isAdmin = currentUser?.role === 'admin';
+        if (!isAdmin) throw new Error("Permission denied");
+        
+        let rewards: InventoryItem[] = [];
+        const allShopsData = await fetchAllShops();
+        const allItems = [...ALL_ITEMS_FOR_ALCHEMY, ...allShopsData.flatMap(s => s.items || [])];
+
+        await runTransaction(db, async (transaction) => {
+            const userRef = doc(db, "users", ownerUserId);
+            const userDoc = await transaction.get(userRef);
+            if (!userDoc.exists()) throw new Error("User not found");
+
+            const userData = userDoc.data() as User;
+            const charIndex = userData.characters.findIndex(c => c.id === characterId);
+            if (charIndex === -1) throw new Error("Character not found");
+
+            const character = { ...userData.characters[charIndex] };
+            const huntIndex = (character.ongoingHunts || []).findIndex(h => h.huntId === huntId);
+            if (huntIndex === -1) throw new Error("Hunt not found");
+            const hunt = character.ongoingHunts![huntIndex];
+
+            const location = gameSettings.huntingLocations?.find(l => l.id === hunt.locationId);
+            const familiar = familiarsById[hunt.familiarId];
+            
+            if (!location || !familiar) {
+                character.ongoingHunts!.splice(huntIndex, 1);
+                userData.characters[charIndex] = character;
+                transaction.update(userRef, { characters: userData.characters });
+                return;
+             }
+
+            let effectiveRank = familiar.rank;
+            if (effectiveRank === 'ивентовый') effectiveRank = 'мифический';
+            
+            const inventory = JSON.parse(JSON.stringify(character.inventory || {}));
+
+            for (const rewardRule of location.rewards) {
+                const rankReward = rewardRule.rewardsByRank[effectiveRank];
+                if (rankReward && (Math.random() * 100 <= rankReward.chance)) {
+                    const itemData = allItems.find(i => i && i.id === rewardRule.itemId);
+                    if (itemData) {
+                        const invCategory = ('inventoryTag' in itemData && itemData.inventoryTag) ? itemData.inventoryTag : 'ингредиенты';
+                        const categoryItems = (inventory[invCategory as keyof typeof inventory] || []) as InventoryItem[];
+                        const existingItemIndex = categoryItems.findIndex(i => i.name === itemData.name);
+                        
+                        const quantityGained = rankReward.quantity;
+
+                        if (existingItemIndex > -1) {
+                            categoryItems[existingItemIndex].quantity += quantityGained;
+                        } else {
+                            categoryItems.push({
+                                id: `inv-item-${Date.now()}-${Math.random()}`,
+                                name: itemData.name,
+                                description: ('note' in itemData ? itemData.note : '') || ('description' in itemData ? (itemData as any).description : ''),
+                                image: itemData.image,
+                                quantity: quantityGained,
+                            });
+                        }
+                        inventory[invCategory as keyof typeof inventory] = categoryItems as any;
+                        rewards.push({ ...itemData, quantity: quantityGained } as InventoryItem);
+                    }
+                }
+            }
+
+            character.ongoingHunts!.splice(huntIndex, 1);
+            character.inventory = inventory;
+            userData.characters[charIndex] = character;
+            transaction.update(userRef, { characters: userData.characters });
+        });
+
+        const updatedUser = await fetchUserById(ownerUserId);
+        if (updatedUser && currentUser?.id === ownerUserId) {
+            setCurrentUser(updatedUser);
+        }
+        
+        return rewards;
+    }, [currentUser?.role, fetchAllShops, gameSettings, familiarsById, fetchUserById, setCurrentUser]);
 
     const changeUserPassword = useCallback(async (currentPassword: string, newPassword: string) => {
         if (!firebaseUser) throw new Error("No user is signed in.");
@@ -3552,7 +3632,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         claimAllHuntRewards,
         recallHunt,
         claimRewardsForOtherPlayer,
-        adminClaimHuntEarly: async (uid, cid, hid) => [], 
+        adminClaimHuntEarly,
         changeUserPassword,
         changeUserEmail,
         mergeUserData,
@@ -3561,7 +3641,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         adminAddShop,
         migrateAllFamiliarsToDb,
     }),
-        [currentUser, setCurrentUser, gameDate, gameDateString, gameSettings, teachings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsersFn, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes, fetchDbFamiliars, addFamiliarToDb, updateFamiliarInDb, deleteFamiliarFromDb, allFamiliars, familiarsById, startHunt, startMultipleHunts, claimHuntReward, claimAllHuntRewards, recallHunt, claimRewardsForOtherPlayer, changeUserPassword, changeUserEmail, mergeUserData, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, imageGeneration, deleteUserFromAuth, adminAddShop, migrateAllFamiliarsToDb]
+        [currentUser, setCurrentUser, gameDate, gameDateString, gameSettings, teachings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsersFn, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes, fetchDbFamiliars, addFamiliarToDb, updateFamiliarInDb, deleteFamiliarFromDb, allFamiliars, familiarsById, startHunt, startMultipleHunts, claimHuntReward, claimAllHuntRewards, recallHunt, claimRewardsForOtherPlayer, changeUserPassword, changeUserEmail, mergeUserData, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, imageGeneration, deleteUserFromAuth, adminAddShop, migrateAllFamiliarsToDb, adminClaimHuntEarly]
     );
     
     return (
