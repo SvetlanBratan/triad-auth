@@ -483,7 +483,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const fetchDbFamiliars = useCallback(async (): Promise<FamiliarCard[]> => {
         const familiarsCollection = collection(db, "familiars");
         const snapshot = await getDocs(familiarsCollection);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FamiliarCard));
+        return snapshot.docs.map(doc => {
+            const data = doc.data();
+            return { ...(data as any), id: doc.id } as FamiliarCard;
+        });
     }, []);
 
     const fetchAndCombineFamiliars = useCallback(async () => {
