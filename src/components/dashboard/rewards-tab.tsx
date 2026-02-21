@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser } from '@/hooks/use-user';
@@ -184,7 +185,7 @@ export default function RewardsTab() {
                 <DynamicIcon name={reward.iconName} className="w-4 h-4 sm:w-6 sm:h-6 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
-                <CardTitle className="text-xs sm:text-lg font-headline leading-tight truncate sm:whitespace-normal">{reward.title}</CardTitle>
+                <CardTitle className="text-[11px] sm:text-lg font-headline leading-tight sm:whitespace-normal">{reward.title}</CardTitle>
                 <CardDescription className="text-[10px] sm:text-xs mt-1 line-clamp-2 sm:line-clamp-none">{reward.description}</CardDescription>
               </div>
             </CardHeader>
