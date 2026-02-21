@@ -307,6 +307,24 @@ const CharacterForm = ({ character, allUsers, ownerId, onSuccess, closeDialog, e
         );
     }, [allUsers]);
 
+    const reserveOptions = React.useMemo(() => {
+        if (isAdmin) return ADMIN_RESERVE_LEVEL_OPTIONS;
+        
+        const options = [...RESERVE_LEVEL_OPTIONS];
+        const userAchievements = currentUser?.achievementIds || [];
+        
+        if (userAchievements.includes('ach-big-mage')) {
+            options.push({ value: 'А6 (архимаг)', label: 'А6 (архимаг)' });
+        }
+        if (userAchievements.includes('ach-archmaster')) {
+            options.push({ value: 'А7 (архимагистр)', label: 'А7 (архимагистр)' });
+        }
+        if (userAchievements.includes('ach-deargod')) {
+            options.push({ value: 'Б8 (божественный)', label: 'Б8 (божественный)' });
+        }
+        return options;
+    }, [isAdmin, currentUser?.achievementIds]);
+
 
     const handleFieldChange = (field: keyof Character, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -752,7 +770,7 @@ const CharacterForm = ({ character, allUsers, ownerId, onSuccess, closeDialog, e
                                     <div>
                                         <Label>Уровень резерва</Label>
                                         <SearchableSelect
-                                            options={isAdmin ? ADMIN_RESERVE_LEVEL_OPTIONS : RESERVE_LEVEL_OPTIONS}
+                                            options={reserveOptions}
                                             value={formData.magic?.reserveLevel || ''}
                                             onValueChange={(v) => handleMagicChange('reserveLevel', v)}
                                             placeholder="Выберите уровень..."

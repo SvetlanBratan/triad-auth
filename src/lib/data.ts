@@ -3,7 +3,7 @@ import type { Reward, FamiliarCard, Achievement, GameSettings, WealthLevel, Bank
 import type { OptionType } from '@/components/ui/multi-select';
 
 export const DEFAULT_GAME_SETTINGS: GameSettings = {
-    lastWeeklyBonusAwardedAt: new Date(0).toISOString(), // Initialize with a very old date
+    lastWeeklyBonusAwardedAt: new Date(0).toISOString(), 
     gachaChances: {
         normal: {
             мифический: 2,
@@ -147,12 +147,12 @@ export const RESERVE_LEVEL_OPTIONS: OptionType[] = [
     { value: 'С3 (специалист)', label: 'С3 (специалист)' },
     { value: 'М4 (мастер)', label: 'М4 (мастер)' },
     { value: 'М5 (магистр)', label: 'М5 (магистр)' },
-    { value: 'А6 (архимаг)', label: 'А6 (архимаг)' },
-    { value: 'А7 (архимагистр)', label: 'А7 (архимагистр)' },
 ];
 
 export const ADMIN_RESERVE_LEVEL_OPTIONS: OptionType[] = [
     ...RESERVE_LEVEL_OPTIONS,
+    { value: 'А6 (архимаг)', label: 'А6 (архимаг)' },
+    { value: 'А7 (архимагистр)', label: 'А7 (архимагистр)' },
     { value: 'Б8 (божественный)', label: 'Б8 (божественный)' },
 ];
 
@@ -251,7 +251,6 @@ export const RACE_OPTIONS: OptionType[] = [
     { value: 'Жнец', label: 'Жнец' },
 ];
 
-
 export const COUNTRIES: string[] = [
     'Артерианск', 'Белоснежье', 'Огнеславия', 'Сан-Ликорис', 'Заприливье',
     'Острова неприкаянных', 'Дармир', 'Инрога', 'Истина', 'Маринад',
@@ -281,7 +280,6 @@ export const POPULARITY_EVENTS: PopularityEvent[] = [
     { label: 'Статья с искажённым/сенсационным содержанием', value: 5 },
     { label: 'Интервью с персонажем', value: 15, achievementId: 'ach-big-name' },
 ];
-
 
 export const INVENTORY_CATEGORIES: { value: InventoryCategory, label: string }[] = [
     { value: 'оружие', label: 'Оружие' },
@@ -415,7 +413,9 @@ export const rewards: Reward[] = [
     { id: 'r-leviathan', title: 'Дружба с Левиафаном', description: '«Дружба» с Левиафаном (змей не нападает на ваши судна)', cost: 6000, type: 'permanent', iconName: 'HeartHandshake' },
     { id: 'r-ship', title: 'Покупка судна', description: 'Покупка судна', cost: 10000, type: 'permanent', iconName: 'Ship' },
     { id: 'r-airship', title: 'Покупка дирижабля', description: 'Покупка дирижабля', cost: 30000, type: 'permanent', iconName: 'Rocket' },
-    { id: 'r-archmage', title: 'Большой магический резерв', description: 'Создание мага с большим магическим резервом, не зависимо от титула и месторождения (до уровня архимага)', cost: 15000, type: 'permanent', iconName: 'Flame' },
+    { id: 'r-archmage', title: 'Резерв Архимага', description: 'Создание мага с большим магическим резервом, не зависимо от титула и месторождения', cost: 15000, type: 'permanent', iconName: 'Flame' },
+    { id: 'r-archmaster', title: 'Резерв Архимагистра', description: 'Резерв Архимагистра.', cost: 200000, type: 'permanent', iconName: 'Crown' },
+    { id: 'r-deargod', title: 'Резерв Полубога (Божественный сын)', description: 'Вы достигли вершины могущества!', cost: 1000000, type: 'permanent', iconName: 'Zap' },
     { id: 'r-court-position', title: 'Высокая должность при дворе', description: 'Получение высокой должности при дворе, независимо от титула и пола персонажа', cost: 7000, type: 'permanent', iconName: 'Crown' },
     { id: 'r-baron', title: 'Титул Барона (+земля)', description: 'Получение титула барона (+земля)', cost: 30000, type: 'permanent', iconName: 'Landmark' },
     { id: 'r-land-titled', title: 'Земля с титулом', description: 'Получение земли от аристократии (титул сэр, леди)', cost: 6000, type: 'permanent', iconName: 'Landmark' },
@@ -445,6 +445,8 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
   { id: 'ach-seaman', name: 'Мореход', description: 'Игрок имеет судно в своём распоряжении, приобретённое в магазине наград.', iconName: 'Ship' },
   { id: 'ach-sky-master', name: 'Освоил небо', description: 'Игрок купил дирижабль для собственных нужд, открыв новые горизонты для путешествий.', iconName: 'Rocket' },
   { id: 'ach-big-mage', name: 'Большой, большой!', description: 'Вы развились до резерва архимага.', iconName: 'Flame' },
+  { id: 'ach-archmaster', name: 'Невероятно большой.', description: 'Резерв Архимагистра.', iconName: 'Crown' },
+  { id: 'ach-deargod', name: 'Боженька', description: 'Вы достигли вершины могущества!', iconName: 'Zap' },
   { id: 'ach-important-person', name: 'Важный', description: 'Персонаж имеет высокую должность при дворе, независимо от его титула и пола.', iconName: 'Crown' },
   { id: 'ach-baron', name: 'Ваша Милость', description: 'Персонаж заработал титул Барона своим трудом и получил землю в придачу.', iconName: 'ChessKing' },
   { id: 'ach-sir-lady', name: 'Сэр/Леди', description: 'Персонаж получил признание от аристократии и землю вместе с почетным титулом.', iconName: 'Award' },
@@ -452,19 +454,19 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
   { id: 'ach-wizard', name: 'Чародей', description: 'Даётся за получение дополнительного учения для персонажа, углубляя его познания в магии.', iconName: 'BookPlus' },
   { id: 'ach-guildmaster', name: 'Гильдмастер', description: 'Игрок создал собственную преступную группировку или гильдию, став её лидером.', iconName: 'Building2' },
   { id: 'ach-hybrid', name: 'Гибридная полукровка', description: 'Игрок создал персонажа, являющегося полукровкой или гибридом двух рас.', iconName: 'Combine' },
-  { id: 'ach-pumpkin-spouse', name: 'Тыкво-Жена', description: 'Обладатель самой прекрасной супруги в мире Триады.', iconName: 'Heart' },
+  { id: 'ach-pumpkin-spouse', name: 'Тыкво-Жену', description: 'Обладатель самой прекрасной супруги в мире Триады.', iconName: 'Heart' },
   { id: 'ach-pumpkin-husband', name: 'Тыкво-Муж', description: 'Обладатель самой прекрасной супруга в мире Триады.', iconName: 'Heart' },
   { id: 'ach-exchange-master', name: 'Мастер обмена', description: 'Персонаж обменял одну из своих магических стихий на два учения.', iconName: 'Replace' },
-  { id: 'ach-dark-lord', name: 'Тёмный Владыка', description: 'Персонаж получил доступ к запретной магии, недоступной для его расы.', iconName: 'Skull' },
+  { id: 'ach-dark-lord', name: 'Тёмный Владыка', description: 'Персонаж получил доступ к запретной магии, недоступным для его расы.', iconName: 'Skull' },
   { id: 'ach-chimera-mancer', name: 'Химеромант', description: 'Персонаж изменил своё тело до неузнаваемости, добавив иные конечности.', iconName: 'GitBranchPlus' },
   { id: 'ach-gods-favorite', name: 'Любимчик Богов', description: 'Даётся за покупку благословения богов.', iconName: 'Heart' },
   { id: 'ach-era-face', name: 'Лицо эпохи', description: 'Даётся за покупку награды "Арт от ИИ"', iconName: 'Image' },
   { id: 'ach-first-brew', name: 'Юный алхимик', description: 'Выдаётся за первое созданное зелье или артефакт.', iconName: 'Beaker' },
   { id: 'ach-first-purchase', name: 'Шопоголик', description: 'Выдается за первую совершенную покупку в любом магазине.', iconName: 'ShoppingCart' },
-  { id: 'ach-questionnaire', name: 'Сделал первый шаг', description: 'Отправил анкету персонажа через сайт.', iconName: 'ach-questionnaire' },
-  { id: 'ach-hunting', name: 'Первая охота', description: 'Впервые отправил фамильяра на охоту.', iconName: 'ach-hunting' },
-  { id: 'ach-favorites', name: 'В поле зрения', description: 'Добавил другого игрока в избранное.', iconName: 'ach-favorites' },
-  { id: 'ach-vip', name: 'VIP персона', description: 'Установка особенного статуса. Такой только у избранных!', iconName: 'ach-vip' },
+  { id: 'ach-questionnaire', name: 'Сделал первый шаг', description: 'Отправил анкету персонажа через сайт.', iconName: 'Star' },
+  { id: 'ach-hunting', name: 'Первая охота', description: 'Впервые отправил фамильяра на охоту.', iconName: 'Compass' },
+  { id: 'ach-favorites', name: 'В поле зрения', description: 'Добавил другого игрока в избранное.', iconName: 'Heart' },
+  { id: 'ach-vip', name: 'VIP персона', description: 'Установка особенного статуса. Такой только у избранных!', iconName: 'Award' },
 
   // Manual & Popularity-based
   { id: 'ach-rumor-of-the-week', name: 'Слух недели', description: 'Персонаж был упомянут в газете, став предметом обсуждений и сплетен.', iconName: 'Newspaper' },
@@ -484,18 +486,18 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
   { id: 'ach-landless', name: 'Безземельный', description: 'Он пятый брат вашего троюродного соседа. Беден, но горд!', iconName: 'Home' },
   { id: 'ach-beta-tester', name: 'Бета-тестер', description: 'За активное участие в бета-тестировании системы начисления баллов.', iconName: 'FlaskConical' },
   { id: 'ach-bug-hunter', name: 'Охотник за ошибками', description: 'За нахождение и своевременный репорт критической ошибки или бага в системе.', iconName: 'Bug' },
-  { id: 'ach-winner', name: 'Победитель конкурса', description: 'Занял первое место в конкурсе, обойдя всех соперников.', iconName: 'ach-winner' },
-  { id: 'ach-winner2', name: 'Второе место', description: 'Дошёл до финала и занял почётное второе место.', iconName: 'ach-winner2' },
-  { id: 'ach-winner3', name: 'Третье место', description: 'Вошёл в тройку лучших участников конкурса.', iconName: 'ach-winner3' },
-  { id: 'ach-participant', name: 'Участник конкурса', description: 'Принял участие в конкурсе и проявил себя.', iconName: 'ach-participant' },
-  { id: 'ach-writer', name: 'Искра сюжета', description: 'Предложил идею, ставшую основой или частью игрового сюжета.', iconName: 'ach-writer' },
+  { id: 'ach-winner', name: 'Победитель конкурса', description: 'Занял первое место в конкурсе, обойдя всех соперников.', iconName: 'Trophy' },
+  { id: 'ach-winner2', name: 'Второе место', description: 'Дошёл до финала и занял почётное второе место.', iconName: 'Award' },
+  { id: 'ach-winner3', name: 'Третье место', description: 'Вошёл в тройку лучших участников конкурса.', iconName: 'Award' },
+  { id: 'ach-participant', name: 'Участник конкурса', description: 'Принял участие в конкурсе и проявил себя.', iconName: 'Users' },
+  { id: 'ach-writer', name: 'Искра сюжета', description: 'Предложил идею, ставшую основой или частью игрового сюжета.', iconName: 'Pencil' },
 ];
 
-const ALL_FAMILIAR_CARDS_RAW: Omit<FamiliarCard, 'data-ai-hint'>[] = [
+export const ALL_STATIC_FAMILIARS: FamiliarCard[] = [
     { id: 'fam-c-1', name: 'Анчутка', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753197216/%D0%90%D0%BD%D1%87%D1%83%D1%82%D0%BA%D0%B0_hvas2s.png' },
     { id: 'fam-c-2', name: 'Божья тварь', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199171/%D0%91%D0%BE%D0%B6%D1%8C%D1%8F_%D1%82%D0%B2%D0%B0%D1%80%D1%8C_jbwjju.png' },
     { id: 'fam-c-3', name: 'Грызмар', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199418/%D0%93%D1%80%D1%8B%D0%B7%D0%BC%D0%B0%D1%80_siwn1a.png' },
-    { id: 'fam-c-4', name: 'Золотце', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199420/%D0%97%D0%BE%D0%BB%D0%BE%D1%82%D1%86%D0%B5_kgu8ni.png'},
+    { id: 'fam-c-4', name: 'Золотце', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199420/%D0%97%D0%BE%D0%BB%D0%BE%D1%82%D1%86%D0%B5_kgu8ni.png' },
     { id: 'fam-c-lynx', name: 'Ледяная рысь', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199430/%D0%9B%D0%B5%D0%B4%D1%8F%D0%BD%D0%B0%D1%8F_%D1%80%D1%8B%D1%81%D1%8C_ziosz3.png' },
     { id: 'fam-c-ognemur', name: 'Огнемур', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199457/%D0%9E%D0%B3%D0%BD%D0%B5%D0%BC%D1%83%D1%80_dwnqqi.png' },
     { id: 'fam-c-pchelokot', name: 'Пчелокот', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199460/%D0%9F%D1%87%D0%B5%D0%BB%D0%BE%D0%BA%D0%BE%D1%82_hd1kqs.png' },
@@ -522,13 +524,12 @@ const ALL_FAMILIAR_CARDS_RAW: Omit<FamiliarCard, 'data-ai-hint'>[] = [
     { id: 'fam-c-oligr', name: 'Олигр', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753283963/32_kvfdjr.jpg' },
     { id: 'fam-c-pupurita', name: 'Пупурита', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753283963/31_zhlagq.jpg' },
 
-
     { id: 'fam-r-1', name: 'Артерианская гончая', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753197216/%D0%90%D1%80%D1%82%D0%B5%D1%80%D0%B8%D0%B0%D0%BD%D1%81%D0%BA%D0%B0%D1%8F_%D0%B3%D0%BE%D0%BD%D1%87%D0%B0%D1%8F_jjjx11.png' },
     { id: 'fam-r-2', name: 'Баргест', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753197217/%D0%91%D0%B0%D1%80%D0%B3%D0%B5%D1%81%D1%82_nrlebe.png' },
     { id: 'fam-r-3', name: 'Браффа', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199172/%D0%91%D0%B0%D1%80%D0%B3%D0%B5%D1%81%D1%82_nrlebe.png' },
     { id: 'fam-r-4', name: 'Грифон', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199173/%D0%93%D1%80%D1%8B%D0%B7%D0%BC%D0%B0%D1%80_siwn1a.png' },
-    { id: 'fam-r-5', name: 'Зеленоградская гончая', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199419/%D0%97%D0%B5%D0%BB%D0%B5%D0%BD%D0%BE%D0%B3%D1%80%D0%B0%D0%B4%D1%81%D0%BA%D0%B0%D1%8F_%D0%B3%D0%BE%D0%BD%D1%87%D0%B0%D1%8F_oipvbr.png'},
-    { id: 'fam-r-6', name: 'Златоуст', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199419/%D0%97%D0%BB%D0%B0%D1%82%D0%BE%D1%83%D1%81%D1%82_ljhotw.png'},
+    { id: 'fam-r-5', name: 'Зеленоградская гончая', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199419/%D0%93%D1%80%D1%8B%D0%B7%D0%BC%D0%B0%D1%80_siwn1a.png' },
+    { id: 'fam-r-6', name: 'Златоуст', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199419/%D0%97%D0%BB%D0%B0%D1%82%D0%BE%D1%83%D1%81%D1%82_ljhotw.png' },
     { id: 'fam-r-wolves', name: 'Лёдинова и Огнова', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199428/%D0%9B%D1%91%D0%B4%D0%B8%D0%BD%D0%BE%D0%B2%D0%B0_%D0%B8_%D0%9E%D0%B3%D0%BD%D0%BE%D0%B2%D0%B0_ncfytg.png' },
     { id: 'fam-r-foxsquirrel', name: 'Лисобелка', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199430/%D0%9B%D0%B8%D1%81%D0%BE%D0%B1%D0%B5%D0%BB%D0%BA%D0%B0_xd2wz5.png' },
     { id: 'fam-r-firehound', name: 'Огнеславская гончая', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199458/%D0%9E%D0%B3%D0%BD%D0%B5%D1%81%D0%BB%D0%B0%D0%B2%D1%81%D0%BA%D0%B0%D1%8F_%D0%B3%D0%BE%D0%BD%D1%87%D0%B0%D1%8F_deofmm.png' },
@@ -545,18 +546,17 @@ const ALL_FAMILIAR_CARDS_RAW: Omit<FamiliarCard, 'data-ai-hint'>[] = [
     { id: 'fam-r-kitsuda', name: 'Кицуда', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753283958/23_mur51x.jpg' },
     { id: 'fam-r-zevrogrif', name: 'Зеврогриф', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753283958/26_zul5wi.jpg' },
 
-
     { id: 'fam-l-1', name: 'Альви', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753194638/%D0%90%D0%BB%D1%8C%D0%B2%D0%B8_ggcs5g.png' },
     { id: 'fam-l-2', name: 'Альдуин', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753197206/%D0%90%D0%BB%D1%8C%D0%B4%D1%83%D0%B8%D0%BD_waguju.png' },
     { id: 'fam-l-3', name: 'Артерианский бреллопир', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753197217/%D0%90%D1%80%D1%82%D0%B5%D1%80%D0%B8%D0%B0%D0%BD%D1%81%D0%BA%D0%B8%D0%B9_%D0%B1%D1%80%D0%B5%D0%BB%D0%BB%D0%BE%D0%BF%D0%B8%D1%80_cpo0to.png' },
     { id: 'fam-l-4', name: 'Вивер', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199172/%D0%92%D0%B8%D0%B2%D0%B5%D1%80_osn8es.png' },
     { id: 'fam-l-5', name: 'Громовая птица', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199173/%D0%93%D1%80%D0%BE%D0%BC%D0%BE%D0%B2%D0%B0%D1%8F_%D0%BF%D1%82%D0%B8%D1%86%D0%B0_pjfpkz.png' },
     { id: 'fam-l-6', name: 'Грубас', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199173/%D0%93%D1%80%D1%83%D0%B1%D0%B0%D1%81_rjy1xw.png' },
-    { id: 'fam-l-7', name: 'Единорог', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199418/%D0%95%D0%B4%D0%B8%D0%BD%D0%BE%D1%80%D0%BE%D0%B3_lfznrp.png'},
-    { id: 'fam-l-8', name: 'Енот-некромант', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199419/%D0%95%D0%BD%D0%BE%D1%82-%D0%BD%D0%B5%D0%BA%D1%80%D0%BE%D0%BC%D0%B0%D0%BD%D1%82_rgq78b.png'},
-    { id: 'fam-l-9', name: 'Зеленоградский бреллопир', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199420/%D0%97%D0%B5%D0%BB%D0%B5%D0%BD%D0%BE%D0%B3%D1%80%D0%B0%D0%B4%D1%81%D0%BA%D0%B8%D0%B9_%D0%B1%D1%80%D0%B5%D0%BB%D0%BB%D0%BE%D0%BF%D0%B8%D1%80_cpo0to.png'},
-    { id: 'fam-l-10', name: 'Келпи', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199421/%D0%9A%D0%B5%D0%BB%D0%BF%D0%B8_diw7xi.png'},
-    { id: 'fam-l-11', name: 'Комаину', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199423/%D0%9A%D0%BE%D0%BC%D0%B0%D0%B8%D0%BD%D1%83_xamanx.png'},
+    { id: 'fam-l-7', name: 'Единорог', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199418/%D0%95%D0%B4%D0%B8%D0%BD%D0%BE%D1%80%D0%BE%D0%B3_lfznrp.png' },
+    { id: 'fam-l-8', name: 'Енот-некромант', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199419/%D0%95%D0%BD%D0%BE%D1%82-%D0%BD%D0%B5%D0%BA%D1%80%D0%BE%D0%BC%D0%B0%D0%BD%D1%82_rgq78b.png' },
+    { id: 'fam-l-9', name: 'Зеленоградский бреллопир', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199420/%D0%97%D0%B5%D0%BB%D0%B5%D0%BD%D0%BE%D0%B3%D1%80%D0%B0%D0%B4%D1%81%D0%BA%D0%B8%D0%B9_%D0%B1%D1%80%D0%B5%D0%BB%D0%BB%D0%BE%D0%BF%D0%B8%D1%80_cpo0to.png' },
+    { id: 'fam-l-10', name: 'Келпи', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199421/%D0%9A%D0%B5%D0%BB%D0%BF%D0%B8_diw7xi.png' },
+    { id: 'fam-l-11', name: 'Комаину', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199423/%D0%9A%D0%BE%D0%BC%D0%B0%D0%B8%D0%BD%D1%83_xamanx.png' },
     { id: 'fam-l-ognekus', name: 'Огнекус', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199456/%D0%9E%D0%B3%D0%BD%D0%B5%D0%BA%D1%83%D1%81_uwn6tt.png' },
     { id: 'fam-l-panzerflot', name: 'Панцефлот', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199459/%D0%9F%D0%B0%D0%BD%D1%86%D0%B5%D1%84%D0%BB%D0%BE%D1%82_x9yat1.png' },
     { id: 'fam-l-pegasus', name: 'Пегас', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199460/%D0%9F%D0%B5%D0%B3%D0%B0%D1%81_rp9fje.png' },
@@ -568,9 +568,8 @@ const ALL_FAMILIAR_CARDS_RAW: Omit<FamiliarCard, 'data-ai-hint'>[] = [
     { id: 'fam-l-vioraksi', name: 'Виоракси', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753283958/27_saolre.jpg' },
     { id: 'fam-l-ognennogriv', name: 'Огненногрив', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753283960/28_pibahj.jpg' },
 
-
-    { id: 'fam-m-1', name: 'Кирин', rank: 'мифический', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199422/%D0%9A%D0%B8%D1%80%D0%B8%D0%BD_qpmqz5.png'},
-    { id: 'fam-m-2', name: 'Кракен', rank: 'мифический', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199426/%D0%9A%D1%80%D0%B0%D0%BA%D0%B5%D0%BD_yzn9xt.png'},
+    { id: 'fam-m-1', name: 'Кирин', rank: 'мифический', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199422/%D0%9A%D0%B8%D1%80%D0%B8%D0%BD_qpmqz5.png' },
+    { id: 'fam-m-2', name: 'Кракен', rank: 'мифический', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199426/%D0%9A%D1%80%D0%B0%D0%BA%D0%B5%D0%BD_yzn9xt.png' },
     { id: 'fam-m-icemare', name: 'Ледяная кобыла', rank: 'мифический', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199430/%D0%9B%D0%B5%D0%B4%D1%8F%D0%BD%D0%B0%D1%8F_%D0%BA%D0%BE%D0%B1%D1%8B%D0%BB%D0%B0_q5cqyz.png' },
     { id: 'fam-m-mairi', name: 'Майри Кото', rank: 'мифический', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199431/%D0%9C%D0%B0%D0%B9%D1%80%D0%B8-%D0%9A%D0%BE%D1%82%D0%BE_eyspjs.png' },
     { id: 'fam-m-nightmare', name: 'Найтмар', rank: 'мифический', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199455/%D0%BD%D0%B0%D0%B9%D1%82%D0%BC%D0%B0%D1%80_axauir.png' },
@@ -580,13 +579,13 @@ const ALL_FAMILIAR_CARDS_RAW: Omit<FamiliarCard, 'data-ai-hint'>[] = [
     { id: 'fam-m-ksanteal', name: 'Ксантеаль', rank: 'мифический', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753283962/29_kqkt58.jpg' },
 ];
 
-export const EVENT_FAMILIARS_RAW: Omit<FamiliarCard, "data-ai-hint">[] = [
+export const EVENT_FAMILIARS: FamiliarCard[] = [
     { id: 'fam-e-anubis', name: 'Анубис', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753197215/%D0%90%D0%BD%D1%83%D0%B1%D0%B8%D1%81_sqmdss.png' },
-    { id: 'fam-e-zhut', name: 'Жуть', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199419/%D0%96%D1%83%D1%82%D1%8C_hmausj.png'},
-    { id: 'fam-e-blues', name: 'Колодезный дух Блюз', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199422/%D0%9A%D0%BE%D0%BB%D0%BE%D0%B4%D0%B5%D0%B7%D0%BD%D1%8B%D0%B9_%D0%B4%D1%83%D1%85_%D0%91%D0%BB%D1%8E%D0%B7_c9d8nc.png'},
-    { id: 'fam-e-bone-crow', name: 'Костяная ворона', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199424/%D0%9A%D0%BE%D1%81%D1%82%D1%8F%D0%BD%D0%B0%D1%8F_%D0%92%D0%BE%D1%80%D0%BE%D0%BD%D0%B0_u9vlpc.png'},
-    { id: 'fam-e-bone-dog', name: 'Костяная собака', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199424/%D0%9A%D0%BE%D1%81%D1%82%D1%8F%D0%BD%D0%B0%D1%8F_%D1%81%D0%BE%D0%B1%D0%B0%D0%BA%D0%B0_cmdjk6.png'},
-    { id: 'fam-e-bone-cat', name: 'Костяной кот', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199425/%D0%9A%D0%BE%D1%81%D1%82%D1%8F%D0%BD%D0%BE%D0%B9_%D0%BA%D0%BE%D1%82_hr2gmk.png'},
+    { id: 'fam-e-zhut', name: 'Жуть', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199419/%D0%96%D1%83%D1%82%D1%8C_hmausj.png' },
+    { id: 'fam-e-blues', name: 'Колодезный дух Блюз', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199422/%D0%9A%D0%BE%D0%BB%D0%BE%D0%B4%D0%B5%D0%B7%D0%BD%D1%8B%D0%B9_%D0%B4%D1%83%D1%85_%D0%91%D0%BB%D1%8E%D0%B7_c9d8nc.png' },
+    { id: 'fam-e-bone-crow', name: 'Костяная ворона', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199424/%D0%9A%D0%BE%D1%81%D1%82%D1%8F%D0%BD%D0%B0%D1%8F_%D0%92%D0%BE%D1%80%D0%BE%D0%BD%D0%B0_u9vlpc.png' },
+    { id: 'fam-e-bone-dog', name: 'Костяная собака', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199424/%D0%9A%D0%BE%D1%81%D1%82%D1%8F%D0%BD%D0%B0%D1%8F_%D1%81%D0%BE%D0%B1%D0%B0%D0%BA%D0%B0_cmdjk6.png' },
+    { id: 'fam-e-bone-cat', name: 'Костяной кот', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199425/%D0%9A%D0%BE%D1%81%D1%82%D1%8F%D0%BD%D0%BE%D0%B9_%D0%BA%D0%BE%D1%82_hr2gmk.png' },
     { id: 'fam-e-leviathan', name: 'Левиафан', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199426/%D0%BB%D0%B5%D0%B2%D0%B8%D0%B0%D1%84%D0%B0%D0%BD_hr6tat.png' },
     { id: 'fam-e-ariana', name: 'Леди Ариана', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199427/%D0%9B%D0%B5%D0%B4%D0%B8_%D0%90%D1%80%D0%B8%D0%B0%D0%BD%D0%B0_w15swi.png' },
     { id: 'fam-e-cerberus', name: 'Цербер', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199467/%D0%A6%D0%B5%D1%80%D0%B1%D0%B5%D1%80_rznwpc.png' },
@@ -596,117 +595,6 @@ export const EVENT_FAMILIARS_RAW: Omit<FamiliarCard, "data-ai-hint">[] = [
     { id: 'fam-e-pumpkin-wife', name: 'Тыкво-жена', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753276855/%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B8%D0%9A%D0%9A%D0%98_sqv5if.png' },
     { id: 'fam-e-pumpkin-husband', name: 'Тыкво-муж', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753286999/%D0%A2%D1%8B%D0%BA%D0%B2%D0%BE%D0%BC%D1%83%D0%B6_v9bpsg.png' },
 ];
-
-const addHint = (card: Omit<FamiliarCard, 'data-ai-hint'>): FamiliarCard => {
-    let hint = '';
-    const lowerCaseName = card.name.toLowerCase();
-    if (lowerCaseName.includes('анчутка')) hint = 'imp demon';
-    else if (lowerCaseName.includes('артерианская гончая')) hint = 'arterian hound';
-    else if (lowerCaseName.includes('альви')) hint = 'elf girl';
-    else if (lowerCaseName.includes('альдуин')) hint = 'dragon';
-    else if (lowerCaseName.includes('тыквенный')) hint = 'pumpkin monster';
-    else if (lowerCaseName.includes('дух рождества')) hint = 'christmas spirit';
-    else if (lowerCaseName.includes('анубис')) hint = 'anubis god';
-    else if (lowerCaseName.includes('баргест')) hint = 'barghest hound';
-    else if (lowerCaseName.includes('артерианский бреллопир')) hint = 'antlered beast';
-    else if (lowerCaseName.includes('браффа')) hint = 'fluffy creature';
-    else if (lowerCaseName.includes('божья тварь')) hint = 'divine beast';
-    else if (lowerCaseName.includes('вивер')) hint = 'wyvern dragon';
-    else if (lowerCaseName.includes('грифон')) hint = 'gryphon';
-    else if (lowerCaseName.includes('громовая птица')) hint = 'thunderbird';
-    else if (lowerCaseName.includes('грубас')) hint = 'fat beast';
-    else if (lowerCaseName.includes('грызмар')) hint = 'grizzly monster';
-    else if (lowerCaseName.includes('единорог')) hint = 'unicorn';
-    else if (lowerCaseName.includes('енот-некромант')) hint = 'raccoon necromancer';
-    else if (lowerCaseName.includes('зеленоградская гончая')) hint = 'green hound';
-    else if (lowerCaseName.includes('жуть')) hint = 'terror beast';
-    else if (lowerCaseName.includes('златоуст')) hint = 'golden dragon';
-    else if (lowerCaseName.includes('золотце')) hint = 'golden creature';
-    else if (lowerCaseName.includes('зеленоградский бреллопир')) hint = 'green antlered';
-    else if (lowerCaseName.includes('келпи')) hint = 'kelpie horse';
-    else if (lowerCaseName.includes('кирин')) hint = 'qilin beast';
-    else if (lowerCaseName.includes('блюз')) hint = 'well spirit';
-    else if (lowerCaseName.includes('комаину')) hint = 'komainu lion';
-    else if (lowerCaseName.includes('костяная ворона')) hint = 'bone crow';
-    else if (lowerCaseName.includes('костяная собака')) hint = 'bone dog';
-    else if (lowerCaseName.includes('костяной кот')) hint = 'bone cat';
-    else if (lowerCaseName.includes('кракен')) hint = 'kraken monster';
-    else if (lowerCaseName.includes('левиафан')) hint = 'leviathan sea monster';
-    else if (lowerCaseName.includes('леди ариана')) hint = 'lady ariana';
-    else if (lowerCaseName.includes('лёдинова и огнова')) hint = 'ice fire wolves';
-    else if (lowerCaseName.includes('ледяная кобыла')) hint = 'ice mare';
-    else if (lowerCaseName.includes('ледяная рысь')) hint = 'ice lynx';
-    else if (lowerCaseName.includes('лисобелка')) hint = 'fox squirrel';
-    else if (lowerCaseName.includes('майри кото')) hint = 'mairi koto';
-    else if (lowerCaseName.includes('найтмар')) hint = 'nightmare horse';
-    else if (lowerCaseName.includes('небесный кит')) hint = 'sky whale';
-    else if (lowerCaseName.includes('огнекус')) hint = 'fire biter';
-    else if (lowerCaseName.includes('огнемур')) hint = 'fire lemur';
-    else if (lowerCaseName.includes('огнеславская гончая')) hint = 'fire hound';
-    else if (lowerCaseName.includes('панцефлот')) hint = 'armored fleet';
-    else if (lowerCaseName.includes('пегас')) hint = 'pegasus';
-    else if (lowerCaseName.includes('пчелокот')) hint = 'bee cat';
-    else if (lowerCaseName.includes('ремох')) hint = 'remoh monster';
-    else if (lowerCaseName.includes('савокль')) hint = 'owl creature';
-    else if (lowerCaseName.includes('серпопард')) hint = 'sickle leopard';
-    else if (lowerCaseName.includes('софил')) hint = 'sofil creature';
-    else if (lowerCaseName.includes('тыквоходка')) hint = 'pumpkin walker';
-    else if (lowerCaseName.includes('файфи')) hint = 'faifi creature';
-    else if (lowerCaseName.includes('цербер')) hint = 'cerberus hound';
-    else if (lowerCaseName.includes('хрустальный аликорн')) hint = 'crystal alicorn';
-    else if (lowerCaseName.includes('чупакабра')) hint = 'chupacabra';
-    else if (lowerCaseName.includes('швепсель')) hint = 'shvepsel creature';
-    else if (lowerCaseName.includes('шорёк')) hint = 'shorek creature';
-    else if (lowerCaseName.includes('эйктюрнир')) hint = 'eikthyrnir deer';
-    else if (lowerCaseName.includes('элементаль тьмы')) hint = 'dark elemental';
-    else if (lowerCaseName.includes('шерлас')) hint = 'sherlas portrait';
-    else if (lowerCaseName.includes('анхель')) hint = 'anhel portrait';
-    else if (lowerCaseName.includes('фауст')) hint = 'faust portrait';
-    else if (lowerCaseName.includes('тыкво-жена')) hint = 'pumpkin wife';
-    else if (lowerCaseName.includes('тыкво-муж')) hint = 'pumpkin husband';
-    else if (lowerCaseName.includes('цветокот')) hint = 'flower cat';
-    else if (lowerCaseName.includes('серисса')) hint = 'serissa creature';
-    else if (lowerCaseName.includes('ночной сыч')) hint = 'night owl';
-    else if (lowerCaseName.includes('быкозёбр')) hint = 'bull zebra';
-    else if (lowerCaseName.includes('огненная лисица')) hint = 'fire fox';
-    else if (lowerCaseName.includes('клоуарк')) hint = 'clown shark';
-    else if (lowerCaseName.includes('глуборез')) hint = 'deep cutter';
-    else if (lowerCaseName.includes('элефваль')) hint = 'elephwal creature';
-    else if (lowerCaseName.includes('огнеящер')) hint = 'fire lizard';
-    else if (lowerCaseName.includes('грифолень')) hint = 'griffon deer';
-    else if (lowerCaseName.includes('совурат')) hint = 'owl rat';
-    else if (lowerCaseName.includes('дракоскорпиус')) hint = 'dragon scorpion';
-    else if (lowerCaseName.includes('меринаг')) hint = 'merinag creature';
-    else if (lowerCaseName.includes('скоргус')) hint = 'skorgus creature';
-    else if (lowerCaseName.includes('крокун')) hint = 'krokun creature';
-    else if (lowerCaseName.includes('ленико')) hint = 'leniko creature';
-    else if (lowerCaseName.includes('крылопотам')) hint = 'winged hippo';
-    else if (lowerCaseName.includes('оркалень')) hint = 'orca deer';
-    else if (lowerCaseName.includes('паукок')) hint = 'peacock spider';
-    else if (lowerCaseName.includes('медопус')) hint = 'honey octopus';
-    else if (lowerCaseName.includes('варассас')) hint = 'varassas creature';
-    else if (lowerCaseName.includes('кирафа')) hint = 'kirafa creature';
-    else if (lowerCaseName.includes('лунория')) hint = 'lunoria creature';
-    else if (lowerCaseName.includes('фенортул')) hint = 'fenortul creature';
-    else if (lowerCaseName.includes('кицуда')) hint = 'kitsuda creature';
-    else if (lowerCaseName.includes('зеврогриф')) hint = 'zebrogriff';
-    else if (lowerCaseName.includes('виоракси')) hint = 'vioraxi';
-    else if (lowerCaseName.includes('огненногрив')) hint = 'firemane';
-    else if (lowerCaseName.includes('ксантеаль')) hint = 'xantheal';
-    else if (lowerCaseName.includes('лотль')) hint = 'lotl';
-    else if (lowerCaseName.includes('олигр')) hint = 'oligr';
-    else if (lowerCaseName.includes('пупурита')) hint = 'pupurita';
-    return { ...card, 'data-ai-hint': hint };
-};
-
-export const EVENT_FAMILIARS: FamiliarCard[] = EVENT_FAMILIARS_RAW.map(addHint);
-export const ALL_STATIC_FAMILIARS: FamiliarCard[] = ALL_FAMILIAR_CARDS_RAW.map(addHint);
-export const ALL_FAMILIARS: FamiliarCard[] = [...ALL_STATIC_FAMILIARS, ...EVENT_FAMILIARS];
-
-export const FAMILIARS_BY_ID: Record<string, FamiliarCard> = ALL_FAMILIARS.reduce((acc, card) => {
-    acc[card.id] = card;
-    return acc;
-}, {} as Record<string, FamiliarCard>);
 
 export const ALL_SHOPS: Shop[] = [
   {
@@ -907,6 +795,13 @@ export const ALL_SHOPS: Shop[] = [
     aiHint: 'alchemy ingredients'
   },
 ];
+
+export const ALL_FAMILIARS: FamiliarCard[] = [...ALL_STATIC_FAMILIARS, ...EVENT_FAMILIARS];
+
+export const FAMILIARS_BY_ID: Record<string, FamiliarCard> = ALL_FAMILIARS.reduce((acc, card) => {
+    acc[card.id] = card;
+    return acc;
+}, {} as Record<string, FamiliarCard>);
 
 export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) => {
     acc[shop.id] = shop;
