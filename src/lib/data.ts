@@ -587,18 +587,21 @@ export const EVENT_FAMILIARS: FamiliarCard[] = [
     { id: 'fam-e-blues', name: 'Колодезный дух Блюз', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199422/%D0%9A%D0%BE%D0%BB%D0%BE%D0%B4%D0%B5%D0%B7%D0%BD%D1%8B%D0%B9_%D0%B4%D1%83%D1%85_%D0%91%D0%BB%D1%8E%D0%B7_c9d8nc.png' },
     { id: 'fam-e-bone-crow', name: 'Костяная ворона', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199424/%D0%9A%D0%BE%D1%81%D1%82%D1%8F%D0%BD%D0%B0%D1%8F_%D0%B2%D0%BE%D1%80%D0%BE%D0%BD%D0%B0_u9vlpc.png' },
     { id: 'fam-e-bone-dog', name: 'Костяная собака', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199424/%D0%9A%D0%BE%D1%81%D1%82%D1%8F%D0%BD%D0%B0%D1%8F_%D1%81%D0%BE%D0%B1%D0%BA%D0%B0_cmdjk6.png' },
-    { id: 'fam-e-bone-cat', name: 'Костяной кот', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199425/%D0%9A%D0%BE%D1%81%D1%82%D1%8F%D0%BD%D0%BE%D0%B9_%D0%BA%D0%BE%D1%82_hr2gmk.png' },
+    { id: 'fam-e-bone-cat', name: 'Костяной кот', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199425/%D0%9A%D0%BE%D1%81%D1%82%D1%8F%D0%BD%D0%BE%D0%B9_%D0%BA%D0%BE%D0%B1%D1%8B%D0%BB%D0%B0_q5cqyz.png' },
     { id: 'fam-e-leviathan', name: 'Левиафан', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199426/%D0%BB%D0%B5%D0%B2%D0%B8%D0%B0%D1%84%D0%B0%D0%BD_hr6tat.png' },
     { id: 'fam-e-ariana', name: 'Леди Ариана', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199427/%D0%9B%D0%B5%D0%B4%D0%B8_%D0%90%D1%80%D0%B8%D0%B0%D0%BD%D0%B0_w15swi.png' },
     { id: 'fam-e-cerberus', name: 'Цербер', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199467/%D0%A6%D0%B5%D1%80%D0%B1%D0%B5%D1%80_rznwpc.png' },
     { id: 'fam-e-sherlas', name: 'Шерлас', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753272049/2131541243_sci3mx.jpg' },
     { id: 'fam-e-anhel', name: 'Анхель', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753272049/123123_oljkkn.jpg' },
     { id: 'fam-e-faust', name: 'Фауст', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753272049/312312412341_kl5exi.jpg' },
-    { id: 'fam-e-pumpkin-wife', name: 'Тыкво-жена', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753276855/%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B8%D0%9A%D0%9A%D0%98_sqv5if.png' },
+    { id: 'fam-e-pumpkin-wife', name: 'Тыкво-жена', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753276855/%D0%9K%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B8%D0%9A%D0%9A%D0%98_sqv5if.png' },
     { id: 'fam-e-pumpkin-husband', name: 'Тыкво-муж', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753286999/%D0%A2%D1%8B%D0%BA%D0%B2%D0%BE%D0%BC%D1%83%D0%B6_v9bpsg.png' },
 ];
 
-export const ALL_FAMILIARS: FamiliarCard[] = [...ALL_STATIC_FAMILIARS, ...EVENT_FAMILIARS];
+export const FAMILIARS_BY_ID: Record<string, FamiliarCard> = [...ALL_STATIC_FAMILIARS, ...EVENT_FAMILIARS].reduce((acc, card) => {
+    acc[card.id] = card;
+    return acc;
+}, {} as Record<string, FamiliarCard>);
 
 export const ALL_SHOPS: Shop[] = [
   {
@@ -711,7 +714,7 @@ export const ALL_SHOPS: Shop[] = [
     id: 'rental-agency-cozy-corner',
     title: 'Агентство аренды «Уютный уголок»',
     description: 'Ищете временное жилье или хотите сдать свою недвижимость? Наше агентство поможет вам найти идеальный вариант аренды.',
-    image: 'https://i.postimg.cc/R0N2WPBf/6-MLFUIp-Zw-Su-XKQG-Z42-MCOAu-Fu-Cw-Lyx1-IPERvyat-KWy-CNlvu4w-Aob8-Ttqqe-W2-Unq-C-Ijy-N8-Us-Tomd-P2-N15c2l-No.jpg',
+    image: 'https://i.postimg.cc/R0N2WPBf/R0N2WPBf.jpg',
     aiHint: 'rental property',
   },
   {
@@ -809,8 +812,3 @@ export const ACHIEVEMENTS_BY_ID: Record<string, Achievement> = ALL_ACHIEVEMENTS.
     acc[ach.id] = ach;
     return acc;
 }, {} as Record<string, Achievement>);
-
-export const FAMILIARS_BY_ID: Record<string, FamiliarCard> = ALL_FAMILIARS.reduce((acc, card) => {
-    acc[card.id] = card;
-    return acc;
-}, {} as Record<string, FamiliarCard>);

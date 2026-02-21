@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useMemo } from 'react';
@@ -12,7 +11,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Trash2 } from 'lucide-react';
+import { PlusCircle, Trash2, DatabaseZap, CheckCircle2 } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { FamiliarCard, FamiliarRank } from '@/lib/types';
@@ -30,6 +29,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { Separator } from '../ui/separator';
 
 const rankOptions: { value: FamiliarRank, label: string }[] = [
     { value: 'обычный', label: 'Обычный' },
@@ -40,7 +40,7 @@ const rankOptions: { value: FamiliarRank, label: string }[] = [
 ];
 
 export default function AdminFamiliarsTab() {
-  const { fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb } = useUser();
+  const { fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, migrateAllFamiliarsToDb } = useUser();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -55,6 +55,7 @@ export default function AdminFamiliarsTab() {
     imageUrl: '',
   });
   const [isAdding, setIsAdding] = useState(false);
+  const [isMigrating, setIsMigrating] = useState(false);
 
   const handleAddFamiliar = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,8 +90,49 @@ export default function AdminFamiliarsTab() {
     }
   }
 
+  const handleMigrateAll = async () => {
+      setIsMigrating(true);
+      try {
+          await migrateAllFamiliarsToDb();
+          await refetch();
+      } catch (e) {
+          console.error(e);
+      } finally {
+          setIsMigrating(false);
+      }
+  }
+
   return (
     <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><DatabaseZap className="w-5 h-5 text-primary" /> Перенос данных</CardTitle>
+          <CardDescription>Перенесите все системные карты фамильяров в базу данных Firestore для возможности их редактирования.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button variant="outline" disabled={isMigrating} className="w-full sm:w-auto">
+                        {isMigrating ? "Перенос..." : "Перенести все системные карты в БД"}
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Вы уверены?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Это действие скопирует все карты, определенные в коде приложения, в вашу базу данных Firestore. 
+                            Если карта с таким ID уже существует в БД, она будет обновлена данными из кода.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Отмена</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleMigrateAll}>Начать перенос</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Добавить нового фамильяра</CardTitle>
