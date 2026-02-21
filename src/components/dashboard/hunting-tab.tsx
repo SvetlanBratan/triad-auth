@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -71,7 +70,7 @@ const LocationCard = ({ location, onSelect, currentHunts = 0, limit = 10 }: { lo
 }
 
 export default function HuntingTab() {
-  const { currentUser, gameSettings = DEFAULT_GAME_SETTINGS, startHunt, claimHuntReward, recallHunt, familiarsById, claimAllHuntRewards, startMultipleHunts, fetchUsersForAdmin, claimRewardsForOtherPlayer, adminClaimHuntEarly } = useUser();
+  const { currentUser, gameSettings = DEFAULT_GAME_SETTINGS, startHunt, claimHuntReward, recallHunt, familiarsById, claimAllHuntRewards, startMultipleHunts, fetchUsersForAdmin, claimRewardsForOtherPlayer, adminClaimHuntEarly, adminStartHunt, adminStartMultipleHunts } = useUser();
   const { toast } = useToast();
   
   const [selectedLocation, setSelectedLocation] = useState<HuntingLocation | null>(null);
@@ -111,7 +110,35 @@ export default function HuntingTab() {
     return () => clearInterval(interval);
   }, []);
 
-  const character = useMemo(() => currentUser?.characters.find(c => c.id === selectedCharacterId), [currentUser, selectedCharacterId]);
+  const character = useMemo(() => {
+      if (!selectedCharacterId) return null;
+      const myChar = currentUser?.characters.find(c => c.id === selectedCharacterId);
+      if (myChar) return myChar;
+      return allUsers.flatMap(u => u.characters).find(c => c.id === selectedCharacterId);
+  }, [currentUser, allUsers, selectedCharacterId]);
+
+  const targetUser = useMemo(() => {
+      if (!selectedCharacterId) return null;
+      if (currentUser?.characters.some(c => c.id === selectedCharacterId)) return currentUser;
+      return allUsers.find(u => u.characters.some(c => c.id === selectedCharacterId)) || null;
+  }, [currentUser, allUsers, selectedCharacterId]);
+
+  const charOptions = useMemo(() => {
+    const myOptions = (currentUser?.characters || []).map(c => ({ value: c.id, label: c.name }));
+    if (!isAdmin) return myOptions;
+    
+    const others = allUsers
+        .filter(u => u.id !== currentUser?.id)
+        .flatMap(u => u.characters.map(c => ({
+            value: c.id,
+            label: `${c.name} (${u.name})`
+        })));
+    
+    return [
+        { label: 'Ваши персонажи', options: myOptions },
+        { label: 'Другие игроки (Админ)', options: others }
+    ];
+  }, [currentUser, allUsers, isAdmin]);
 
   const availableFamiliars = useMemo(() => {
     if (!character || !selectedLocation) return [];
@@ -143,10 +170,14 @@ export default function HuntingTab() {
   }, [allOngoingHunts]);
 
   const handleStartHunt = async () => {
-    if (!selectedCharacterId || !selectedFamiliarId || !selectedLocation) return;
+    if (!selectedCharacterId || !selectedFamiliarId || !selectedLocation || !targetUser) return;
     setIsSending(true);
     try {
-        await startHunt(selectedCharacterId, selectedFamiliarId, selectedLocation.id);
+        if (targetUser.id === currentUser?.id) {
+            await startHunt(selectedCharacterId, selectedFamiliarId, selectedLocation.id);
+        } else {
+            await adminStartHunt(targetUser.id, selectedCharacterId, selectedFamiliarId, selectedLocation.id);
+        }
         toast({ title: 'Охота началась!', description: 'Ваш фамильяр отправился на добычу ингредиентов.' });
         setSelectedLocation(null);
         setSelectedFamiliarId('');
@@ -160,7 +191,7 @@ export default function HuntingTab() {
   }
 
   const handleStartMaxHunts = async () => {
-    if (!selectedCharacterId || !selectedLocation || !character) return;
+    if (!selectedCharacterId || !selectedLocation || !character || !targetUser) return;
     
     const currentHuntsInLocation = huntsByLocation[selectedLocation.id] || 0;
     const availableSlots = (selectedLocation.limit ?? 10) - currentHuntsInLocation;
@@ -185,7 +216,11 @@ export default function HuntingTab() {
 
     setIsSending(true);
     try {
-        await startMultipleHunts(selectedCharacterId, familiarsToSend, selectedLocation.id);
+        if (targetUser.id === currentUser?.id) {
+            await startMultipleHunts(selectedCharacterId, familiarsToSend, selectedLocation.id);
+        } else {
+            await adminStartMultipleHunts(targetUser.id, selectedCharacterId, familiarsToSend, selectedLocation.id);
+        }
         toast({ 
             title: 'Экспедиция началась!', 
             description: `${familiarsToSend.length} ${getPlural(familiarsToSend.length, 'фамильяр', 'фамильяра', 'фамильяров')} отправлено на охоту.`
@@ -415,7 +450,7 @@ export default function HuntingTab() {
                                                         {isAdmin && currentUser && (
                                                              <Button
                                                                 variant="secondary"
-                                                                onClick={() => handleAdminClaimEarly({ ...hunt, userId: currentUser.id })}
+                                                                onClick={() => handleAdminClaimEarly({ ...hunt, userId: targetUser?.id || currentUser.id })}
                                                                 disabled={isProcessingId === hunt.huntId || isProcessingAdminClaim === hunt.huntId}
                                                             >
                                                                 <Shield className="mr-2 h-4 w-4" />Собрать
@@ -443,7 +478,7 @@ export default function HuntingTab() {
             <CardContent>
                 <div className="space-y-4">
                      <SearchableSelect
-                        options={(currentUser?.characters || []).map(c => ({ value: c.id, label: c.name }))}
+                        options={charOptions}
                         value={selectedCharacterId}
                         onValueChange={(val) => {
                             setSelectedCharacterId(val);
@@ -583,11 +618,3 @@ export default function HuntingTab() {
     </div>
   );
 }
-    
-
-    
-
-
-
-
-    
