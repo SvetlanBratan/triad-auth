@@ -1,4 +1,3 @@
-
 import type { Reward, FamiliarCard, Achievement, GameSettings, WealthLevel, BankAccount, CapitalLevel, CrimeLevel, Shop, InventoryCategory, PopularityEvent, HuntingLocation } from './types';
 import type { OptionType } from '@/components/ui/multi-select';
 
@@ -427,7 +426,7 @@ export const rewards: Reward[] = [
     { id: 'r-guild', title: 'Собственная гильдия', description: 'Создать собственную преступную группировку/гильдию', cost: 50000, type: 'permanent', iconName: 'Building2' },
     { id: 'r-swap-element', title: 'Обмен стихии на учения', description: 'Поменять 1 стихию на 2 учения', cost: 100, type: 'permanent', iconName: 'Replace' },
     { id: 'r-hybrid', title: 'Полукровка/гибрид', description: 'Полукровка/гибрид из двух рас', cost: 150000, type: 'permanent', iconName: 'Combine' },
-    { id: 'r-pumpkin-wife', title: 'Приобрести Тыкво-Жена', description: 'Приобрести Тыкво-Жена', cost: 100000, type: 'permanent', iconName: 'Heart' },
+    { id: 'r-pumpkin-wife', title: 'Приобрести Тыкво-Жену', description: 'Приобрести Тыкво-Жену', cost: 100000, type: 'permanent', iconName: 'Heart' },
     { id: 'r-pumpkin-husband', title: 'Приобрести Тыкво-Мужа', description: 'Приобрести Тыкво-Мужа', cost: 100000, type: 'permanent', iconName: 'Heart' },
 ];
 
@@ -444,7 +443,7 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
   { id: 'ach-submariner', name: 'Люблю подводный мир', description: 'Персонажу удалось подружиться с Левиафаном, морским чудовищем, и теперь его суда в безопасности.', iconName: 'Anchor' },
   { id: 'ach-seaman', name: 'Мореход', description: 'Игрок имеет судно в своём распоряжении, приобретённое в магазине наград.', iconName: 'Ship' },
   { id: 'ach-sky-master', name: 'Освоил небо', description: 'Игрок купил дирижабль для собственных нужд, открыв новые горизонты для путешествий.', iconName: 'Rocket' },
-  { id: 'ach-big-mage', name: 'Большой, большой!', description: 'Вы развились до резерва архимага.', iconName: 'Flame' },
+  { id: 'ach-big-mage', name: 'Большой, большой!', description: 'Вы развились до резерва архимага', iconName: 'Flame' },
   { id: 'ach-archmaster', name: 'Невероятно большой', description: 'Резерв Архимагистра.', iconName: 'Crown' },
   { id: 'ach-deargod', name: 'Боженька', description: 'Вы достигли вершины могущества!', iconName: 'Zap' },
   { id: 'ach-important-person', name: 'Важный', description: 'Персонаж имеет высокую должность при дворе, независимо от его титула и пола.', iconName: 'Crown' },
@@ -587,10 +586,10 @@ export const EVENT_FAMILIARS: FamiliarCard[] = [
     { id: 'fam-e-zhut', name: 'Жуть', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199419/%D0%96%D1%83%D1%82%D1%8C_hmausj.png' },
     { id: 'fam-e-blues', name: 'Колодезный дух Блюз', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199422/%D0%9A%D0%BE%D0%BB%D0%BE%D0%B4%D0%B5%D0%B7%D0%BD%D1%8B%D0%B9_%D0%B4%D1%83%D1%85_%D0%91%D0%BB%D1%8E%D0%B7_c9d8nc.png' },
     { id: 'fam-e-bone-crow', name: 'Костяная ворона', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199424/%D0%9A%D0%BE%D1%81%D1%82%D1%8F%D0%BD%D0%B0%D1%8F_%D0%B2%D0%BE%D1%80%D0%BE%D0%BD%D0%B0_u9vlpc.png' },
-    { id: 'fam-e-bone-dog', name: 'Костяная собака', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199424/%D0%9A%D0%BE%D1%81%D1%82%D1%8F%D0%BD%D0%B0%D1%8F_%D1%81%D0%BE%D0%B1%D0%B0%D0%BA%D0%B0_cmdjk6.png' },
+    { id: 'fam-e-bone-dog', name: 'Костяная собака', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199424/%D0%9A%D0%BE%D1%81%D1%82%D1%8F%D0%BD%D0%B0%D1%8F_%D1%81%D0%BE%D0%B1%D0%BA%D0%B0_cmdjk6.png' },
     { id: 'fam-e-bone-cat', name: 'Костяной кот', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199425/%D0%9A%D0%BE%D1%81%D1%82%D1%8F%D0%BD%D0%BE%D0%B9_%D0%BA%D0%BE%D1%82_hr2gmk.png' },
     { id: 'fam-e-leviathan', name: 'Левиафан', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199426/%D0%BB%D0%B5%D0%B2%D0%B8%D0%B0%D1%84%D0%B0%D0%BD_hr6tat.png' },
-    { id: 'fam-e-ariana', name: 'Леди Ариана', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199427/%D0%9B%D0%B5%D0%B4%D1%8F_%D0%90%D1%80%D0%B8%D0%B0%D0%BD%D0%B0_w15swi.png' },
+    { id: 'fam-e-ariana', name: 'Леди Ариана', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199427/%D0%9B%D0%B5%D0%B4%D0%B8_%D0%90%D1%80%D0%B8%D0%B0%D0%BD%D0%B0_w15swi.png' },
     { id: 'fam-e-cerberus', name: 'Цербер', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199467/%D0%A6%D0%B5%D1%80%D0%B1%D0%B5%D1%80_rznwpc.png' },
     { id: 'fam-e-sherlas', name: 'Шерлас', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753272049/2131541243_sci3mx.jpg' },
     { id: 'fam-e-anhel', name: 'Анхель', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753272049/123123_oljkkn.jpg' },

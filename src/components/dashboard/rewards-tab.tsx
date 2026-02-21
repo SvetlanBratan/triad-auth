@@ -176,27 +176,27 @@ export default function RewardsTab() {
             </CardHeader>
         </Card>
       
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-4">
         {rewards.map(reward => (
           <Card key={reward.id} className="flex flex-col hover:shadow-lg transition-shadow duration-300">
-            <CardHeader className="flex-row gap-4 items-start">
-              <div className="bg-primary/10 p-3 rounded-lg">
-                <DynamicIcon name={reward.iconName} className="w-6 h-6 text-primary" />
+            <CardHeader className="flex-row gap-2 sm:gap-4 items-start p-3 sm:p-6">
+              <div className="bg-primary/10 p-2 sm:p-3 rounded-lg shrink-0">
+                <DynamicIcon name={reward.iconName} className="w-4 h-4 sm:w-6 sm:h-6 text-primary" />
               </div>
-              <div className="flex-1">
-                <CardTitle className="text-lg font-headline leading-tight">{reward.title}</CardTitle>
-                <CardDescription className="text-xs mt-1">{reward.description}</CardDescription>
+              <div className="flex-1 min-w-0">
+                <CardTitle className="text-xs sm:text-lg font-headline leading-tight truncate sm:whitespace-normal">{reward.title}</CardTitle>
+                <CardDescription className="text-[10px] sm:text-xs mt-1 line-clamp-2 sm:line-clamp-none">{reward.description}</CardDescription>
               </div>
             </CardHeader>
-            <CardContent className="flex-grow">
-              {reward.type === 'temporary' && <p className="text-xs text-accent font-semibold uppercase tracking-wider">Временная</p>}
+            <CardContent className="flex-grow px-3 sm:px-6 py-0">
+              {reward.type === 'temporary' && <p className="text-[10px] sm:text-xs text-accent font-semibold uppercase tracking-wider">Временная</p>}
             </CardContent>
-            <CardFooter className="flex justify-between items-center bg-muted/50 p-4 mt-auto">
-              <div className="font-bold text-lg text-primary flex items-center gap-1.5">
-                <CustomIcon src="/icons/points.svg" className="w-5 h-5 icon-primary" /> {reward.cost.toLocaleString()}
+            <CardFooter className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center bg-muted/50 p-2 sm:p-4 mt-auto gap-2">
+              <div className="font-bold text-sm sm:text-lg text-primary flex items-center gap-1 sm:gap-1.5 justify-center sm:justify-start">
+                <CustomIcon src="/icons/points.svg" className="w-4 h-4 sm:w-5 sm:h-5 icon-primary" /> {reward.cost.toLocaleString()}
               </div>
-              <Button size="sm" onClick={() => handleRedeemClick(reward)} disabled={(currentUser?.points ?? 0) < reward.cost || isLoading}>
-                {isLoading ? 'Обработка...' : 'Запросить'}
+              <Button size="sm" onClick={() => handleRedeemClick(reward)} disabled={(currentUser?.points ?? 0) < reward.cost || isLoading} className="h-7 sm:h-9 text-[10px] sm:text-sm">
+                {isLoading ? '...' : 'Запросить'}
               </Button>
             </CardFooter>
           </Card>
