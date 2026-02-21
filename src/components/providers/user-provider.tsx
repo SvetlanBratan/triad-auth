@@ -3288,7 +3288,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const charIndex = userData.characters.findIndex(c => c.id === characterId);
             if (charIndex === -1) throw new Error("Character not found");
 
-            const character = { ...userData.characters[characterIndex] };
+            const character = { ...userData.characters[charIndex] };
             const huntIndex = (character.ongoingHunts || []).findIndex(h => h.huntId === huntId);
             if (huntIndex === -1) throw new Error("Hunt not found");
             
