@@ -3,13 +3,13 @@
 
 import { useUser } from '@/hooks/use-user';
 import { rewards } from '@/lib/data';
-import type { Reward, RewardRequest } from '@/lib/types';
+import type { Reward, RewardRequest, User } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import * as LucideIcons from 'lucide-react';
-import { Star } from 'lucide-react';
-import React, { useMemo } from 'react';
+import { Star, Gift, User as UserIcon } from 'lucide-react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -18,11 +18,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { SearchableSelect } from '../ui/searchable-select';
-import Image from 'next/image';
 import { CustomIcon } from '../ui/custom-icon';
 import { cn } from '@/lib/utils';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
+import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
+import { useQuery } from '@tanstack/react-query';
 
 
 const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
@@ -37,7 +38,7 @@ const DynamicIcon = ({ name, className }: { name: string; className?: string }) 
 
 
 export default function RewardsTab() {
-  const { currentUser, createRewardRequest } = useUser();
+  const { currentUser, createRewardRequest, fetchUsersForAdmin } = useUser();
   const { toast } = useToast();
   const [selectedReward, setSelectedReward] = React.useState<Reward | null>(null);
   const [selectedCharacterId, setSelectedCharacterId] = React.useState<string>('');
@@ -45,7 +46,39 @@ export default function RewardsTab() {
   const [isLoading, setIsLoading] = React.useState(false);
   const [statusEmoji, setStatusEmoji] = React.useState('');
   const [statusText, setStatusText] = React.useState('');
+  
+  // Gift functionality states
+  const [recipientType, setRecipientType] = useState<'self' | 'gift'>('self');
+  const [targetUserId, setTargetUserId] = useState<string>('');
 
+  const { data: allUsers = [] } = useQuery<User[]>({
+    queryKey: ['allUsersForRewards'],
+    queryFn: fetchUsersForAdmin,
+  });
+
+  const favoritePlayers = useMemo(() => {
+    if (!currentUser?.favoritePlayerIds || !allUsers.length) return [];
+    return allUsers.filter(u => currentUser.favoritePlayerIds?.includes(u.id));
+  }, [currentUser?.favoritePlayerIds, allUsers]);
+
+  const targetUser = useMemo(() => {
+    if (recipientType === 'self') return currentUser;
+    return favoritePlayers.find(u => u.id === targetUserId);
+  }, [recipientType, currentUser, favoritePlayers, targetUserId]);
+
+  const characterOptions = useMemo(() => {
+    return (targetUser?.characters || []).map(char => ({
+      value: char.id,
+      label: char.name,
+    }));
+  }, [targetUser]);
+
+  const favoritePlayerOptions = useMemo(() => {
+    return favoritePlayers.map(u => ({
+        value: u.id,
+        label: u.name
+    }));
+  }, [favoritePlayers]);
 
   const handleRedeemClick = (reward: Reward) => {
     if (!currentUser) return;
@@ -60,6 +93,9 @@ export default function RewardsTab() {
     }
     
     setSelectedReward(reward);
+    setRecipientType('self');
+    setTargetUserId('');
+    setSelectedCharacterId('');
     setStatusEmoji(currentUser.statusEmoji || '');
     setStatusText(currentUser.statusText || '');
     setIsDialogOpen(true);
@@ -80,7 +116,7 @@ export default function RewardsTab() {
     
     setIsLoading(true);
     
-    const character = currentUser.characters.find(c => c.id === selectedCharacterId);
+    const character = targetUser?.characters.find(c => c.id === selectedCharacterId);
 
     try {
         const rewardRequestData: Omit<RewardRequest, 'id' | 'status' | 'createdAt'> = {
@@ -93,6 +129,11 @@ export default function RewardsTab() {
             characterName: character?.name || '',
         };
 
+        if (recipientType === 'gift' && targetUser) {
+            rewardRequestData.targetUserId = targetUser.id;
+            rewardRequestData.targetUserName = targetUser.name;
+        }
+
         if (selectedReward.id === 'r-custom-status') {
             rewardRequestData.statusEmoji = statusEmoji;
             rewardRequestData.statusText = statusText;
@@ -101,7 +142,7 @@ export default function RewardsTab() {
         await createRewardRequest(rewardRequestData);
         
         toast({
-            title: "Запрос отправлен!",
+            title: recipientType === 'gift' ? "Запрос на подарок отправлен!" : "Запрос отправлен!",
             description: `Ваш запрос на "${selectedReward.title}" отправлен на рассмотрение. Баллы списаны.`,
         });
     } catch (error) {
@@ -117,18 +158,12 @@ export default function RewardsTab() {
         setIsDialogOpen(false);
         setSelectedReward(null);
         setSelectedCharacterId('');
+        setTargetUserId('');
+        setRecipientType('self');
         setStatusEmoji('');
         setStatusText('');
     }
   }
-  
-  const characterOptions = useMemo(() => {
-    return (currentUser?.characters || []).map(char => ({
-      value: char.id,
-      label: char.name,
-    }));
-  }, [currentUser]);
-
 
   return (
     <div>
@@ -175,50 +210,88 @@ export default function RewardsTab() {
                     <DialogHeader>
                         <DialogTitle>Запросить "{selectedReward.title}"</DialogTitle>
                         <DialogDescription>
-                            {selectedReward.id !== 'r-custom-status'
-                                ? 'Выберите персонажа для этой награды. После подтверждения запрос будет отправлен администраторам.'
-                                : 'Установите новый статус. После подтверждения запрос будет отправлен администраторам.'
-                            }
+                            Выберите получателя и персонажа для этой награды.
                         </DialogDescription>
                     </DialogHeader>
-                    {selectedReward.id === 'r-custom-status' ? (
-                        <div className="py-4 space-y-4">
+                    
+                    <div className="py-4 space-y-6">
+                        <RadioGroup value={recipientType} onValueChange={(v) => { setRecipientType(v as any); setTargetUserId(''); setSelectedCharacterId(''); }} className="grid grid-cols-2 gap-4">
+                            <div className="flex items-center space-x-2 border rounded-md p-3 cursor-pointer hover:bg-muted/50">
+                                <RadioGroupItem value="self" id="self" />
+                                <Label htmlFor="self" className="flex items-center gap-2 cursor-pointer">
+                                    <UserIcon className="w-4 h-4" /> Для себя
+                                </Label>
+                            </div>
+                            <div className="flex items-center space-x-2 border rounded-md p-3 cursor-pointer hover:bg-muted/50">
+                                <RadioGroupItem value="gift" id="gift" />
+                                <Label htmlFor="gift" className="flex items-center gap-2 cursor-pointer">
+                                    <Gift className="w-4 h-4" /> В подарок
+                                </Label>
+                            </div>
+                        </RadioGroup>
+
+                        {recipientType === 'gift' && (
                             <div className="space-y-2">
-                                <Label>Эмодзи</Label>
-                                <Input
-                                    value={statusEmoji}
-                                    onChange={(e) => setStatusEmoji(e.target.value)}
-                                    placeholder="✨"
-                                    className="w-20 text-center text-lg"
-                                    maxLength={2}
+                                <Label>Выберите игрока из избранных:</Label>
+                                {favoritePlayerOptions.length > 0 ? (
+                                    <SearchableSelect
+                                        options={favoritePlayerOptions}
+                                        value={targetUserId}
+                                        onValueChange={(val) => { setTargetUserId(val); setSelectedCharacterId(''); }}
+                                        placeholder="Выберите друга..."
+                                    />
+                                ) : (
+                                    <p className="text-sm text-destructive">У вас нет избранных игроков. Добавьте их во вкладке "Игроки".</p>
+                                )}
+                            </div>
+                        )}
+
+                        {selectedReward.id === 'r-custom-status' ? (
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label>Эмодзи</Label>
+                                    <Input
+                                        value={statusEmoji}
+                                        onChange={(e) => setStatusEmoji(e.target.value)}
+                                        placeholder="✨"
+                                        className="w-20 text-center text-lg"
+                                        maxLength={2}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Короткая фраза (до 50 симв.)</Label>
+                                    <Input
+                                        value={statusText}
+                                        onChange={(e) => setStatusText(e.target.value)}
+                                        placeholder="Ваш статус..."
+                                        maxLength={50}
+                                    />
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                <Label>Выберите персонажа:</Label>
+                                <SearchableSelect
+                                    options={characterOptions}
+                                    value={selectedCharacterId}
+                                    onValueChange={setSelectedCharacterId}
+                                    placeholder="Выберите персонажа..."
+                                    disabled={recipientType === 'gift' && !targetUserId}
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <Label>Короткая фраза (до 50 симв.)</Label>
-                                <Input
-                                    value={statusText}
-                                    onChange={(e) => setStatusText(e.target.value)}
-                                    placeholder="Ваш статус..."
-                                    maxLength={50}
-                                />
-                            </div>
-                        </div>
-                    ) : (
-                      <div className="py-4 space-y-4">
-                          <p>Для какого персонажа вы хотите запросить награду?</p>
-                          <SearchableSelect
-                              options={characterOptions}
-                              value={selectedCharacterId}
-                              onValueChange={setSelectedCharacterId}
-                              placeholder="Выберите персонажа..."
-                          />
-                      </div>
-                    )}
+                        )}
+                    </div>
+
                     <Button 
                         onClick={handleConfirmRequest} 
-                        disabled={isLoading || (selectedReward.id !== 'r-custom-status' && !selectedCharacterId) || (selectedReward.id === 'r-custom-status' && !statusEmoji.trim())}
+                        disabled={
+                            isLoading || 
+                            (selectedReward.id !== 'r-custom-status' && !selectedCharacterId) || 
+                            (selectedReward.id === 'r-custom-status' && !statusEmoji.trim()) ||
+                            (recipientType === 'gift' && !targetUserId)
+                        }
                     >
-                        {isLoading ? 'Отправка...' : `Отправить запрос за ${selectedReward.cost.toLocaleString()} баллов`}
+                        {isLoading ? 'Отправка...' : `Оплатить ${selectedReward.cost.toLocaleString()} баллов`}
                     </Button>
                 </DialogContent>
             </Dialog>

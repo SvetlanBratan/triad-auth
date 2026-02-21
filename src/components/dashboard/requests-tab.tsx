@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { useEffect, useState, useCallback } from 'react';
@@ -9,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import type { RewardRequest, RewardRequestStatus } from '@/lib/types';
-import { CheckCircle, XCircle, Clock, Trash2 } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Trash2, Gift } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   AlertDialog,
@@ -46,19 +45,24 @@ const RewardRequestsList = ({ requests, onUpdate }: { requests: RewardRequest[],
             {requests.map(request => {
                 const statusProps = getStatusProps(request.status);
                 const isProcessing = processingRequestId === request.id;
+                const isGift = !!request.targetUserId;
+
                 return (
                     <Card key={request.id}>
                         <CardHeader className="p-4">
                              <div className="flex justify-between items-start">
                                 <div>
-                                    <CardTitle className="text-base">{request.rewardTitle}</CardTitle>
+                                    <div className="flex items-center gap-2">
+                                        <CardTitle className="text-base">{request.rewardTitle}</CardTitle>
+                                        {isGift && <Badge variant="secondary" className="gap-1.5"><Gift className="w-3 h-3" /> Подарок</Badge>}
+                                    </div>
                                     <CardDescription className="text-xs">
-                                        От: <strong>{request.userName}</strong> | Стоимость: {request.rewardCost.toLocaleString()} баллов
+                                        Оплатил: <strong>{request.userName}</strong> | Стоимость: {request.rewardCost.toLocaleString()} баллов
                                     </CardDescription>
                                      <p className="text-xs text-muted-foreground mt-1">
                                         {request.characterName 
-                                            ? <>Для персонажа: <strong>{request.characterName}</strong></>
-                                            : <>Для игрока: <strong>{request.userName}</strong></>
+                                            ? <>Получатель: <strong>{request.characterName}</strong> {isGift && <span className="text-[10px]">(Владелец: {request.targetUserName})</span>}</>
+                                            : <>Для игрока: <strong>{isGift ? request.targetUserName : request.userName}</strong></>
                                         }
                                     </p>
                                 </div>

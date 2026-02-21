@@ -1,4 +1,3 @@
-
 export type UserRole = "admin" | "user";
 export type UserStatus = "активный" | "неактивный" | "отпуск";
 export type PlayerStatus =
@@ -419,6 +418,8 @@ export interface RewardRequest {
   id: string;
   userId: string;
   userName: string;
+  targetUserId?: string;
+  targetUserName?: string;
   rewardId: string;
   rewardTitle: string;
   rewardCost: number;

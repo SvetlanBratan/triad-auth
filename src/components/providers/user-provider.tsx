@@ -897,7 +897,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           id: `h-${Date.now()}-req`,
           date: new Date().toISOString(),
           amount: -rewardRequestData.rewardCost,
-          reason: `Запрос награды: ${rewardRequestData.rewardTitle}`,
+          reason: `Запрос награды: ${rewardRequestData.rewardTitle}${rewardRequestData.targetUserName ? ` (в подарок для ${rewardRequestData.targetUserName})` : ''}`,
           characterId: rewardRequestData.characterId ?? undefined,
         };
         const updatedPoints = user.points - rewardRequestData.rewardCost;
@@ -940,26 +940,34 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const requestDoc = await transaction.get(requestRef);
             if (!requestDoc.exists()) throw new Error("Request not found");
 
-            const userRef = doc(db, "users", request.userId);
-            const userDoc = await transaction.get(userRef);
-            if (!userDoc.exists()) throw new Error("User for the request not found");
-            let user = userDoc.data() as User;
+            const payerUserRef = doc(db, "users", request.userId);
+            const payerUserDoc = await transaction.get(payerUserRef);
+            if (!payerUserDoc.exists()) throw new Error("User for the request not found");
+            let payerUser = payerUserDoc.data() as User;
             
-            transaction.update(requestRef, { status: newStatus });
-            let updatesForUser: Partial<User> = {};
+            const recipientUserId = request.targetUserId || request.userId;
+            const recipientUserRef = doc(db, "users", recipientUserId);
+            const recipientUserDoc = await transaction.get(recipientUserRef);
+            if (!recipientUserDoc.exists()) throw new Error("Recipient user not found");
+            let recipientUser = recipientUserDoc.data() as User;
 
+            transaction.update(requestRef, { status: newStatus });
+            
             if (newStatus === 'одобрено') {
                  if (request.rewardId === CUSTOM_STATUS_REWARD_ID) {
-                    updatesForUser.statusEmoji = request.statusEmoji;
-                    updatesForUser.statusText = request.statusText;
-                    const currentAchievements = user.achievementIds || [];
-                    if (!currentAchievements.includes(VIP_ACHIEVEMENT_ID)) {
-                        updatesForUser.achievementIds = [...currentAchievements, VIP_ACHIEVEMENT_ID];
+                    const recipientAchievements = recipientUser.achievementIds || [];
+                    const updates: Partial<User> = {
+                        statusEmoji: request.statusEmoji,
+                        statusText: request.statusText
+                    };
+                    if (!recipientAchievements.includes(VIP_ACHIEVEMENT_ID)) {
+                        updates.achievementIds = [...recipientAchievements, VIP_ACHIEVEMENT_ID];
                     }
+                    transaction.update(recipientUserRef, updates);
                 } else {
                     let characterToUpdateIndex = -1;
                     if (request.characterId) {
-                        characterToUpdateIndex = user.characters.findIndex(c => c.id === request.characterId);
+                        characterToUpdateIndex = recipientUser.characters.findIndex(c => c.id === request.characterId);
                     }
                     
                     const achievementMap: Record<string, string> = {
@@ -974,19 +982,21 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                     };
 
                     const achievementIdToGrant = achievementMap[request.rewardId];
+                    let updatesForRecipient: Partial<User> = {};
+
                     if (achievementIdToGrant) {
-                        const currentAchievements = user.achievementIds || [];
+                        const currentAchievements = recipientUser.achievementIds || [];
                         if (!currentAchievements.includes(achievementIdToGrant)) {
-                            updatesForUser.achievementIds = [...currentAchievements, achievementIdToGrant];
+                            updatesForRecipient.achievementIds = [...currentAchievements, achievementIdToGrant];
                         }
                     }
 
                     if(request.rewardId === EXTRA_CHARACTER_REWARD_ID) {
-                        updatesForUser.extraCharacterSlots = (user.extraCharacterSlots || 0) + 1;
+                        updatesForRecipient.extraCharacterSlots = (recipientUser.extraCharacterSlots || 0) + 1;
                     }
                     
                     if (characterToUpdateIndex !== -1) {
-                        const updatedCharacters = [...user.characters];
+                        const updatedCharacters = [...recipientUser.characters];
                         let characterToUpdate = { ...updatedCharacters[characterToUpdateIndex] };
                         let familiarCards = characterToUpdate.familiarCards || [];
 
@@ -1016,10 +1026,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                             characterToUpdate.magic = magic;
                         }
 
-                        
                         characterToUpdate.familiarCards = familiarCards;
                         updatedCharacters[characterToUpdateIndex] = characterToUpdate;
-                        updatesForUser.characters = updatedCharacters;
+                        updatesForRecipient.characters = updatedCharacters;
+                    }
+                    
+                    if (Object.keys(updatesForRecipient).length > 0) {
+                        transaction.update(recipientUserRef, updatesForRecipient);
                     }
                 }
             } else if (newStatus === 'отклонено') {
@@ -1027,18 +1040,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                   const newPointLog: PointLog = {
                       id: `h-${Date.now()}-refund`, date: new Date().toISOString(), amount: request.rewardCost, reason,
                   };
-                  updatesForUser.points = user.points + request.rewardCost;
-                  updatesForUser.pointHistory = [newPointLog, ...user.pointHistory];
-            }
-
-            if (Object.keys(updatesForUser).length > 0) {
-                transaction.update(userRef, updatesForUser);
+                  transaction.update(payerUserRef, {
+                      points: payerUser.points + request.rewardCost,
+                      pointHistory: [newPointLog, ...payerUser.pointHistory]
+                  });
             }
         });
 
-        const updatedUser = await fetchUserById(request.userId);
-        if (updatedUser && currentUser?.id === request.userId) {
-            setCurrentUser(updatedUser);
+        const updatedPayer = await fetchUserById(request.userId);
+        if (updatedPayer && currentUser?.id === request.userId) {
+            setCurrentUser(updatedPayer);
         }
         return {...request, status: newStatus};
     }, [fetchUserById, currentUser?.id, initialFormData]);
