@@ -491,7 +491,15 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
   { id: 'ach-winner3', name: 'Третье место', description: 'Вошёл в тройку лучших участников конкурса.', iconName: 'Award' },
   { id: 'ach-participant', name: 'Участник конкурса', description: 'Принял участие в конкурсе и проявил себя.', iconName: 'Users' },
   { id: 'ach-writer', name: 'Искра сюжета', description: 'Предложил идею, ставшую основой или частью игрового сюжета.', iconName: 'Pencil' },
+  { id: 'ach-pumpkinrain', name: 'Тыквенный Переполох!', description: 'Вы поймали 100 тыкв', iconName: 'ach-pumpkinrain' },
+  { id: 'ach-luckyguy', name: 'Золотая лихорадка', description: 'Вы выиграли в казино', iconName: 'ach-luckyguy' },
+  { id: 'ach-loser', name: 'Лузер (С кем не бывает?)', description: 'Проиграли в казино', iconName: 'ach-loser' },
 ];
+
+export const ACHIEVEMENTS_BY_ID: Record<string, Achievement> = ALL_ACHIEVEMENTS.reduce((acc, ach) => {
+    acc[ach.id] = ach;
+    return acc;
+}, {} as Record<string, Achievement>);
 
 export const ALL_STATIC_FAMILIARS: FamiliarCard[] = [
     { id: 'fam-c-1', name: 'Анчутка', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753197216/%D0%90%D0%BD%D1%87%D1%83%D1%82%D0%BA%D0%B0_hvas2s.png' },
@@ -526,9 +534,9 @@ export const ALL_STATIC_FAMILIARS: FamiliarCard[] = [
 
     { id: 'fam-r-1', name: 'Артерианская гончая', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753197216/%D0%90%D1%80%D1%82%D0%B5%D1%80%D0%B8%D0%B0%D0%BD%D1%81%D0%BA%D0%B0%D1%8F_%D0%B3%D0%BE%D0%BD%D1%87%D0%B0%D1%8F_jjjx11.png' },
     { id: 'fam-r-2', name: 'Баргест', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753197217/%D0%91%D0%B0%D1%80%D0%B3%D0%B5%D1%81%D1%82_nrlebe.png' },
-    { id: 'fam-r-3', name: 'Браффа', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199172/%D0%91%D0%B0%D1%80%D0%B3%D0%B5%D1%81%D1%82_nrlebe.png' },
+    { id: 'fam-r-3', name: 'Браффа', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199172/%D0%91%D1%80%D0%B0%D1%84%D1%84%D0%B0_rydvub.png' },
     { id: 'fam-r-4', name: 'Грифон', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199173/%D0%93%D1%80%D1%8B%D0%B7%D0%BC%D0%B0%D1%80_siwn1a.png' },
-    { id: 'fam-r-5', name: 'Зеленоградская гончая', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199419/%D0%93%D1%80%D1%8B%D0%B7%D0%BC%D0%B0%D1%80_siwn1a.png' },
+    { id: 'fam-r-5', name: 'Зеленоградская гончая', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199419/%D0%97%D0%B5%D0%BB%D0%B5%D0%BD%D0%BE%D0%B3%D1%80%D0%B0%D0%B4%D1%81%D0%BA%D0%B0%D1%8F_%D0%B3%D0%BE%D0%BD%D1%87%D0%B0%D1%8F_oipvbr.png' },
     { id: 'fam-r-6', name: 'Златоуст', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199419/%D0%97%D0%BB%D0%B0%D1%82%D0%BE%D1%83%D1%81%D1%82_ljhotw.png' },
     { id: 'fam-r-wolves', name: 'Лёдинова и Огнова', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199428/%D0%9B%D1%91%D0%B4%D0%B8%D0%BD%D0%BE%D0%B2%D0%B0_%D0%B8_%D0%9E%D0%B3%D0%BD%D0%BE%D0%B2%D0%B0_ncfytg.png' },
     { id: 'fam-r-foxsquirrel', name: 'Лисобелка', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199430/%D0%9B%D0%B8%D1%81%D0%BE%D0%B1%D0%B5%D0%BB%D0%BA%D0%B0_xd2wz5.png' },
@@ -595,6 +603,13 @@ export const EVENT_FAMILIARS: FamiliarCard[] = [
     { id: 'fam-e-pumpkin-wife', name: 'Тыкво-жена', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753276855/%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B8%D0%9A%D0%9A%D0%98_sqv5if.png' },
     { id: 'fam-e-pumpkin-husband', name: 'Тыкво-муж', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753286999/%D0%A2%D1%8B%D0%BA%D0%B2%D0%BE%D0%BC%D1%83%D0%B6_v9bpsg.png' },
 ];
+
+export const ALL_FAMILIARS: FamiliarCard[] = [...ALL_STATIC_FAMILIARS, ...EVENT_FAMILIARS];
+
+export const FAMILIARS_BY_ID: Record<string, FamiliarCard> = ALL_FAMILIARS.reduce((acc, card) => {
+    acc[card.id] = card;
+    return acc;
+}, {} as Record<string, FamiliarCard>);
 
 export const ALL_SHOPS: Shop[] = [
   {
@@ -796,19 +811,7 @@ export const ALL_SHOPS: Shop[] = [
   },
 ];
 
-export const ALL_FAMILIARS: FamiliarCard[] = [...ALL_STATIC_FAMILIARS, ...EVENT_FAMILIARS];
-
-export const FAMILIARS_BY_ID: Record<string, FamiliarCard> = ALL_FAMILIARS.reduce((acc, card) => {
-    acc[card.id] = card;
-    return acc;
-}, {} as Record<string, FamiliarCard>);
-
 export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) => {
     acc[shop.id] = shop;
     return acc;
 }, {} as Record<string, Shop>);
-
-export const ACHIEVEMENTS_BY_ID: Record<string, Achievement> = ALL_ACHIEVEMENTS.reduce((acc, ach) => {
-    acc[ach.id] = ach;
-    return acc;
-}, {} as Record<string, Achievement>);
