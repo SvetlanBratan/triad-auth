@@ -171,8 +171,10 @@ export default function RewardsTab() {
             <CardHeader className="flex flex-row items-center gap-4">
                 <CustomIcon src="/icons/points.svg" className="w-8 h-8 icon-primary" />
                 <div>
-                    <CardTitle>Ваши баллы</CardTitle>
-                    <CardDescription className="text-muted-foreground/80">У вас есть <span className="font-bold text-xl text-foreground">{currentUser?.points.toLocaleString()}</span> баллов для траты.</CardDescription>
+                    <CardTitle className="text-lg sm:text-xl">Ваши баллы</CardTitle>
+                    <CardDescription className="text-muted-foreground/80">
+                        У вас есть <span className="font-bold text-base sm:text-lg text-foreground">{currentUser?.points.toLocaleString()}</span> баллов для траты.
+                    </CardDescription>
                 </div>
             </CardHeader>
         </Card>
@@ -185,7 +187,7 @@ export default function RewardsTab() {
                 <DynamicIcon name={reward.iconName} className="w-4 h-4 sm:w-6 sm:h-6 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
-                <CardTitle className="text-[11px] sm:text-lg font-headline leading-tight sm:whitespace-normal">{reward.title}</CardTitle>
+                <CardTitle className="text-[11px] sm:text-lg font-headline leading-tight">{reward.title}</CardTitle>
                 <CardDescription className="text-[10px] sm:text-xs mt-1 line-clamp-2 sm:line-clamp-none">{reward.description}</CardDescription>
               </div>
             </CardHeader>
