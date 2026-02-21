@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Trash2, DatabaseZap, CheckCircle2, Pencil, X } from 'lucide-react';
+import { PlusCircle, Trash2, DatabaseZap, CheckCircle2, Pencil, X, Search } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { FamiliarCard, FamiliarRank } from '@/lib/types';
@@ -58,6 +58,13 @@ export default function AdminFamiliarsTab() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [isMigrating, setIsMigrating] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredFamiliars = useMemo(() => {
+    return dbFamiliars.filter(fam => 
+      fam.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [dbFamiliars, searchQuery]);
 
   const handleAddFamiliar = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -200,15 +207,28 @@ export default function AdminFamiliarsTab() {
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Фамильяры в базе данных</CardTitle>
-          <CardDescription>Список фамильяров, которыми можно управлять через эту панель.</CardDescription>
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+            <div>
+              <CardTitle>Фамильяры в базе данных</CardTitle>
+              <CardDescription>Список фамильяров, которыми можно управлять через эту панель.</CardDescription>
+            </div>
+            <div className="relative w-full sm:max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input 
+                placeholder="Поиск по названию..." 
+                className="pl-9"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
             {isLoadingFamiliars ? (
                 <p>Загрузка...</p>
-            ) : dbFamiliars.length > 0 ? (
+            ) : filteredFamiliars.length > 0 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                    {dbFamiliars.map(fam => (
+                    {filteredFamiliars.map(fam => (
                         <div key={fam.id} className="relative group p-2 border rounded-md">
                             <Image src={fam.imageUrl} alt={fam.name} width={100} height={150} className="w-full h-auto rounded-md" />
                             <p className="text-sm font-semibold mt-2 truncate">{fam.name}</p>
@@ -249,7 +269,9 @@ export default function AdminFamiliarsTab() {
                     ))}
                 </div>
             ) : (
-                <p className="text-center text-muted-foreground py-8">В базе данных пока нет фамильяров.</p>
+                <p className="text-center text-muted-foreground py-8">
+                  {searchQuery ? "По вашему запросу ничего не найдено." : "В базе данных пока нет фамильяров."}
+                </p>
             )}
         </CardContent>
       </Card>
