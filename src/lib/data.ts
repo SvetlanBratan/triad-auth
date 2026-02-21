@@ -471,7 +471,7 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
   // Manual & Popularity-based
   { id: 'ach-rumor-of-the-week', name: 'Слух недели', description: 'Персонаж был упомянут в газете, став предметом обсуждений и сплетен.', iconName: 'Newspaper' },
   { id: 'ach-cover-star', name: 'Звезда с обложки', description: 'Персонаж удостоился чести появиться на обложке газеты, привлекая всеобщее внимание.', iconName: 'Star' },
-  { id: 'ach-big-name', name: 'Громкое имя Триады', description: 'Персонаж стал главной темой газетной статьи, его история и поступки теперь на устахю у всех.', iconName: 'Megaphone' },
+  { id: 'ach-big-name', name: 'Громкое имя Триады', description: 'Персонаж стал главной темой газетной статьи, его история и поступки теперь на устах у всех.', iconName: 'Megaphone' },
   { id: 'ach-ruler', name: 'Правитель государства', description: 'Несёт тяжкое бремя правления и ответственности за судьбу всего государства в Триаде.', iconName: 'ShieldCheck' },
   { id: 'ach-august-family', name: 'Из семьи августейших особ', description: 'Связан семейными узами с правителем государства и несёт бремя известности.', iconName: 'Users' },
   { id: 'ach-your-grace', name: 'Ваша Светлость', description: 'Является вторым по важности землевладельцем в государстве, обладая огромным влиянием.', iconName: 'Landmark' },
@@ -590,7 +590,7 @@ export const EVENT_FAMILIARS: FamiliarCard[] = [
     { id: 'fam-e-bone-dog', name: 'Костяная собака', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199424/%D0%9A%D0%BE%D1%81%D1%82%D1%8F%D0%BD%D0%B0%D1%8F_%D1%81%D0%BE%D0%B1%D0%B0%D0%BA%D0%B0_cmdjk6.png' },
     { id: 'fam-e-bone-cat', name: 'Костяной кот', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199425/%D0%9A%D0%BE%D1%81%D1%82%D1%8F%D0%BD%D0%BE%D0%B9_%D0%BA%D0%BE%D1%82_hr2gmk.png' },
     { id: 'fam-e-leviathan', name: 'Левиафан', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199426/%D0%BB%D0%B5%D0%B2%D0%B8%D0%B0%D1%84%D0%B0%D0%BD_hr6tat.png' },
-    { id: 'fam-e-ariana', name: 'Леди Ариана', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199427/%D0%9B%D0%B5%D0%B4%D0%B8_%D0%90%D1%80%D0%B8%D0%B0%D0%BD%D0%B0_w15swi.png' },
+    { id: 'fam-e-ariana', name: 'Леди Ариана', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199427/%D0%9B%D0%B5%D0%B4%D1%8F_%D0%90%D1%80%D0%B8%D0%B0%D0%BD%D0%B0_w15swi.png' },
     { id: 'fam-e-cerberus', name: 'Цербер', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199467/%D0%A6%D0%B5%D1%80%D0%B1%D0%B5%D1%80_rznwpc.png' },
     { id: 'fam-e-sherlas', name: 'Шерлас', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753272049/2131541243_sci3mx.jpg' },
     { id: 'fam-e-anhel', name: 'Анхель', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753272049/123123_oljkkn.jpg' },
@@ -718,7 +718,7 @@ export const ALL_SHOPS: Shop[] = [
   {
     id: 'market-lost-souls',
     title: 'Рынок Неприкаянных Душ',
-    description: 'Здесь души, не нашедшие покоя, ищут новый смысл или нового хозяина. Уникальные товары и услуги для тех, кто не боится заглянуть за грань.',
+    description: 'Здесь души, не нашедшие покое, ищут новый смысл или нового хозяина. Уникальные товары и услуги для тех, кто не боится заглянуть за грань.',
     image: 'https://i.postimg.cc/wjLgMjbK/t-Gq6-Sm3q-La-QLAz-U4qrkw7k-L14o-Z7-Vzl-FWo-MIETTGUOJR7-S5e-Pd-Mt-C5-DT9-W6t-Gp60-YH5ba-Xz-J3-Tnk-Sk60-Wg93rk-E.png',
     aiHint: 'fantasy market',
   },

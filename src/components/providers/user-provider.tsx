@@ -322,7 +322,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 training: Array.isArray(char.training) ? char.training : [],
                 marriedTo: Array.isArray(char.marriedTo) ? char.marriedTo : [],
                 marriedToNpc: Array.isArray(char.marriedToNpc) ? char.marriedToNpc : [],
-                relationships: (Array.isArray(character.relationships) ? character.relationships : []).map(r => ({...r, id: r.id || `rel-${Math.random()}`})),
+                relationships: (Array.isArray(char.relationships) ? char.relationships : []).map(r => ({...r, id: r.id || `rel-${Math.random()}`})),
                 moodlets: char.moodlets || [],
                 popularity: char.popularity ?? 0,
                 popularityHistory: char.popularityHistory || [],
