@@ -296,6 +296,7 @@ export interface Magic {
   magicClarifications?: string;
   maxElements?: number;
   maxTeachings?: number;
+  unlockedReserves?: string[];
 }
 
 export interface OngoingHunt {

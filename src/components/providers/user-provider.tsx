@@ -2,12 +2,12 @@
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
-import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage, Cooldowns, PopularityLog, CharacterPopularityUpdate, OwnedFamiliarCard, AlchemyRecipe, Potion, AlchemyIngredient, PlayerPing, OngoingHunt, PlayerStatus, PlayPlatform, SocialLink, TrainingRecord } from '@/lib/types';
+import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage, Cooldowns, PopularityLog, CharacterPopularityUpdate, OwnedFamiliarCard, AlchemyRecipe, Potion, AlchemyIngredient, PlayerPing, OngoingHunt, PlayerStatus, PlayPlatform, SocialLink, TrainingRecord, HuntReward, HuntingLocation } from '@/lib/types';
 import { auth, db, database } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut, reauthenticateWithCredential, EmailAuthProvider, updatePassword, updateEmail } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter, increment, FieldValue, arrayUnion, arrayRemove, deleteField, DocumentSnapshot, DocumentData } from "firebase/firestore";
 import { ref as rtdbRef, onValue, set as rtdbSet } from 'firebase/database';
-import { ALL_STATIC_FAMILIARS, EVENT_FAMILIARS, MOODLETS_DATA, DEFAULT_GAME_SETTINGS, WEALTH_LEVELS, ALL_SHOPS, SHOPS_BY_ID, POPULARITY_EVENTS, ALL_ACHIEVEMENTS, INVENTORY_CATEGORIES } from '@/lib/data';
+import { ALL_STATIC_FAMILIARS, EVENT_FAMILIARS, MOODLETS_DATA, DEFAULT_GAME_SETTINGS, WEALTH_LEVELS, ALL_SHOPS, SHOPS_BY_ID, POPULARITY_EVENTS, ALL_ACHIEVEMENTS, INVENTORY_CATEGORIES, FAMILIARS_BY_ID } from '@/lib/data';
 import { differenceInDays, differenceInMonths, isPast } from 'date-fns';
 import { getFunctions, httpsCallable, FunctionsError } from 'firebase/functions';
 import { ALL_ITEMS_FOR_ALCHEMY } from '@/lib/alchemy-data';
@@ -293,6 +293,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             magicClarifications: '',
             maxElements: 4,
             maxTeachings: 3,
+            unlockedReserves: [],
         }
     }), []);
 
@@ -321,7 +322,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 training: Array.isArray(char.training) ? char.training : [],
                 marriedTo: Array.isArray(char.marriedTo) ? char.marriedTo : [],
                 marriedToNpc: Array.isArray(char.marriedToNpc) ? char.marriedToNpc : [],
-                relationships: (Array.isArray(char.relationships) ? char.relationships : []).map(r => ({...r, id: r.id || `rel-${Math.random()}`})),
+                relationships: (Array.isArray(character.relationships) ? character.relationships : []).map(r => ({...r, id: r.id || `rel-${Math.random()}`})),
                 moodlets: char.moodlets || [],
                 popularity: char.popularity ?? 0,
                 popularityHistory: char.popularityHistory || [],
@@ -343,6 +344,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 }
                 if (!Array.isArray(processedChar.magic.teachings)) {
                     processedChar.magic.teachings = [];
+                }
+                if (!Array.isArray(processedChar.magic.unlockedReserves)) {
+                    processedChar.magic.unlockedReserves = [];
                 }
             }
 
@@ -998,6 +1002,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                             characterToUpdate.hasLeviathanFriendship = true;
                         } else if (request.rewardId === 'r-crime-connections') {
                             characterToUpdate.hasCrimeConnections = true;
+                        } else if (request.rewardId === 'r-archmage') {
+                            const magic = characterToUpdate.magic || { ...initialFormData.magic };
+                            magic.unlockedReserves = [...(magic.unlockedReserves || []), 'А6 (архимаг)'];
+                            characterToUpdate.magic = magic;
+                        } else if (request.rewardId === 'r-archmaster') {
+                            const magic = characterToUpdate.magic || { ...initialFormData.magic };
+                            magic.unlockedReserves = [...(magic.unlockedReserves || []), 'А7 (архимагистр)'];
+                            characterToUpdate.magic = magic;
+                        } else if (request.rewardId === 'r-deargod') {
+                            const magic = characterToUpdate.magic || { ...initialFormData.magic };
+                            magic.unlockedReserves = [...(magic.unlockedReserves || []), 'Б8 (божественный)'];
+                            characterToUpdate.magic = magic;
                         }
 
                         
@@ -1025,7 +1041,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             setCurrentUser(updatedUser);
         }
         return {...request, status: newStatus};
-    }, [fetchUserById, currentUser?.id]);
+    }, [fetchUserById, currentUser?.id, initialFormData]);
     
     const fetchAllRewardRequests = useCallback(async (): Promise<RewardRequest[]> => {
         const requests: RewardRequest[] = [];
@@ -1459,7 +1475,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 const match = log.reason.match(gachaLogRegex);
                 if (match) {
                     const cardName = match[1].trim();
-                    const foundCard = ALL_FAMILIARS.find(c => c.name === cardName);
+                    const foundCard = allFamiliars.find(c => c.name === cardName);
                     if (foundCard) {
                         historicalCardWins.add(foundCard.id);
                     }
@@ -1490,7 +1506,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
 
         return cardsToAdd.length;
-    }, [fetchUserById, updateUser]);
+    }, [fetchUserById, updateUser, allFamiliars]);
 
     const recoverAllFamiliars = useCallback(async (): Promise<{ totalRecovered: number; usersAffected: number }> => {
         const allUsers = await fetchUsersForAdmin();
@@ -1513,7 +1529,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                         const match = log.reason.match(gachaLogRegex);
                         if (match) {
                             const cardName = match[1].trim();
-                            const foundCard = ALL_FAMILIARS.find(c => c.name === cardName);
+                            const foundCard = allFamiliars.find(c => c.name === cardName);
                             if (foundCard) {
                                 historicalCardWins.add(foundCard.id);
                             }
@@ -1551,7 +1567,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
         
         return { totalRecovered, usersAffected };
-    }, [fetchUsersForAdmin, fetchUserById, currentUser]);
+    }, [fetchUsersForAdmin, fetchUserById, currentUser, allFamiliars]);
 
     const updateCharacterWealthLevel = useCallback(async (userId: string, characterId: string, wealthLevel: WealthLevel) => {
         const user = await fetchUserById(userId);
@@ -2773,12 +2789,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if(updatedUser) setCurrentUser(updatedUser);
     }, [currentUser, fetchUserById]);
 
-    const fetchAlchemyRecipes = useCallback(async (): Promise<AlchemyRecipe[]> => {
-        const recipesCollection = collection(db, "alchemy_recipes");
-        const snapshot = await getDocs(recipesCollection);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AlchemyRecipe));
-    }, []);
-    
     const brewPotion = useCallback(async (userId: string, characterId: string, recipeId: string): Promise<{ createdItem: InventoryItem; recipeName: string; }> => {
         let createdItemResult: InventoryItem | null = null;
         let recipeNameResult = '';
@@ -2909,6 +2919,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const deleteAlchemyRecipe = useCallback(async (recipeId: string) => {
         const recipeRef = doc(db, 'alchemy_recipes', recipeId);
         await deleteDoc(recipeRef);
+    }, []);
+
+    const fetchAlchemyRecipes = useCallback(async (): Promise<AlchemyRecipe[]> => {
+        const recipesCollection = collection(db, "alchemy_recipes");
+        const snapshot = await getDocs(recipesCollection);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AlchemyRecipe));
     }, []);
 
     const addFamiliarToDb = useCallback(async (familiar: Omit<FamiliarCard, 'id'>) => {

@@ -136,6 +136,7 @@ const initialFormData: Omit<Character, 'id'> = {
         magicClarifications: '',
         maxElements: 4,
         maxTeachings: 3,
+        unlockedReserves: [],
     }
 };
 
@@ -311,19 +312,26 @@ const CharacterForm = ({ character, allUsers, ownerId, onSuccess, closeDialog, e
         if (isAdmin) return ADMIN_RESERVE_LEVEL_OPTIONS;
         
         const options = [...RESERVE_LEVEL_OPTIONS];
-        const userAchievements = currentUser?.achievementIds || [];
+        const characterUnlockedReserves = formData.magic?.unlockedReserves || [];
         
-        if (userAchievements.includes('ach-big-mage')) {
+        if (characterUnlockedReserves.includes('А6 (архимаг)')) {
             options.push({ value: 'А6 (архимаг)', label: 'А6 (архимаг)' });
         }
-        if (userAchievements.includes('ach-archmaster')) {
+        if (characterUnlockedReserves.includes('А7 (архимагистр)')) {
             options.push({ value: 'А7 (архимагистр)', label: 'А7 (архимагистр)' });
         }
-        if (userAchievements.includes('ach-deargod')) {
+        if (characterUnlockedReserves.includes('Б8 (божественный)')) {
             options.push({ value: 'Б8 (божественный)', label: 'Б8 (божественный)' });
         }
+
+        // Always include current value if it's set (for edge cases/admin edits)
+        const currentVal = formData.magic?.reserveLevel;
+        if (currentVal && !options.find(o => o.value === currentVal)) {
+            options.push({ value: currentVal, label: currentVal });
+        }
+
         return options;
-    }, [isAdmin, currentUser?.achievementIds]);
+    }, [isAdmin, formData.magic?.unlockedReserves, formData.magic?.reserveLevel]);
 
 
     const handleFieldChange = (field: keyof Character, value: any) => {
