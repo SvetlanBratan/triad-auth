@@ -88,7 +88,7 @@ export const DEFAULT_GAME_SETTINGS: GameSettings = {
             ]
         }
     ]
-}
+};
 
 export const MAGIC_PERCEPTION_OPTIONS: OptionType[] = [
     { value: 'зрительное', label: 'Зрительное' },
@@ -427,7 +427,7 @@ export const rewards: Reward[] = [
     { id: 'r-guild', title: 'Собственная гильдия', description: 'Создать собственную преступную группировку/гильдию', cost: 50000, type: 'permanent', iconName: 'Building2' },
     { id: 'r-swap-element', title: 'Обмен стихии на учения', description: 'Поменять 1 стихию на 2 учения', cost: 100, type: 'permanent', iconName: 'Replace' },
     { id: 'r-hybrid', title: 'Полукровка/гибрид', description: 'Полукровка/гибрид из двух рас', cost: 150000, type: 'permanent', iconName: 'Combine' },
-    { id: 'r-pumpkin-wife', title: 'Приобрести Тыкво-Жену', description: 'Приобрести Тыкво-Жену', cost: 100000, type: 'permanent', iconName: 'Heart' },
+    { id: 'r-pumpkin-wife', title: 'Приобрести Тыкво-Жена', description: 'Приобрести Тыкво-Жена', cost: 100000, type: 'permanent', iconName: 'Heart' },
     { id: 'r-pumpkin-husband', title: 'Приобрести Тыкво-Мужа', description: 'Приобрести Тыкво-Мужа', cost: 100000, type: 'permanent', iconName: 'Heart' },
 ];
 
@@ -445,7 +445,7 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
   { id: 'ach-seaman', name: 'Мореход', description: 'Игрок имеет судно в своём распоряжении, приобретённое в магазине наград.', iconName: 'Ship' },
   { id: 'ach-sky-master', name: 'Освоил небо', description: 'Игрок купил дирижабль для собственных нужд, открыв новые горизонты для путешествий.', iconName: 'Rocket' },
   { id: 'ach-big-mage', name: 'Большой, большой!', description: 'Вы развились до резерва архимага.', iconName: 'Flame' },
-  { id: 'ach-archmaster', name: 'Невероятно большой.', description: 'Резерв Архимагистра.', iconName: 'Crown' },
+  { id: 'ach-archmaster', name: 'Невероятно большой', description: 'Резерв Архимагистра.', iconName: 'Crown' },
   { id: 'ach-deargod', name: 'Боженька', description: 'Вы достигли вершины могущества!', iconName: 'Zap' },
   { id: 'ach-important-person', name: 'Важный', description: 'Персонаж имеет высокую должность при дворе, независимо от его титула и пола.', iconName: 'Crown' },
   { id: 'ach-baron', name: 'Ваша Милость', description: 'Персонаж заработал титул Барона своим трудом и получил землю в придачу.', iconName: 'ChessKing' },
@@ -454,7 +454,7 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
   { id: 'ach-wizard', name: 'Чародей', description: 'Даётся за получение дополнительного учения для персонажа, углубляя его познания в магии.', iconName: 'BookPlus' },
   { id: 'ach-guildmaster', name: 'Гильдмастер', description: 'Игрок создал собственную преступную группировку или гильдию, став её лидером.', iconName: 'Building2' },
   { id: 'ach-hybrid', name: 'Гибридная полукровка', description: 'Игрок создал персонажа, являющегося полукровкой или гибридом двух рас.', iconName: 'Combine' },
-  { id: 'ach-pumpkin-spouse', name: 'Тыкво-Жену', description: 'Обладатель самой прекрасной супруги в мире Триады.', iconName: 'Heart' },
+  { id: 'ach-pumpkin-spouse', name: 'Тыкво-Жена', description: 'Обладатель самой прекрасной супруги в мире Триады.', iconName: 'Heart' },
   { id: 'ach-pumpkin-husband', name: 'Тыкво-Муж', description: 'Обладатель самой прекрасной супруга в мире Триады.', iconName: 'Heart' },
   { id: 'ach-exchange-master', name: 'Мастер обмена', description: 'Персонаж обменял одну из своих магических стихий на два учения.', iconName: 'Replace' },
   { id: 'ach-dark-lord', name: 'Тёмный Владыка', description: 'Персонаж получил доступ к запретной магии, недоступным для его расы.', iconName: 'Skull' },
@@ -496,16 +496,11 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
   { id: 'ach-loser', name: 'Лузер (С кем не бывает?)', description: 'Проиграли в казино', iconName: 'ach-loser' },
 ];
 
-export const ACHIEVEMENTS_BY_ID: Record<string, Achievement> = ALL_ACHIEVEMENTS.reduce((acc, ach) => {
-    acc[ach.id] = ach;
-    return acc;
-}, {} as Record<string, Achievement>);
-
 export const ALL_STATIC_FAMILIARS: FamiliarCard[] = [
     { id: 'fam-c-1', name: 'Анчутка', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753197216/%D0%90%D0%BD%D1%87%D1%83%D1%82%D0%BA%D0%B0_hvas2s.png' },
     { id: 'fam-c-2', name: 'Божья тварь', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199171/%D0%91%D0%BE%D0%B6%D1%8C%D1%8F_%D1%82%D0%B2%D0%B0%D1%80%D1%8C_jbwjju.png' },
     { id: 'fam-c-3', name: 'Грызмар', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199418/%D0%93%D1%80%D1%8B%D0%B7%D0%BC%D0%B0%D1%80_siwn1a.png' },
-    { id: 'fam-c-4', name: 'Золотце', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199420/%D0%97%D0%BE%D0%BB%D0%BE%D1%82%D1%86%D0%B5_kgu8ni.png' },
+    { id: 'fam-c-4', name: 'Золотце', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199420/%D0%93%D1%80%D1%8B%D0%B7%D0%BC%D0%B0%D1%80_siwn1a.png' },
     { id: 'fam-c-lynx', name: 'Ледяная рысь', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199430/%D0%9B%D0%B5%D0%B4%D1%8F%D0%BD%D0%B0%D1%8F_%D1%80%D1%8B%D1%81%D1%8C_ziosz3.png' },
     { id: 'fam-c-ognemur', name: 'Огнемур', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199457/%D0%9E%D0%B3%D0%BD%D0%B5%D0%BC%D1%83%D1%80_dwnqqi.png' },
     { id: 'fam-c-pchelokot', name: 'Пчелокот', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199460/%D0%9F%D1%87%D0%B5%D0%BB%D0%BE%D0%BA%D0%BE%D1%82_hd1kqs.png' },
@@ -571,7 +566,7 @@ export const ALL_STATIC_FAMILIARS: FamiliarCard[] = [
     { id: 'fam-l-serpopard', name: 'Серпопард', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199463/%D0%A1%D0%B5%D1%80%D0%BF%D0%BE%D0%BF%D0%B0%D1%80%D0%B4_ohokso.png' },
     { id: 'fam-l-faifi', name: 'Файфи', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199465/%D0%A4%D0%B0%D0%B9%D1%84%D0%B8_bdh1ww.png' },
     { id: 'fam-l-crystal-alicorn', name: 'Хрустальный Аликорн', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199467/%D1%85%D1%80%D1%83%D1%81%D1%82%D0%B0%D0%BB%D1%8C%D0%BD%D1%8B%D0%B9_%D0%B0%D0%BB%D0%B8%D0%BA%D0%BE%D1%80%D0%BD_e8p30d.png' },
-    { id: 'fam-l-chupacabra', name: 'Чупакабра', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199468/%D0%A7%D1%83%D0%BF%D0%B0%D0%BA%D0%B0%D0%B1%D1%80%D0%B0_cxkyus.png' },
+    { id: 'fam-l-chupacabra', name: 'Чупакабра', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199468/%D0%A4%D0%B0%D0%B9%D1%84%D0%B8_bdh1ww.png' },
     { id: 'fam-l-dark-elemental', name: 'Элементаль тьмы', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199471/%D0%AD%D0%BB%D0%B5%D0%BC%D0%B5%D0%BD%D1%82%D0%B0%D0%BB%D1%8C_%D1%82%D1%8C%D0%BC%D1%8B_wvqmoe.png' },
     { id: 'fam-l-vioraksi', name: 'Виоракси', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753283958/27_saolre.jpg' },
     { id: 'fam-l-ognennogriv', name: 'Огненногрив', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753283960/28_pibahj.jpg' },
@@ -815,3 +810,8 @@ export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) =>
     acc[shop.id] = shop;
     return acc;
 }, {} as Record<string, Shop>);
+
+export const ACHIEVEMENTS_BY_ID: Record<string, Achievement> = ALL_ACHIEVEMENTS.reduce((acc, ach) => {
+    acc[ach.id] = ach;
+    return acc;
+}, {} as Record<string, Achievement>);
