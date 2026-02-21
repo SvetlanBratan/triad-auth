@@ -25,7 +25,7 @@ import { Input } from '../ui/input';
 import { useQuery } from '@tanstack/react-query';
 import { ScrollArea } from '../ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider } from '../ui/tooltip';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogTrigger } from '../ui/alert-dialog';
 import CharacterForm, { type EditingState } from './character-form';
 
 const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
@@ -519,7 +519,7 @@ export default function UserProfileDialog({ user, refetch }: UserProfileDialogPr
                 <div className="flex justify-between items-center">
                     <div>
                         <CardTitle>Персонажи</CardTitle>
-                        <CardDescription>Список персонажей игрока</CardDescription>
+                        <CardDescription>Список персонажей игрока. Нажмите на имя, чтобы открыть анкету.</CardDescription>
                     </div>
                     {isAdmin && (
                         <Button variant="ghost" size="icon" onClick={() => setEditingState({ type: 'createCharacter', targetUserId: user.id })}>
@@ -583,7 +583,7 @@ export default function UserProfileDialog({ user, refetch }: UserProfileDialogPr
         </div>
     </div>
     
-     <Dialog open={isAchievementsOpen} onOpenChange={setIsAchievementsOpen}>
+     <Dialog open={isAchievementsOpen} onOpenChange={(isOpen) => !isOpen && setIsAchievementsOpen(false)}>
         <DialogContent className="max-w-2xl">
             <DialogHeader>
                 <DialogTitle>Все достижения</DialogTitle>
@@ -612,7 +612,7 @@ export default function UserProfileDialog({ user, refetch }: UserProfileDialogPr
         </DialogContent>
     </Dialog>
 
-     <Dialog open={isPlayerStatusDialogOpen} onOpenChange={setPlayerStatusDialogOpen}>
+     <Dialog open={isPlayerStatusDialogOpen} onOpenChange={(isOpen) => !isOpen && setPlayerStatusDialogOpen(false)}>
         <DialogContent>
             <DialogHeader>
                 <DialogTitle>Изменить игровой статус для {user.name}</DialogTitle>
@@ -631,7 +631,7 @@ export default function UserProfileDialog({ user, refetch }: UserProfileDialogPr
             </div>
         </DialogContent>
     </Dialog>
-     <Dialog open={isSocialsDialogOpen} onOpenChange={setSocialsDialogOpen}>
+     <Dialog open={isSocialsDialogOpen} onOpenChange={(isOpen) => !isOpen && setSocialsDialogOpen(false)}>
         <DialogContent>
             <DialogHeader>
                 <DialogTitle>Обновить игровые данные для {user.name}</DialogTitle>

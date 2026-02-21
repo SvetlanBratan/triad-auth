@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useUser } from '@/hooks/use-user';
@@ -128,7 +127,7 @@ const CharacterDisplay = ({ character, onDelete }: { character: Character, onDel
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
                             <Button variant="ghost" size="icon" className="shrink-0 hover:bg-destructive/10" onClick={e => e.stopPropagation()}>
-                                <Trash2 className="h-4 h-4 text-destructive" />
+                                <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
@@ -487,7 +486,7 @@ export default function ProfileTab() {
                 <div>
                     <CardTitle>Персонажи</CardTitle>
                     <CardDescription>
-                        Список ваших персонажей
+                        Список ваших персонажей. Нажмите на имя, чтобы открыть анкету.
                     </CardDescription>
                 </div>
                  {isAdmin && (
