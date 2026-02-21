@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect, useContext } from 'react';
@@ -8,7 +9,7 @@ import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query,
 import { ref as rtdbRef, onValue, set as rtdbSet } from 'firebase/database';
 import { ALL_STATIC_FAMILIARS, EVENT_FAMILIARS, MOODLETS_DATA, DEFAULT_GAME_SETTINGS, WEALTH_LEVELS, ALL_SHOPS, SHOPS_BY_ID, POPULARITY_EVENTS, ALL_ACHIEVEMENTS, INVENTORY_CATEGORIES, FAMILIARS_BY_ID } from '@/lib/data';
 import { differenceInDays, differenceInMonths, isPast } from 'date-fns';
-import { getFunctions, httpsCallable, FunctionsError } from 'firebase/functions';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { ALL_ITEMS_FOR_ALCHEMY } from '@/lib/alchemy-data';
 import { useToast } from '@/hooks/use-toast';
 
@@ -112,6 +113,7 @@ export interface UserContextType {
   fetchAlchemyRecipes: () => Promise<AlchemyRecipe[]>;
   fetchDbFamiliars: () => Promise<FamiliarCard[]>;
   addFamiliarToDb: (familiar: Omit<FamiliarCard, 'id'>, id?: string) => Promise<void>;
+  updateFamiliarInDb: (familiar: FamiliarCard) => Promise<void>;
   deleteFamiliarFromDb: (familiarId: string) => Promise<void>;
   sendPlayerPing: (targetUserId: string) => Promise<void>;
   deletePlayerPing: (pingId: string, isMyPing: boolean) => Promise<void>;
@@ -485,7 +487,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const snapshot = await getDocs(familiarsCollection);
         return snapshot.docs.map(doc => {
             const data = doc.data();
-            return { ...(data as any), id: doc.id } as FamiliarCard;
+            return { ...data, id: doc.id } as FamiliarCard;
         });
     }, []);
 
@@ -652,6 +654,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         await fetchAndCombineFamiliars();
     }, [fetchAndCombineFamiliars]);
 
+    const updateFamiliarInDb = useCallback(async (familiar: FamiliarCard) => {
+        const { id, ...data } = familiar;
+        const familiarRef = doc(db, 'familiars', id);
+        await setDoc(familiarRef, data, { merge: true });
+        await fetchAndCombineFamiliars();
+    }, [fetchAndCombineFamiliars]);
+
     const addPointsToAllUsersFn = useCallback(async (amount: number, reason: string) => {
         const allUsers = await fetchUsersForAdmin();
         for (const user of allUsers) {
@@ -783,7 +792,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             dateUnsubscribe();
             teachingsUnsubscribe();
         };
-    }, [firebaseUser, toast]);
+    }, [firebaseUser]);
     
     const authValue = useMemo(() => ({
         user: firebaseUser,
@@ -2804,7 +2813,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if(updatedUser) setCurrentUser(updatedUser);
     }, [currentUser, fetchUserById]);
 
-    const brewPotion = useCallback(async (userId: string, characterId: string, recipeId: string): Promise<{ createdItem: InventoryItem; recipeName: string; }> => {
+    const brewPotion = useCallback(async (userId: string, characterId: string, recipeId: string): Promise<{ createdItem: InventoryItem; recipeName: string }> => {
         let createdItemResult: InventoryItem | null = null;
         let recipeNameResult = '';
 
@@ -3529,6 +3538,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         fetchAlchemyRecipes,
         fetchDbFamiliars,
         addFamiliarToDb,
+        updateFamiliarInDb,
         deleteFamiliarFromDb,
         sendPlayerPing,
         deletePlayerPing,
@@ -3551,7 +3561,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         adminAddShop,
         migrateAllFamiliarsToDb,
     }),
-        [currentUser, setCurrentUser, gameDate, gameDateString, gameSettings, teachings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsersFn, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes, fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, allFamiliars, familiarsById, startHunt, startMultipleHunts, claimHuntReward, claimAllHuntRewards, recallHunt, claimRewardsForOtherPlayer, changeUserPassword, changeUserEmail, mergeUserData, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, imageGeneration, deleteUserFromAuth, adminAddShop, migrateAllFamiliarsToDb]
+        [currentUser, setCurrentUser, gameDate, gameDateString, gameSettings, teachings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsersFn, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes, fetchDbFamiliars, addFamiliarToDb, updateFamiliarInDb, deleteFamiliarFromDb, allFamiliars, familiarsById, startHunt, startMultipleHunts, claimHuntReward, claimAllHuntRewards, recallHunt, claimRewardsForOtherPlayer, changeUserPassword, changeUserEmail, mergeUserData, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, imageGeneration, deleteUserFromAuth, adminAddShop, migrateAllFamiliarsToDb]
     );
     
     return (

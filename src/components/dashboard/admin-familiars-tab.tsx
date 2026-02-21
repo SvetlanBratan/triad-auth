@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useMemo } from 'react';
@@ -11,7 +12,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Trash2, DatabaseZap, CheckCircle2 } from 'lucide-react';
+import { PlusCircle, Trash2, DatabaseZap, CheckCircle2, Pencil, X } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { FamiliarCard, FamiliarRank } from '@/lib/types';
@@ -40,7 +41,7 @@ const rankOptions: { value: FamiliarRank, label: string }[] = [
 ];
 
 export default function AdminFamiliarsTab() {
-  const { fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, migrateAllFamiliarsToDb } = useUser();
+  const { fetchDbFamiliars, addFamiliarToDb, deleteFamiliarFromDb, migrateAllFamiliarsToDb, updateFamiliarInDb } = useUser();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -54,6 +55,7 @@ export default function AdminFamiliarsTab() {
     rank: 'обычный',
     imageUrl: '',
   });
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [isMigrating, setIsMigrating] = useState(false);
 
@@ -65,17 +67,35 @@ export default function AdminFamiliarsTab() {
     }
     setIsAdding(true);
     try {
-      await addFamiliarToDb(newFamiliar);
-      toast({ title: 'Фамильяр добавлен!', description: `"${newFamiliar.name}" добавлен в базу данных.` });
+      if (editingId) {
+        await updateFamiliarInDb({ id: editingId, ...newFamiliar });
+        toast({ title: 'Карточка обновлена!' });
+      } else {
+        await addFamiliarToDb(newFamiliar);
+        toast({ title: 'Фамильяр добавлен!', description: `"${newFamiliar.name}" добавлен в базу данных.` });
+      }
       setNewFamiliar({ name: '', rank: 'обычный', imageUrl: '' });
+      setEditingId(null);
       await refetch();
       await queryClient.invalidateQueries({ queryKey: ['allFamiliars'] });
+      await queryClient.invalidateQueries({ queryKey: ['dbFamiliars'] });
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Произошла неизвестная ошибка.';
-      toast({ variant: 'destructive', title: 'Ошибка добавления', description: msg });
+      toast({ variant: 'destructive', title: 'Ошибка', description: msg });
     } finally {
       setIsAdding(false);
     }
+  };
+
+  const handleEditClick = (fam: FamiliarCard) => {
+    setNewFamiliar({ name: fam.name, rank: fam.rank, imageUrl: fam.imageUrl });
+    setEditingId(fam.id);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCancelEdit = () => {
+    setNewFamiliar({ name: '', rank: 'обычный', imageUrl: '' });
+    setEditingId(null);
   };
 
   const handleDeleteFamiliar = async (familiarId: string) => {
@@ -84,6 +104,7 @@ export default function AdminFamiliarsTab() {
         toast({ title: 'Фамильяр удален' });
         await refetch();
         await queryClient.invalidateQueries({ queryKey: ['allFamiliars'] });
+        await queryClient.invalidateQueries({ queryKey: ['dbFamiliars'] });
     } catch(error) {
         const msg = error instanceof Error ? error.message : 'Произошла неизвестная ошибка.';
         toast({ variant: 'destructive', title: 'Ошибка удаления', description: msg });
@@ -95,6 +116,7 @@ export default function AdminFamiliarsTab() {
       try {
           await migrateAllFamiliarsToDb();
           await refetch();
+          await queryClient.invalidateQueries({ queryKey: ['dbFamiliars'] });
       } catch (e) {
           console.error(e);
       } finally {
@@ -135,8 +157,13 @@ export default function AdminFamiliarsTab() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Добавить нового фамильяра</CardTitle>
-          <CardDescription>Новый фамильяр будет добавлен в базу данных и станет доступен в рулетке.</CardDescription>
+          <CardTitle>{editingId ? 'Редактировать фамильяра' : 'Добавить нового фамильяра'}</CardTitle>
+          <CardDescription>
+            {editingId 
+              ? `Вы редактируете карточку: ${newFamiliar.name}` 
+              : 'Новый фамильяр будет добавлен в базу данных и станет доступен в рулетке.'
+            }
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleAddFamiliar} className="space-y-4">
@@ -157,16 +184,24 @@ export default function AdminFamiliarsTab() {
               <Label htmlFor="fam-image">URL изображения</Label>
               <Input id="fam-image" value={newFamiliar.imageUrl} onChange={e => setNewFamiliar(p => ({ ...p, imageUrl: e.target.value }))} placeholder="https://..." />
             </div>
-            <Button type="submit" disabled={isAdding}>
-              <PlusCircle className="mr-2" /> {isAdding ? 'Добавление...' : 'Добавить фамильяра'}
-            </Button>
+            <div className="flex gap-2">
+              <Button type="submit" disabled={isAdding}>
+                {editingId ? <CheckCircle2 className="mr-2 h-4 w-4" /> : <PlusCircle className="mr-2 h-4 w-4" />}
+                {isAdding ? 'Сохранение...' : (editingId ? 'Сохранить изменения' : 'Добавить фамильяра')}
+              </Button>
+              {editingId && (
+                <Button type="button" variant="ghost" onClick={handleCancelEdit}>
+                  <X className="mr-2 h-4 w-4" /> Отмена
+                </Button>
+              )}
+            </div>
           </form>
         </CardContent>
       </Card>
       <Card>
         <CardHeader>
           <CardTitle>Фамильяры в базе данных</CardTitle>
-          <CardDescription>Список фамильяров, добавленных через эту панель.</CardDescription>
+          <CardDescription>Список фамильяров, которыми можно управлять через эту панель.</CardDescription>
         </CardHeader>
         <CardContent>
             {isLoadingFamiliars ? (
@@ -178,27 +213,38 @@ export default function AdminFamiliarsTab() {
                             <Image src={fam.imageUrl} alt={fam.name} width={100} height={150} className="w-full h-auto rounded-md" />
                             <p className="text-sm font-semibold mt-2 truncate">{fam.name}</p>
                             <p className="text-xs text-muted-foreground capitalize">{fam.rank}</p>
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                     <Button variant="destructive" size="icon" className="absolute top-1 right-1 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Trash2 className="w-4 h-4" />
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                    <AlertDialogTitle>Вы уверены?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        Это действие необратимо удалит фамильяра "{fam.name}" из базы данных. Он перестанет выпадать в рулетке, но останется у игроков, которые его уже получили.
-                                    </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                    <AlertDialogCancel>Отмена</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDeleteFamiliar(fam.id)} className="bg-destructive hover:bg-destructive/90">
-                                        Удалить
-                                    </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
+                            
+                            <div className="flex gap-1 absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button 
+                                  variant="secondary" 
+                                  size="icon" 
+                                  className="h-7 w-7" 
+                                  onClick={() => handleEditClick(fam)}
+                                >
+                                    <Pencil className="w-4 h-4" />
+                                </Button>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                         <Button variant="destructive" size="icon" className="h-7 w-7">
+                                            <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                        <AlertDialogTitle>Вы уверены?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Это действие необратимо удалит фамильяра "{fam.name}" из базы данных. Он перестанет выпадать в рулетке, но останется у игроков, которые его уже получили.
+                                        </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                        <AlertDialogCancel>Отмена</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleDeleteFamiliar(fam.id)} className="bg-destructive hover:bg-destructive/90">
+                                            Удалить
+                                        </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </div>
                         </div>
                     ))}
                 </div>
