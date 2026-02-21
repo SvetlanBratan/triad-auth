@@ -1,5 +1,4 @@
 
-
 import type { Reward, FamiliarCard, Achievement, GameSettings, WealthLevel, BankAccount, CapitalLevel, CrimeLevel, Shop, InventoryCategory, PopularityEvent, HuntingLocation } from './types';
 import type { OptionType } from '@/components/ui/multi-select';
 
@@ -206,7 +205,7 @@ export const RACE_OPTIONS: OptionType[] = [
     { value: 'Ир`Эйн', label: 'Ир`Эйн' },
     { value: 'Ихо', label: 'Ихо' },
     { value: 'Карлик', label: 'Карлик' },
-    { value: 'Кентавр', label: 'Кентавр' },
+    { value: 'Кентавров', label: 'Кентавр' },
     { value: 'Кицунэ', label: 'Кицунэ' },
     { value: 'Коралит', label: 'Коралит' },
     { value: 'Кордей', label: 'Кордей' },
@@ -322,7 +321,7 @@ export const WEALTH_LEVELS: { name: WealthLevel; salary: Partial<BankAccount>; d
     { name: 'Бедный', salary: { silver: 18, copper: 200 }, description: '18 сер., 200 мед.' },
     { name: 'Просветленный', salary: { gold: 1, silver: 40, copper: 300 }, description: '1 зол., 40 сер., 300 мед.' },
     { name: 'Средний', salary: { gold: 10, silver: 60, copper: 500 }, description: '10 зол., 60 сер., 500 мед.' },
-    { name: 'Выше среднего', salary: { gold: 20, silver: 100, copper: 1000 }, description: '20 зол., 100 сер., 1000 мед.' },
+    { name: 'Выше среднего', salary: { gold: 20, silver: 100, copper: 1000 }, description: '20 зол., 100 сер., 100 мед.' },
     { name: 'Высокий', salary: { gold: 35, silver: 200, copper: 1500 }, description: '35 зол., 200 сер., 1500 мед.' },
     { name: 'Сказочно богат', salary: { platinum: 100, gold: 1000, silver: 100, copper: 100 }, description: '100 пл., 1000 зол., 100 сер., 100 мед.' }
 ];
@@ -338,11 +337,68 @@ export const STARTING_CAPITAL_LEVELS: CapitalLevel[] = [
     { name: 'Сказочно богат', amount: { platinum: 1000, gold: 10000, silver: 100000, copper: 100000 } }
 ];
 
+export const SKILL_LEVELS: string[] = [
+    'Рукожоп', 'Посмешище', 'Дилетант', 'Новичок', 'Ученик', 'Энтузиаст',
+    'Любитель', 'Умелец', 'Знаток', 'Специалист', 'Эксперт', 'Мастер',
+    'Виртуоз', 'Гуру', 'Магистр', 'Гений'
+];
 
-// The 'id' for users now corresponds to the Firebase Auth UID.
-// For initial users, these are placeholders. New users created via the app
-// will get a real Firebase UID.
-export const users: never[] = [];
+export const FAME_LEVELS: string[] = [
+    'Незаметный', 'Неизвестный', 'Непризнанный', 'Заметный в узких кругах',
+    'Обсуждаемый соратниками', 'Проверенный', 'Узнаваемый', 'Уважаемый',
+    'Почитаемый', 'Известный среди горожан', 'Прославленный среди Высшего Общества',
+    'Знаменитый на весь мир', 'Вошедший в историю'
+];
+
+export const TRAINING_OPTIONS: OptionType[] = [
+    { value: 'peasant_school', label: 'Крестьянская школа' },
+    { value: 'noble_guesthouse', label: 'Пансион благородных девиц' },
+    { value: 'knightly_training', label: 'Рыцарское обучение' },
+    { value: 'mentor', label: 'Наставник' },
+    { value: 'self_taught', label: 'Самообучение' },
+    { value: 'military_school', label: 'Военная школа' },
+    { value: 'navy_academy', label: 'Школа/Академия военно-морского флота' },
+    { value: 'kozhemyaka_vocational', label: 'Ремесленное училище имени Кожемяки' },
+    { value: 'trade_school', label: 'Торговое училище' },
+    { value: 'many_faces_school', label: 'Училище Многоликих' },
+    { value: 'magitech_construction_school', label: 'Училище магомеханики и строительства' },
+    { value: 'fine_arts_school', label: 'Училище художественных искусств' },
+    { value: 'culinary_school', label: 'Училище кулинарии' },
+    { value: 'tech_design_school', label: 'Училище технологий и дизайна' },
+    { value: 'medical_school', label: 'Медицинское училище' },
+    { value: 'agricultural_school', label: 'Аграрное училище' },
+    { value: 'spiritual_school', label: 'Духовное училище' },
+    { value: 'dark_dreams_bordello', label: 'Бордель "Тёмные грёзы"' },
+    { value: 'mind_management_school', label: 'Училище «Разум и управление»' },
+    { value: 'ritual_burial_school', label: 'Ритуально-погребальное училище' },
+    { value: 'geology_land_management_school', label: 'Училище геологии и землеустройства' },
+    { value: 'light_god_academy', label: 'Академия имени Светлого Бога.' },
+    { value: 'dark_god_academy', label: 'Академия имени Тёмного Бога' },
+    { value: 'central_magic_academy', label: 'Центральная академия магов, ведьм и чародеев' },
+];
+
+export const MOODLETS_DATA = {
+    'curse': { name: 'Проклятье', description: 'На персонаже лежит проклятье, которое может влиять на его удачу или способности.', iconName: 'Skull' },
+    'blessing': { name: 'Благословение', description: 'Персонаж благословлен высшими силами, что может даровать ему временные преимущества.', iconName: 'Sparkles' },
+    'light-god-watch': { name: 'Под наблюдением Светлого Бога', description: 'Светлый Бог пристально наблюдает за каждым шагом этого персонажа.', iconName: 'Sun' },
+    'dark-god-watch': { name: 'Под наблюдением Тёмного Бога', description: 'Тёмный Бог пристально наблюдает за каждым шагом этого персонажа.', iconName: 'Moon' },
+    'goddess-watch': { name: 'Под наблюдением Неизвестной Богини', description: 'Неизвестная Богиня наблюдает за этим персонажем, её мотивы неясны.', iconName: 'MilkyWay' },
+    'mafia-target': { name: 'Цель мафии', description: 'Этот персонаж стал целью влиятельной преступной группировки. Опасность на каждом шагу.', iconName: 'Target' },
+    'poisoned': { name: 'Отравлен', description: 'Персонаж отравлен и может испытывать негативные эффекты, пока не найдет противоядие.', iconName: 'Biohazard' },
+    'love-spell': { name: 'Под любовным зельем', description: 'Персонаж находится под действием любовного приворота, его чувства и решения не принадлежат ему.', iconName: 'Heart' },
+    'sick': { name: 'Болеет', description: 'Персонаж страдает от болезни, его состояние может ухудшаться со временем.', iconName: 'Thermometer' },
+    'wanted': { name: 'В розыске', description: 'За поимку этого персонажа назначена награда, и охотники уже идут по его следу.', iconName: 'Handcuffs' },
+    'death-mark': { name: 'Метка смерти', description: 'На персонажа наложена метка, предвещающая скорую и неотвратимую гибель.', iconName: 'Crosshair' },
+    'family-protection': { name: 'Под защитой рода', description: 'Персонаж находится под защитой своего могущественного рода или семьи.', iconName: 'Shield' },
+    'on-trial': { name: 'На испытании', description: 'Персонаж проходит важное испытание или проверку, от которой зависит его будущее.', iconName: 'Scaling' },
+    'observed': { name: 'Наблюдаемый', description: 'За персонажем кто-то или что-то пристально наблюдает, оставаясь в тени.', iconName: 'Eye' },
+    'secret-keeper': { name: 'Носитель тайны', description: 'Персонаж хранит важную и опасную тайну, которая может изменить мир.', iconName: 'Key' },
+    'chosen-one': { name: 'Избранник', description: 'Персонаж был избран для великой цели или судьбы, хочет он того или нет.', iconName: 'Award' },
+    'double-agent': { name: 'Двойной агент', description: 'Персонаж тайно работает на две или более стороны, рискуя быть раскрытым в любой момент.', iconName: 'Spy' },
+    'prophecy-puppet': { name: 'Марионетка пророчества', description: 'Действия персонажа предопределены древним пророчеством, и он не в силах изменить свою судьбу.', iconName: 'Bot' },
+    'soul-bond': { name: 'Связь с другой душой', description: 'Душа персонажа связана с другой душой, разделяя чувства, боль или даже судьбу.', iconName: 'Link' },
+    'state-veto': { name: 'Государственное Вето', description: 'Носитель этого статуса находится под защитой государственного вето. Совершенные им проступки не могут быть наказаны судом и исполнительной властью. Только наложивший вето решает его судьбу.', iconName: 'Gavel' },
+};
 
 export const rewards: Reward[] = [
     { id: 'r-custom-status', title: 'Пользовательский статус', description: 'Установить или изменить свой эмодзи-статус и короткую фразу в профиле.', cost: 2000, type: 'permanent', iconName: 'Sticker' },
@@ -388,7 +444,7 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
   { id: 'ach-submariner', name: 'Люблю подводный мир', description: 'Персонажу удалось подружиться с Левиафаном, морским чудовищем, и теперь его суда в безопасности.', iconName: 'Anchor' },
   { id: 'ach-seaman', name: 'Мореход', description: 'Игрок имеет судно в своём распоряжении, приобретённое в магазине наград.', iconName: 'Ship' },
   { id: 'ach-sky-master', name: 'Освоил небо', description: 'Игрок купил дирижабль для собственных нужд, открыв новые горизонты для путешествий.', iconName: 'Rocket' },
-  { id: 'ach-big-mage', name: 'Большой, большой!', description: 'Даётся за покупку большого магического резерва.', iconName: 'Flame' },
+  { id: 'ach-big-mage', name: 'Большой, большой!', description: 'Вы развились до резерва архимага.', iconName: 'Flame' },
   { id: 'ach-important-person', name: 'Важный', description: 'Персонаж имеет высокую должность при дворе, независимо от его титула и пола.', iconName: 'Crown' },
   { id: 'ach-baron', name: 'Ваша Милость', description: 'Персонаж заработал титул Барона своим трудом и получил землю в придачу.', iconName: 'ChessKing' },
   { id: 'ach-sir-lady', name: 'Сэр/Леди', description: 'Персонаж получил признание от аристократии и землю вместе с почетным титулом.', iconName: 'Award' },
@@ -397,7 +453,7 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
   { id: 'ach-guildmaster', name: 'Гильдмастер', description: 'Игрок создал собственную преступную группировку или гильдию, став её лидером.', iconName: 'Building2' },
   { id: 'ach-hybrid', name: 'Гибридная полукровка', description: 'Игрок создал персонажа, являющегося полукровкой или гибридом двух рас.', iconName: 'Combine' },
   { id: 'ach-pumpkin-spouse', name: 'Тыкво-Жена', description: 'Обладатель самой прекрасной супруги в мире Триады.', iconName: 'Heart' },
-  { id: 'ach-pumpkin-husband', name: 'Тыкво-Муж', description: 'Обладатель самого прекрасного супруга в мире Триады.', iconName: 'Heart' },
+  { id: 'ach-pumpkin-husband', name: 'Тыкво-Муж', description: 'Обладатель самой прекрасной супруга в мире Триады.', iconName: 'Heart' },
   { id: 'ach-exchange-master', name: 'Мастер обмена', description: 'Персонаж обменял одну из своих магических стихий на два учения.', iconName: 'Replace' },
   { id: 'ach-dark-lord', name: 'Тёмный Владыка', description: 'Персонаж получил доступ к запретной магии, недоступной для его расы.', iconName: 'Skull' },
   { id: 'ach-chimera-mancer', name: 'Химеромант', description: 'Персонаж изменил своё тело до неузнаваемости, добавив иные конечности.', iconName: 'GitBranchPlus' },
@@ -406,14 +462,14 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
   { id: 'ach-first-brew', name: 'Юный алхимик', description: 'Выдаётся за первое созданное зелье или артефакт.', iconName: 'Beaker' },
   { id: 'ach-first-purchase', name: 'Шопоголик', description: 'Выдается за первую совершенную покупку в любом магазине.', iconName: 'ShoppingCart' },
   { id: 'ach-questionnaire', name: 'Сделал первый шаг', description: 'Отправил анкету персонажа через сайт.', iconName: 'ach-questionnaire' },
-  { id: 'ach-first-hunt', name: 'Первая охота', description: 'Впервые отправил фамильяра на охоту.', iconName: 'ach-hunting' },
+  { id: 'ach-hunting', name: 'Первая охота', description: 'Впервые отправил фамильяра на охоту.', iconName: 'ach-hunting' },
   { id: 'ach-favorites', name: 'В поле зрения', description: 'Добавил другого игрока в избранное.', iconName: 'ach-favorites' },
   { id: 'ach-vip', name: 'VIP персона', description: 'Установка особенного статуса. Такой только у избранных!', iconName: 'ach-vip' },
 
   // Manual & Popularity-based
   { id: 'ach-rumor-of-the-week', name: 'Слух недели', description: 'Персонаж был упомянут в газете, став предметом обсуждений и сплетен.', iconName: 'Newspaper' },
   { id: 'ach-cover-star', name: 'Звезда с обложки', description: 'Персонаж удостоился чести появиться на обложке газеты, привлекая всеобщее внимание.', iconName: 'Star' },
-  { id: 'ach-big-name', name: 'Громкое имя Триады', description: 'Персонаж стал главной темой газетной статьи, его история и поступки теперь на устах у всех.', iconName: 'Megaphone' },
+  { id: 'ach-big-name', name: 'Громкое имя Триады', description: 'Персонаж стал главной темой газетной статьи, его история и поступки теперь на устахю у всех.', iconName: 'Megaphone' },
   { id: 'ach-ruler', name: 'Правитель государства', description: 'Несёт тяжкое бремя правления и ответственности за судьбу всего государства в Триаде.', iconName: 'ShieldCheck' },
   { id: 'ach-august-family', name: 'Из семьи августейших особ', description: 'Связан семейными узами с правителем государства и несёт бремя известности.', iconName: 'Users' },
   { id: 'ach-your-grace', name: 'Ваша Светлость', description: 'Является вторым по важности землевладельцем в государстве, обладая огромным влиянием.', iconName: 'Landmark' },
@@ -434,77 +490,6 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
   { id: 'ach-participant', name: 'Участник конкурса', description: 'Принял участие в конкурсе и проявил себя.', iconName: 'ach-participant' },
   { id: 'ach-writer', name: 'Искра сюжета', description: 'Предложил идею, ставшую основой или частью игрового сюжета.', iconName: 'ach-writer' },
 ];
-
-export const ACHIEVEMENTS_BY_ID: Record<string, Achievement> = ALL_ACHIEVEMENTS.reduce((acc, ach) => {
-    acc[ach.id] = ach;
-    return acc;
-}, {} as Record<string, Achievement>);
-
-
-export const MOODLETS_DATA = {
-    'curse': { name: 'Проклятье', description: 'На персонаже лежит проклятье, которое может влиять на его удачу или способности.', iconName: 'Skull' },
-    'blessing': { name: 'Благословение', description: 'Персонаж благословлен высшими силами, что может даровать ему временные преимущества.', iconName: 'Sparkles' },
-    'light-god-watch': { name: 'Под наблюдением Светлого Бога', description: 'Светлый Бог пристально наблюдает за каждым шагом этого персонажа.', iconName: 'Sun' },
-    'dark-god-watch': { name: 'Под наблюдением Тёмного Бога', description: 'Тёмный Бог пристально наблюдает за каждым шагом этого персонажа.', iconName: 'Moon' },
-    'goddess-watch': { name: 'Под наблюдением Неизвестной Богини', description: 'Неизвестная Богиня наблюдает за этим персонажем, её мотивы неясны.', iconName: 'MilkyWay' },
-    'mafia-target': { name: 'Цель мафии', description: 'Этот персонаж стал целью влиятельной преступной группировки. Опасность на каждом шагу.', iconName: 'Target' },
-    'poisoned': { name: 'Отравлен', description: 'Персонаж отравлен и может испытывать негативные эффекты, пока не найдет противоядие.', iconName: 'Biohazard' },
-    'love-spell': { name: 'Под любовным зельем', description: 'Персонаж находится под действием любовного приворота, его чувства и решения не принадлежат ему.', iconName: 'Heart' },
-    'sick': { name: 'Болеет', description: 'Персонаж страдает от болезни, его состояние может ухудшаться со временем.', iconName: 'Thermometer' },
-    'wanted': { name: 'В розыске', description: 'За поимку этого персонажа назначена награда, и охотники уже идут по его следу.', iconName: 'Handcuffs' },
-    'death-mark': { name: 'Метка смерти', description: 'На персонажа наложена метка, предвещающая скорую и неотвратимую гибель.', iconName: 'Crosshair' },
-    'family-protection': { name: 'Под защитой рода', description: 'Персонаж находится под защитой своего могущественного рода или семьи.', iconName: 'Shield' },
-    'on-trial': { name: 'На испытании', description: 'Персонаж проходит важное испытание или проверку, от которой зависит его будущее.', iconName: 'Scaling' },
-    'observed': { name: 'Наблюдаемый', description: 'За персонажем кто-то или что-то пристально наблюдает, оставаясь в тени.', iconName: 'Eye' },
-    'secret-keeper': { name: 'Носитель тайны', description: 'Персонаж хранит важную и опасную тайну, которая может изменить мир.', iconName: 'Key' },
-    'chosen-one': { name: 'Избранник', description: 'Персонаж был избран для великой цели или судьбы, хочет он того или нет.', iconName: 'Award' },
-    'double-agent': { name: 'Двойной агент', description: 'Персонаж тайно работает на две или более стороны, рискуя быть раскрытым в любой момент.', iconName: 'Spy' },
-    'prophecy-puppet': { name: 'Марионетка пророчества', description: 'Действия персонажа предопределены древним пророчеством, и он не в силах изменить свою судьбу.', iconName: 'Bot' },
-    'soul-bond': { name: 'Связь с другой душой', description: 'Душа персонажа связана с другой душой, разделяя чувства, боль или даже судьбу.', iconName: 'Link' },
-    'state-veto': { name: 'Государственное Вето', description: 'Носитель этого статуса находится под защитой государственного вето. Совершенные им проступки не могут быть наказаны судом и исполнительной властью. Только наложивший вето решает его судьбу.', iconName: 'Gavel' },
-};
-
-
-export const SKILL_LEVELS: string[] = [
-    'Рукожоп', 'Посмешище', 'Дилетант', 'Новичок', 'Ученик', 'Энтузиаст',
-    'Любитель', 'Умелец', 'Знаток', 'Специалист', 'Эксперт', 'Мастер',
-    'Виртуоз', 'Гуру', 'Магистр', 'Гений'
-];
-
-export const FAME_LEVELS: string[] = [
-    'Незаметный', 'Неизвестный', 'Непризнанный', 'Заметный в узких кругах',
-    'Обсуждаемый соратниками', 'Проверенный', 'Узнаваемый', 'Уважаемый',
-    'Почитаемый', 'Известный среди горожан', 'Прославленный среди Высшего Общества',
-    'Знаменитый на весь мир', 'Вошедший в историю'
-];
-
-export const TRAINING_OPTIONS: OptionType[] = [
-    { value: 'peasant_school', label: 'Крестьянская школа' },
-    { value: 'noble_guesthouse', label: 'Пансион благородных девиц' },
-    { value: 'knightly_training', label: 'Рыцарское обучение' },
-    { value: 'mentor', label: 'Наставник' },
-    { value: 'self_taught', label: 'Самообучение' },
-    { value: 'military_school', label: 'Военная школа' },
-    { value: 'navy_academy', label: 'Школа/Академия военно-морского флота' },
-    { value: 'kozhemyaka_vocational', label: 'Ремесленное училище имени Кожемяки' },
-    { value: 'trade_school', label: 'Торговое училище' },
-    { value: 'many_faces_school', label: 'Училище Многоликих' },
-    { value: 'magitech_construction_school', label: 'Училище магомеханики и строительства' },
-    { value: 'fine_arts_school', label: 'Училище художественных искусств' },
-    { value: 'culinary_school', label: 'Училище кулинарии' },
-    { value: 'tech_design_school', label: 'Училище технологий и дизайна' },
-    { value: 'medical_school', label: 'Медицинское училище' },
-    { value: 'agricultural_school', label: 'Аграрное училище' },
-    { value: 'spiritual_school', label: 'Духовное училище' },
-    { value: 'dark_dreams_bordello', label: 'Бордель "Тёмные грёзы"' },
-    { value: 'mind_management_school', label: 'Училище «Разум и управление»' },
-    { value: 'ritual_burial_school', label: 'Ритуально-погребальное училище' },
-    { value: 'geology_land_management_school', label: 'Училище геологии и землеустройства' },
-    { value: 'light_god_academy', label: 'Академия имени Светлого Бога' },
-    { value: 'dark_god_academy', label: 'Академия имени Тёмного Бога' },
-    { value: 'central_magic_academy', label: 'Центральная академия магов, ведьм и чародеев' },
-];
-
 
 const ALL_FAMILIAR_CARDS_RAW: Omit<FamiliarCard, 'data-ai-hint'>[] = [
     { id: 'fam-c-1', name: 'Анчутка', rank: 'обычный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753197216/%D0%90%D0%BD%D1%87%D1%83%D1%82%D0%BA%D0%B0_hvas2s.png' },
@@ -540,8 +525,8 @@ const ALL_FAMILIAR_CARDS_RAW: Omit<FamiliarCard, 'data-ai-hint'>[] = [
 
     { id: 'fam-r-1', name: 'Артерианская гончая', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753197216/%D0%90%D1%80%D1%82%D0%B5%D1%80%D0%B8%D0%B0%D0%BD%D1%81%D0%BA%D0%B0%D1%8F_%D0%B3%D0%BE%D0%BD%D1%87%D0%B0%D1%8F_jjjx11.png' },
     { id: 'fam-r-2', name: 'Баргест', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753197217/%D0%91%D0%B0%D1%80%D0%B3%D0%B5%D1%81%D1%82_nrlebe.png' },
-    { id: 'fam-r-3', name: 'Браффа', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199172/%D0%91%D1%80%D0%B0%D1%84%D1%84%D0%B0_rydvub.png' },
-    { id: 'fam-r-4', name: 'Грифон', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199173/%D0%93%D1%80%D0%B8%D1%84%D0%BE%D0%BD_iubu5v.png' },
+    { id: 'fam-r-3', name: 'Браффа', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199172/%D0%91%D0%B0%D1%80%D0%B3%D0%B5%D1%81%D1%82_nrlebe.png' },
+    { id: 'fam-r-4', name: 'Грифон', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199173/%D0%93%D1%80%D1%8B%D0%B7%D0%BC%D0%B0%D1%80_siwn1a.png' },
     { id: 'fam-r-5', name: 'Зеленоградская гончая', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199419/%D0%97%D0%B5%D0%BB%D0%B5%D0%BD%D0%BE%D0%B3%D1%80%D0%B0%D0%B4%D1%81%D0%BA%D0%B0%D1%8F_%D0%B3%D0%BE%D0%BD%D1%87%D0%B0%D1%8F_oipvbr.png'},
     { id: 'fam-r-6', name: 'Златоуст', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199419/%D0%97%D0%BB%D0%B0%D1%82%D0%BE%D1%83%D1%81%D1%82_ljhotw.png'},
     { id: 'fam-r-wolves', name: 'Лёдинова и Огнова', rank: 'редкий', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199428/%D0%9B%D1%91%D0%B4%D0%B8%D0%BD%D0%BE%D0%B2%D0%B0_%D0%B8_%D0%9E%D0%B3%D0%BD%D0%BE%D0%B2%D0%B0_ncfytg.png' },
@@ -569,7 +554,7 @@ const ALL_FAMILIAR_CARDS_RAW: Omit<FamiliarCard, 'data-ai-hint'>[] = [
     { id: 'fam-l-6', name: 'Грубас', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199173/%D0%93%D1%80%D1%83%D0%B1%D0%B0%D1%81_rjy1xw.png' },
     { id: 'fam-l-7', name: 'Единорог', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199418/%D0%95%D0%B4%D0%B8%D0%BD%D0%BE%D1%80%D0%BE%D0%B3_lfznrp.png'},
     { id: 'fam-l-8', name: 'Енот-некромант', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199419/%D0%95%D0%BD%D0%BE%D1%82-%D0%BD%D0%B5%D0%BA%D1%80%D0%BE%D0%BC%D0%B0%D0%BD%D1%82_rgq78b.png'},
-    { id: 'fam-l-9', name: 'Зеленоградский бреллопир', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199420/%D0%97%D0%B5%D0%BB%D0%B5%D0%BD%D0%BE%D0%B3%D1%80%D0%B0%D0%B4%D1%81%D0%BA%D0%B8%D0%B9_%D0%B1%D1%80%D0%B5%D0%BB%D0%BB%D0%BE%D0%BF%D0%B8%D1%80_zoclho.png'},
+    { id: 'fam-l-9', name: 'Зеленоградский бреллопир', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199420/%D0%97%D0%B5%D0%BB%D0%B5%D0%BD%D0%BE%D0%B3%D1%80%D0%B0%D0%B4%D1%81%D0%BA%D0%B8%D0%B9_%D0%B1%D1%80%D0%B5%D0%BB%D0%BB%D0%BE%D0%BF%D0%B8%D1%80_cpo0to.png'},
     { id: 'fam-l-10', name: 'Келпи', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199421/%D0%9A%D0%B5%D0%BB%D0%BF%D0%B8_diw7xi.png'},
     { id: 'fam-l-11', name: 'Комаину', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199423/%D0%9A%D0%BE%D0%BC%D0%B0%D0%B8%D0%BD%D1%83_xamanx.png'},
     { id: 'fam-l-ognekus', name: 'Огнекус', rank: 'легендарный', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753199456/%D0%9E%D0%B3%D0%BD%D0%B5%D0%BA%D1%83%D1%81_uwn6tt.png' },
@@ -593,9 +578,7 @@ const ALL_FAMILIAR_CARDS_RAW: Omit<FamiliarCard, 'data-ai-hint'>[] = [
     { id: 'fam-m-flower-cat', name: 'Цветокот', rank: 'мифический', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753282462/1_xcq8ff.jpg' },
     { id: 'fam-m-paukok', name: 'Паукок', rank: 'мифический', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753283956/19_swxogi.jpg' },
     { id: 'fam-m-ksanteal', name: 'Ксантеаль', rank: 'мифический', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753283962/29_kqkt58.jpg' },
-    { id: 'fam-m-moralia', name: 'Моралия', rank: 'мифический', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1760209631/%D0%9A%D0%B0%D1%80%D1%82%D0%BE%D1%87%D0%BA%D0%B8%D0%9A%D0%9A%D0%98_inifn4.png' },
 ];
-
 
 export const EVENT_FAMILIARS_RAW: Omit<FamiliarCard, "data-ai-hint">[] = [
     { id: 'fam-e-anubis', name: 'Анубис', rank: 'ивентовый', imageUrl: 'https://res.cloudinary.com/dxac8lq4f/image/upload/v1753197215/%D0%90%D0%BD%D1%83%D0%B1%D0%B8%D1%81_sqmdss.png' },
@@ -716,12 +699,11 @@ const addHint = (card: Omit<FamiliarCard, 'data-ai-hint'>): FamiliarCard => {
     return { ...card, 'data-ai-hint': hint };
 };
 
-
-export const ALL_STATIC_FAMILIARS: FamiliarCard[] = ALL_FAMILIAR_CARDS_RAW.map(addHint);
 export const EVENT_FAMILIARS: FamiliarCard[] = EVENT_FAMILIARS_RAW.map(addHint);
+export const ALL_STATIC_FAMILIARS: FamiliarCard[] = ALL_FAMILIAR_CARDS_RAW.map(addHint);
+export const ALL_FAMILIARS: FamiliarCard[] = [...ALL_STATIC_FAMILIARS, ...EVENT_FAMILIARS];
 
-
-export const FAMILIARS_BY_ID: Record<string, FamiliarCard> = [...ALL_STATIC_FAMILIARS, ...EVENT_FAMILIARS].reduce((acc, card) => {
+export const FAMILIARS_BY_ID: Record<string, FamiliarCard> = ALL_FAMILIARS.reduce((acc, card) => {
     acc[card.id] = card;
     return acc;
 }, {} as Record<string, FamiliarCard>);
@@ -930,3 +912,8 @@ export const SHOPS_BY_ID: Record<string, Shop> = ALL_SHOPS.reduce((acc, shop) =>
     acc[shop.id] = shop;
     return acc;
 }, {} as Record<string, Shop>);
+
+export const ACHIEVEMENTS_BY_ID: Record<string, Achievement> = ALL_ACHIEVEMENTS.reduce((acc, ach) => {
+    acc[ach.id] = ach;
+    return acc;
+}, {} as Record<string, Achievement>);

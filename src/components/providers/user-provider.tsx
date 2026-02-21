@@ -998,16 +998,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                             characterToUpdate.hasLeviathanFriendship = true;
                         } else if (request.rewardId === 'r-crime-connections') {
                             characterToUpdate.hasCrimeConnections = true;
-                        } else if (request.rewardId === 'r-extra-element') {
-                            if(!characterToUpdate.magic) characterToUpdate.magic = {};
-                            characterToUpdate.magic.maxElements = (characterToUpdate.magic.maxElements || 4) + 1;
-                        } else if (request.rewardId === 'r-extra-doctrine') {
-                            if(!characterToUpdate.magic) characterToUpdate.magic = {};
-                            characterToUpdate.magic.maxTeachings = (characterToUpdate.magic.maxTeachings || 3) + 1;
-                        } else if (request.rewardId === 'r-swap-element') {
-                           if(!characterToUpdate.magic) characterToUpdate.magic = {};
-                            characterToUpdate.magic.maxElements = (characterToUpdate.magic.maxElements || 4) - 1;
-                            characterToUpdate.magic.maxTeachings = (characterToUpdate.magic.maxTeachings || 3) + 2;
                         }
 
                         
@@ -1368,7 +1358,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 if (existingTargetItemIndex > -1) {
                      targetCategoryItems[existingTargetItemIndex].quantity += quantity;
                 } else {
-                    targetCategoryItems.push({ ...itemToGift, id: `inv-item-${Date.now()}`, quantity });
+                    targetCategoryItems.push({ ...itemToGift, id: `inv-item-${Date.now()}`, quantity, inventoryTag: itemCategory });
                 }
                 targetInventory[itemCategory] = targetCategoryItems;
                 
@@ -1469,7 +1459,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 const match = log.reason.match(gachaLogRegex);
                 if (match) {
                     const cardName = match[1].trim();
-                    const foundCard = allFamiliars.find(c => c.name === cardName);
+                    const foundCard = ALL_FAMILIARS.find(c => c.name === cardName);
                     if (foundCard) {
                         historicalCardWins.add(foundCard.id);
                     }
@@ -1500,7 +1490,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
 
         return cardsToAdd.length;
-    }, [fetchUserById, updateUser, allFamiliars]);
+    }, [fetchUserById, updateUser]);
 
     const recoverAllFamiliars = useCallback(async (): Promise<{ totalRecovered: number; usersAffected: number }> => {
         const allUsers = await fetchUsersForAdmin();
@@ -1523,7 +1513,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                         const match = log.reason.match(gachaLogRegex);
                         if (match) {
                             const cardName = match[1].trim();
-                            const foundCard = allFamiliars.find(c => c.name === cardName);
+                            const foundCard = ALL_FAMILIARS.find(c => c.name === cardName);
                             if (foundCard) {
                                 historicalCardWins.add(foundCard.id);
                             }
@@ -1561,7 +1551,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
         
         return { totalRecovered, usersAffected };
-    }, [fetchUsersForAdmin, fetchUserById, currentUser, allFamiliars]);
+    }, [fetchUsersForAdmin, fetchUserById, currentUser]);
 
     const updateCharacterWealthLevel = useCallback(async (userId: string, characterId: string, wealthLevel: WealthLevel) => {
         const user = await fetchUserById(userId);
@@ -1873,7 +1863,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const initiatorChar = currentUser.characters.find(c => c.id === initiatorCharacterId);
         if (!initiatorChar) throw new Error("Персонаж-инициатор не найден.");
 
-        const initiatorFamiliar = familiarsById[initiatorFamiliarId];
+        const initiatorFamiliar = FAMILIARS_BY_ID[initiatorFamiliarId];
         if (!initiatorFamiliar) throw new Error("Фамильяр инициатора не найден.");
 
         let targetUser: User | undefined;
@@ -1889,7 +1879,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
         if (!targetUser || !targetChar) throw new Error("Целевой персонаж или его владелец не найдены.");
         
-        const targetFamiliar = familiarsById[targetFamiliarId];
+        const targetFamiliar = FAMILIARS_BY_ID[targetFamiliarId];
         if (!targetFamiliar) throw new Error("Целевой фамильяр не найден.");
 
         const ranksAreDifferent = initiatorFamiliar.rank !== targetFamiliar.rank;
@@ -1920,7 +1910,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const requestsCollection = collection(db, "familiar_trade_requests");
         await addDoc(requestsCollection, newRequest);
 
-    }, [currentUser, fetchUsersForAdmin, familiarsById]);
+    }, [currentUser, fetchUsersForAdmin]);
 
   const fetchFamiliarTradeRequestsForUser = useCallback(async (): Promise<FamiliarTradeRequest[]> => {
         if (!currentUser) return [];
@@ -3066,6 +3056,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             endsAt: endsAt.toISOString(),
         }));
 
+        const hasAchievement = (currentUser.achievementIds || []).includes(FIRST_HUNT_ACHIEVEMENT_ID);
+
         await runTransaction(db, async (transaction) => {
             const userRef = doc(db, "users", currentUser.id);
             const userDoc = await transaction.get(userRef);
@@ -3076,7 +3068,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             updatedChar.ongoingHunts = [...(updatedChar.ongoingHunts || []), ...newHunts];
             
             userData.characters[charIndex] = updatedChar;
-            transaction.update(userRef, { characters: userData.characters });
+            const updates: Partial<User> = { characters: userData.characters };
+            if (!hasAchievement) {
+                updates.achievementIds = arrayUnion(FIRST_HUNT_ACHIEVEMENT_ID) as any;
+            }
+            transaction.update(userRef, updates);
         });
         const updatedUser = await fetchUserById(currentUser.id);
         if (updatedUser) setCurrentUser(updatedUser);
