@@ -805,7 +805,7 @@ export default function AdminTab() {
 
     await addBankPointsToCharacter(capitalUserId, capitalCharId, selectedLevel.amount, 'Начисление стартового капитала');
     await refetchUsers();
-    toast({ title: 'Стартовый капитал начислен!', description: `Счет персонажа пополнен.` });
+    toast({ title: 'Стартовый капитал начислены!', description: `Счет персонажа пополнен.` });
 
     // Reset only the level
     setCapitalLevel('');
@@ -1170,7 +1170,7 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
         setNewShop({ title: '', description: '', image: '' });
         await queryClient.invalidateQueries({ queryKey: ['allShops'] });
     } catch(err) {
-        const msg = err instanceof Error ? e.message : 'Произошла неизвестная ошибка.';
+        const msg = err instanceof Error ? err.message : 'Произошла неизвестная ошибка.';
         toast({ variant: 'destructive', title: 'Ошибка', description: msg });
     } finally {
         setIsAddingShop(false);
@@ -1230,11 +1230,6 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
     const user = users.find(u => u.id === ecoUserId);
     return user?.characters.find(c => c.id === ecoCharId) || null;
   }, [ecoUserId, ecoCharId, users]);
-  
-  const charactersForCapital = useMemo(() => {
-    if (!capitalUserId) return [];
-    return (users.find(u => u.id === capitalUserId)?.characters || []).map(c => ({ value: c.id, label: c.name }));
-  }, [capitalUserId, users]);
   
   const charactersForShopOwner = useMemo(() => {
     if (!shopOwnerUserId) return [];
