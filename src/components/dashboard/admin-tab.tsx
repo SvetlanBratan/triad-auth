@@ -1225,6 +1225,11 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
     return (users.find(u => u.id === ecoUserId)?.characters || []).map(c => ({ value: c.id, label: c.name }));
   }, [ecoUserId, users]);
 
+  const charactersForCapital = useMemo(() => {
+    if (!capitalUserId) return [];
+    return (users.find(u => u.id === capitalUserId)?.characters || []).map(c => ({ value: c.id, label: c.name }));
+  }, [capitalUserId, users]);
+
   const selectedCharacterForEconomy = useMemo(() => {
     if (!ecoUserId || !ecoCharId) return null;
     const user = users.find(u => u.id === ecoUserId);
