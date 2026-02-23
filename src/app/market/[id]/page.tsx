@@ -46,7 +46,6 @@ export default function ShopPage() {
     const { toast } = useToast();
     const shopId = Array.isArray(id) ? id[0] : id;
 
-    // Use isPending to show loading only on initial load without data
     const { data: shop, isPending, refetch } = useQuery<Shop | null>({
         queryKey: ['shop', shopId],
         queryFn: () => fetchShopById(shopId!),
@@ -64,7 +63,6 @@ export default function ShopPage() {
     const [isRestockingId, setIsRestockingId] = React.useState<string | null>(null);
     const [searchQuery, setSearchQuery] = React.useState('');
     
-    // State for editing shop details
     const [editedTitle, setEditedTitle] = React.useState('');
     const [editedDescription, setEditedDescription] = React.useState('');
     const [isSavingDetails, setIsSavingDetails] = React.useState(false);
@@ -130,7 +128,10 @@ export default function ShopPage() {
             items = items.filter(item => !item.isHidden);
         }
 
-        const sortedItems = items.sort((a, b) => (b.purchaseCount || 0) - (a.purchaseCount || 0));
+        // Мы убираем сортировку по популярности, так как она заставляет товары прыгать 
+        // и менять высоту контейнера при каждом обновлении данных.
+        // Используем стабильную сортировку по имени.
+        const sortedItems = items.sort((a, b) => a.name.localeCompare(b.name));
         
         if (!searchQuery) return sortedItems;
 
@@ -409,7 +410,7 @@ export default function ShopPage() {
             </Card>
 
             <Dialog open={isFormOpen} onOpenChange={(open) => !open && handleFormClose()}>
-                <DialogContent className="max-w-2xl" onCloseAutoFocus={(e) => e.preventDefault()}>
+                <DialogContent className="max-w-2xl" onCloseAutoFocus={(e) => e.preventDefault()} onOpenAutoFocus={(e) => e.preventDefault()}>
                      <DialogHeader>
                         <DialogTitle>{editingItem ? "Редактировать товар" : "Добавить новый товар"}</DialogTitle>
                      </DialogHeader>
@@ -423,7 +424,7 @@ export default function ShopPage() {
             </Dialog>
 
             <Dialog open={isManageDialogOpen} onOpenChange={setIsManageDialogOpen}>
-                <DialogContent className="max-w-3xl" onCloseAutoFocus={(e) => e.preventDefault()}>
+                <DialogContent className="max-w-3xl" onCloseAutoFocus={(e) => e.preventDefault()} onOpenAutoFocus={(e) => e.preventDefault()}>
                     <DialogHeader>
                         <DialogTitle>Управление магазином</DialogTitle>
                         <DialogDescription>
@@ -517,7 +518,7 @@ export default function ShopPage() {
             </Dialog>
             
             <Dialog open={isPurchaseDialogOpen} onOpenChange={setIsPurchaseDialogOpen}>
-                <DialogContent onCloseAutoFocus={(e) => e.preventDefault()}>
+                <DialogContent onCloseAutoFocus={(e) => e.preventDefault()} onOpenAutoFocus={(e) => e.preventDefault()}>
                     <DialogHeader>
                         <DialogTitle>Подтверждение покупки</DialogTitle>
                         {selectedItemForPurchase &&
