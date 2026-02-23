@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -47,8 +46,8 @@ export default function ShopPage() {
     const { toast } = useToast();
     const shopId = Array.isArray(id) ? id[0] : id;
 
-    // All hooks must be called unconditionally at the top level.
-    const { data: shop, isLoading, refetch } = useQuery<Shop | null>({
+    // Use isPending to show loading only on initial load without data
+    const { data: shop, isPending, refetch } = useQuery<Shop | null>({
         queryKey: ['shop', shopId],
         queryFn: () => fetchShopById(shopId!),
         enabled: !!shopId,
@@ -105,7 +104,6 @@ export default function ShopPage() {
         if (!currentUser || !totalPrice) return [];
         return currentUser.characters.filter(char => {
             const balance = char.bankAccount;
-            // If receiving money (negative totalPrice), balance check is always true
             return (totalPrice.platinum <= 0 || balance.platinum >= totalPrice.platinum) &&
                    (totalPrice.gold <= 0 || balance.gold >= totalPrice.gold) &&
                    (totalPrice.silver <= 0 || balance.silver >= totalPrice.silver) &&
@@ -141,8 +139,7 @@ export default function ShopPage() {
         );
     }, [shop?.items, searchQuery, isOwnerOrAdmin]);
 
-    // Conditional returns must come after all hook calls.
-    if (loading) {
+    if (loading || (isPending && !shop)) {
         return <div className="container mx-auto p-8"><p>Загрузка магазина...</p></div>;
     }
 
@@ -150,6 +147,10 @@ export default function ShopPage() {
         return <AuthPage />;
     }
     
+    if (!shop) {
+        notFound();
+    }
+
     const handleFormClose = () => {
         setIsFormOpen(false);
         setEditingItem(null);
@@ -170,7 +171,7 @@ export default function ShopPage() {
     const handlePurchaseClick = (item: ShopItem) => {
         setSelectedItemForPurchase(item);
         setPurchaseQuantity(1);
-        setBuyerCharacterId(''); // Reset selected character
+        setBuyerCharacterId(''); 
         setIsPurchaseDialogOpen(true);
     };
     
@@ -242,14 +243,6 @@ export default function ShopPage() {
         }
     }
 
-    if (isLoading) {
-        return <div className="container mx-auto p-8"><p>Загрузка магазина...</p></div>;
-    }
-
-    if (!shop) {
-        notFound();
-    }
-    
     const shopBalance = shop.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 };
     const hasMoneyInTill = Object.values(shopBalance).some(amount => amount > 0);
 
@@ -327,7 +320,6 @@ export default function ShopPage() {
                         {filteredItems.length > 0 ? (
                             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-6">
                                 {filteredItems.map(item => {
-                                    // Shop affordability check for negative prices
                                     const isAffordableByShop = Object.entries(item.price).every(([currency, val]) => {
                                         if (val >= 0) return true;
                                         return (shopBalance[currency as keyof BankAccount] as number || 0) >= Math.abs(val);
@@ -417,7 +409,7 @@ export default function ShopPage() {
             </Card>
 
             <Dialog open={isFormOpen} onOpenChange={(open) => !open && handleFormClose()}>
-                <DialogContent className="max-w-2xl">
+                <DialogContent className="max-w-2xl" onCloseAutoFocus={(e) => e.preventDefault()}>
                      <DialogHeader>
                         <DialogTitle>{editingItem ? "Редактировать товар" : "Добавить новый товар"}</DialogTitle>
                      </DialogHeader>
@@ -431,7 +423,7 @@ export default function ShopPage() {
             </Dialog>
 
             <Dialog open={isManageDialogOpen} onOpenChange={setIsManageDialogOpen}>
-                <DialogContent className="max-w-3xl">
+                <DialogContent className="max-w-3xl" onCloseAutoFocus={(e) => e.preventDefault()}>
                     <DialogHeader>
                         <DialogTitle>Управление магазином</DialogTitle>
                         <DialogDescription>

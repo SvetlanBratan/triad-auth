@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -48,8 +47,8 @@ export default function ShopPage() {
     const { toast } = useToast();
     const shopId = Array.isArray(id) ? id[0] : id;
 
-    // All hooks must be called unconditionally at the top level.
-    const { data: shop, isLoading, refetch } = useQuery<Shop | null>({
+    // Use isPending to show loading only on initial load without data
+    const { data: shop, isPending, refetch } = useQuery<Shop | null>({
         queryKey: ['shop', shopId],
         queryFn: () => fetchShopById(shopId!),
         enabled: !!shopId,
@@ -82,7 +81,7 @@ export default function ShopPage() {
             setEditedDescription(shop.description);
             setDefaultNewItemCategory(shop.defaultNewItemCategory || 'прочее');
             setEditedImage(shop.image || '');
-            setUseImageUrl(!!shop.image); // If there's an image, default to showing the URL input
+            setUseImageUrl(!!shop.image); 
         }
     }, [shop]);
 
@@ -146,13 +145,16 @@ export default function ShopPage() {
         );
     }, [shop?.items, searchQuery, isOwnerOrAdmin]);
 
-    // Conditional returns must come after all hook calls.
-    if (loading) {
+    if (loading || (isPending && !shop)) {
         return <div className="container mx-auto p-8"><p>Загрузка магазина...</p></div>;
     }
 
     if (!currentUser) {
         return <AuthPage />;
+    }
+    
+    if (!shop) {
+        notFound();
     }
     
     const handleFormClose = () => {
@@ -175,7 +177,7 @@ export default function ShopPage() {
     const handlePurchaseClick = (item: ShopItem) => {
         setSelectedItemForPurchase(item);
         setPurchaseQuantity(1);
-        setBuyerCharacterId(''); // Reset selected character
+        setBuyerCharacterId(''); 
         setIsPurchaseDialogOpen(true);
     };
     
@@ -248,14 +250,6 @@ export default function ShopPage() {
         }
     }
 
-    if (isLoading) {
-        return <div className="container mx-auto p-8"><p>Загрузка магазина...</p></div>;
-    }
-
-    if (!shop) {
-        notFound();
-    }
-    
     const shopBalance = shop.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0 };
     const hasMoneyInTill = Object.values(shopBalance).some(amount => amount > 0);
 
@@ -412,7 +406,7 @@ export default function ShopPage() {
             </Card>
 
             <Dialog open={isFormOpen} onOpenChange={(open) => !open && handleFormClose()}>
-                <DialogContent className="max-w-2xl">
+                <DialogContent className="max-w-2xl" onCloseAutoFocus={(e) => e.preventDefault()}>
                      <DialogHeader>
                         <DialogTitle>{editingItem ? "Редактировать товар" : "Добавить новый товар"}</DialogTitle>
                      </DialogHeader>
@@ -426,7 +420,7 @@ export default function ShopPage() {
             </Dialog>
 
             <Dialog open={isManageDialogOpen} onOpenChange={setIsManageDialogOpen}>
-                <DialogContent className="max-w-3xl">
+                <DialogContent className="max-w-3xl" onCloseAutoFocus={(e) => e.preventDefault()}>
                     <DialogHeader>
                         <DialogTitle>Управление магазином</DialogTitle>
                         <DialogDescription>
@@ -450,7 +444,6 @@ export default function ShopPage() {
                                     <div>
                                         <Label>Загрузить новое изображение</Label>
                                         <p className="text-xs text-muted-foreground mb-2">Загрузка заменит текущее изображение.</p>
-                                        {/* You'd place an uploader component here, for now it's just a placeholder */}
                                         <p className="text-sm p-4 border-dashed border rounded-md text-center">Компонент загрузки будет здесь</p>
                                     </div>
                                 )}
