@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser } from '@/hooks/use-user';
@@ -7,7 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import * as LucideIcons from 'lucide-react';
-import { Star, Gift, User as UserIcon } from 'lucide-react';
+import { Star, Gift, User as UserIcon, Info } from 'lucide-react';
 import React, { useMemo, useState, useEffect } from 'react';
 import {
   Dialog,
@@ -15,6 +16,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog"
 import { SearchableSelect } from '../ui/searchable-select';
 import { CustomIcon } from '../ui/custom-icon';
@@ -24,6 +26,7 @@ import { Input } from '../ui/input';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { useQuery } from '@tanstack/react-query';
 import { ScrollArea } from '../ui/scroll-area';
+import FormattedTextRenderer from './formatted-text-renderer';
 
 
 const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
@@ -38,7 +41,7 @@ const DynamicIcon = ({ name, className }: { name: string; className?: string }) 
 
 
 export default function RewardsTab() {
-  const { currentUser, createRewardRequest, fetchUsersForAdmin } = useUser();
+  const { currentUser, createRewardRequest, fetchUsersForAdmin, gameSettings } = useUser();
   const { toast } = useToast();
   const [selectedReward, setSelectedReward] = React.useState<Reward | null>(null);
   const [selectedCharacterId, setSelectedCharacterId] = React.useState<string>('');
@@ -168,14 +171,33 @@ export default function RewardsTab() {
   return (
     <div>
         <Card className="mb-6 bg-muted/50 border-muted/30">
-            <CardHeader className="flex flex-row items-center gap-4">
-                <CustomIcon src="/icons/points.svg" className="w-8 h-8 icon-primary" />
-                <div>
-                    <CardTitle className="text-lg sm:text-xl">Ваши баллы</CardTitle>
-                    <CardDescription className="text-muted-foreground/80">
-                        У вас есть <span className="font-bold text-base sm:text-lg text-foreground">{currentUser?.points.toLocaleString()}</span> баллов для траты.
-                    </CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                    <CustomIcon src="/icons/points.svg" className="w-8 h-8 icon-primary" />
+                    <div>
+                        <CardTitle className="text-lg sm:text-xl">Ваши баллы</CardTitle>
+                        <CardDescription className="text-muted-foreground/80">
+                            У вас есть <span className="font-bold text-base sm:text-lg text-foreground">{currentUser?.points.toLocaleString()}</span> баллов для траты.
+                        </CardDescription>
+                    </div>
                 </div>
+                <Dialog>
+                    <DialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="shrink-0 h-10 w-10">
+                            <Info className="h-6 w-6 text-primary" />
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl">
+                        <DialogHeader>
+                            <DialogTitle>Как заработать баллы?</DialogTitle>
+                        </DialogHeader>
+                        <ScrollArea className="max-h-[60vh] mt-4 pr-4">
+                            <div className="text-sm">
+                                <FormattedTextRenderer text={gameSettings.pointsInfo || 'Информация отсутствует.'} />
+                            </div>
+                        </ScrollArea>
+                    </DialogContent>
+                </Dialog>
             </CardHeader>
         </Card>
       

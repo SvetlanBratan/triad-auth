@@ -97,6 +97,7 @@ export interface MailMessage {
 
 export interface GameSettings {
   lastWeeklyBonusAwardedAt?: string; // ISO string date
+  pointsInfo?: string;
   gachaChances: {
     normal: {
       мифический: number;

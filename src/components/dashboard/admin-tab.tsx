@@ -264,6 +264,8 @@ export default function AdminTab() {
   const [targetMergeUserId, setTargetMergeUserId] = useState('');
   const [isMerging, setIsMerging] = useState(false);
 
+  // Points Info state
+  const [pointsInfo, setPointsInfo] = useState(gameSettings.pointsInfo || '');
 
   useEffect(() => {
       if (editingRecipeId) {
@@ -291,6 +293,10 @@ export default function AdminTab() {
     });
     setPopularityUpdates(newUpdates);
   }, [popularityCharIds]);
+
+  useEffect(() => {
+      setPointsInfo(gameSettings.pointsInfo || '');
+  }, [gameSettings.pointsInfo]);
 
 
   const { toast } = useToast();
@@ -1164,11 +1170,21 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
         setNewShop({ title: '', description: '', image: '' });
         await queryClient.invalidateQueries({ queryKey: ['allShops'] });
     } catch(err) {
-        const msg = err instanceof Error ? err.message : 'Произошла неизвестная ошибка.';
+        const msg = err instanceof Error ? e.message : 'Произошла неизвестная ошибка.';
         toast({ variant: 'destructive', title: 'Ошибка', description: msg });
     } finally {
         setIsAddingShop(false);
     }
+  };
+
+  const handleSavePointsInfo = async () => {
+      try {
+          await updateGameSettings({ pointsInfo });
+          toast({ title: "Информация о баллах сохранена!" });
+      } catch (error) {
+          const msg = error instanceof Error ? error.message : "Не удалось сохранить информацию.";
+          toast({ variant: "destructive", title: "Ошибка", description: msg });
+      }
   };
 
 
@@ -1559,6 +1575,29 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
 
       <TabsContent value="general" className="mt-4">
          <div className="gap-6 column-1 md:column-2 lg:column-3">
+            <div className="break-inside-avoid mb-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Info /> Информация о начислении баллов</CardTitle>
+                        <CardDescription>Редактируйте текст справки, который видят пользователи в разделе наград.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="points-info-editor">Текст справки (поддерживает форматирование)</Label>
+                            <Textarea
+                                id="points-info-editor"
+                                value={pointsInfo}
+                                onChange={(e) => setPointsInfo(e.target.value)}
+                                rows={12}
+                                placeholder="Введите правила начисления баллов..."
+                            />
+                        </div>
+                        <Button onClick={handleSavePointsInfo} className="w-full">
+                            <Save className="mr-2 h-4 w-4" /> Сохранить информацию
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
             <div className="break-inside-avoid mb-6">
             <Card>
                 <CardHeader>
@@ -2912,10 +2951,10 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
                                 </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
-                                <AlertDialogCancel>Отмена</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleClearAllMailboxes} className="bg-destructive hover:bg-destructive/90">
-                                    Да, я понимаю, очистить всё
-                                </AlertDialogAction>
+                                    <AlertDialogCancel>Отмена</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleClearAllMailboxes} className="bg-destructive hover:bg-destructive/90">
+                                        Да, я понимаю, очистить всё
+                                    </AlertDialogAction>
                                 </AlertDialogFooter>
                             </AlertDialogContent>
                         </AlertDialog>
@@ -2926,5 +2965,3 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
     </Tabs>
   );
 }
-
-    

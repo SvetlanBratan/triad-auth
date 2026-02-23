@@ -167,6 +167,7 @@ const QUESTIONNAIRE_ACHIEVEMENT_ID = 'ach-questionnaire';
 const FIRST_HUNT_ACHIEVEMENT_ID = 'ach-hunting';
 const FAVORITE_PLAYER_ACHIEVEMENT_ID = 'ach-favorites';
 
+const DEFAULT_POINTS_INFO = `**Мотивационная система награждений** строится так, что чем больше участвует ролевик в жизни ролевой, тем больше шансов у него получить ценные плюшки. Дабы администрация использовала не только кнут, но и пряник, была создана система баллов, накопив которые, можно обменять их на одну из предложенных наград, среди которых есть прекрасная возможность обойти некоторые запреты и ограничения ролевого мира, а также открыть желаемую для себя закрытую расу. Накопленные баллы гарантируют администрации проекта, что игрок довольно долго и активно играет в ролевой, а значит уже более подробно знает мир и вникает в происходящее в мире Триады, а значит может взять на себя ответственность за адекватный отыгрыш сложной расы или имбы.\n\nЗа участие в мини-ивентах на стене начисляется от **500 до 1000 баллов** в зависимости от сложности ивента.\nЗа участие в сюжетных квестах и ивентах от **1000 до 5000**.\nЕсли за неделю не было написано ни одного поста, администрация в праве снять баллы со счета игрока **(-1000)**.\n\n**Активность:** 800 баллов начисляется каждую неделю всем активным игрокам.\n* Написание анкеты - **500 баллов**\n* Привести в ролевую друга – **100 000 баллов**\n* За проведение квестов - **1000 баллов** за каждый пост гейм-мастера (прибавляется поверх еженедельного подсчета).\n* Помощь администрации – баллы выдаются администратором индивидуально, в зависимости от вида помощи (за добавление фауны или флоры обычно **800 баллов**)`;
 
 const RELATIONSHIP_POINTS_CONFIG: Record<RelationshipActionType, number> = {
     подарок: 25,
@@ -239,7 +240,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const { toast } = useToast();
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
-    const [gameSettings, setGameSettings] = useState<GameSettings>(DEFAULT_GAME_SETTINGS);
+    const [gameSettings, setGameSettings] = useState<GameSettings>({ ...DEFAULT_GAME_SETTINGS, pointsInfo: DEFAULT_POINTS_INFO });
     const [gameDate, setGameDate] = useState<Date | null>(null);
     const [gameDateString, setGameDateString] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
@@ -471,14 +472,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const docSnap = await getDoc(settingsRef);
             if (docSnap.exists()) {
                 const data = docSnap.data() as GameSettings;
-                let finalSettings: GameSettings = { ...DEFAULT_GAME_SETTINGS, ...data };
+                let finalSettings: GameSettings = { ...DEFAULT_GAME_SETTINGS, pointsInfo: DEFAULT_POINTS_INFO, ...data };
                  if (!finalSettings.gachaChances) {
                     finalSettings.gachaChances = DEFAULT_GAME_SETTINGS.gachaChances;
                 }
                 setGameSettings(finalSettings);
             } else {
-                await setDoc(doc(db, 'game_settings', 'main'), DEFAULT_GAME_SETTINGS);
-                setGameSettings(DEFAULT_GAME_SETTINGS);
+                const initialSettings = { ...DEFAULT_GAME_SETTINGS, pointsInfo: DEFAULT_POINTS_INFO };
+                await setDoc(doc(db, 'game_settings', 'main'), initialSettings);
+                setGameSettings(initialSettings);
             }
         } catch (error) {
             console.error("Error fetching game settings. Using default.", error);
@@ -1387,7 +1389,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 if (itemIndex === -1) throw new Error("Предмет для подарка не найден в инвентаре.");
                 const itemToGift = { ...categoryItems[itemIndex] };
 
-                if (itemToGift.quantity < quantity) throw new Error("Недостаточное количество предметов для подарка.");
+                if (itemToGift.quantity < quantity) throw new Error("Недостаточно количество предметов для подарка.");
                 
                 if (itemToGift.quantity > quantity) {
                     categoryItems[itemIndex].quantity -= quantity;
