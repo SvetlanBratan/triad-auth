@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser } from '@/hooks/use-user';
@@ -24,6 +23,7 @@ import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { useQuery } from '@tanstack/react-query';
+import { ScrollArea } from '../ui/scroll-area';
 
 
 const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
@@ -182,13 +182,17 @@ export default function RewardsTab() {
         <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-4">
         {rewards.map(reward => (
           <Card key={reward.id} className="flex flex-col hover:shadow-lg transition-shadow duration-300">
-            <CardHeader className="flex-row gap-2 sm:gap-4 items-start p-3 sm:p-6">
+            <CardHeader className="flex-row gap-2 sm:gap-4 items-start p-3 sm:p-6 pb-2 sm:pb-6">
               <div className="bg-primary/10 p-2 sm:p-3 rounded-lg shrink-0">
                 <DynamicIcon name={reward.iconName} className="w-4 h-4 sm:w-6 sm:h-6 text-primary" />
               </div>
-              <div className="flex-1 min-w-0">
-                <CardTitle className="text-[11px] sm:text-lg font-headline leading-tight">{reward.title}</CardTitle>
-                <CardDescription className="text-[10px] sm:text-xs mt-1 line-clamp-2 sm:line-clamp-none">{reward.description}</CardDescription>
+              <div className="flex-1 min-w-0 overflow-hidden">
+                <CardTitle className="text-[11px] sm:text-lg font-headline leading-tight truncate">{reward.title}</CardTitle>
+                <ScrollArea className="h-12 sm:h-auto mt-1">
+                    <div className="text-[10px] sm:text-xs text-muted-foreground pr-3 whitespace-normal">
+                        {reward.description}
+                    </div>
+                </ScrollArea>
               </div>
             </CardHeader>
             <CardContent className="flex-grow px-3 sm:px-6 py-0">
