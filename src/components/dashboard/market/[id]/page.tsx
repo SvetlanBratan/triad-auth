@@ -292,7 +292,7 @@ export default function ShopPage() {
                     <div className="flex justify-between items-start flex-wrap gap-4">
                          {shop.ownerCharacterName ? (
                             <div className="flex items-center gap-2 text-muted-foreground">
-                                <UserCircle className="h-5 w-5" />
+                                <UserCircle className="h-5 v-5" />
                                 <span>Владелец: 
                                     <Link href={`/characters/${shop.ownerCharacterId}`} className="font-semibold text-primary hover:underline ml-1">
                                         {shop.ownerCharacterName}
@@ -537,7 +537,7 @@ export default function ShopPage() {
             </Dialog>
             
             <Dialog open={isPurchaseDialogOpen} onOpenChange={setIsPurchaseDialogOpen}>
-                <DialogContent>
+                <DialogContent onCloseAutoFocus={(e) => e.preventDefault()}>
                     <DialogHeader>
                         <DialogTitle>Подтверждение покупки</DialogTitle>
                         {selectedItemForPurchase &&
@@ -663,8 +663,3 @@ export default function ShopPage() {
         </div>
     );
 }
-
-    
-
-    
-

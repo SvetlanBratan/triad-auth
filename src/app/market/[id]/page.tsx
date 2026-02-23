@@ -525,7 +525,7 @@ export default function ShopPage() {
             </Dialog>
             
             <Dialog open={isPurchaseDialogOpen} onOpenChange={setIsPurchaseDialogOpen}>
-                <DialogContent>
+                <DialogContent onCloseAutoFocus={(e) => e.preventDefault()}>
                     <DialogHeader>
                         <DialogTitle>Подтверждение покупки</DialogTitle>
                         {selectedItemForPurchase &&
