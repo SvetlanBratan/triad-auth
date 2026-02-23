@@ -186,9 +186,9 @@ export default function RewardsTab() {
               <div className="bg-primary/10 p-2 sm:p-3 rounded-lg shrink-0">
                 <DynamicIcon name={reward.iconName} className="w-4 h-4 sm:w-6 sm:h-6 text-primary" />
               </div>
-              <div className="flex-1 min-w-0 overflow-hidden">
-                <CardTitle className="text-[11px] sm:text-lg font-headline leading-tight truncate">{reward.title}</CardTitle>
-                <ScrollArea className="h-12 sm:h-auto mt-1">
+              <div className="flex-1 min-w-0">
+                <CardTitle className="text-[13px] sm:text-lg font-headline leading-tight whitespace-normal">{reward.title}</CardTitle>
+                <ScrollArea className="h-14 sm:h-20 mt-1">
                     <div className="text-[10px] sm:text-xs text-muted-foreground pr-3 whitespace-normal">
                         {reward.description}
                     </div>
