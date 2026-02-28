@@ -136,7 +136,7 @@ export default function ShopPage() {
             items = items.filter(item => !item.isHidden);
         }
 
-        const sortedItems = items.sort((a, b) => (b.purchaseCount || 0) - (a.purchaseCount || 0));
+        const sortedItems = items.sort((a, b) => a.name.localeCompare(b.name));
         
         if (!searchQuery) return sortedItems;
 
@@ -340,9 +340,9 @@ export default function ShopPage() {
                                         )}
                                         <CardHeader>
                                             <div className="flex justify-between items-start">
-                                                <CardTitle className="text-lg flex items-center gap-2">
-                                                  {item.name}
-                                                  {item.isHidden && <Eye className="w-4 h-4 text-muted-foreground" />}
+                                                <CardTitle className="text-lg flex items-start gap-2">
+                                                  <span className="break-words">{item.name}</span>
+                                                  {item.isHidden && <Eye className="w-4 h-4 text-muted-foreground mt-1 shrink-0" />}
                                                 </CardTitle>
                                                 {isOwnerOrAdmin && (
                                                     <div className="flex gap-2">
@@ -406,7 +406,7 @@ export default function ShopPage() {
             </Card>
 
             <Dialog open={isFormOpen} onOpenChange={(open) => !open && handleFormClose()}>
-                <DialogContent className="max-w-2xl" onCloseAutoFocus={(e) => e.preventDefault()}>
+                <DialogContent className="max-w-2xl" onCloseAutoFocus={(e) => e.preventDefault()} onOpenAutoFocus={(e) => e.preventDefault()}>
                      <DialogHeader>
                         <DialogTitle>{editingItem ? "Редактировать товар" : "Добавить новый товар"}</DialogTitle>
                      </DialogHeader>
@@ -420,7 +420,7 @@ export default function ShopPage() {
             </Dialog>
 
             <Dialog open={isManageDialogOpen} onOpenChange={setIsManageDialogOpen}>
-                <DialogContent className="max-w-3xl" onCloseAutoFocus={(e) => e.preventDefault()}>
+                <DialogContent className="max-w-3xl" onCloseAutoFocus={(e) => e.preventDefault()} onOpenAutoFocus={(e) => e.preventDefault()}>
                     <DialogHeader>
                         <DialogTitle>Управление магазином</DialogTitle>
                         <DialogDescription>
@@ -530,7 +530,7 @@ export default function ShopPage() {
             </Dialog>
             
             <Dialog open={isPurchaseDialogOpen} onOpenChange={setIsPurchaseDialogOpen}>
-                <DialogContent onCloseAutoFocus={(e) => e.preventDefault()}>
+                <DialogContent onCloseAutoFocus={(e) => e.preventDefault()} onOpenAutoFocus={(e) => e.preventDefault()}>
                     <DialogHeader>
                         <DialogTitle>Подтверждение покупки</DialogTitle>
                         {selectedItemForPurchase &&

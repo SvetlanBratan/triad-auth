@@ -340,9 +340,9 @@ export default function ShopPage() {
                                         )}
                                         <CardHeader className="p-2 sm:p-6">
                                             <div className="flex justify-between items-start gap-1">
-                                                <CardTitle className="text-sm sm:text-lg flex items-center gap-1 sm:gap-2">
-                                                  <span className="line-clamp-2">{item.name}</span>
-                                                  {item.isHidden && <Eye className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground" />}
+                                                <CardTitle className="text-sm sm:text-lg flex items-start gap-1 sm:gap-2">
+                                                  <span className="break-words">{item.name}</span>
+                                                  {item.isHidden && <Eye className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground mt-1 shrink-0" />}
                                                 </CardTitle>
                                                 {isOwnerOrAdmin && (
                                                     <div className="flex gap-1 sm:gap-2">
