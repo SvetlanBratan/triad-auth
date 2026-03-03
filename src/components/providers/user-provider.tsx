@@ -301,7 +301,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             maxTeachings: 3,
             unlockedReserves: [],
         }
-    }), []);
+    }), [defaultInventory]);
 
     const functions = useMemo(() => getFunctions(), []);
     
@@ -368,7 +368,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         userData.statusEmoji = userData.statusEmoji || '';
         userData.statusText = userData.statusText || '';
         return userData;
-    }, [initialFormData]);
+    }, [initialFormData, defaultInventory]);
     
     const fetchUserById = useCallback(async (userId: string): Promise<User | null> => {
         const userRef = doc(db, "users", userId);
@@ -465,7 +465,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           setCurrentUser(finalUser);
         }
         return finalUser;
-    }, [fetchUserById, currentUser?.id]);
+    }, [fetchUserById, currentUser?.id, setCurrentUser]);
     
     const fetchGameSettings = useCallback(async () => {
         try {
@@ -879,7 +879,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             setCurrentUser(updatedUser);
         }
         return updatedUser;
-    }, [currentUser?.id, fetchUserById, initialFormData, setCurrentUser]);
+    }, [currentUser?.id, fetchUserById, initialFormData, defaultInventory, setCurrentUser]);
 
     const deleteCharacterFromUser = useCallback(async (userId: string, characterId: string) => {
         const user = await fetchUserById(userId);
@@ -953,7 +953,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             }
         }
 
-    }, [fetchUserById, currentUser?.id, grantAchievementToUser]);
+    }, [fetchUserById, currentUser?.id, grantAchievementToUser, setCurrentUser]);
   
     const updateRewardRequestStatus = useCallback(async (request: RewardRequest, newStatus: RewardRequestStatus): Promise<RewardRequest | null> => {
         await runTransaction(db, async (transaction) => {
@@ -1212,7 +1212,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
 
         return { updatedUser: finalUser, newCard: newCard, isDuplicate };
-    }, [fetchUsersForAdmin, allFamiliars, familiarsById, gameSettings.gachaChances]);
+    }, [fetchUsersForAdmin, allFamiliars, familiarsById, gameSettings.gachaChances, setCurrentUser]);
   
     const giveAnyFamiliarToCharacter = useCallback(async (userId: string, characterId: string, familiarId: string) => {
         const user = await fetchUserById(userId);
@@ -1261,7 +1261,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 setCurrentUser(updatedCurrentUser);
             }
         }
-    }, [fetchUsersForAdmin, currentUser, fetchUserById]);
+    }, [fetchUsersForAdmin, currentUser, fetchUserById, setCurrentUser]);
 
     const addMoodletToCharacter = useCallback(async (userId: string, characterId: string, moodletId: string, durationInDays: number, source?: string) => {
         const user = await fetchUserById(userId);
@@ -1599,7 +1599,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
         
         return { totalRecovered, usersAffected };
-    }, [fetchUsersForAdmin, fetchUserById, currentUser, allFamiliars]);
+    }, [fetchUsersForAdmin, fetchUserById, currentUser, allFamiliars, setCurrentUser]);
 
     const updateCharacterWealthLevel = useCallback(async (userId: string, characterId: string, wealthLevel: WealthLevel) => {
         const user = await fetchUserById(userId);
@@ -1734,7 +1734,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const updatedUser = await fetchUserById(sourceUserId);
             if(updatedUser) setCurrentUser(updatedUser);
         }
-    }, [currentUser, fetchUserById]);
+    }, [currentUser, fetchUserById, setCurrentUser]);
 
 
     const processMonthlySalary = useCallback(async () => {
@@ -1824,7 +1824,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         });
         const updatedUser = await fetchUserById(creatorUserId);
         if (updatedUser) setCurrentUser(updatedUser);
-    }, [fetchUserById, currentUser?.id]);
+    }, [fetchUserById, setCurrentUser]);
 
  const fetchOpenExchangeRequests = useCallback(async (): Promise<ExchangeRequest[]> => {
         const requestsCollection = collection(db, "exchange_requests");
@@ -1843,7 +1843,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             
             const acceptorUserRef = doc(db, "users", acceptorUserId);
             const acceptorUserDoc = await transaction.get(acceptorUserRef);
-            if (!lastAwarded) throw new Error("Принимающий пользователь не найден.");
+            if (!acceptorUserDoc.exists()) throw new Error("Принимающий пользователь не найден.");
             
             const acceptorUserData = acceptorUserDoc.data() as User;
             const acceptorCharIndex = acceptorUserData.characters.findIndex(c => c.id === acceptorCharacterId);
@@ -1889,7 +1889,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             if (updatedUser) setCurrentUser(updatedUser);
           }
         }
-    }, [currentUser, fetchUserById]);
+    }, [currentUser, fetchUserById, setCurrentUser]);
 
   const cancelExchangeRequest = useCallback(async (request: ExchangeRequest) => {
     await runTransaction(db, async (transaction) => {
@@ -1922,7 +1922,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
        const updatedUser = await fetchUserById(request.creatorUserId);
        if(updatedUser) setCurrentUser(updatedUser);
     }
-  }, [currentUser, fetchUserById]);
+  }, [currentUser, fetchUserById, setCurrentUser]);
 
   const createFamiliarTradeRequest = useCallback(async (initiatorCharacterId: string, initiatorFamiliarId: string, targetCharacterId: string, targetFamiliarId: string) => {
         if (!currentUser) throw new Error("Пользователь не авторизован.");
@@ -2062,7 +2062,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const updatedUser = await fetchUserById(currentUser.id);
             if (updatedUser) setCurrentUser(updatedUser);
         }
-    }, [currentUser, fetchUserById]);
+    }, [currentUser, fetchUserById, setCurrentUser]);
 
   const declineOrCancelFamiliarTradeRequest = useCallback(async (request: FamiliarTradeRequest, status: 'отклонено' | 'отменено') => {
           const requestRef = doc(db, "familiar_trade_requests", request.id);
@@ -2286,7 +2286,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             };
             shopBankAccount.history = [shopTx, ...(shopBankAccount.history || [])];
 
-            transaction.update(buyerUserRef, { characters: buyerUserData.characters });
+            const hasAchievement = (buyerUserData.achievementIds || []).includes(FIRST_PURCHASE_ACHIEVEMENT_ID);
+            if (!hasAchievement) {
+                buyerUserData.achievementIds = [...(buyerUserData.achievementIds || []), FIRST_PURCHASE_ACHIEVEMENT_ID];
+            }
+
+            transaction.update(buyerUserRef, { characters: buyerUserData.characters, achievementIds: buyerUserData.achievementIds });
 
             const updatedShopData: Partial<Shop> = { bankAccount: shopBankAccount };
             const updatedItems = [...items];
@@ -2304,7 +2309,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const updatedUser = await fetchUserById(buyerUserId);
             if (updatedUser) setCurrentUser(updatedUser);
         }
-    }, [currentUser, fetchUserById, initialFormData]);
+    }, [currentUser, fetchUserById, initialFormData, setCurrentUser]);
 
     const adminGiveItemToCharacter = useCallback(async (userId: string, characterId: string, itemData: AdminGiveItemForm) => {
         const user = await fetchUserById(userId);
@@ -2332,7 +2337,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const updatedCharacters = [...user.characters];
         updatedCharacters[characterIndex] = character;
         await updateUser(userId, { characters: updatedCharacters });
-    }, [fetchUserById, updateUser, initialFormData]);
+    }, [fetchUserById, updateUser]);
 
     const adminUpdateItemInCharacter = useCallback(async (userId: string, characterId: string, itemData: InventoryItem, category: InventoryCategory) => {
         const user = await fetchUserById(userId);
@@ -2682,7 +2687,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 setCurrentUser(updatedCurrentUser);
             }
         }
-    }, [fetchUsersForAdmin, currentUser, fetchUserById]);
+    }, [fetchUsersForAdmin, currentUser, fetchUserById, setCurrentUser]);
 
     const updatePopularity = useCallback(async (updates: CharacterPopularityUpdate[]) => {
         const allUsers = await fetchUsersForAdmin();
@@ -2759,7 +2764,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const updatedCurrentUser = await fetchUserById(currentUser.id);
             if (updatedCurrentUser) setCurrentUser(updatedCurrentUser);
         }
-    }, [fetchUsersForAdmin, currentUser, fetchUserById, grantAchievementToUser]);
+    }, [fetchUsersForAdmin, currentUser, fetchUserById, grantAchievementToUser, setCurrentUser]);
 
     const clearAllPopularityHistories = useCallback(async () => {
         const allUsers = await fetchUsersForAdmin();
@@ -2838,7 +2843,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         
         const updatedUser = await fetchUserById(currentUser.id);
         if(updatedUser) setCurrentUser(updatedUser);
-    }, [currentUser, fetchUserById]);
+    }, [currentUser, fetchUserById, setCurrentUser]);
 
     const brewPotion = useCallback(async (userId: string, characterId: string, recipeId: string): Promise<{ createdItem: InventoryItem; recipeName: string }> => {
         let createdItemResult: InventoryItem | null = null;
@@ -2951,7 +2956,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             if (updatedUser) setCurrentUser(updatedUser);
         }
         return { createdItem: createdItemResult, recipeName: recipeNameResult };
-    }, [currentUser, fetchUserById, initialFormData, fetchAllShops]);
+    }, [currentUser, fetchUserById, initialFormData, fetchAllShops, setCurrentUser]);
 
     const addAlchemyRecipe = useCallback(async (recipe: Omit<AlchemyRecipe, 'id' | 'createdAt'>) => {
         const newRecipe = {
@@ -3023,7 +3028,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         if (currentUser.id === userToUpdateId) {
              setCurrentUser(prev => prev ? {...prev, playerPings: updatedPings} : null);
         }
-    }, [currentUser, fetchUsersForAdmin]);
+    }, [currentUser, fetchUsersForAdmin, setCurrentUser]);
 
     const addFavoritePlayer = useCallback(async (targetUserId: string) => {
         if (!currentUser) return;
@@ -3087,7 +3092,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         const updatedUser = await fetchUserById(currentUser.id);
         if (updatedUser) setCurrentUser(updatedUser);
-    }, [currentUser, gameSettings.huntingLocations, grantAchievementToUser, fetchUserById]);
+    }, [currentUser, gameSettings.huntingLocations, fetchUserById, setCurrentUser]);
 
     const startMultipleHunts = useCallback(async (characterId: string, familiarIds: string[], locationId: string) => {
         if (!currentUser) throw new Error("Not authenticated");
@@ -3325,7 +3330,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         
         const updatedUser = await fetchUserById(currentUser.id);
         if (updatedUser) setCurrentUser(updatedUser);
-    }, [currentUser, fetchUserById]);
+    }, [currentUser, fetchUserById, setCurrentUser]);
 
     const claimRewardsForOtherPlayer = useCallback(async (ownerUserId: string, characterId: string) => {
       const owner = await fetchUserById(ownerUserId);
