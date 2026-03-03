@@ -237,7 +237,7 @@ const MagicAbilityGrid = ({ title, abilities }: { title: string, abilities?: Mag
 
 export default function CharacterPage() {
     const params = useParams();
-    const { currentUser, consumeInventoryItem, setCurrentUser, fetchCharacterById, fetchUsersForAdmin, fetchAllShops } = useUser();
+    const { currentUser, consumeInventoryItem, setCurrentUser, fetchCharacterById, fetchUsersForAdmin, fetchAllShops, updateCharacterInUser } = useUser();
     const { loading } = useAuth();
     const queryClient = useQueryClient();
     const { toast } = useToast();
@@ -271,6 +271,35 @@ export default function CharacterPage() {
     
     const character = characterData?.character;
     const owner = characterData?.owner;
+
+    const mutation = useMutation({
+        mutationFn: (characterData: Character) => {
+            if (!owner) throw new Error("Владелец персонажа не найден.");
+            return updateCharacterInUser(owner.id, characterData);
+        },
+        onMutate: async (newCharacter) => {
+            await queryClient.cancelQueries({ queryKey: ['character', charId] });
+            const previousCharacterData = queryClient.getQueryData(['character', charId]);
+            queryClient.setQueryData(['character', charId], { character: newCharacter, owner });
+            return { previousCharacterData };
+        },
+        onError: (err, newCharacter, context) => {
+            if (context?.previousCharacterData) {
+                queryClient.setQueryData(['character', charId], context.previousCharacterData);
+            }
+            const message = err instanceof Error ? err.message : "Произошла неизвестная ошибка.";
+            toast({ variant: 'destructive', title: "Ошибка", description: message });
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['character', charId] });
+            queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+        },
+        onSuccess: () => {
+            toast({ title: "Анкета обновлена", description: "Данные персонажа успешно сохранены." });
+            setEditingState(null);
+            refetch();
+        }
+    });
 
     useEffect(() => {
         if (selectedItem) {
@@ -525,7 +554,7 @@ export default function CharacterPage() {
 
     const handleRaceConfirm = () => {
         if (!isAdmin || !character) return;
-        // This should be handled inside CharacterForm now
+        mutation.mutate({ ...character, raceIsConfirmed: true });
     }
 
     const renderMainInfo = () => (

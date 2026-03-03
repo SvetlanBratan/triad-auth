@@ -287,7 +287,7 @@ export default function CharacterPage() {
             if (context?.previousCharacterData) {
                 queryClient.setQueryData(['character', charId], context.previousCharacterData);
             }
-            const message = err instanceof Error ? e.message : "Произошла неизвестная ошибка.";
+            const message = err instanceof Error ? err.message : "Произошла неизвестная ошибка.";
             toast({ variant: 'destructive', title: "Ошибка", description: message });
         },
         onSettled: () => {
