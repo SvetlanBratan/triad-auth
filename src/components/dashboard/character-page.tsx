@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -11,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FAMILIARS_BY_ID, MOODLETS_DATA, TRAINING_OPTIONS, CRIME_LEVELS, INVENTORY_CATEGORIES, POPULARITY_LEVELS } from '@/lib/data';
 import FamiliarCardDisplay from '@/components/dashboard/familiar-card';
-import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users, HeartHandshake, Wallet, Coins, Award, Zap, ShieldOff, History, Info, PlusCircle, BookUser, Gavel, Group, Building, Package, LandPlot, ShieldCheck, FileQuestion, BadgeCheck, BadgeAlert, Landmark, Eye, Lock, Cat, Handshake, FileText, ChevronDown, Camera, Search, Wand2 } from 'lucide-react';
+import { ArrowLeft, BookOpen, Edit, Heart, PersonStanding, RussianRuble, Shield, Swords, Warehouse, Gem, BrainCircuit, ShieldAlert, Star, Dices, Home, CarFront, Sparkles, Anchor, KeyRound, Users, HeartHandshake, Wallet, Coins, Award, Zap, ShieldOff, History, Info, PlusCircle, BookUser, Gavel, Group, Building, Package, LandPlot, ShieldCheck, FileQuestion, BadgeCheck, BadgeAlert, Landmark, Eye, Lock, Cat, Handshake, FileText, ChevronDown, Camera, Search, Wand2, Gift } from 'lucide-react';
 import Link from 'next/link';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -25,7 +24,7 @@ import { Progress } from '@/components/ui/progress';
 import RelationshipActions from '@/components/dashboard/relationship-actions';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import Image from 'next/image';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import FormattedTextRenderer from '@/components/dashboard/formatted-text-renderer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -146,6 +145,7 @@ const inventoryLayout: {
             { key: 'зелья', label: 'Зелья/лекарства', icon: BrainCircuit },
             { key: 'гардероб', label: 'Гардероб', icon: RussianRuble },
             { key: 'драгоценности', label: 'Драгоценности', icon: Sparkles },
+            { key: 'подарки', label: 'Подарки', icon: Gift },
             { key: 'книгиИСвитки', label: 'Книги и свитки', icon: BookOpen },
             { key: 'документы', label: 'Документы', icon: FileText },
             { key: 'ключи', label: 'Ключи', icon: KeyRound },
@@ -436,7 +436,7 @@ export default function CharacterPage() {
     
     const inventory = {
       оружие: [], доспехи: [], артефакты: [], зелья: [], гардероб: [],
-      драгоценности: [], книгиИСвитки: [], еда: [], инструменты: [],
+      драгоценности: [], подарки: [], книгиИСвитки: [], еда: [], инструменты: [],
       питомцы: [], прочее: [], недвижимость: [], души: [], мебель: [],
       транспорт: [], предприятия: [], услуги: [], документы: [], ингредиенты: [], ключи: [],
       ...(character.inventory ?? {})
@@ -1454,9 +1454,9 @@ export default function CharacterPage() {
                 <DialogContent>
                     <CharacterForm
                         character={character}
+                        ownerId={owner.id}
                         allUsers={allUsers}
                         onSuccess={refetch}
-                        ownerId={owner?.id}
                         closeDialog={closeDialog}
                         editingState={editingState}
                     />
