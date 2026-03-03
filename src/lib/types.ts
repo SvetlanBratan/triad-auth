@@ -51,7 +51,7 @@ export type RelationshipType =
   | "страсть"
   | "заинтересованность"
   | "сотрудничество";
-export type RelationshipActionType = "подарок" | "письмо";
+export type RelationshipActionType = "подарок" | "письмо" | "перевод";
 export type RelationshipActionStatus = "pending" | "confirmed";
 export type WealthLevel =
   | "Нищий"

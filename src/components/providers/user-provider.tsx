@@ -172,6 +172,7 @@ const DEFAULT_POINTS_INFO = `**Мотивационная система наг�
 const RELATIONSHIP_POINTS_CONFIG: Record<RelationshipActionType, number> = {
     подарок: 25,
     письмо: 10,
+    перевод: 5,
 };
 
 const drawFamiliarCard = (allCardPool: FamiliarCard[], hasBlessing: boolean, unavailableMythicIds: Set<string>, gachaChances: GameSettings['gachaChances']): FamiliarCard => {
@@ -1701,6 +1702,27 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const targetTx: BankTransaction = { id: `txn-recv-${Date.now()}`, date: now, reason: `Перевод от ${sourceChar.name}: ${reasonText}`, amount: { platinum: (amount.platinum || 0), gold: (amount.gold || 0), silver: (amount.silver || 0), copper: (amount.copper || 0) } };
             targetChar.bankAccount.history = [targetTx, ...(targetChar.bankAccount.history || [])];
 
+            // RELATIONSHIP UPDATE
+            const updateRel = (char: Character, otherId: string, points: number) => {
+                const relIndex = (char.relationships || []).findIndex(r => r.targetCharacterId === otherId);
+                if (relIndex !== -1) {
+                    const rel = char.relationships[relIndex];
+                    rel.points = Math.min(1000, rel.points + points);
+                    const action: RelationshipAction = {
+                        id: `act-bank-${Date.now()}`,
+                        type: 'перевод',
+                        date: now,
+                        description: `Перевод средств через банк (${reasonText})`,
+                        status: 'confirmed'
+                    };
+                    rel.history = [action, ...(rel.history || [])];
+                }
+            };
+
+            const pointsToAdd = RELATIONSHIP_POINTS_CONFIG['перевод'];
+            updateRel(sourceChar, targetCharacterId, pointsToAdd);
+            updateRel(targetChar, sourceCharacterId, pointsToAdd);
+
             const sanitizedSourceUser = sanitizeObjectForFirestore(sourceUserData);
             const sanitizedTargetUser = sanitizeObjectForFirestore(targetUserData);
 
@@ -1821,7 +1843,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             
             const acceptorUserRef = doc(db, "users", acceptorUserId);
             const acceptorUserDoc = await transaction.get(acceptorUserRef);
-            if (!acceptorUserDoc.exists()) throw new Error("Принимающий пользователь не найден.");
+            if (!lastAwarded) throw new Error("Принимающий пользователь не найден.");
             
             const acceptorUserData = acceptorUserDoc.data() as User;
             const acceptorCharIndex = acceptorUserData.characters.findIndex(c => c.id === acceptorCharacterId);
