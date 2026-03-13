@@ -6,7 +6,7 @@ import { useUser } from '@/hooks/use-user';
 import type { Shop, ShopItem, BankAccount, Character, InventoryCategory, InventoryItem } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, UserCircle, PlusCircle, Edit, Trash2, ShoppingCart, Info, Package, Settings, RefreshCw, BadgeCheck, Save, Search, WalletCards, Eye } from 'lucide-react';
+import { ArrowLeft, UserCircle, PlusCircle, Edit, Trash2, ShoppingCart, Info, Package, Settings, RefreshCw, BadgeCheck, Save, Search, WalletCards, Eye, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import ShopItemForm from '@/components/dashboard/shop-item-form';
@@ -65,6 +65,7 @@ export default function ShopPage() {
     
     const [editedTitle, setEditedTitle] = React.useState('');
     const [editedDescription, setEditedDescription] = React.useState('');
+    const [editedImage, setEditedImage] = React.useState('');
     const [isSavingDetails, setIsSavingDetails] = React.useState(false);
     const [defaultNewItemCategory, setDefaultNewItemCategory] = React.useState<InventoryCategory>('прочее');
     const [isWithdrawing, setIsWithdrawing] = React.useState(false);
@@ -73,9 +74,12 @@ export default function ShopPage() {
         if (shop) {
             setEditedTitle(shop.title);
             setEditedDescription(shop.description);
+            setEditedImage(shop.image || '');
             setDefaultNewItemCategory(shop.defaultNewItemCategory || 'прочее');
         }
     }, [shop]);
+
+    const isAdmin = currentUser?.role === 'admin';
 
     const isOwnerOrAdmin = React.useMemo(() => {
         if (!currentUser || !shop) return false;
@@ -128,9 +132,6 @@ export default function ShopPage() {
             items = items.filter(item => !item.isHidden);
         }
 
-        // Мы убираем сортировку по популярности, так как она заставляет товары прыгать 
-        // и менять высоту контейнера при каждом обновлении данных.
-        // Используем стабильную сортировку по имени.
         const sortedItems = items.sort((a, b) => a.name.localeCompare(b.name));
         
         if (!searchQuery) return sortedItems;
@@ -213,11 +214,18 @@ export default function ShopPage() {
         if (!shop) return;
         setIsSavingDetails(true);
         try {
-            await updateShopDetails(shop.id, { 
+            const updates: any = { 
                 title: editedTitle, 
                 description: editedDescription,
                 defaultNewItemCategory: defaultNewItemCategory 
-            });
+            };
+            
+            // Only admins can change the shop image
+            if (isAdmin) {
+                updates.image = editedImage;
+            }
+
+            await updateShopDetails(shop.id, updates);
             toast({ title: "Информация о заведении обновлена" });
             refetch();
             setIsManageDialogOpen(false);
@@ -435,6 +443,14 @@ export default function ShopPage() {
                         <div className="py-4 pr-6 space-y-6">
                             <div className="space-y-4 p-4 border rounded-md">
                                 <h4 className="font-semibold mb-2">Настройки магазина</h4>
+                                {isAdmin && (
+                                    <div className="space-y-2">
+                                        <Label htmlFor="shopImage" className="flex items-center gap-2">
+                                            <ImageIcon className="w-4 h-4" /> URL изображения заведения (только админ)
+                                        </Label>
+                                        <Input id="shopImage" value={editedImage} onChange={(e) => setEditedImage(e.target.value)} placeholder="https://..." />
+                                    </div>
+                                )}
                                 <div className="space-y-2">
                                     <Label htmlFor="shopTitle">Название</Label>
                                     <Input id="shopTitle" value={editedTitle} onChange={(e) => setEditedTitle(e.target.value)} />
