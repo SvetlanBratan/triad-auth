@@ -167,9 +167,9 @@ const QUESTIONNAIRE_ACHIEVEMENT_ID = 'ach-questionnaire';
 const FIRST_HUNT_ACHIEVEMENT_ID = 'ach-hunting';
 const FAVORITE_PLAYER_ACHIEVEMENT_ID = 'ach-favorites';
 
-const DEFAULT_POINTS_INFO = `**Мотивационная система награждений** строится так, что чем больше участвует ролевик в жизни ролевой, тем больше шансов у него получить ценные плюшки. Дабы администрация использовала не только кнут, но и пряник, была создана система баллов, накопив которые, можно обменять их на одну из предложенных наград, среди которых есть прекрасная возможность обойти некоторые запреты и ограничения ролевого мира, а также открыть желаемую для себя закрытую расу. Накопленные баллы гарантируют администрации проекта, что игрок довольно долго и активно играет в ролевой, а значит уже более подробно знает мир и вникает в происходящее в мире Триады, а значит может взять на себя ответственность за адекватный отыгрыш сложной расы или имбы.\n\nЗа участие в мини-ивентах на стене начисляется от **500 до 1000 баллов** в зависимости от сложности ивента.\nЗа участие в сюжетных квестах и ивентах от **1000 до 5000**.\nЕсли за неделю не было написано ни одного поста, администрация в праве снять баллы со счета игрока **(-1000)**.\n\n**Активность:** 800 баллов начисляется каждую неделю всем активным игрокам.\n* Написание анкеты - **500 баллов**\n* Привести в ролевую друга – **100 000 баллов**\n* За проведение квестов - **1000 баллов** за каждый пост гейм-мастера (прибавляется поверх еженедельного подсчета).\n* Помощь администрации – баллы выдаются администратором индивидуально, в зависимости от вида помощи (за добавление фауны или флоры обычно **800 баллов**)`;
+const DEFAULT_POINTS_INFO = `**Мотивационная система награждений** строится так, что чем больше участвует ролевик в жизни ролевой, тем больше шансов у него получить ценные плюшки. Дабы администрация использовала не только кнут, но и пряник, была создана система баллов, накопив которые, можно обменять их на одну из предложенных наград, среди которых есть прекрасная возможность обойти некоторые запреты и ограничения ролевого мира, а также открыть желаемую для себя закрытую расу. Накопленные баллы гарантируют администрации проекта, что игрок довольно долго и активно играет в ролевой, а значит уже более подробно знает мир и вникает в происходящее в мире Триады, а значит может взять на себя ответственность за адекватный отыгрыш сложной расы или имбы.\n\nЗа участие в мини-ивентах на стене начисляется от **500 до 1000 баллов** в зависимости от сложности ивента.\nЗа участие в сюжетных квестах и ивентах от **1000 до 5000**.\nЕсли за неделю не было написано ни одного поста, администрация в праве снять баллы со счета игрока **(-1000)**.\n\n**Активность:** 800 баллов начисляется каждую неделю всем активным игрокам.\n* Написание анкеты - **500 баллов**\n* Привести в ролевую друга – **100 000 баллов**\n* За проведение квестов - **1000 баллов за каждый пост гейм-мастера (прибавляется поверх еженедельного подсчета).\n* Помощь администрации – баллы выдаются администратором индивидуально, в зависимости от вида помощи (за добавление фауны или флоры обычно **800 баллов**)`;
 
-const RELATIONSHIP_POINTS_CONFIG: Record<RelationshipActionType, number> = {
+const RELATIONSHIP_POINTS_CONFIG: Record<RelationshipActionType | 'перевод', number> = {
     подарок: 25,
     письмо: 10,
     перевод: 5,
@@ -466,6 +466,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
         return finalUser;
     }, [fetchUserById, currentUser?.id, setCurrentUser]);
+
+    const addPointsToAllUsers = useCallback(async (amount: number, reason: string) => {
+        const allUsers = await fetchUsersForAdmin();
+        for (const user of allUsers) {
+            await addPointsToUser(user.id, amount, reason);
+        }
+    }, [fetchUsersForAdmin, addPointsToUser]);
     
     const fetchGameSettings = useCallback(async () => {
         try {
@@ -567,13 +574,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       await fetchGameSettings(); 
     }, [fetchGameSettings]);
 
-    const checkExtraCharacterSlots = useCallback(async (userId: string): Promise<number> => {
-        const requestsRef = collection(db, 'users', userId, 'reward_requests');
-        const q = query(requestsRef, where('rewardId', '==', EXTRA_CHARACTER_REWARD_ID), where('status', '==', 'одобрено'));
-        const querySnapshot = await getDocs(q);
-        return querySnapshot.size;
-    }, []);
-
     const processWeeklyBonus = useCallback(async () => {
         await runTransaction(db, async (transaction) => {
             const settingsRef = doc(db, 'game_settings', 'main');
@@ -634,51 +634,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         await fetchGameSettings();
         return { awardedCount: 0 };
     }, [fetchGameSettings]);
-    
-    const migrateAllFamiliarsToDb = useCallback(async () => {
-        const batch = writeBatch(db);
-        const allSystemCards = [...ALL_STATIC_FAMILIARS, ...EVENT_FAMILIARS];
-        
-        for (const card of allSystemCards) {
-            const cardRef = doc(db, "familiars", card.id);
-            batch.set(cardRef, card);
-        }
-        
-        await batch.commit();
-        await fetchAndCombineFamiliars();
-        toast({ title: "Миграция завершена", description: "Все системные фамильяры скопированы в базу данных." });
-    }, [fetchAndCombineFamiliars, toast]);
 
-    const addFamiliarToDb = useCallback(async (familiar: Omit<FamiliarCard, 'id'>, id?: string) => {
-        if (id) {
-            const familiarRef = doc(db, 'familiars', id);
-            await setDoc(familiarRef, familiar);
-        } else {
-            const familiarsCollection = collection(db, 'familiars');
-            await addDoc(familiarsCollection, familiar);
-        }
-        await fetchAndCombineFamiliars();
-    }, [fetchAndCombineFamiliars]);
-
-    const updateFamiliarInDb = useCallback(async (familiar: FamiliarCard) => {
-        const { id, ...data } = familiar;
-        const familiarRef = doc(db, 'familiars', id);
-        await setDoc(familiarRef, data, { merge: true });
-        await fetchAndCombineFamiliars();
-    }, [fetchAndCombineFamiliars]);
-
-    const addPointsToAllUsersFn = useCallback(async (amount: number, reason: string) => {
-        const allUsers = await fetchUsersForAdmin();
-        for (const user of allUsers) {
-            await addPointsToUser(user.id, amount, reason);
-        }
-    }, [fetchUsersForAdmin, addPointsToUser]);
-
-    const deleteFamiliarFromDb = useCallback(async (familiarId: string) => {
-        const familiarRef = doc(db, 'familiars', familiarId);
-        await deleteDoc(familiarRef);
-        await fetchAndCombineFamiliars();
-    }, [fetchAndCombineFamiliars]);
+    const checkExtraCharacterSlots = useCallback(async (userId: string): Promise<number> => {
+        const requestsRef = collection(db, 'users', userId, 'reward_requests');
+        const q = query(requestsRef, where('rewardId', '==', EXTRA_CHARACTER_REWARD_ID), where('status', '==', 'одобрено'));
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.size;
+    }, []);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -1073,7 +1035,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             setCurrentUser(updatedPayer);
         }
         return {...request, status: newStatus};
-    }, [fetchUserById, currentUser?.id, initialFormData]);
+    }, [fetchUserById, currentUser?.id, initialFormData, setCurrentUser]);
     
     const fetchAllRewardRequests = useCallback(async (): Promise<RewardRequest[]> => {
         const requests: RewardRequest[] = [];
@@ -1404,7 +1366,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 const existingTargetItemIndex = targetCategoryItems.findIndex(invItem => invItem.name === itemToGift.name);
 
                 if (existingTargetItemIndex > -1) {
-                     targetCategoryItems[existingTargetItemIndex].quantity += quantity;
+                    targetCategoryItems[existingTargetItemIndex].quantity += quantity;
                 } else {
                     targetCategoryItems.push({ ...itemToGift, id: `inv-item-${Date.now()}`, quantity, inventoryTag: itemCategory });
                 }
@@ -1469,7 +1431,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const newAction: RelationshipAction = {
                 id: `act-${Date.now()}`, type: actionType, date: new Date().toISOString(), description, status: 'confirmed',
             };
-            const pointsToAdd = RELATIONSHIP_POINTS_CONFIG[actionType];
+            const pointsToAdd = RELATIONSHIP_POINTS_CONFIG[actionType as keyof typeof RELATIONSHIP_POINTS_CONFIG] || 0;
 
             updateRelationship(sourceChar, targetCharacterId, sourceCharacterId, pointsToAdd, newAction);
             updateRelationship(targetChar, sourceCharacterId, sourceCharacterId, pointsToAdd, newAction);
@@ -1710,7 +1672,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                     rel.points = Math.min(1000, rel.points + points);
                     const action: RelationshipAction = {
                         id: `act-bank-${Date.now()}`,
-                        type: 'перевод',
+                        type: 'перевод' as any,
                         date: now,
                         description: `Перевод средств через банк (${reasonText})`,
                         status: 'confirmed'
@@ -1719,7 +1681,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 }
             };
 
-            const pointsToAdd = RELATIONSHIP_POINTS_CONFIG['перевод'];
+            const pointsToAdd = RELATIONSHIP_POINTS_CONFIG['перевод'] || 5;
             updateRel(sourceChar, targetCharacterId, pointsToAdd);
             updateRel(targetChar, sourceCharacterId, pointsToAdd);
 
@@ -1824,7 +1786,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         });
         const updatedUser = await fetchUserById(creatorUserId);
         if (updatedUser) setCurrentUser(updatedUser);
-    }, [fetchUserById, setCurrentUser]);
+    }, [fetchUserById, currentUser?.id, setCurrentUser]);
 
  const fetchOpenExchangeRequests = useCallback(async (): Promise<ExchangeRequest[]> => {
         const requestsCollection = collection(db, "exchange_requests");
@@ -2291,7 +2253,58 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 buyerUserData.achievementIds = [...(buyerUserData.achievementIds || []), FIRST_PURCHASE_ACHIEVEMENT_ID];
             }
 
-            transaction.update(buyerUserRef, { characters: buyerUserData.characters, achievementIds: buyerUserData.achievementIds });
+            // Notify owner if it's a service
+            if (item.inventoryTag === 'услуги' && shopData.ownerUserId) {
+                const serviceMail: MailMessage = {
+                    id: `mail-service-${Date.now()}`,
+                    senderUserId: 'system',
+                    senderCharacterName: 'Рынок',
+                    recipientUserId: shopData.ownerUserId,
+                    recipientCharacterId: '',
+                    recipientCharacterName: shopData.ownerCharacterName || '', 
+                    subject: `Продана услуга в "${shopData.title}"`,
+                    content: `Персонаж ${buyerChar.name} (игрок ${buyerUserData.name}) приобрел услугу: "${item.name}" (x${quantity}) в вашем заведении "${shopData.title}".`,
+                    sentAt: new Date().toISOString(),
+                    isRead: false,
+                    type: 'announcement',
+                };
+
+                if (shopData.ownerUserId === buyerUserId) {
+                    buyerUserData.mail = [...(buyerUserData.mail || []), serviceMail];
+                } else {
+                    const ownerRef = doc(db, "users", shopData.ownerUserId);
+                    const ownerDoc = await transaction.get(ownerRef);
+                    if (ownerDoc.exists()) {
+                        const ownerData = ownerDoc.data() as User;
+                        const updatedMail = [...(ownerData.mail || []), serviceMail];
+                        transaction.update(ownerRef, { mail: updatedMail });
+                    }
+                }
+            }
+
+            // Also check for the custom mail on purchase (if item has special instructions)
+            if (item.mailOnPurchase) {
+                const buyerMail: MailMessage = {
+                    id: `mail-info-${Date.now()}`,
+                    senderUserId: 'shop',
+                    senderCharacterName: shopData.title,
+                    recipientUserId: buyerUserId,
+                    recipientCharacterId: buyerCharacterId,
+                    recipientCharacterName: buyerChar.name,
+                    subject: `Информация о покупке: ${item.name}`,
+                    content: item.mailOnPurchase,
+                    sentAt: new Date().toISOString(),
+                    isRead: false,
+                    type: 'personal',
+                };
+                buyerUserData.mail = [...(buyerUserData.mail || []), buyerMail];
+            }
+
+            transaction.update(buyerUserRef, { 
+                characters: buyerUserData.characters, 
+                achievementIds: buyerUserData.achievementIds,
+                mail: buyerUserData.mail 
+            });
 
             const updatedShopData: Partial<Shop> = { bankAccount: shopBankAccount };
             const updatedItems = [...items];
@@ -2309,7 +2322,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const updatedUser = await fetchUserById(buyerUserId);
             if (updatedUser) setCurrentUser(updatedUser);
         }
-    }, [currentUser, fetchUserById, initialFormData, setCurrentUser]);
+    }, [currentUser, fetchUserById, initialFormData, setCurrentUser, fetchAllShops]);
 
     const adminGiveItemToCharacter = useCallback(async (userId: string, characterId: string, itemData: AdminGiveItemForm) => {
         const user = await fetchUserById(userId);
@@ -3653,6 +3666,36 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         await setDoc(shopRef, newShop);
     }, []);
 
+    const migrateAllFamiliarsToDb = useCallback(async () => {
+        const batch = writeBatch(db);
+        const allSystemFamiliars = [...ALL_STATIC_FAMILIARS, ...EVENT_FAMILIARS];
+        for (const fam of allSystemFamiliars) {
+            const famRef = doc(db, 'familiars', fam.id);
+            batch.set(famRef, sanitizeObjectForFirestore(fam));
+        }
+        await batch.commit();
+        await fetchAndCombineFamiliars();
+    }, [fetchAndCombineFamiliars]);
+
+    const addFamiliarToDb = useCallback(async (familiar: Omit<FamiliarCard, 'id'>, id?: string) => {
+        const newId = id || `fam-db-${Date.now()}`;
+        const famRef = doc(db, 'familiars', newId);
+        await setDoc(famRef, sanitizeObjectForFirestore(familiar));
+        await fetchAndCombineFamiliars();
+    }, [fetchAndCombineFamiliars]);
+
+    const updateFamiliarInDb = useCallback(async (familiar: FamiliarCard) => {
+        const famRef = doc(db, 'familiars', familiar.id);
+        await updateDoc(famRef, sanitizeObjectForFirestore(familiar));
+        await fetchAndCombineFamiliars();
+    }, [fetchAndCombineFamiliars]);
+
+    const deleteFamiliarFromDb = useCallback(async (familiarId: string) => {
+        const famRef = doc(db, 'familiars', familiarId);
+        await deleteDoc(famRef);
+        await fetchAndCombineFamiliars();
+    }, [fetchAndCombineFamiliars]);
+
     const userContextValue: UserContextType = useMemo(() => ({
         currentUser,
         setCurrentUser,
@@ -3669,7 +3712,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         fetchRewardRequestsForUser,
         fetchAvailableMythicCardsCount,
         addPointsToUser,
-        addPointsToAllUsers: addPointsToAllUsersFn,
+        addPointsToAllUsers,
         updateCharacterInUser,
         deleteCharacterFromUser,
         updateUserStatus,
@@ -3739,10 +3782,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         addFamiliarToDb,
         updateFamiliarInDb,
         deleteFamiliarFromDb,
-        sendPlayerPing,
-        deletePlayerPing,
-        addFavoritePlayer,
-        removeFavoritePlayer,
         allFamiliars,
         familiarsById,
         startHunt,
@@ -3761,8 +3800,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         deleteUserFromAuth,
         adminAddShop,
         migrateAllFamiliarsToDb,
+        sendPlayerPing,
+        deletePlayerPing,
+        addFavoritePlayer,
+        removeFavoritePlayer,
     }),
-        [currentUser, setCurrentUser, gameDate, gameDateString, gameSettings, teachings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsersFn, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes, fetchDbFamiliars, addFamiliarToDb, updateFamiliarInDb, deleteFamiliarFromDb, allFamiliars, familiarsById, startHunt, startMultipleHunts, claimHuntReward, claimAllHuntRewards, recallHunt, claimRewardsForOtherPlayer, changeUserPassword, changeUserEmail, mergeUserData, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, imageGeneration, deleteUserFromAuth, adminAddShop, migrateAllFamiliarsToDb, adminClaimHuntEarly, adminStartHunt, adminStartMultipleHunts]
+        [currentUser, setCurrentUser, gameDate, gameDateString, gameSettings, teachings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes, fetchDbFamiliars, addFamiliarToDb, updateFamiliarInDb, deleteFamiliarFromDb, allFamiliars, familiarsById, startHunt, startMultipleHunts, claimHuntReward, claimAllHuntRewards, recallHunt, claimRewardsForOtherPlayer, changeUserPassword, changeUserEmail, mergeUserData, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, imageGeneration, deleteUserFromAuth, adminAddShop, migrateAllFamiliarsToDb, adminClaimHuntEarly, adminStartHunt, adminStartMultipleHunts]
     );
     
     return (
