@@ -1,22 +1,41 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  allowedDevOrigins: ['*.replit.dev', '*.replit.app', '*.riker.replit.dev'],
+  webpack: (config) => {
+    config.output = config.output || {};
+    config.output.chunkLoadTimeout = 120000;
+    return config;
+  },
   images: {
+    dangerouslyAllowSVG: true,
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'res.cloudinary.com',
+        hostname: '*.cloudinary.com',
       },
       {
         protocol: 'https',
-        hostname: 'i.postimg.cc',
+        hostname: '*.placehold.co',
       },
       {
         protocol: 'https',
-        hostname: 'placehold.co',
+        hostname: '*.postimg.cc',
       },
       {
         protocol: 'https',
         hostname: 'framerusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.imagekit.io',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.userapi.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.storage.yandex.net',
       },
     ],
   },
