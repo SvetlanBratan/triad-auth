@@ -1,13 +1,8 @@
-
-// Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth, initializeAuth, indexedDBLocalPersistence } from "firebase/auth";
+import { getAuth, setPersistence, indexedDBLocalPersistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getDatabase } from "firebase/database";
-import { getAnalytics } from "firebase/analytics";
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyD0N_lwtTGfRwxCL2EMVMIPG62FMCn_tco",
   authDomain: "triad-scoring-system.firebaseapp.com",
@@ -19,23 +14,23 @@ const firebaseConfig = {
   databaseURL: "https://triad-scoring-system-default-rtdb.europe-west1.firebasedatabase.app",
 };
 
-// Initialize Firebase
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
 export const db = getFirestore(app);
 export const database = getDatabase(app);
 
-// Initialize Auth with persistence
-export const auth = typeof window !== 'undefined'
-  ? initializeAuth(app, { persistence: indexedDBLocalPersistence })
-  : getAuth(app);
+// Always use getAuth so server and client get the same initialization path,
+// preventing React hydration mismatches from the typeof window branch.
+export const auth = getAuth(app);
 
-
-// Initialize Analytics only in the browser
+// Set IndexedDB persistence on the client only, after auth is ready.
 if (typeof window !== 'undefined') {
-  try {
-    getAnalytics(app);
-  } catch (err) {
-    console.error('Failed to initialize Analytics', err);
-  }
+  setPersistence(auth, indexedDBLocalPersistence).catch((err) => {
+    console.error('Failed to set auth persistence:', err);
+  });
+
+  // Initialize Analytics only in the browser
+  import('firebase/analytics')
+    .then(({ getAnalytics }) => getAnalytics(app))
+    .catch((err) => console.error('Failed to initialize Analytics:', err));
 }

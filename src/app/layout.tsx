@@ -1,10 +1,24 @@
-
 import type {Metadata} from 'next';
 import './globals.css';
+import { Playfair_Display, PT_Sans } from 'next/font/google';
 import { Toaster } from "@/components/ui/toaster"
 import { UserProvider } from '@/components/providers/user-provider';
 import { QueryProvider } from '@/components/providers/query-provider';
 import { ThemeProvider } from '@/components/theme-provider';
+
+const playfairDisplay = Playfair_Display({
+  subsets: ['latin', 'cyrillic'],
+  weight: ['400', '700'],
+  variable: '--font-headline',
+  display: 'swap',
+});
+
+const ptSans = PT_Sans({
+  subsets: ['latin', 'cyrillic'],
+  weight: ['400', '700'],
+  variable: '--font-body',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'Triad Roleplay | Система наград',
@@ -17,12 +31,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ru" suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=PT+Sans:wght@400;700&display=swap" rel="stylesheet" />
-      </head>
+    <html lang="ru" suppressHydrationWarning className={`${playfairDisplay.variable} ${ptSans.variable}`}>
       <body className="font-body antialiased min-h-screen" suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
