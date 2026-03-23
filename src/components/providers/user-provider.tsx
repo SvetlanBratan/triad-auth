@@ -953,6 +953,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                     }
                     
                     const achievementMap: Record<string, string> = {
+                        'r-closed-race': 'ach-unique-character',
                         'r-race-1': 'ach-unique-character', 'r-race-2': 'ach-unique-character', 'r-race-3': 'ach-unique-character', 'r-race-4': 'ach-unique-character',
                         'r-extra-char': 'ach-multi-hand', 'r-wild-pet': 'ach-tamer', 'r-crime-connections': 'ach-mafiosi', 'r-leviathan': 'ach-submariner',
                         'r-ship': 'ach-seaman', 'r-airship': 'ach-sky-master', 'r-archmage': 'ach-big-mage', 'r-archmaster': 'ach-archmaster', 'r-deargod': 'ach-deargod', 'r-court-position': 'ach-important-person',

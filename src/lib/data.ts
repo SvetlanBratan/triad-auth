@@ -399,10 +399,7 @@ export const MOODLETS_DATA = {
 
 export const rewards: Reward[] = [
     { id: 'r-custom-status', title: 'Пользовательский статус', description: 'Установить или изменить свой эмодзи-статус и короткую фразу в профиле.', cost: 2000, type: 'permanent', iconName: 'Sticker' },
-    { id: 'r-race-1', title: 'Закрытая раса (ур. 1)', description: 'Безликие, неониды, нарраторы', cost: 8000, type: 'permanent', iconName: 'UserPlus' },
-    { id: 'r-race-2', title: 'Закрытая раса (ур. 2)', description: 'Бракованные пересмешники, скелеты, астролоиды', cost: 10000, type: 'permanent', iconName: 'UserPlus' },
-    { id: 'r-race-3', title: 'Закрытая раса (ур. 3)', description: 'Ларимы, антаресы, дарнатиаре и пересмешники', cost: 30000, type: 'permanent', iconName: 'UserPlus' },
-    { id: 'r-race-4', title: 'Закрытая раса (ур. 4)', description: 'Жнецы, нетленные', cost: 100000, type: 'permanent', iconName: 'UserPlus' },
+    { id: 'r-closed-race', title: 'Закрытая раса', description: 'Выберите закрытую расу из списка и получите доступ к уникальной расе.', cost: 100000, type: 'permanent', iconName: 'Lock' },
     { id: 'r-blessing', title: 'Благословение Богов', description: 'Ваш персонаж временно благословляется одним из Богов*', cost: 800, type: 'temporary', iconName: 'ShieldCheck' },
     { id: 'r-newspaper', title: 'Попасть в газету', description: 'Ваш персонаж попадает в газету и повышает уровень известности', cost: 800, type: 'permanent', iconName: 'ScrollText' },
     { id: 'r-extra-char', title: 'Дополнительный персонаж', description: 'Создание еще одного персонажа, если количество персонажей превысило 6', cost: 1000, type: 'permanent', iconName: 'UserRoundPlus' },

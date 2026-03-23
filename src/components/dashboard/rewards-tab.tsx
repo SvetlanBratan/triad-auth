@@ -39,11 +39,28 @@ const DynamicIcon = ({ name, className }: { name: string; className?: string }) 
     return <IconComponent className={className} />;
 };
 
+const CLOSED_RACE_OPTIONS = [
+  { value: 'Безликий', label: 'Безликий' },
+  { value: 'Неонид', label: 'Неонид' },
+  { value: 'Нарратор', label: 'Нарратор' },
+  { value: 'Бракованный пересмешник', label: 'Бракованный пересмешник' },
+  { value: 'Скелет', label: 'Скелет' },
+  { value: 'Астролоид', label: 'Астролоид' },
+  { value: 'Ларим', label: 'Ларим' },
+  { value: 'Антарес', label: 'Антарес' },
+  { value: 'Дарнатиар', label: 'Дарнатиар' },
+  { value: 'Пересмешник', label: 'Пересмешник' },
+  { value: 'Жнец', label: 'Жнец' },
+  { value: 'Нетленный', label: 'Нетленный' },
+];
+
+const CLOSED_RACE_PRICE = 100000;
 
 export default function RewardsTab() {
   const { currentUser, createRewardRequest, fetchUsersForAdmin, gameSettings } = useUser();
   const { toast } = useToast();
   const [selectedReward, setSelectedReward] = React.useState<Reward | null>(null);
+  const [selectedClosedRaceName, setSelectedClosedRaceName] = useState<string>(CLOSED_RACE_OPTIONS[0].value);
   const [selectedCharacterId, setSelectedCharacterId] = React.useState<string>('');
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -101,6 +118,11 @@ export default function RewardsTab() {
     setSelectedCharacterId('');
     setStatusEmoji(currentUser.statusEmoji || '');
     setStatusText(currentUser.statusText || '');
+
+    if (reward.id === 'r-closed-race') {
+      setSelectedClosedRaceName(CLOSED_RACE_OPTIONS[0].value);
+    }
+
     setIsDialogOpen(true);
   };
 
@@ -116,20 +138,43 @@ export default function RewardsTab() {
       toast({ variant: "destructive", title: "Ошибка", description: "Пожалуйста, введите эмодзи." });
       return;
     }
+
+    const actualRewardCost = selectedReward.id === 'r-closed-race'
+      ? CLOSED_RACE_PRICE
+      : selectedReward.cost;
+
+    if (currentUser.points < actualRewardCost) {
+      toast({ variant: "destructive", title: "Недостаточно баллов", description: `Вам нужно ${actualRewardCost.toLocaleString()} баллов для выбранной закрытой расы.` });
+      return;
+    }
     
     setIsLoading(true);
     
     const character = targetUser?.characters.find(c => c.id === selectedCharacterId);
 
     try {
+        let rewardTitle = selectedReward.title;
+        let rewardCost = actualRewardCost;
+        let closedRaceName: string | undefined;
+
+        if (selectedReward.id === 'r-closed-race') {
+            if (!selectedClosedRaceName) {
+                throw new Error('Не выбрана закрытая раса.');
+            }
+            rewardTitle = `${selectedReward.title}: ${selectedClosedRaceName}`;
+            rewardCost = CLOSED_RACE_PRICE;
+            closedRaceName = selectedClosedRaceName;
+        }
+
         const rewardRequestData: Omit<RewardRequest, 'id' | 'status' | 'createdAt'> = {
             userId: currentUser.id,
             userName: currentUser.name,
             rewardId: selectedReward.id,
-            rewardTitle: selectedReward.title,
-            rewardCost: selectedReward.cost,
+            rewardTitle,
+            rewardCost,
             characterId: character?.id || '',
             characterName: character?.name || '',
+            closedRaceName,
         };
 
         if (recipientType === 'gift' && targetUser && selectedReward.id !== 'r-custom-status') {
@@ -222,9 +267,10 @@ export default function RewardsTab() {
             </CardContent>
             <CardFooter className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center bg-muted/50 p-2 sm:p-4 mt-auto gap-2">
               <div className="font-bold text-sm sm:text-lg text-primary flex items-center gap-1 sm:gap-1.5 justify-center sm:justify-start">
-                <CustomIcon src="/icons/points.svg" className="w-4 h-4 sm:w-5 sm:h-5 icon-primary" /> {reward.cost.toLocaleString()}
+                <CustomIcon src="/icons/points.svg" className="w-4 h-4 sm:w-5 sm:h-5 icon-primary" />
+                {reward.id === 'r-closed-race' ? CLOSED_RACE_PRICE.toLocaleString() : reward.cost.toLocaleString()}
               </div>
-              <Button size="sm" onClick={() => handleRedeemClick(reward)} disabled={(currentUser?.points ?? 0) < reward.cost || isLoading} className="h-7 sm:h-9 text-[10px] sm:text-sm">
+              <Button size="sm" onClick={() => handleRedeemClick(reward)} disabled={(currentUser?.points ?? 0) < (reward.id === 'r-closed-race' ? CLOSED_RACE_PRICE : reward.cost) || isLoading} className="h-7 sm:h-9 text-[10px] sm:text-sm">
                 {isLoading ? '...' : 'Запросить'}
               </Button>
             </CardFooter>
@@ -302,6 +348,21 @@ export default function RewardsTab() {
                             </div>
                         ) : (
                             <div className="space-y-2">
+                                {selectedReward.id === 'r-closed-race' && (
+                                  <div className="space-y-3 p-3 border rounded-lg">
+                                    <Label>Выберите закрытую расу</Label>
+                                    <SearchableSelect
+                                      options={CLOSED_RACE_OPTIONS}
+                                      value={selectedClosedRaceName}
+                                      onValueChange={setSelectedClosedRaceName}
+                                      placeholder="Выберите расу..."
+                                    />
+                                    <div className="text-sm text-muted-foreground">
+                                      Стоимость: {CLOSED_RACE_PRICE.toLocaleString()} баллов
+                                    </div>
+                                  </div>
+                                )}
+
                                 <Label>Выберите персонажа:</Label>
                                 <SearchableSelect
                                     options={characterOptions}
@@ -323,7 +384,11 @@ export default function RewardsTab() {
                             (recipientType === 'gift' && !targetUserId)
                         }
                     >
-                        {isLoading ? 'Отправка...' : `Оплатить ${selectedReward.cost.toLocaleString()} баллов`}
+                        {isLoading ? 'Отправка...' : `Оплатить ${
+                            selectedReward.id === 'r-closed-race'
+                            ? CLOSED_RACE_PRICE.toLocaleString()
+                            : selectedReward.cost.toLocaleString()
+                        } баллов`}
                     </Button>
                 </DialogContent>
             </Dialog>

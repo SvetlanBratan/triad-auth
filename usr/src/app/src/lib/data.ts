@@ -102,10 +102,7 @@ export const STARTING_CAPITAL_LEVELS: CapitalLevel[] = [
 export const users: never[] = [];
 
 export const rewards: Reward[] = [
-    { id: 'r-race-1', title: 'Закрытая раса (ур. 1)', description: 'Безликие, неониды, нарраторы', cost: 8000, type: 'permanent', iconName: 'UserPlus' },
-    { id: 'r-race-2', title: 'Закрытая раса (ур. 2)', description: 'Бракованные пересмешники, скелеты, астролоиды', cost: 10000, type: 'permanent', iconName: 'UserPlus' },
-    { id: 'r-race-3', title: 'Закрытая раса (ур. 3)', description: 'Ларимы, антаресы, дарнатиаре и пересмешники', cost: 30000, type: 'permanent', iconName: 'UserPlus' },
-    { id: 'r-race-4', title: 'Закрытая раса (ур. 4)', description: 'Жнецы, нетленные', cost: 100000, type: 'permanent', iconName: 'UserPlus' },
+    { id: 'r-closed-race', title: 'Закрытая раса', description: 'Выберите закрытую расу из списка и получите доступ к уникальной расе.', cost: 100000, type: 'permanent', iconName: 'Lock' },
     { id: 'r-blessing', title: 'Благословение Богов', description: 'Ваш персонаж временно благословляется одним из Богов*', cost: 800, type: 'temporary', iconName: 'ShieldCheck' },
     { id: 'r-newspaper', title: 'Попасть в газету', description: 'Ваш персонаж попадает в газету и повышает уровень известности', cost: 800, type: 'permanent', iconName: 'ScrollText' },
     { id: 'r-extra-char', title: 'Дополнительный персонаж', description: 'Создание еще одного персонажа, если количество персонажей превысило 6', cost: 1000, type: 'permanent', iconName: 'UserRoundPlus' },
@@ -137,7 +134,7 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
   { id: 'ach-mythic-pull', name: 'Мифическое везение', description: 'Выдаётся за получение первого мифического фамильяра, которого нет ни у одного другого игрока.', iconName: 'Sparkles' },
   { id: 'ach-generous', name: 'Меценат', description: 'Даётся игроку, потратившему более 100,000 баллов на награды в магазине.', iconName: 'Gem' },
   { id: 'ach-forbes-list', name: 'В списке Forbes', description: 'Выдаётся за попадание в топ-3 таблицы лидеров.', iconName: 'Trophy' },
-  { id: 'ach-unique-character', name: 'Владелец уникального персонажа', description: 'Выдаётся за покупку закрытой расы для персонажа. Любой уровень расы засчитывается.', iconName: 'VenetianMask' },
+  { id: 'ach-unique-character', name: 'Владелец уникального персонажа', description: 'Персонаж из списка закрытых рас. Выдается за покупку этой награды.', iconName: 'VenetianMask' },
   { id: 'ach-multi-hand', name: 'Многоручка', description: 'Игрок, купивший дополнительного персонажа, когда лимит на бесплатных персонажей исчерпан.', iconName: 'Users' },
   { id: 'ach-tamer', name: 'Укротитель', description: 'Персонаж сумел завести себе неприручаемое в обычных условиях животное в качестве питомца.', iconName: 'Cat' },
   { id: 'ach-mafiosi', name: 'Мафиози', description: 'Даётся персонажу, который приобрёл связи в преступном мире через магазин наград.', iconName: 'KeyRound' },

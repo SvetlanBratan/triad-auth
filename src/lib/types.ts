@@ -431,6 +431,7 @@ export interface RewardRequest {
   createdAt: string; // ISO string date
   statusEmoji?: string;
   statusText?: string;
+  closedRaceName?: string;
 }
 
 export interface ShopItem {

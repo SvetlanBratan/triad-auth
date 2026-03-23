@@ -19,9 +19,7 @@ import ImageUploader from './image-uploader';
 import { SearchableMultiSelect } from '../ui/searchable-multi-select';
 import { Switch } from '../ui/switch';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
-import { useUser } from '@/hooks/use-user';
 import { Badge } from '../ui/badge';
-import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogTrigger } from '../ui/alert-dialog';
 
 
@@ -147,10 +145,9 @@ const fameLevelOptions = FAME_LEVELS.map(level => ({ value: level, label: level 
 const skillLevelOptions = SKILL_LEVELS.map(level => ({ value: level, label: level }));
 const crimeLevelOptions = CRIME_LEVELS.map(cl => ({ value: String(cl.level), label: cl.title }));
 const countryOptions = COUNTRIES.map(c => ({ value: c, label: c }));
-const citizenshipStatusOptions: { value: CitizenshipStatus, label: string }[] = [
-    { value: 'citizen', label: 'Гражданин' },
-    { value: 'non-citizen', label: 'Не гражданин' },
-    { value: 'refugee', label: 'Беженец' },
+const CLOSED_RACES = [
+    'Безликий', 'Неонид', 'Нарратор', 'Бракованный пересмешник', 'Скелет', 'Астролоид',
+    'Ларим', 'Антарес', 'Дарнатиар', 'Пересмешник', 'Жнец', 'Нетленный'
 ];
 
 const SectionTitles: Record<EditableSection, string> = {
@@ -181,18 +178,10 @@ const FieldLabels: Partial<Record<keyof Character, string>> = {
     residenceLocation: 'Место проживания',
 };
 
-const relationshipTypeOptions: { value: RelationshipType, label: string }[] = [
-    { value: 'романтика', label: 'Романтика' },
-    { value: 'любовь', label: 'Любовь' },
-    { value: 'дружба', label: 'Дружба' },
-    { value: 'семья', label: 'Семья' },
-    { value: 'вражда', label: 'Вражда' },
-    { value: 'конкуренция', label: 'Конкуренция' },
-    { value: 'нейтралитет', label: 'Нейтралитет' },
-    { value: 'уважение', label: 'Уважение' },
-    { value: 'страсть', label: 'Страсть' },
-    { value: 'заинтересованность', label: 'Заинтересованность' },
-    { value: 'сотрудничество', label: 'Сотрудничество' },
+const citizenshipStatusOptions: { value: CitizenshipStatus, label: string }[] = [
+    { value: 'citizen', label: 'Гражданин' },
+    { value: 'non-citizen', label: 'Не гражданин' },
+    { value: 'refugee', label: 'Беженец' },
 ];
 
 const FormattingHelp = () => (
@@ -202,17 +191,32 @@ const FormattingHelp = () => (
 );
 
 const CharacterForm = ({ character, allUsers, ownerId, onSuccess, closeDialog, editingState }: CharacterFormProps) => {
-    const { currentUser, gameDate, teachings, updateCharacterInUser } = useUser();
+    const { currentUser, fetchRewardRequestsForUser, gameDate, teachings, updateCharacterInUser } = useUser();
+    const { data: approvedRewards = [] } = useQuery({
+        queryKey: ['approvedRewards', currentUser?.id],
+        queryFn: async () => {
+            if (!currentUser?.id) return [];
+            const requests = await fetchRewardRequestsForUser(currentUser.id);
+            return requests.filter(r => r.status === 'одобрено' && r.rewardId === 'r-closed-race');
+        },
+        enabled: !!currentUser?.id,
+    });
     const isCreating = editingState?.type === 'createCharacter';
     const isAdmin = currentUser?.role === 'admin';
+
+    const purchasedClosedRaces = React.useMemo(() => {
+        const set = new Set<string>();
+        approvedRewards.forEach((r: any) => {
+            if (r.closedRaceName) set.add(r.closedRaceName);
+        });
+        return set;
+    }, [approvedRewards]);
+
     const [formData, setFormData] = React.useState<Character>({ ...initialFormData, id: `c-${Date.now()}`});
     const [npcSpouseInput, setNpcSpouseInput] = React.useState('');
 
     const [currentItem, setCurrentItem] = React.useState<Relationship | Accomplishment | null>(null);
 
-    const [baseRace, setBaseRace] = React.useState('');
-    const [raceDetails, setRaceDetails] = React.useState('');
-    const [subRace, setSubRace] = React.useState('');
     const [raceOptions, setRaceOptions] = React.useState<{value: string, label: string}[]>([]);
     const [subRaceOptions, setSubRaceOptions] = React.useState<{value: string, label: string}[]>([]);
     const [raceNameToId, setRaceNameToId] = React.useState<Record<string, string>>({});
@@ -220,6 +224,16 @@ const CharacterForm = ({ character, allUsers, ownerId, onSuccess, closeDialog, e
     const [isLoadingSubRaces, setIsLoadingSubRaces] = React.useState(false);
     const [ageInput, setAgeInput] = React.useState('');
     const { toast } = useToast();
+
+    const filteredRaceOptions = React.useMemo(() => {
+        return raceOptions.filter(option => {
+            if (isAdmin) return true;
+            if (CLOSED_RACES.includes(option.value)) {
+                return purchasedClosedRaces.has(option.value);
+            }
+            return true;
+        });
+    }, [raceOptions, isAdmin, purchasedClosedRaces]);
     
      React.useEffect(() => {
         const initializeState = () => {
@@ -794,7 +808,7 @@ const CharacterForm = ({ character, allUsers, ownerId, onSuccess, closeDialog, e
                                 <div className="space-y-2">
                                     <Label htmlFor="race">Раса</Label>
                                     <SearchableSelect
-                                        options={isLoadingRaces ? [] : raceOptions}
+                                        options={isLoadingRaces ? [] : filteredRaceOptions}
                                         value={baseRace}
                                         onValueChange={(v) => { setBaseRace(v); setRaceDetails(''); setSubRace(''); }}
                                         placeholder={isLoadingRaces ? "Загрузка рас..." : "Выберите расу..."}
@@ -1109,7 +1123,7 @@ const CharacterForm = ({ character, allUsers, ownerId, onSuccess, closeDialog, e
                             <div className="space-y-2">
                                 <Label htmlFor="race">Раса</Label>
                                 <SearchableSelect
-                                    options={isLoadingRaces ? [] : raceOptions}
+                                    options={isLoadingRaces ? [] : filteredRaceOptions}
                                     value={baseRace}
                                     onValueChange={(v) => { setBaseRace(v); setRaceDetails(''); }}
                                     placeholder={isLoadingRaces ? "Загрузка рас..." : "Выберите расу..."}
