@@ -3,7 +3,9 @@
 
 import React from 'react';
 import type { Character, User, Accomplishment, Relationship, RelationshipType, CrimeLevel, CitizenshipStatus, Inventory, GalleryImage, Magic, MagicAbility, TrainingRecord } from '@/lib/types';
-import { SKILL_LEVELS, FAME_LEVELS, TRAINING_OPTIONS, CRIME_LEVELS, COUNTRIES, RACE_OPTIONS, MAGIC_PERCEPTION_OPTIONS, ADMIN_ELEMENTAL_MAGIC_OPTIONS, ELEMENTAL_MAGIC_OPTIONS, ADMIN_RESERVE_LEVEL_OPTIONS, RESERVE_LEVEL_OPTIONS, FAITH_LEVEL_OPTIONS, KNOWLEDGE_LEVELS, ADMIN_KNOWLEDGE_LEVELS } from '@/lib/data';
+import { SKILL_LEVELS, FAME_LEVELS, TRAINING_OPTIONS, CRIME_LEVELS, COUNTRIES, MAGIC_PERCEPTION_OPTIONS, ADMIN_ELEMENTAL_MAGIC_OPTIONS, ELEMENTAL_MAGIC_OPTIONS, ADMIN_RESERVE_LEVEL_OPTIONS, RESERVE_LEVEL_OPTIONS, FAITH_LEVEL_OPTIONS, KNOWLEDGE_LEVELS, ADMIN_KNOWLEDGE_LEVELS } from '@/lib/data';
+import { db } from '@/lib/firebase';
+import { collection, getDocs } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { DialogClose, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -209,6 +211,11 @@ const CharacterForm = ({ character, allUsers, ownerId, onSuccess, closeDialog, e
 
     const [baseRace, setBaseRace] = React.useState('');
     const [raceDetails, setRaceDetails] = React.useState('');
+    const [raceOptions, setRaceOptions] = React.useState<{value: string, label: string}[]>([]);
+    const [subRaceOptions, setSubRaceOptions] = React.useState<{value: string, label: string}[]>([]);
+    const [raceNameToId, setRaceNameToId] = React.useState<Record<string, string>>({});
+    const [isLoadingRaces, setIsLoadingRaces] = React.useState(false);
+    const [isLoadingSubRaces, setIsLoadingSubRaces] = React.useState(false);
     const [ageInput, setAgeInput] = React.useState('');
     const { toast } = useToast();
     
@@ -276,6 +283,54 @@ const CharacterForm = ({ character, allUsers, ownerId, onSuccess, closeDialog, e
         }
     }, [baseRace, raceDetails, editingState]);
 
+    React.useEffect(() => {
+        const fetchRaces = async () => {
+            setIsLoadingRaces(true);
+            try {
+                const racesSnap = await getDocs(collection(db, 'races'));
+                const nameToId: Record<string, string> = {};
+                const opts = racesSnap.docs
+                    .filter(d => d.data().singularName)
+                    .map(d => {
+                        const name = d.data().singularName as string;
+                        nameToId[name] = d.id;
+                        return { value: name, label: name };
+                    })
+                    .sort((a, b) => a.label.localeCompare(b.label, 'ru'));
+                setRaceOptions(opts);
+                setRaceNameToId(nameToId);
+            } catch (e) {
+                console.error('Failed to fetch races', e);
+            } finally {
+                setIsLoadingRaces(false);
+            }
+        };
+        fetchRaces();
+    }, []);
+
+    React.useEffect(() => {
+        const raceId = raceNameToId[baseRace];
+        if (!raceId) {
+            setSubRaceOptions([]);
+            return;
+        }
+        const fetchSubRaces = async () => {
+            setIsLoadingSubRaces(true);
+            try {
+                const subRacesSnap = await getDocs(collection(db, 'race_details', raceId, 'subRaces'));
+                const opts = subRacesSnap.docs
+                    .filter(d => d.data().singularName)
+                    .map(d => ({ value: d.data().singularName as string, label: d.data().singularName as string }))
+                    .sort((a, b) => a.label.localeCompare(b.label, 'ru'));
+                setSubRaceOptions(opts);
+            } catch (e) {
+                setSubRaceOptions([]);
+            } finally {
+                setIsLoadingSubRaces(false);
+            }
+        };
+        fetchSubRaces();
+    }, [baseRace, raceNameToId]);
 
     const characterOptions = React.useMemo(() => {
         if (!allUsers) return [];
@@ -664,18 +719,28 @@ const CharacterForm = ({ character, allUsers, ownerId, onSuccess, closeDialog, e
                                 <div className="space-y-2">
                                     <Label htmlFor="race">Раса</Label>
                                     <SearchableSelect
-                                        options={RACE_OPTIONS}
+                                        options={isLoadingRaces ? [] : raceOptions}
                                         value={baseRace}
-                                        onValueChange={setBaseRace}
-                                        placeholder="Выберите расу..."
-                                        disabled={!isAdmin && formData.raceIsConfirmed}
+                                        onValueChange={(v) => { setBaseRace(v); setRaceDetails(''); }}
+                                        placeholder={isLoadingRaces ? "Загрузка рас..." : "Выберите расу..."}
+                                        disabled={(!isAdmin && formData.raceIsConfirmed) || isLoadingRaces}
                                     />
-                                    <Input
-                                        value={raceDetails}
-                                        onChange={(e) => setRaceDetails(e.target.value)}
-                                        placeholder="Уточнение в скобках (необязательно)"
-                                        disabled={!isAdmin && formData.raceIsConfirmed}
-                                    />
+                                    {subRaceOptions.length > 0 ? (
+                                        <SearchableSelect
+                                            options={[{value: '', label: '—'}, ...subRaceOptions]}
+                                            value={raceDetails}
+                                            onValueChange={setRaceDetails}
+                                            placeholder={isLoadingSubRaces ? "Загрузка..." : "Выберите подрасу..."}
+                                            disabled={(!isAdmin && formData.raceIsConfirmed) || isLoadingSubRaces}
+                                        />
+                                    ) : (
+                                        <Input
+                                            value={raceDetails}
+                                            onChange={(e) => setRaceDetails(e.target.value)}
+                                            placeholder="Уточнение в скобках (необязательно)"
+                                            disabled={!isAdmin && formData.raceIsConfirmed}
+                                        />
+                                    )}
                                     {isAdmin && (
                                         <div className="flex items-center space-x-2 pt-2">
                                             <Switch
@@ -969,18 +1034,28 @@ const CharacterForm = ({ character, allUsers, ownerId, onSuccess, closeDialog, e
                             <div className="space-y-2">
                                 <Label htmlFor="race">Раса</Label>
                                 <SearchableSelect
-                                    options={RACE_OPTIONS}
+                                    options={isLoadingRaces ? [] : raceOptions}
                                     value={baseRace}
-                                    onValueChange={setBaseRace}
-                                    placeholder="Выберите расу..."
-                                    disabled={!isAdmin && formData.raceIsConfirmed}
+                                    onValueChange={(v) => { setBaseRace(v); setRaceDetails(''); }}
+                                    placeholder={isLoadingRaces ? "Загрузка рас..." : "Выберите расу..."}
+                                    disabled={(!isAdmin && formData.raceIsConfirmed) || isLoadingRaces}
                                 />
-                                <Input
-                                    value={raceDetails}
-                                    onChange={(e) => setRaceDetails(e.target.value)}
-                                    placeholder="Уточнение в скобках (необязательно)"
-                                    disabled={!isAdmin && formData.raceIsConfirmed}
-                                />
+                                {subRaceOptions.length > 0 ? (
+                                    <SearchableSelect
+                                        options={[{value: '', label: '—'}, ...subRaceOptions]}
+                                        value={raceDetails}
+                                        onValueChange={setRaceDetails}
+                                        placeholder={isLoadingSubRaces ? "Загрузка..." : "Выберите подрасу..."}
+                                        disabled={(!isAdmin && formData.raceIsConfirmed) || isLoadingSubRaces}
+                                    />
+                                ) : (
+                                    <Input
+                                        value={raceDetails}
+                                        onChange={(e) => setRaceDetails(e.target.value)}
+                                        placeholder="Уточнение в скобках (необязательно)"
+                                        disabled={!isAdmin && formData.raceIsConfirmed}
+                                    />
+                                )}
                             </div>
                             {isAdmin && (
                                 <div className="flex items-center space-x-2">
