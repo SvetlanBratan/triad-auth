@@ -295,36 +295,51 @@ const CharacterForm = ({ character, allUsers, ownerId, onSuccess, closeDialog, e
     React.useEffect(() => {
         const fetchRaces = async () => {
             setIsLoadingRaces(true);
+            let nameToId: Record<string, string> = {};
+            let opts: { value: string; label: string }[] = [];
+
+            const processData = (data: Record<string, any>) => {
+                const localNameToId: Record<string, string> = {};
+                const localOpts = Object.entries(data)
+                    .filter(([id, race]) => race && (race.singularName || race.name))
+                    .map(([id, race]) => {
+                        const name = (race.singularName || race.name) as string;
+                        localNameToId[name] = id;
+                        return { value: name, label: name };
+                    })
+                    .sort((a, b) => a.label.localeCompare(b.label, 'ru'));
+                return { localNameToId, localOpts };
+            };
+
             try {
                 const racesRef = ref(database, 'races');
                 const snapshot = await get(racesRef);
                 if (snapshot.exists()) {
                     const data = snapshot.val();
                     console.log('Races data from Realtime DB:', data);
-                    const nameToId: Record<string, string> = {};
-                    const opts = Object.entries(data)
-                        .filter(([id, race]: [string, any]) => race && race.singularName)
-                        .map(([id, race]: [string, any]) => {
-                            const name = race.singularName as string;
-                            nameToId[name] = id;
-                            return { value: name, label: name };
-                        })
-                        .sort((a, b) => a.label.localeCompare(b.label, 'ru'));
-                    console.log('Parsed race options:', opts);
-                    setRaceOptions(opts);
-                    setRaceNameToId(nameToId);
-                } else {
-                    console.warn('No races data found in Realtime Database at /races');
-                    setRaceOptions([]);
-                    setRaceNameToId({});
+                    ({ localNameToId: nameToId, localOpts: opts } = processData(data));
                 }
             } catch (e) {
-                console.error('Failed to fetch races from Realtime Database', e);
-                setRaceOptions([]);
-                setRaceNameToId({});
-            } finally {
-                setIsLoadingRaces(false);
+                console.warn('Failed to fetch races from Realtime DB; trying Firestore fallback', e);
             }
+
+            if (opts.length === 0) {
+                try {
+                    const racesSnap = await getDocs(collection(db, 'races'));
+                    const data: Record<string, any> = {};
+                    racesSnap.docs.forEach((doc) => {
+                        data[doc.id] = doc.data();
+                    });
+                    console.log('Races data from Firestore fallback:', data);
+                    ({ localNameToId: nameToId, localOpts: opts } = processData(data));
+                } catch (e) {
+                    console.error('Failed to fetch races from Firestore as fallback', e);
+                }
+            }
+
+            setRaceOptions(opts);
+            setRaceNameToId(nameToId);
+            setIsLoadingRaces(false);
         };
         fetchRaces();
     }, []);
@@ -337,26 +352,57 @@ const CharacterForm = ({ character, allUsers, ownerId, onSuccess, closeDialog, e
         }
         const fetchSubRaces = async () => {
             setIsLoadingSubRaces(true);
+            let opts: { value: string; label: string }[] = [];
+
+            const processSubraceData = (data: any) => {
+                if (!data) return [];
+                const values = Array.isArray(data) ? data : Object.values(data);
+                return values
+                    .filter((subRace: any) => subRace && (subRace.singularName || subRace.name))
+                    .map((subRace: any) => ({ value: (subRace.singularName || subRace.name) as string, label: (subRace.singularName || subRace.name) as string }))
+                    .sort((a, b) => a.label.localeCompare(b.label, 'ru'));
+            };
+
             try {
                 const subRacesRef = ref(database, `race_details/${raceId}/subRaces`);
                 const snapshot = await get(subRacesRef);
                 if (snapshot.exists()) {
                     const data = snapshot.val();
-                    console.log(`SubRaces data for ${raceId}:`, data);
-                    const opts = Object.values(data)
-                        .filter((subRace: any) => subRace && subRace.singularName)
-                        .map((subRace: any) => ({ value: subRace.singularName as string, label: subRace.singularName as string }))
-                        .sort((a, b) => a.label.localeCompare(b.label, 'ru'));
-                    console.log('Parsed subRace options:', opts);
-                    setSubRaceOptions(opts);
-                } else {
-                    setSubRaceOptions([]);
+                    console.log(`SubRaces data for ${raceId} from Realtime DB (subRaces path):`, data);
+                    opts = processSubraceData(data);
                 }
             } catch (e) {
-                setSubRaceOptions([]);
-            } finally {
-                setIsLoadingSubRaces(false);
+                console.warn(`Failed to read subRaces from Realtime DB for ${raceId} (subRaces path).`, e);
             }
+
+            if (opts.length === 0) {
+                try {
+                    const fallbackRef = ref(database, `race_details/${raceId}`);
+                    const snapshot = await get(fallbackRef);
+                    if (snapshot.exists()) {
+                        const data = snapshot.val();
+                        console.log(`SubRaces data for ${raceId} from Realtime DB (race_details path):`, data);
+                        opts = processSubraceData(data.subRaces || data);
+                    }
+                } catch (e) {
+                    console.warn(`Failed to read subRaces from Realtime DB for ${raceId} (race_details path).`, e);
+                }
+            }
+
+            if (opts.length === 0) {
+                try {
+                    const subRacesSnap = await getDocs(collection(db, 'race_details', raceId, 'subRaces'));
+                    const data: Record<string, any> = {};
+                    subRacesSnap.docs.forEach((doc) => { data[doc.id] = doc.data(); });
+                    console.log(`SubRaces data for ${raceId} from Firestore fallback:`, data);
+                    opts = processSubraceData(data);
+                } catch (e) {
+                    console.warn(`Failed to read subRaces from Firestore for ${raceId}.`, e);
+                }
+            }
+
+            setSubRaceOptions(opts);
+            setIsLoadingSubRaces(false);
         };
         fetchSubRaces();
     }, [baseRace, raceNameToId]);
