@@ -4,8 +4,9 @@
 import React from 'react';
 import type { Character, User, Accomplishment, Relationship, RelationshipType, CrimeLevel, CitizenshipStatus, Inventory, GalleryImage, Magic, MagicAbility, TrainingRecord } from '@/lib/types';
 import { SKILL_LEVELS, FAME_LEVELS, TRAINING_OPTIONS, CRIME_LEVELS, COUNTRIES, MAGIC_PERCEPTION_OPTIONS, ADMIN_ELEMENTAL_MAGIC_OPTIONS, ELEMENTAL_MAGIC_OPTIONS, ADMIN_RESERVE_LEVEL_OPTIONS, RESERVE_LEVEL_OPTIONS, FAITH_LEVEL_OPTIONS, KNOWLEDGE_LEVELS, ADMIN_KNOWLEDGE_LEVELS } from '@/lib/data';
-import { db } from '@/lib/firebase';
+import { db, database } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
+import { ref, get } from 'firebase/database';
 import { Button } from '@/components/ui/button';
 import { DialogClose, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -287,20 +288,32 @@ const CharacterForm = ({ character, allUsers, ownerId, onSuccess, closeDialog, e
         const fetchRaces = async () => {
             setIsLoadingRaces(true);
             try {
-                const racesSnap = await getDocs(collection(db, 'races'));
-                const nameToId: Record<string, string> = {};
-                const opts = racesSnap.docs
-                    .filter(d => d.data().singularName)
-                    .map(d => {
-                        const name = d.data().singularName as string;
-                        nameToId[name] = d.id;
-                        return { value: name, label: name };
-                    })
-                    .sort((a, b) => a.label.localeCompare(b.label, 'ru'));
-                setRaceOptions(opts);
-                setRaceNameToId(nameToId);
+                const racesRef = ref(database, 'races');
+                const snapshot = await get(racesRef);
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    console.log('Races data from Realtime DB:', data);
+                    const nameToId: Record<string, string> = {};
+                    const opts = Object.entries(data)
+                        .filter(([id, race]: [string, any]) => race && race.singularName)
+                        .map(([id, race]: [string, any]) => {
+                            const name = race.singularName as string;
+                            nameToId[name] = id;
+                            return { value: name, label: name };
+                        })
+                        .sort((a, b) => a.label.localeCompare(b.label, 'ru'));
+                    console.log('Parsed race options:', opts);
+                    setRaceOptions(opts);
+                    setRaceNameToId(nameToId);
+                } else {
+                    console.warn('No races data found in Realtime Database at /races');
+                    setRaceOptions([]);
+                    setRaceNameToId({});
+                }
             } catch (e) {
-                console.error('Failed to fetch races', e);
+                console.error('Failed to fetch races from Realtime Database', e);
+                setRaceOptions([]);
+                setRaceNameToId({});
             } finally {
                 setIsLoadingRaces(false);
             }
@@ -317,12 +330,20 @@ const CharacterForm = ({ character, allUsers, ownerId, onSuccess, closeDialog, e
         const fetchSubRaces = async () => {
             setIsLoadingSubRaces(true);
             try {
-                const subRacesSnap = await getDocs(collection(db, 'race_details', raceId, 'subRaces'));
-                const opts = subRacesSnap.docs
-                    .filter(d => d.data().singularName)
-                    .map(d => ({ value: d.data().singularName as string, label: d.data().singularName as string }))
-                    .sort((a, b) => a.label.localeCompare(b.label, 'ru'));
-                setSubRaceOptions(opts);
+                const subRacesRef = ref(database, `race_details/${raceId}/subRaces`);
+                const snapshot = await get(subRacesRef);
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    console.log(`SubRaces data for ${raceId}:`, data);
+                    const opts = Object.values(data)
+                        .filter((subRace: any) => subRace && subRace.singularName)
+                        .map((subRace: any) => ({ value: subRace.singularName as string, label: subRace.singularName as string }))
+                        .sort((a, b) => a.label.localeCompare(b.label, 'ru'));
+                    console.log('Parsed subRace options:', opts);
+                    setSubRaceOptions(opts);
+                } else {
+                    setSubRaceOptions([]);
+                }
             } catch (e) {
                 setSubRaceOptions([]);
             } finally {
