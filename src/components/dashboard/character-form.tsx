@@ -212,6 +212,7 @@ const CharacterForm = ({ character, allUsers, ownerId, onSuccess, closeDialog, e
 
     const [baseRace, setBaseRace] = React.useState('');
     const [raceDetails, setRaceDetails] = React.useState('');
+    const [subRace, setSubRace] = React.useState('');
     const [raceOptions, setRaceOptions] = React.useState<{value: string, label: string}[]>([]);
     const [subRaceOptions, setSubRaceOptions] = React.useState<{value: string, label: string}[]>([]);
     const [raceNameToId, setRaceNameToId] = React.useState<Record<string, string>>({});
@@ -251,9 +252,11 @@ const CharacterForm = ({ character, allUsers, ownerId, onSuccess, closeDialog, e
                 if (match) {
                     setBaseRace(match[1].trim());
                     setRaceDetails(match[2].trim());
+                    setSubRace(match[2].trim());
                 } else {
                     setBaseRace(raceString);
                     setRaceDetails('');
+                    setSubRace('');
                 }
             }
         };
@@ -275,14 +278,19 @@ const CharacterForm = ({ character, allUsers, ownerId, onSuccess, closeDialog, e
     React.useEffect(() => {
         if (editingState?.type === 'createCharacter' || (editingState?.type === 'field' && editingState.field === 'race') || (editingState?.type === 'section' && editingState.section === 'mainInfo')) {
             let combinedRace = baseRace.trim();
+            const selectedSubRace = subRace.trim();
             if (raceDetails.trim()) {
                 combinedRace += ` (${raceDetails.trim()})`;
             }
+
             if (formData.race !== combinedRace) {
                 handleFieldChange('race', combinedRace);
             }
+            if ((formData.subRace ?? '') !== selectedSubRace) {
+                handleFieldChange('subRace', selectedSubRace);
+            }
         }
-    }, [baseRace, raceDetails, editingState]);
+    }, [baseRace, raceDetails, subRace, editingState]);
 
     React.useEffect(() => {
         const fetchRaces = async () => {
@@ -742,7 +750,7 @@ const CharacterForm = ({ character, allUsers, ownerId, onSuccess, closeDialog, e
                                     <SearchableSelect
                                         options={isLoadingRaces ? [] : raceOptions}
                                         value={baseRace}
-                                        onValueChange={(v) => { setBaseRace(v); setRaceDetails(''); }}
+                                        onValueChange={(v) => { setBaseRace(v); setRaceDetails(''); setSubRace(''); }}
                                         placeholder={isLoadingRaces ? "Загрузка рас..." : "Выберите расу..."}
                                         disabled={(!isAdmin && formData.raceIsConfirmed) || isLoadingRaces}
                                     />
@@ -1064,15 +1072,15 @@ const CharacterForm = ({ character, allUsers, ownerId, onSuccess, closeDialog, e
                                 {subRaceOptions.length > 0 ? (
                                     <SearchableSelect
                                         options={[{value: '', label: '—'}, ...subRaceOptions]}
-                                        value={raceDetails}
-                                        onValueChange={setRaceDetails}
+                                        value={subRace}
+                                        onValueChange={(v) => { setRaceDetails(v); setSubRace(v); }}
                                         placeholder={isLoadingSubRaces ? "Загрузка..." : "Выберите подрасу..."}
                                         disabled={(!isAdmin && formData.raceIsConfirmed) || isLoadingSubRaces}
                                     />
                                 ) : (
                                     <Input
-                                        value={raceDetails}
-                                        onChange={(e) => setRaceDetails(e.target.value)}
+                                        value={subRace}
+                                        onChange={(e) => { setRaceDetails(e.target.value); setSubRace(e.target.value); }}
                                         placeholder="Уточнение в скобках (необязательно)"
                                         disabled={!isAdmin && formData.raceIsConfirmed}
                                     />

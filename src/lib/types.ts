@@ -321,6 +321,7 @@ export interface Character {
   name: string;
   activity: string;
   race: string;
+  subRace?: string;
   raceIsConfirmed?: boolean;
   birthDate: string;
   countryOfResidence?: string;

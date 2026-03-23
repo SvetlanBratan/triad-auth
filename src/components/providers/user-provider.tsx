@@ -252,6 +252,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         name: '',
         activity: '',
         race: '',
+        subRace: '',
         raceIsConfirmed: false,
         birthDate: '',
         crimeLevel: 5,
