@@ -245,7 +245,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const [gameDate, setGameDate] = useState<Date | null>(null);
     const [gameDateString, setGameDateString] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
-    const [allFamiliars, setAllFamiliars] = useState<FamiliarCard[]>([...ALL_STATIC_FAMILIARS, ...EVENT_FAMILIARS]);
+    const [allFamiliars, setAllFamiliars] = useState<FamiliarCard[]>([]);
     const [familiarsById, setFamiliarsById] = useState<Record<string, FamiliarCard>>({});
     const [teachings, setTeachings] = React.useState<{ value: string; label: string; }[]>([]);
   
@@ -508,7 +508,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const dbFamiliars = await fetchDbFamiliars();
         
         const map = new Map<string, FamiliarCard>();
-        [...ALL_STATIC_FAMILIARS, ...EVENT_FAMILIARS].forEach(f => map.set(f.id, f));
         dbFamiliars.forEach(f => map.set(f.id, f));
         
         const combined = Array.from(map.values());
