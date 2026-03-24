@@ -10,13 +10,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '../ui/textarea';
-import { INVENTORY_CATEGORIES, RACE_OPTIONS } from '@/lib/data';
+import { INVENTORY_CATEGORIES } from '@/lib/data';
 import { SearchableSelect } from '../ui/searchable-select';
 import ImageKitUploader from './imagekit-uploader';
 import { Switch } from '../ui/switch';
 import { SearchableMultiSelect } from '../ui/searchable-multi-select';
 import { useQuery } from '@tanstack/react-query';
 import { Separator } from '../ui/separator';
+import { database } from '@/lib/firebase';
+import { ref, get } from 'firebase/database';
 
 interface ShopItemFormProps {
     shopId: string;
@@ -50,6 +52,8 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
     const [showInventoryFields, setShowInventoryFields] = useState(false);
     const [useImageUrl, setUseImageUrl] = React.useState(false);
     const [useInventoryImageUrl, setUseInventoryImageUrl] = React.useState(false);
+    const [raceOptions, setRaceOptions] = useState<{ value: string; label: string }[]>([]);
+    const [isLoadingRaces, setIsLoadingRaces] = useState(false);
 
     const isAdmin = currentUser?.role === 'admin';
 
@@ -57,6 +61,34 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
       queryKey: ['allShops'],
       queryFn: fetchAllShops,
     });
+
+    useEffect(() => {
+        const fetchRaces = async () => {
+            setIsLoadingRaces(true);
+            try {
+                const racesRef = ref(database, 'races');
+                const snapshot = await get(racesRef);
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    const opts = Object.entries(data)
+                        .filter(([id, race]: [string, any]) => race && (race.singularName || race.name))
+                        .map(([id, race]: [string, any]) => {
+                            const name = (race.singularName || race.name) as string;
+                            return { value: name, label: name };
+                        })
+                        .sort((a, b) => a.label.localeCompare(b.label, 'ru'));
+                    setRaceOptions(opts);
+                } else {
+                    console.warn('No races data found in Realtime Database');
+                }
+            } catch (e) {
+                console.error('Failed to fetch races from database:', e);
+            } finally {
+                setIsLoadingRaces(false);
+            }
+        };
+        fetchRaces();
+    }, []);
 
     const allDocumentOptions = useMemo(() => {
       const documentNames = new Set<string>();
@@ -333,10 +365,10 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
                      <div>
                         <Label htmlFor="excludedRaces">Недоступно для рас</Label>
                         <SearchableMultiSelect
-                            options={RACE_OPTIONS}
+                            options={isLoadingRaces ? [] : raceOptions}
                             selected={formData.excludedRaces || []}
                             onChange={(values) => setFormData(p => ({...p, excludedRaces: values}))}
-                            placeholder="Доступно для всех рас"
+                            placeholder={isLoadingRaces ? "Загрузка рас..." : "Доступно для всех рас"}
                         />
                     </div>
                      <div>

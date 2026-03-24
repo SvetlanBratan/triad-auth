@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import MarketTab from "./market-tab";
 import MailTab from "./mail-tab";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Image from 'next/image';
 import AlchemyTab from "./alchemy-tab";
 import { CustomIcon } from "../ui/custom-icon";
@@ -29,6 +29,28 @@ export function Dashboard() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
+  const [previewUrl, setPreviewUrl] = useState<string>('http://localhost:5000');
+
+  // Определяем URL для превью динамически на клиенте
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Используем текущий хост (работает в GitHub Codespace и локально)
+      // и заменяем порт на 5000
+      const host = window.location.hostname;
+      const protocol = window.location.protocol;
+      
+      // В GitHub Codespace используем полный URL с портом
+      // Формат: https://[name]-[port].app.github.dev
+      if (host.includes('github.dev') || host.includes('app.github.dev')) {
+        // GitHub Codespace - конструируем URL вида https://[name]-5000.app.github.dev
+        const baseName = host.split('-')[0]; // Берем первую часть имени
+        setPreviewUrl(`${protocol}//${baseName}-5000.app.github.dev`);
+      } else {
+        // Локальная разработка
+        setPreviewUrl(`${protocol}//${host}:5000`);
+      }
+    }
+  }, []);
 
   const defaultTab = searchParams.get('tab') || 'profile';
 
@@ -62,6 +84,7 @@ export function Dashboard() {
     { value: 'rewards', label: 'Награды', icon: () => <CustomIcon src="/icons/rewards.svg" className="w-5 h-5 icon-primary" /> },
     { value: 'bank', label: 'Банк', icon: () => <CustomIcon src="/icons/bank.svg" className="w-5 h-5 icon-primary" /> },
     { value: 'market', label: 'Рынок', icon: () => <CustomIcon src="/icons/market.svg" className="w-5 h-5 icon-primary" /> },
+    { value: 'preview', label: 'Превью', icon: () => <CustomIcon src="/icons/admin.svg" className="w-5 h-5 icon-primary" /> },
     ...(isAdmin ? [{ value: 'requests', label: 'Запросы', icon: () => <CustomIcon src="/icons/requests.svg" className="w-5 h-5 icon-primary" /> }] : []),
     ...(isAdmin ? [{ value: 'admin', label: 'Админ', icon: () => <CustomIcon src="/icons/admin.svg" className="w-5 h-5 icon-primary" /> }] : []),
   ];
@@ -107,6 +130,25 @@ export function Dashboard() {
         </TabsContent>
          <TabsContent value="market" className="mt-4">
           <MarketTab />
+        </TabsContent>
+        <TabsContent value="preview" className="mt-4">
+          <div className="space-y-4">
+            <a 
+              href={previewUrl}
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="inline-block px-4 py-2 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity"
+            >
+              Открыть превью в новой вкладке →
+            </a>
+            <div className="w-full h-96">
+              <iframe
+                src={previewUrl}
+                className="w-full h-full border rounded"
+                title="Превью сайта"
+              />
+            </div>
+          </div>
         </TabsContent>
         {isAdmin && (
           <TabsContent value="requests" className="mt-4">

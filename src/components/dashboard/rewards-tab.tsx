@@ -2,7 +2,7 @@
 'use client';
 
 import { useUser } from '@/hooks/use-user';
-import { rewards } from '@/lib/data';
+import { rewards, CLOSED_RACE_OPTIONS } from '@/lib/data';
 import type { Reward, RewardRequest, User } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,21 +38,6 @@ const DynamicIcon = ({ name, className }: { name: string; className?: string }) 
 
     return <IconComponent className={className} />;
 };
-
-const CLOSED_RACE_OPTIONS = [
-  { value: 'Безликий', label: 'Безликий' },
-  { value: 'Неонид', label: 'Неонид' },
-  { value: 'Нарратор', label: 'Нарратор' },
-  { value: 'Бракованный пересмешник', label: 'Бракованный пересмешник' },
-  { value: 'Скелет', label: 'Скелет' },
-  { value: 'Астролоид', label: 'Астролоид' },
-  { value: 'Ларим', label: 'Ларим' },
-  { value: 'Антарес', label: 'Антарес' },
-  { value: 'Дарнатиар', label: 'Дарнатиар' },
-  { value: 'Пересмешник', label: 'Пересмешник' },
-  { value: 'Жнец', label: 'Жнец' },
-  { value: 'Нетленный', label: 'Нетленный' },
-];
 
 const CLOSED_RACE_PRICE = 100000;
 

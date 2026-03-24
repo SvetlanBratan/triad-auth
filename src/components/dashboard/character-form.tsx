@@ -3,7 +3,7 @@
 
 import React from 'react';
 import type { Character, User, Accomplishment, Relationship, RelationshipType, CrimeLevel, CitizenshipStatus, Inventory, GalleryImage, Magic, MagicAbility, TrainingRecord } from '@/lib/types';
-import { SKILL_LEVELS, FAME_LEVELS, TRAINING_OPTIONS, CRIME_LEVELS, COUNTRIES, MAGIC_PERCEPTION_OPTIONS, ADMIN_ELEMENTAL_MAGIC_OPTIONS, ELEMENTAL_MAGIC_OPTIONS, ADMIN_RESERVE_LEVEL_OPTIONS, RESERVE_LEVEL_OPTIONS, FAITH_LEVEL_OPTIONS, KNOWLEDGE_LEVELS, ADMIN_KNOWLEDGE_LEVELS } from '@/lib/data';
+import { SKILL_LEVELS, FAME_LEVELS, TRAINING_OPTIONS, CRIME_LEVELS, COUNTRIES, MAGIC_PERCEPTION_OPTIONS, ADMIN_ELEMENTAL_MAGIC_OPTIONS, ELEMENTAL_MAGIC_OPTIONS, ADMIN_RESERVE_LEVEL_OPTIONS, RESERVE_LEVEL_OPTIONS, FAITH_LEVEL_OPTIONS, KNOWLEDGE_LEVELS, ADMIN_KNOWLEDGE_LEVELS, CLOSED_RACE_OPTIONS } from '@/lib/data';
 import { db, database } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import { ref, get } from 'firebase/database';
@@ -20,7 +20,9 @@ import { SearchableMultiSelect } from '../ui/searchable-multi-select';
 import { Switch } from '../ui/switch';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Badge } from '../ui/badge';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogTrigger } from '../ui/alert-dialog';
+import { useUser } from '@/hooks/use-user';
+import { useToast } from '@/hooks/use-toast';
+import { useQuery } from '@tanstack/react-query';
 
 
 export type EditableSection =
@@ -145,10 +147,7 @@ const fameLevelOptions = FAME_LEVELS.map(level => ({ value: level, label: level 
 const skillLevelOptions = SKILL_LEVELS.map(level => ({ value: level, label: level }));
 const crimeLevelOptions = CRIME_LEVELS.map(cl => ({ value: String(cl.level), label: cl.title }));
 const countryOptions = COUNTRIES.map(c => ({ value: c, label: c }));
-const CLOSED_RACES = [
-    'Безликий', 'Неонид', 'Нарратор', 'Бракованный пересмешник', 'Скелет', 'Астролоид',
-    'Ларим', 'Антарес', 'Дарнатиар', 'Пересмешник', 'Жнец', 'Нетленный'
-];
+const CLOSED_RACES = CLOSED_RACE_OPTIONS.map(option => option.value);
 
 const SectionTitles: Record<EditableSection, string> = {
     mainInfo: 'Основная информация',
@@ -223,17 +222,21 @@ const CharacterForm = ({ character, allUsers, ownerId, onSuccess, closeDialog, e
     const [isLoadingRaces, setIsLoadingRaces] = React.useState(false);
     const [isLoadingSubRaces, setIsLoadingSubRaces] = React.useState(false);
     const [ageInput, setAgeInput] = React.useState('');
+    const [baseRace, setBaseRace] = React.useState('');
+    const [raceDetails, setRaceDetails] = React.useState('');
+    const [subRace, setSubRace] = React.useState('');
     const { toast } = useToast();
 
+    const baseRaceOptions = React.useMemo(() => {
+        if (isAdmin) return raceOptions;
+        return raceOptions.filter(option => !CLOSED_RACES.includes(option.value));
+    }, [raceOptions, isAdmin]);
+
     const filteredRaceOptions = React.useMemo(() => {
-        return raceOptions.filter(option => {
-            if (isAdmin) return true;
-            if (CLOSED_RACES.includes(option.value)) {
-                return purchasedClosedRaces.has(option.value);
-            }
-            return true;
-        });
-    }, [raceOptions, isAdmin, purchasedClosedRaces]);
+        if (isAdmin) return baseRaceOptions;
+        const purchasedOptions = CLOSED_RACE_OPTIONS.filter(option => purchasedClosedRaces.has(option.value));
+        return [...baseRaceOptions, ...purchasedOptions];
+    }, [baseRaceOptions, isAdmin, purchasedClosedRaces]);
     
      React.useEffect(() => {
         const initializeState = () => {

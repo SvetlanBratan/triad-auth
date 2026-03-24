@@ -5,13 +5,14 @@ import React, { createContext, useState, useMemo, useCallback, useEffect, useCon
 import type { User, Character, PointLog, UserStatus, UserRole, RewardRequest, RewardRequestStatus, FamiliarCard, Moodlet, Inventory, GameSettings, Relationship, RelationshipAction, RelationshipActionType, BankAccount, WealthLevel, ExchangeRequest, Currency, FamiliarTradeRequest, FamiliarTradeRequestStatus, FamiliarRank, BankTransaction, Shop, ShopItem, InventoryItem, AdminGiveItemForm, InventoryCategory, CitizenshipStatus, TaxpayerStatus, PerformRelationshipActionParams, MailMessage, Cooldowns, PopularityLog, CharacterPopularityUpdate, OwnedFamiliarCard, AlchemyRecipe, Potion, AlchemyIngredient, PlayerPing, OngoingHunt, PlayerStatus, PlayPlatform, SocialLink, HuntingLocation, HuntReward } from '@/lib/types';
 import { auth, db, database } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut, reauthenticateWithCredential, EmailAuthProvider, updatePassword, updateEmail } from "firebase/auth";
-import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter, increment, FieldValue, arrayUnion, arrayRemove, deleteField, DocumentSnapshot, DocumentData } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter, increment, FieldValue, arrayUnion, arrayRemove, deleteField, DocumentSnapshot, DocumentData, WriteBatch } from "firebase/firestore";
 import { ref as rtdbRef, onValue, set as rtdbSet } from 'firebase/database';
 import { MOODLETS_DATA, DEFAULT_GAME_SETTINGS, WEALTH_LEVELS, ALL_SHOPS, SHOPS_BY_ID, POPULARITY_EVENTS, ALL_ACHIEVEMENTS, INVENTORY_CATEGORIES, FAMILIARS_BY_ID } from '@/lib/data';
 import { differenceInDays, differenceInMonths, isPast } from 'date-fns';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { ALL_ITEMS_FOR_ALCHEMY } from '@/lib/alchemy-data';
 import { useToast } from '@/hooks/use-toast';
+import { executeLargeBatchUpdate, withExponentialBackoff } from '@/lib/batch-utils';
 
 interface AuthContextType {
     user: FirebaseUser | null;
@@ -1211,12 +1212,21 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     const clearAllPointHistories = useCallback(async () => {
         const allUsers = await fetchUsersForAdmin();
-        const batch = writeBatch(db);
-        for (const user of allUsers) {
-            const userRef = doc(db, "users", user.id);
-            batch.update(userRef, { pointHistory: [] });
-        }
-        await batch.commit();
+        
+        await withExponentialBackoff(async () => {
+            await executeLargeBatchUpdate(
+                db,
+                allUsers,
+                (batch: WriteBatch, chunk) => {
+                    chunk.forEach(user => {
+                        const userRef = doc(db, "users", user.id);
+                        batch.update(userRef, { pointHistory: [] });
+                    });
+                },
+                { chunkSize: 50, delayMs: 500 }
+            );
+        });
+        
         if (currentUser) {
             const updatedCurrentUser = await fetchUserById(currentUser.id);
             if (updatedCurrentUser) {
@@ -1273,17 +1283,53 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     const clearRewardRequestsHistory = useCallback(async () => {
         const allUsers = await fetchUsersForAdmin();
-        const batch = writeBatch(db);
-
-        for (const user of allUsers) {
-          const requestsQuery = query(collection(db, `users/${user.id}/reward_requests`), where('status', '!=', 'в ожидании'));
-          const requestSnapshot = await getDocs(requestsQuery);
-          requestSnapshot.forEach(doc => {
-            batch.delete(doc.ref);
-          });
+        
+        // Собираем все ссылки на документы для удаления
+        const docsToDelete: any[] = [];
+        
+        // Разделяем пользователей на меньшие группы для получения запросов
+        const chunkSize = 10;
+        for (let i = 0; i < allUsers.length; i += chunkSize) {
+            const userChunk = allUsers.slice(i, Math.min(i + chunkSize, allUsers.length));
+            
+            for (const user of userChunk) {
+                try {
+                    const requestsQuery = query(collection(db, `users/${user.id}/reward_requests`), where('status', '!=', 'в ожидании'));
+                    const requestSnapshot = await getDocs(requestsQuery);
+                    
+                    requestSnapshot.forEach(docSnapshot => {
+                        docsToDelete.push(docSnapshot.ref);
+                    });
+                } catch (error) {
+                    console.warn(`Error fetching requests for user ${user.id}:`, error);
+                }
+            }
+            
+            // Добавляем задержку между батчами запросов
+            if (i + chunkSize < allUsers.length) {
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
         }
 
-        await batch.commit();
+        if (docsToDelete.length === 0) return;
+
+        // Выполняем удаления с разделением на меньшие батчи
+        await withExponentialBackoff(async () => {
+            for (let i = 0; i < docsToDelete.length; i += 100) {
+                const batch = writeBatch(db);
+                const chunk = docsToDelete.slice(i, Math.min(i + 100, docsToDelete.length));
+                
+                chunk.forEach((docRef) => {
+                    batch.delete(docRef);
+                });
+                
+                await batch.commit();
+                
+                if (i + 100 < docsToDelete.length) {
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+            }
+        });
     }, [fetchUsersForAdmin]);
   
     const removeFamiliarFromCharacter = useCallback(async (userId: string, characterId: string, cardId: string) => {
@@ -1701,40 +1747,52 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     const processMonthlySalary = useCallback(async () => {
         const allUsers = await fetchUsersForAdmin();
-        const batch = writeBatch(db);
 
-        for (const user of allUsers) {
-            let hasChanges = false;
-            const updatedCharacters = user.characters.map(character => {
+        // Фильтруем пользователей, у которых будут изменения
+        const usersWithChanges = allUsers.filter(user =>
+            user.characters.some(character => {
                 const wealthInfo = WEALTH_LEVELS.find(w => w.name === character.wealthLevel);
-                if (!wealthInfo || !wealthInfo.salary) return character;
+                return wealthInfo && wealthInfo.salary;
+            })
+        );
 
-                const salary = wealthInfo.salary;
-                
-                let newBalance = { ...(character.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] }) };
-                newBalance.platinum = (newBalance.platinum || 0) + (salary.platinum || 0);
-                newBalance.gold = (newBalance.gold || 0) + (salary.gold || 0);
-                newBalance.silver = (newBalance.silver || 0) + (salary.silver || 0);
-                newBalance.copper = (newBalance.copper || 0) + (salary.copper || 0);
-                
-                const newTransaction: BankTransaction = {
-                    id: `txn-salary-${Date.now()}`,
-                    date: new Date().toISOString(),
-                    reason: 'Ежемесячная зарплата',
-                    amount: salary,
-                };
-                newBalance.history = [newTransaction, ...(newBalance.history || [])];
+        if (usersWithChanges.length === 0) return;
 
-                hasChanges = true;
-                return { ...character, bankAccount: newBalance };
-            });
+        await withExponentialBackoff(async () => {
+            await executeLargeBatchUpdate(
+                db,
+                usersWithChanges,
+                (batch: WriteBatch, chunk) => {
+                    chunk.forEach(user => {
+                        const updatedCharacters = user.characters.map(character => {
+                            const wealthInfo = WEALTH_LEVELS.find(w => w.name === character.wealthLevel);
+                            if (!wealthInfo || !wealthInfo.salary) return character;
 
-            if (hasChanges) {
-                const userRef = doc(db, "users", user.id);
-                batch.update(userRef, { characters: updatedCharacters });
-            }
-        }
-        await batch.commit();
+                            const salary = wealthInfo.salary;
+                            
+                            let newBalance = { ...(character.bankAccount || { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] }) };
+                            newBalance.platinum = (newBalance.platinum || 0) + (salary.platinum || 0);
+                            newBalance.gold = (newBalance.gold || 0) + (salary.gold || 0);
+                            newBalance.silver = (newBalance.silver || 0) + (salary.silver || 0);
+                            newBalance.copper = (newBalance.copper || 0) + (salary.copper || 0);
+                            
+                            const newTransaction: BankTransaction = {
+                                id: `txn-salary-${Date.now()}`,
+                                date: new Date().toISOString(),
+                                reason: 'Ежемесячная зарплата',
+                                amount: salary,
+                            };
+                            newBalance.history = [newTransaction, ...(newBalance.history || [])];
+
+                            return { ...character, bankAccount: newBalance };
+                        });
+                        const userRef = doc(db, "users", user.id);
+                        batch.update(userRef, { characters: updatedCharacters });
+                    });
+                },
+                { chunkSize: 25, delayMs: 1000 }
+            );
+        });
 
     }, [fetchUsersForAdmin]);
 
@@ -2503,11 +2561,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const processAnnualTaxes = useCallback(async (): Promise<{ taxedCharactersCount: number; totalTaxesCollected: BankAccount }> => {
         const allUsers = await fetchUsersForAdmin();
         const allShopsData = await fetchAllShops();
-        const batch = writeBatch(db);
         let taxedCharactersCount = 0;
         let totalTaxesCollected: BankAccount = { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] };
 
         const currencyKeys: (keyof Omit<BankAccount, 'history'>)[] = ['platinum', 'gold', 'silver', 'copper'];
+
+        // Предварительно рассчитываем изменения для каждого пользователя
+        const usersWithUpdates: { user: User; updatedCharacters: Character[]; hasChanges: boolean }[] = [];
 
         for (const user of allUsers) {
             let hasChanges = false;
@@ -2543,11 +2603,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                         break;
                     case 'Заприливье':
                         incomeTaxRate = 0.07;
-                        tradeTaxRate = 0.10; // No license discount
+                        tradeTaxRate = 0.10;
                         tradeTaxRateLicensed = 0.10;
                         break;
                     default:
-                        return character; // No taxes for other countries
+                        return character;
                 }
 
                 let totalTaxToPay: Partial<Omit<BankAccount, 'history'>> = { platinum: 0, gold: 0, silver: 0, copper: 0 };
@@ -2620,26 +2680,38 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             });
             
             if (hasChanges) {
-                const userRef = doc(db, "users", user.id);
-                batch.update(userRef, { characters: updatedCharacters });
+                usersWithUpdates.push({ user, updatedCharacters, hasChanges: true });
             }
         }
         
-        await batch.commit();
+        // Используем разделение на батчи для избежания rate limiting  
+        await withExponentialBackoff(async () => {
+            await executeLargeBatchUpdate(
+                db,
+                usersWithUpdates,
+                (batch: WriteBatch, chunk) => {
+                    chunk.forEach(({ user, updatedCharacters }) => {
+                        const userRef = doc(db, "users", user.id);
+                        batch.update(userRef, { characters: updatedCharacters });
+                    });
+                },
+                { chunkSize: 25, delayMs: 1000 }
+            );
+        });
+        
         return { taxedCharactersCount, totalTaxesCollected };
 
     }, [fetchUsersForAdmin, fetchAllShops]);
 
     const sendMassMail = useCallback(async (subject: string, content: string, senderName: string, recipientCharacterIds?: string[]) => {
         const allUsers = await fetchUsersForAdmin();
-        const batch = writeBatch(db);
         const timestamp = Date.now();
       
         const recipientsSet = recipientCharacterIds && recipientCharacterIds.length > 0 
           ? new Set(recipientCharacterIds) 
           : null;
           
-        const usersToUpdate = new Map<string, User>();
+        const usersToUpdate: User[] = [];
         
         for (const user of allUsers) {
             const userCharacters = recipientsSet
@@ -2647,31 +2719,42 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 : user.characters;
                 
             if (userCharacters.length > 0) {
-                const recipientCharacterNames = userCharacters.map(c => c.name).join(', ');
-                const newMail: MailMessage = {
-                    id: `mail-mass-${timestamp}-${user.id}`,
-                    senderUserId: 'admin',
-                    senderCharacterName: senderName,
-                    recipientUserId: user.id,
-                    recipientCharacterId: '',
-                    recipientCharacterName: recipientCharacterNames,
-                    subject,
-                    content,
-                    sentAt: new Date(timestamp).toISOString(),
-                    isRead: false,
-                    type: 'announcement',
-                };
-                const updatedUser = { ...user, mail: [...(user.mail || []), newMail] };
-                usersToUpdate.set(user.id, updatedUser);
+                usersToUpdate.push(user);
             }
         }
-        
-        usersToUpdate.forEach((user, userId) => {
-            const userRef = doc(db, "users", userId);
-            batch.update(userRef, { mail: user.mail });
+
+        // Используем разделение на меньшие батчи для избежания rate limiting
+        await withExponentialBackoff(async () => {
+            await executeLargeBatchUpdate(
+                db,
+                usersToUpdate,
+                (batch: WriteBatch, chunk: User[]) => {
+                    chunk.forEach(user => {
+                        const userCharacters = recipientsSet
+                            ? user.characters.filter(c => recipientsSet.has(c.id))
+                            : user.characters;
+                        const recipientCharacterNames = userCharacters.map(c => c.name).join(', ');
+                        
+                        const newMail: MailMessage = {
+                            id: `mail-mass-${timestamp}-${user.id}`,
+                            senderUserId: 'admin',
+                            senderCharacterName: senderName,
+                            recipientUserId: user.id,
+                            recipientCharacterId: '',
+                            recipientCharacterName: recipientCharacterNames,
+                            subject,
+                            content,
+                            sentAt: new Date(timestamp).toISOString(),
+                            isRead: false,
+                            type: 'announcement',
+                        };
+                        const userRef = doc(db, "users", user.id);
+                        batch.update(userRef, { mail: [...(user.mail || []), newMail] });
+                    });
+                },
+                { chunkSize: 25, delayMs: 1000 }
+            );
         });
-        
-        await batch.commit();
     }, [fetchUsersForAdmin]);
 
     const markMailAsRead = useCallback(async (mailId: string) => {
@@ -2688,12 +2771,21 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     const clearAllMailboxes = useCallback(async () => {
         const allUsers = await fetchUsersForAdmin();
-        const batch = writeBatch(db);
-        for (const user of allUsers) {
-            const userRef = doc(db, "users", user.id);
-            batch.update(userRef, { mail: [] });
-        }
-        await batch.commit();
+        
+        await withExponentialBackoff(async () => {
+            await executeLargeBatchUpdate(
+                db,
+                allUsers,
+                (batch: WriteBatch, chunk) => {
+                    chunk.forEach(user => {
+                        const userRef = doc(db, "users", user.id);
+                        batch.update(userRef, { mail: [] });
+                    });
+                },
+                { chunkSize: 50, delayMs: 500 }
+            );
+        });
+        
         if (currentUser) {
             const updatedCurrentUser = await fetchUserById(currentUser.id);
             if (updatedCurrentUser) {
@@ -2704,7 +2796,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     const updatePopularity = useCallback(async (updates: CharacterPopularityUpdate[]) => {
         const allUsers = await fetchUsersForAdmin();
-        const batch = writeBatch(db);
 
         const usersToUpdate = new Map<string, User>();
         allUsers.forEach(user => usersToUpdate.set(user.id, JSON.parse(JSON.stringify(user))));
@@ -2763,15 +2854,24 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             }
         }
 
-         for (const user of usersToUpdate.values()) {
-            const userRef = doc(db, "users", user.id);
-            batch.update(userRef, { 
-                characters: user.characters, 
-                achievementIds: user.achievementIds 
-            });
-        }
-
-        await batch.commit();
+        // Используем разделение батчей для избежания rate limiting
+        const usersArray = Array.from(usersToUpdate.values());
+        await withExponentialBackoff(async () => {
+            await executeLargeBatchUpdate(
+                db,
+                usersArray,
+                (batch: WriteBatch, chunk) => {
+                    chunk.forEach(user => {
+                        const userRef = doc(db, "users", user.id);
+                        batch.update(userRef, { 
+                            characters: user.characters, 
+                            achievementIds: user.achievementIds 
+                        });
+                    });
+                },
+                { chunkSize: 25, delayMs: 1000 }
+            );
+        });
 
         if (currentUser) {
             const updatedCurrentUser = await fetchUserById(currentUser.id);
@@ -2781,23 +2881,33 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     const clearAllPopularityHistories = useCallback(async () => {
         const allUsers = await fetchUsersForAdmin();
-        const batch = writeBatch(db);
-        for (const user of allUsers) {
-            let hasChanges = false;
-            const updatedCharacters = user.characters.map(char => {
-                if (char.popularityHistory && char.popularityHistory.length > 0) {
-                    hasChanges = true;
-                    return { ...char, popularityHistory: [] };
-                }
-                return char;
-            });
+        
+        // Фильтруем пользователей, у которых есть историю популярности
+        const usersWithHistory = allUsers.filter(user =>
+            user.characters.some(char => char.popularityHistory && char.popularityHistory.length > 0)
+        );
 
-            if (hasChanges) {
-                const userRef = doc(db, "users", user.id);
-                batch.update(userRef, { characters: updatedCharacters });
-            }
-        }
-        await batch.commit();
+        if (usersWithHistory.length === 0) return;
+
+        await withExponentialBackoff(async () => {
+            await executeLargeBatchUpdate(
+                db,
+                usersWithHistory,
+                (batch: WriteBatch, chunk) => {
+                    chunk.forEach(user => {
+                        const updatedCharacters = user.characters.map(char => {
+                            if (char.popularityHistory && char.popularityHistory.length > 0) {
+                                return { ...char, popularityHistory: [] };
+                            }
+                            return char;
+                        });
+                        const userRef = doc(db, "users", user.id);
+                        batch.update(userRef, { characters: updatedCharacters });
+                    });
+                },
+                { chunkSize: 50, delayMs: 500 }
+            );
+        });
     }, [fetchUsersForAdmin]);
 
     const withdrawFromShopTill = useCallback(async (shopId: string) => {

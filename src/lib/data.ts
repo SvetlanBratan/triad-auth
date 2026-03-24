@@ -427,6 +427,21 @@ export const rewards: Reward[] = [
     { id: 'r-pumpkin-husband', title: 'Приобрести Тыкво-Мужа', description: 'Приобрести Тыкво-Мужа', cost: 100000, type: 'permanent', iconName: 'Heart' },
 ];
 
+export const CLOSED_RACE_OPTIONS = [
+  { value: 'Безликий', label: 'Безликий' },
+  { value: 'Неонид', label: 'Неонид' },
+  { value: 'Нарратор', label: 'Нарратор' },
+  { value: 'Бракованный пересмешник', label: 'Бракованный пересмешник' },
+  { value: 'Скелет', label: 'Скелет' },
+  { value: 'Астролоид', label: 'Астролоид' },
+  { value: 'Ларим', label: 'Ларим' },
+  { value: 'Антарес', label: 'Антарес' },
+  { value: 'Дарнатиар', label: 'Дарнатиар' },
+  { value: 'Пересмешник', label: 'Пересмешник' },
+  { value: 'Жнец', label: 'Жнец' },
+  { value: 'Нетленный', label: 'Нетленный' },
+];
+
 export const ALL_ACHIEVEMENTS: Achievement[] = [
   // Automated
   { id: 'ach-first-gacha', name: 'Первый раз?', description: 'Даётся за первое использование рулетки.', iconName: 'Dices' },
