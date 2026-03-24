@@ -250,6 +250,20 @@ export const RACE_OPTIONS: OptionType[] = [
     { value: 'Жнец', label: 'Жнец' },
 ];
 
+export const RELATIONSHIP_TYPE_OPTIONS: OptionType[] = [
+    { value: 'романтика', label: 'Романтика' },
+    { value: 'дружба', label: 'Дружба' },
+    { value: 'вражда', label: 'Вражда' },
+    { value: 'конкуренция', label: 'Конкуренция' },
+    { value: 'нейтралитет', label: 'Нейтралитет' },
+    { value: 'любовь', label: 'Любовь' },
+    { value: 'семья', label: 'Семья' },
+    { value: 'уважение', label: 'Уважение' },
+    { value: 'страсть', label: 'Страсть' },
+    { value: 'заинтересованность', label: 'Заинтересованность' },
+    { value: 'сотрудничество', label: 'Сотрудничество' },
+];
+
 export const COUNTRIES: string[] = [
     'Артерианск', 'Белоснежье', 'Огнеславия', 'Сан-Ликорис', 'Заприливье',
     'Острова неприкаянных', 'Дармир', 'Инрога', 'Истина', 'Маринад',
