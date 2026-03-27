@@ -50,7 +50,7 @@ const CustomIcon = ({ src, className }: { src: string, className?: string }) => 
 
 
 const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
-    // If the name starts with 'ach-', assume it's a custom achievement icon
+    // If the name starts with 'ach-' assume it's a custom achievement icon
     if (name.startsWith('ach-')) {
         return (
             <CustomIcon src={`/icons/${name}.svg`} className={cn("icon-primary", className)} />
@@ -1494,7 +1494,7 @@ export default function CharacterPage() {
             
              <Dialog open={!!selectedItem} onOpenChange={(isOpen) => !isOpen && setSelectedItem(null)}>
                 {selectedItem && (
-                    <DialogContent className="max-w-md sm:max-w-2xl p-0">
+                    <DialogContent className="max-w-md sm:max-w-2xl p-0" aria-describedby={undefined}>
                         <div className="sm:grid sm:grid-cols-2 sm:items-start">
                             {selectedItem.image && (
                                 <div className="relative w-full aspect-square sm:h-full bg-muted rounded-t-lg sm:rounded-l-lg sm:rounded-tr-none overflow-hidden">
@@ -1558,7 +1558,7 @@ export default function CharacterPage() {
             </Dialog>
             
              <Dialog open={!!selectedGalleryItem} onOpenChange={() => setSelectedGalleryItem(null)}>
-                <DialogContent className="max-w-4xl w-[90vw] h-[90vh] bg-transparent border-none shadow-none p-0 flex items-center justify-center">
+                <DialogContent className="max-w-4xl w-[90vw] h-[90vh] bg-transparent border-none shadow-none p-0 flex items-center justify-center" aria-describedby={undefined}>
                     <DialogTitle className="sr-only">Просмотр</DialogTitle>
                     {selectedGalleryItem?.url && (
                         <div className="relative w-full h-full">

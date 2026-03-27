@@ -80,7 +80,7 @@ const CharacterDisplay = ({ character, onDelete }: { character: Character, onDel
     const { currentUser, familiarsById } = useUser();
     const isAdmin = currentUser?.role === 'admin';
     const isBlessed = character.blessingExpires && new Date(character.blessingExpires) > new Date();
-    const activeMoodlets = (character.moodlets || []).filter(m => new Date(m.expiresAt) > new Date());
+    const activeMoodlets = (character.moodlets || []).filter(m => m.expiresAt && new Date(m.expiresAt) > new Date());
     const familiarCards = character.familiarCards || [];
 
     const groupedFamiliars = familiarCards.reduce((acc, ownedCard, index) => {
@@ -625,12 +625,9 @@ export default function ProfileTab() {
         </Dialog>
 
         <Dialog open={isAchievementsOpen} onOpenChange={setIsAchievementsOpen}>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl" aria-describedby={undefined}>
                 <DialogHeader>
                     <DialogTitle>Все достижения</DialogTitle>
-                    <DialogDescription>
-                       Получено: {userAchievements.length} / {ALL_ACHIEVEMENTS.length}
-                    </DialogDescription>
                 </DialogHeader>
                 <ScrollArea className="max-h-[60vh] -mx-6 px-6">
                     <div className="space-y-4">
@@ -674,7 +671,7 @@ export default function ProfileTab() {
         </Dialog>
         
         <Dialog open={isSocialsDialogOpen} onOpenChange={setSocialsDialogOpen}>
-            <DialogContent>
+            <DialogContent aria-describedby={undefined}>
                 <DialogHeader>
                     <DialogTitle>Обновить игровые данные</DialogTitle>
                 </DialogHeader>

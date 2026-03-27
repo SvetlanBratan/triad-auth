@@ -25,7 +25,7 @@ import { Input } from '../ui/input';
 import { useQuery } from '@tanstack/react-query';
 import { ScrollArea } from '../ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider } from '../ui/tooltip';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogTrigger } from '../ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogTrigger } from '../ui/alertDialog';
 import CharacterForm, { type EditingState } from './character-form';
 
 const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
@@ -56,7 +56,7 @@ const CharacterDisplay = ({ character, onDelete }: { character: Character, onDel
     const isAdmin = currentUser?.role === 'admin';
     const familiarCards = character.familiarCards || [];
     const isBlessed = character.blessingExpires && new Date(character.blessingExpires) > new Date();
-    const activeMoodlets = (character.moodlets || []).filter(m => new Date(m.expiresAt) > new Date());
+    const activeMoodlets = (character.moodlets || []).filter(m => m.expiresAt && new Date(m.expiresAt) > new Date());
 
 
     const groupedFamiliars = familiarCards.reduce((acc, ownedCard, index) => {
@@ -581,15 +581,12 @@ export default function UserProfileDialog({ user, refetch }: UserProfileDialogPr
                 </Card>
             )}
         </div>
-    </div>
+      </div>
     
      <Dialog open={isAchievementsOpen} onOpenChange={(isOpen) => !isOpen && setIsAchievementsOpen(false)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl" aria-describedby={undefined}>
             <DialogHeader>
                 <DialogTitle>Все достижения</DialogTitle>
-                <DialogDescription>
-                   Получено: {userAchievements.length} / {ALL_ACHIEVEMENTS.length}
-                </DialogDescription>
             </DialogHeader>
             <ScrollArea className="max-h-[60vh] -mx-6 px-6">
                 <div className="space-y-4">
@@ -632,7 +629,7 @@ export default function UserProfileDialog({ user, refetch }: UserProfileDialogPr
         </DialogContent>
     </Dialog>
      <Dialog open={isSocialsDialogOpen} onOpenChange={(isOpen) => !isOpen && setSocialsDialogOpen(false)}>
-        <DialogContent>
+        <DialogContent aria-describedby={undefined}>
             <DialogHeader>
                 <DialogTitle>Обновить игровые данные для {user.name}</DialogTitle>
             </DialogHeader>
