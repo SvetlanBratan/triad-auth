@@ -20,6 +20,8 @@ import {
   WEAPON_DAMAGE_TYPE_OPTIONS,
   POTION_HEALING_OPTIONS,
   POTION_MANA_RESTORE_OPTIONS,
+  ARTIFACT_RANK_OPTIONS,
+  ARTIFACT_RANK_VALUES,
 } from '@/lib/item-attributes';
 import {
   AlertDialog,
