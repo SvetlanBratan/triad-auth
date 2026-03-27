@@ -12,7 +12,15 @@ import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
 import { DollarSign, Clock, Users, ShieldAlert, UserCog, Trophy, Gift, Star, MinusCircle, Trash2, Wand2, PlusCircle, VenetianMask, CalendarClock, History, DatabaseZap, Banknote, Landmark, Cat, PieChart, Info, AlertTriangle, Bell, CheckCircle, Store, PackagePlus, Edit, BadgeCheck, FileText, Send, Gavel, Eye, UserMinus, FlaskConical, Compass, Save, Merge } from 'lucide-react';
 import type { UserStatus, UserRole, User, FamiliarCard, BankAccount, WealthLevel, FamiliarRank, Shop, InventoryCategory, AdminGiveItemForm, InventoryItem, CitizenshipStatus, TaxpayerStatus, CharacterPopularityUpdate, AlchemyRecipe, GameSettings, HuntingLocation, HuntReward, Potion, AlchemyIngredient, ShopItem } from '@/lib/types';
-import { ALL_ACHIEVEMENTS, MOODLETS_DATA, WEALTH_LEVELS, STARTING_CAPITAL_LEVELS, INVENTORY_CATEGORIES, POPULARITY_EVENTS } from '@/lib/data';
+import { ALL_ACHIEVEMENTS, MOODLETS_DATA, WEALTH_LEVELS, STARTING_CAPITAL_LEVELS, INVENTORY_CATEGORIES, POPULARITY_EVENTS, ELEMENTAL_MAGIC_OPTIONS } from '@/lib/data';
+import {
+  ARMOR_DEFENSE_BONUS_OPTIONS,
+  ARMOR_DEFENSE_TYPE_OPTIONS,
+  WEAPON_DAMAGE_OPTIONS,
+  WEAPON_DAMAGE_TYPE_OPTIONS,
+  POTION_HEALING_OPTIONS,
+  POTION_MANA_RESTORE_OPTIONS,
+} from '@/lib/item-attributes';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -231,7 +239,25 @@ export default function AdminTab() {
   const [itemCharId, setItemCharId] = useState('');
   const [isGivingNewItem, setIsGivingNewItem] = useState(false);
   const [selectedShopItemId, setSelectedShopItemId] = useState('');
-  const [newItemData, setNewItemData] = useState<AdminGiveItemForm>({ name: '', description: '', inventoryTag: 'прочее', quantity: 1, image: '' });
+  const [newItemData, setNewItemData] = useState<AdminGiveItemForm>({
+    name: '',
+    description: '',
+    inventoryTag: 'прочее',
+    quantity: 1,
+    image: '',
+    armorDefenseBonus: undefined,
+    armorDefenseType: undefined,
+    weaponDamage: undefined,
+    weaponDamageType: undefined,
+    weaponElement: '',
+    potionHealing: undefined,
+    potionManaRestore: undefined,
+    artifactRank: undefined,
+    artifactDamage: undefined,
+    artifactDefense: undefined,
+    artifactHealing: undefined,
+    artifactMana: undefined,
+  });
   const [selectedInventoryItem, setSelectedInventoryItem] = useState<{ id: string, category: InventoryCategory } | null>(null);
   const [editItemData, setEditItemData] = useState<InventoryItem | null>(null);
   const [existingItemQuantity, setExistingItemQuantity] = useState(1);
@@ -367,7 +393,14 @@ export default function AdminTab() {
                         description: description,
                         inventoryTag: item.inventoryTag, 
                         quantity: 1, 
-                        image: image 
+                        image: image,
+                        armorDefenseBonus: item.armorDefenseBonus,
+                        armorDefenseType: item.armorDefenseType,
+                        weaponDamage: item.weaponDamage,
+                        weaponDamageType: item.weaponDamageType,
+                        weaponElement: item.weaponElement || '',
+                        potionHealing: item.potionHealing,
+                        potionManaRestore: item.potionManaRestore,
                     })
                 };
             })
@@ -878,7 +911,25 @@ export default function AdminTab() {
     
     // Reset form but keep user and character selected
     setSelectedShopItemId('');
-    setNewItemData({ name: '', description: '', inventoryTag: 'прочее', quantity: 1, image: '' });
+    setNewItemData({
+      name: '',
+      description: '',
+      inventoryTag: 'прочее',
+      quantity: 1,
+      image: '',
+      armorDefenseBonus: undefined,
+      armorDefenseType: undefined,
+      weaponDamage: undefined,
+      weaponDamageType: undefined,
+      weaponElement: '',
+      potionHealing: undefined,
+      potionManaRestore: undefined,
+      artifactRank: undefined,
+      artifactDamage: undefined,
+      artifactDefense: undefined,
+      artifactHealing: undefined,
+      artifactMana: undefined,
+    });
     setExistingItemQuantity(1);
   };
   
@@ -2787,13 +2838,179 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
                                         </div>
                                         <div>
                                             <Label htmlFor="new-item-tag">Категория в инвентаре</Label>
-                                             <SearchableSelect
+                                            <SearchableSelect
                                                 options={INVENTORY_CATEGORIES}
                                                 value={newItemData.inventoryTag}
-                                                onValueChange={(v) => setNewItemData(p => ({...p, inventoryTag: v as InventoryCategory}))}
+                                                onValueChange={(v) =>
+                                                    setNewItemData(p => ({
+                                                        ...p,
+                                                        inventoryTag: v as InventoryCategory,
+                                                        armorDefenseBonus: undefined,
+                                                        armorDefenseType: undefined,
+                                                        weaponDamage: undefined,
+                                                        weaponDamageType: undefined,
+                                                        weaponElement: '',
+                                                        potionHealing: undefined,
+                                                        potionManaRestore: undefined,
+                                                        artifactRank: undefined,
+                                                        artifactDamage: undefined,
+                                                        artifactDefense: undefined,
+                                                        artifactHealing: undefined,
+                                                        artifactMana: undefined,
+                                                    }))
+                                                }
                                                 placeholder="Выберите категорию..."
                                             />
                                         </div>
+
+                                        {(newItemData.inventoryTag === 'доспехи' || newItemData.inventoryTag === 'оружие' || newItemData.inventoryTag === 'зелья' || newItemData.inventoryTag === 'артефакты') && (
+                                            <div className="space-y-4 pt-2">
+                                                <Separator />
+                                                <h4 className="font-semibold text-muted-foreground">Характеристики</h4>
+
+                                                {newItemData.inventoryTag === 'доспехи' && (
+                                                    <>
+                                                        <div>
+                                                            <Label>Защита</Label>
+                                                            <SearchableSelect
+                                                                options={ARMOR_DEFENSE_BONUS_OPTIONS}
+                                                                value={newItemData.armorDefenseBonus !== undefined ? String(newItemData.armorDefenseBonus) : ''}
+                                                                onValueChange={(val) => setNewItemData(p => ({ ...p, armorDefenseBonus: val ? Number(val) : undefined }))}
+                                                                placeholder="Выберите уровень защиты..."
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <Label>Тип защиты</Label>
+                                                            <SearchableSelect
+                                                                options={ARMOR_DEFENSE_TYPE_OPTIONS}
+                                                                value={newItemData.armorDefenseType || ''}
+                                                                onValueChange={(val) => setNewItemData(p => ({ ...p, armorDefenseType: (val || undefined) as any }))}
+                                                                placeholder="Выберите тип защиты..."
+                                                            />
+                                                        </div>
+                                                    </>
+                                                )}
+
+                                                {newItemData.inventoryTag === 'оружие' && (
+                                                    <>
+                                                        <div>
+                                                            <Label>Урон</Label>
+                                                            <SearchableSelect
+                                                                options={WEAPON_DAMAGE_OPTIONS}
+                                                                value={newItemData.weaponDamage !== undefined ? String(newItemData.weaponDamage) : ''}
+                                                                onValueChange={(val) => setNewItemData(p => ({ ...p, weaponDamage: val ? Number(val) : undefined }))}
+                                                                placeholder="Выберите уровень урона..."
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <Label>Тип урона</Label>
+                                                            <SearchableSelect
+                                                                options={WEAPON_DAMAGE_TYPE_OPTIONS}
+                                                                value={newItemData.weaponDamageType || ''}
+                                                                onValueChange={(val) =>
+                                                                    setNewItemData(p => ({
+                                                                        ...p,
+                                                                        weaponDamageType: (val || undefined) as any,
+                                                                        weaponElement: val === 'Магический' ? (p.weaponElement || '') : '',
+                                                                    }))
+                                                                }
+                                                                placeholder="Выберите тип урона..."
+                                                            />
+                                                        </div>
+                                                        {newItemData.weaponDamageType === 'Магический' && (
+                                                            <div>
+                                                                <Label>Стихия</Label>
+                                                                <SearchableSelect
+                                                                    options={ELEMENTAL_MAGIC_OPTIONS}
+                                                                    value={newItemData.weaponElement || ''}
+                                                                    onValueChange={(val) => setNewItemData(p => ({ ...p, weaponElement: val }))}
+                                                                    placeholder="Выберите стихию..."
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    </>
+                                                )}
+
+                                                {newItemData.inventoryTag === 'зелья' && (
+                                                    <>
+                                                        <div>
+                                                            <Label>Лечение</Label>
+                                                            <SearchableSelect
+                                                                options={POTION_HEALING_OPTIONS}
+                                                                value={newItemData.potionHealing !== undefined ? String(newItemData.potionHealing) : ''}
+                                                                onValueChange={(val) => setNewItemData(p => ({ ...p, potionHealing: val ? Number(val) : undefined }))}
+                                                                placeholder="Выберите уровень лечения..."
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <Label>Восстановление маны</Label>
+                                                            <SearchableSelect
+                                                                options={POTION_MANA_RESTORE_OPTIONS}
+                                                                value={newItemData.potionManaRestore !== undefined ? String(newItemData.potionManaRestore) : ''}
+                                                                onValueChange={(val) => setNewItemData(p => ({ ...p, potionManaRestore: val ? Number(val) : undefined }))}
+                                                                placeholder="Выберите восстановление маны..."
+                                                            />
+                                                        </div>
+                                                    </>
+                                                )}
+
+                                                {newItemData.inventoryTag === 'артефакты' && (
+                                                    <>
+                                                        <div>
+                                                            <Label>Ранг артефакта</Label>
+                                                            <SearchableSelect
+                                                                options={ARTIFACT_RANK_OPTIONS}
+                                                                value={newItemData.artifactRank || ''}
+                                                                onValueChange={(val) => {
+                                                                    const rank = val || undefined;
+                                                                    if (!rank) {
+                                                                        setNewItemData(p => ({
+                                                                            ...p,
+                                                                            artifactRank: undefined,
+                                                                            artifactDamage: undefined,
+                                                                            artifactDefense: undefined,
+                                                                            artifactHealing: undefined,
+                                                                            artifactMana: undefined,
+                                                                        }));
+                                                                        return;
+                                                                    }
+                                                                    const values = ARTIFACT_RANK_VALUES[rank as keyof typeof ARTIFACT_RANK_VALUES];
+                                                                    setNewItemData(p => ({
+                                                                        ...p,
+                                                                        artifactRank: rank as any,
+                                                                        artifactDamage: values.damage,
+                                                                        artifactDefense: values.defense,
+                                                                        artifactHealing: values.heal,
+                                                                        artifactMana: values.mana,
+                                                                    }));
+                                                                }}
+                                                                placeholder="Выберите ранг..."
+                                                            />
+                                                        </div>
+                                                        {newItemData.artifactRank && (
+                                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                                                                <div>
+                                                                    <Label className="text-xs text-muted-foreground">Урон</Label>
+                                                                    <p className="font-medium">+{newItemData.artifactDamage ?? 0}</p>
+                                                                </div>
+                                                                <div>
+                                                                    <Label className="text-xs text-muted-foreground">Защита</Label>
+                                                                    <p className="font-medium">+{newItemData.artifactDefense ?? 0}</p>
+                                                                </div>
+                                                                <div>
+                                                                    <Label className="text-xs text-muted-foreground">Лечение (ОЗ)</Label>
+                                                                    <p className="font-medium">+{newItemData.artifactHealing ?? 0} ОЗ</p>
+                                                                </div>
+                                                                <div>
+                                                                    <Label className="text-xs text-muted-foreground">Восстановление маны (ОМ)</Label>
+                                                                    <p className="font-medium">+{newItemData.artifactMana ?? 0} ОМ</p>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 ) : (
                                     <div>
@@ -2866,6 +3083,99 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
                                             <Label htmlFor="edit-item-tag">Категория</Label>
                                             <p className="text-sm text-muted-foreground">Категорию предмета изменить нельзя.</p>
                                         </div>
+
+                                        {(selectedInventoryItem.category === 'доспехи' || selectedInventoryItem.category === 'оружие' || selectedInventoryItem.category === 'зелья') && (
+                                          <div className="space-y-4 pt-2">
+                                            <Separator />
+                                            <h4 className="font-semibold text-muted-foreground">Характеристики</h4>
+
+                                            {selectedInventoryItem.category === 'доспехи' && (
+                                              <>
+                                                <div>
+                                                  <Label>Защита</Label>
+                                                  <SearchableSelect
+                                                    options={ARMOR_DEFENSE_BONUS_OPTIONS}
+                                                    value={editItemData.armorDefenseBonus !== undefined ? String(editItemData.armorDefenseBonus) : ''}
+                                                    onValueChange={(val) => setEditItemData(p => p ? ({ ...p, armorDefenseBonus: val ? Number(val) : undefined }) : null)}
+                                                    placeholder="Выберите уровень защиты..."
+                                                  />
+                                                </div>
+                                                <div>
+                                                  <Label>Тип защиты</Label>
+                                                  <SearchableSelect
+                                                    options={ARMOR_DEFENSE_TYPE_OPTIONS}
+                                                    value={editItemData.armorDefenseType || ''}
+                                                    onValueChange={(val) => setEditItemData(p => p ? ({ ...p, armorDefenseType: (val || undefined) as any }) : null)}
+                                                    placeholder="Выберите тип защиты..."
+                                                  />
+                                                </div>
+                                              </>
+                                            )}
+
+                                            {selectedInventoryItem.category === 'оружие' && (
+                                              <>
+                                                <div>
+                                                  <Label>Урон</Label>
+                                                  <SearchableSelect
+                                                    options={WEAPON_DAMAGE_OPTIONS}
+                                                    value={editItemData.weaponDamage !== undefined ? String(editItemData.weaponDamage) : ''}
+                                                    onValueChange={(val) => setEditItemData(p => p ? ({ ...p, weaponDamage: val ? Number(val) : undefined }) : null)}
+                                                    placeholder="Выберите уровень урона..."
+                                                  />
+                                                </div>
+                                                <div>
+                                                  <Label>Тип урона</Label>
+                                                  <SearchableSelect
+                                                    options={WEAPON_DAMAGE_TYPE_OPTIONS}
+                                                    value={editItemData.weaponDamageType || ''}
+                                                    onValueChange={(val) =>
+                                                      setEditItemData(p => p ? ({
+                                                        ...p,
+                                                        weaponDamageType: (val || undefined) as any,
+                                                        weaponElement: val === 'Магический' ? (p.weaponElement || '') : '',
+                                                      }) : null)
+                                                    }
+                                                    placeholder="Выберите тип урона..."
+                                                  />
+                                                </div>
+                                                {editItemData.weaponDamageType === 'Магический' && (
+                                                  <div>
+                                                    <Label>Стихия</Label>
+                                                    <SearchableSelect
+                                                      options={ELEMENTAL_MAGIC_OPTIONS}
+                                                      value={editItemData.weaponElement || ''}
+                                                      onValueChange={(val) => setEditItemData(p => p ? ({ ...p, weaponElement: val }) : null)}
+                                                      placeholder="Выберите стихию..."
+                                                    />
+                                                  </div>
+                                                )}
+                                              </>
+                                            )}
+
+                                            {selectedInventoryItem.category === 'зелья' && (
+                                              <>
+                                                <div>
+                                                  <Label>Лечение</Label>
+                                                  <SearchableSelect
+                                                    options={POTION_HEALING_OPTIONS}
+                                                    value={editItemData.potionHealing !== undefined ? String(editItemData.potionHealing) : ''}
+                                                    onValueChange={(val) => setEditItemData(p => p ? ({ ...p, potionHealing: val ? Number(val) : undefined }) : null)}
+                                                    placeholder="Выберите уровень лечения..."
+                                                  />
+                                                </div>
+                                                <div>
+                                                  <Label>Восстановление маны</Label>
+                                                  <SearchableSelect
+                                                    options={POTION_MANA_RESTORE_OPTIONS}
+                                                    value={editItemData.potionManaRestore !== undefined ? String(editItemData.potionManaRestore) : ''}
+                                                    onValueChange={(val) => setEditItemData(p => p ? ({ ...p, potionManaRestore: val ? Number(val) : undefined }) : null)}
+                                                    placeholder="Выберите восстановление маны..."
+                                                  />
+                                                </div>
+                                              </>
+                                            )}
+                                          </div>
+                                        )}
                                         <div className="flex flex-col sm:flex-row gap-2">
                                             <Button type="submit" className="flex-1"><Edit className="mr-2"/>Сохранить</Button>
                                             <AlertDialog>

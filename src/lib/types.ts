@@ -39,6 +39,16 @@ export type InventoryCategory =
   | "документы"
   | "ингредиенты"
   | "ключи";
+
+export type ArmorDefenseType = "Физическая" | "Магическая" | "Смешанная";
+export type WeaponDamageType = "Физический" | "Магический";
+export type ArtifactRank =
+  | "Очень слабый артефакт"
+  | "Слабый артефакт"
+  | "Обычный артефакт"
+  | "Редкий артефакт"
+  | "Легендарный артефакт"
+  | "Мифический артефакт";
 export type RelationshipType =
   | "романтика"
   | "дружба"
@@ -148,6 +158,18 @@ export interface InventoryItem {
   quantity: number;
   image?: string;
   inventoryTag?: InventoryCategory;
+  armorDefenseBonus?: number;
+  armorDefenseType?: ArmorDefenseType;
+  weaponDamage?: number;
+  weaponDamageType?: WeaponDamageType;
+  weaponElement?: string;
+  potionHealing?: number;
+  potionManaRestore?: number;
+  artifactRank?: ArtifactRank;
+  artifactDamage?: number;
+  artifactDefense?: number;
+  artifactHealing?: number;
+  artifactMana?: number;
 }
 
 export interface Inventory {
@@ -451,6 +473,18 @@ export interface ShopItem {
   inventoryItemDescription?: string;
   inventoryItemImage?: string;
   mailOnPurchase?: string;
+  armorDefenseBonus?: number;
+  armorDefenseType?: ArmorDefenseType;
+  weaponDamage?: number;
+  weaponDamageType?: WeaponDamageType;
+  weaponElement?: string;
+  potionHealing?: number;
+  potionManaRestore?: number;
+  artifactRank?: ArtifactRank;
+  artifactDamage?: number;
+  artifactDefense?: number;
+  artifactHealing?: number;
+  artifactMana?: number;
 }
 
 export interface Shop {
@@ -475,6 +509,18 @@ export type AdminGiveItemForm = {
   inventoryTag: InventoryCategory;
   quantity?: number;
   image?: string;
+  armorDefenseBonus?: number;
+  armorDefenseType?: ArmorDefenseType;
+  weaponDamage?: number;
+  weaponDamageType?: WeaponDamageType;
+  weaponElement?: string;
+  potionHealing?: number;
+  potionManaRestore?: number;
+  artifactRank?: ArtifactRank;
+  artifactDamage?: number;
+  artifactDefense?: number;
+  artifactHealing?: number;
+  artifactMana?: number;
 };
 
 export interface PerformRelationshipActionParams {

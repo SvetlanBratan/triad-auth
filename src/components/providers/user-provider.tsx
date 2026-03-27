@@ -2162,14 +2162,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             id: `item-${Date.now()}`
         };
         const updatedItems = [...items, newItem];
-        const sanitizedItems = updatedItems.map((i: ShopItem) => {
-            const { quantity, ...rest } = i;
-            if (quantity === undefined) {
-                return rest;
-            }
-            return i;
-        });
-        await setDoc(shopRef, { items: sanitizedItems }, { merge: true });
+        await setDoc(shopRef, { items: sanitizeObjectForFirestore(updatedItems) }, { merge: true });
     }, []);
 
   const updateShopItem = useCallback(async (shopId: string, itemToUpdate: ShopItem) => {
@@ -2178,14 +2171,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const shopData = shopDoc.data() || {};
         const items = shopData.items || [];
         const updatedItems = items.map((item: ShopItem) => item.id === itemToUpdate.id ? itemToUpdate : item);
-         const sanitizedItems = updatedItems.map((i: ShopItem) => {
-            const { quantity, ...rest } = i;
-            if (quantity === undefined) {
-                return rest;
-            }
-            return i;
-        });
-        await setDoc(shopRef, { items: sanitizedItems }, { merge: true });
+        await setDoc(shopRef, { items: sanitizeObjectForFirestore(updatedItems) }, { merge: true });
     }, []);
 
   const deleteShopItem = useCallback(async (shopId: string, itemId: string) => {
@@ -2282,13 +2268,25 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 if (existingItemIndex > -1) {
                     list[existingItemIndex].quantity += quantity;
                 } else {
-                    const newInventoryItem: InventoryItem = {
-                        id: `inv-item-${Date.now()}`,
-                        name: inventoryItemName,
-                        description: inventoryItemDescription,
-                        image: inventoryItemImage,
-                        quantity: quantity,
-                    };
+        const newInventoryItem: InventoryItem = {
+            id: `inv-item-${Date.now()}`,
+            name: inventoryItemName,
+            description: inventoryItemDescription,
+            image: inventoryItemImage,
+            quantity: quantity,
+            armorDefenseBonus: item.armorDefenseBonus,
+            armorDefenseType: item.armorDefenseType,
+            weaponDamage: item.weaponDamage,
+            weaponDamageType: item.weaponDamageType,
+            weaponElement: item.weaponElement,
+            potionHealing: item.potionHealing,
+            potionManaRestore: item.potionManaRestore,
+            artifactRank: item.artifactRank,
+            artifactDamage: item.artifactDamage,
+            artifactDefense: item.artifactDefense,
+            artifactHealing: item.artifactHealing,
+            artifactMana: item.artifactMana,
+        };
                     list.push(newInventoryItem);
                 }
             }
@@ -2398,6 +2396,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             description: itemData.description,
             image: itemData.image,
             quantity: itemData.quantity || 1,
+            armorDefenseBonus: itemData.armorDefenseBonus,
+            armorDefenseType: itemData.armorDefenseType,
+            weaponDamage: itemData.weaponDamage,
+            weaponDamageType: itemData.weaponDamageType,
+            weaponElement: itemData.weaponElement,
+            potionHealing: itemData.potionHealing,
+            potionManaRestore: itemData.potionManaRestore,
+            artifactRank: itemData.artifactRank,
+            artifactDamage: itemData.artifactDamage,
+            artifactDefense: itemData.artifactDefense,
+            artifactHealing: itemData.artifactHealing,
+            artifactMana: itemData.artifactMana,
         };
 
         const tag = itemData.inventoryTag as keyof Inventory;

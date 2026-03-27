@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '../ui/textarea';
-import { INVENTORY_CATEGORIES } from '@/lib/data';
+import { INVENTORY_CATEGORIES, ELEMENTAL_MAGIC_OPTIONS } from '@/lib/data';
 import { SearchableSelect } from '../ui/searchable-select';
 import ImageKitUploader from './imagekit-uploader';
 import { Switch } from '../ui/switch';
@@ -19,6 +19,16 @@ import { useQuery } from '@tanstack/react-query';
 import { Separator } from '../ui/separator';
 import { database } from '@/lib/firebase';
 import { ref, get } from 'firebase/database';
+import {
+    ARMOR_DEFENSE_BONUS_OPTIONS,
+    ARMOR_DEFENSE_TYPE_OPTIONS,
+    WEAPON_DAMAGE_OPTIONS,
+    WEAPON_DAMAGE_TYPE_OPTIONS,
+    POTION_HEALING_OPTIONS,
+    POTION_MANA_RESTORE_OPTIONS,
+    ARTIFACT_RANK_OPTIONS,
+    ARTIFACT_RANK_VALUES,
+} from '@/lib/item-attributes';
 
 interface ShopItemFormProps {
     shopId: string;
@@ -42,6 +52,18 @@ const initialFormData: Omit<ShopItem, 'id'> = {
     inventoryItemDescription: '',
     inventoryItemImage: '',
     mailOnPurchase: '',
+    armorDefenseBonus: undefined,
+    armorDefenseType: undefined,
+    weaponDamage: undefined,
+    weaponDamageType: undefined,
+    weaponElement: '',
+    potionHealing: undefined,
+    potionManaRestore: undefined,
+    artifactRank: undefined,
+    artifactDamage: undefined,
+    artifactDefense: undefined,
+    artifactHealing: undefined,
+    artifactMana: undefined,
 };
 
 export default function ShopItemForm({ shopId, item, closeDialog, defaultCategory }: ShopItemFormProps) {
@@ -124,6 +146,18 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
                 inventoryItemDescription: item.inventoryItemDescription || '',
                 inventoryItemImage: item.inventoryItemImage || '',
                 mailOnPurchase: item.mailOnPurchase || '',
+                armorDefenseBonus: item.armorDefenseBonus,
+                armorDefenseType: item.armorDefenseType,
+                weaponDamage: item.weaponDamage,
+                weaponDamageType: item.weaponDamageType,
+                weaponElement: item.weaponElement || '',
+                potionHealing: item.potionHealing,
+                potionManaRestore: item.potionManaRestore,
+                artifactRank: item.artifactRank,
+                artifactDamage: item.artifactDamage,
+                artifactDefense: item.artifactDefense,
+                artifactHealing: item.artifactHealing,
+                artifactMana: item.artifactMana,
             });
              setShowInventoryFields(!!(item.inventoryItemName || item.inventoryItemDescription || item.inventoryItemImage));
         } else {
@@ -311,13 +345,176 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
                      <SearchableSelect
                         options={INVENTORY_CATEGORIES}
                         value={formData.inventoryTag ?? 'прочее'}
-                        onValueChange={(value) => setFormData(prev => ({...prev, inventoryTag: value as InventoryCategory}))}
+                        onValueChange={(value) => setFormData(prev => ({
+                            ...prev,
+                            inventoryTag: value as InventoryCategory,
+                            armorDefenseBonus: undefined,
+                            armorDefenseType: undefined,
+                            weaponDamage: undefined,
+                            weaponDamageType: undefined,
+                            weaponElement: '',
+                            potionHealing: undefined,
+                            potionManaRestore: undefined,
+                            artifactRank: undefined,
+                            artifactDamage: undefined,
+                            artifactDefense: undefined,
+                            artifactHealing: undefined,
+                            artifactMana: undefined,
+                        }))}
                         placeholder="Выберите категорию..."
                     />
                     <p className="text-xs text-muted-foreground mt-1">
                        В эту категорию инвентаря товар попадет после покупки.
                     </p>
                 </div>
+
+                {(formData.inventoryTag === 'доспехи' || formData.inventoryTag === 'оружие' || formData.inventoryTag === 'зелья' || formData.inventoryTag === 'артефакты') && (
+                    <div className="p-4 border rounded-md space-y-4">
+                        <h4 className="font-semibold text-muted-foreground">Характеристики предмета</h4>
+
+                        {formData.inventoryTag === 'доспехи' && (
+                            <>
+                                <div>
+                                    <Label>Защита</Label>
+                                    <SearchableSelect
+                                        options={ARMOR_DEFENSE_BONUS_OPTIONS}
+                                        value={formData.armorDefenseBonus !== undefined ? String(formData.armorDefenseBonus) : ''}
+                                        onValueChange={(v) => setFormData(p => ({ ...p, armorDefenseBonus: v ? Number(v) : undefined }))}
+                                        placeholder="Выберите уровень защиты..."
+                                    />
+                                </div>
+                                <div>
+                                    <Label>Тип защиты</Label>
+                                    <SearchableSelect
+                                        options={ARMOR_DEFENSE_TYPE_OPTIONS}
+                                        value={formData.armorDefenseType || ''}
+                                        onValueChange={(v) => setFormData(p => ({ ...p, armorDefenseType: (v || undefined) as any }))}
+                                        placeholder="Выберите тип защиты..."
+                                    />
+                                </div>
+                            </>
+                        )}
+
+                        {formData.inventoryTag === 'оружие' && (
+                            <>
+                                <div>
+                                    <Label>Урон</Label>
+                                    <SearchableSelect
+                                        options={WEAPON_DAMAGE_OPTIONS}
+                                        value={formData.weaponDamage !== undefined ? String(formData.weaponDamage) : ''}
+                                        onValueChange={(v) => setFormData(p => ({ ...p, weaponDamage: v ? Number(v) : undefined }))}
+                                        placeholder="Выберите уровень урона..."
+                                    />
+                                </div>
+                                <div>
+                                    <Label>Тип урона</Label>
+                                    <SearchableSelect
+                                        options={WEAPON_DAMAGE_TYPE_OPTIONS}
+                                        value={formData.weaponDamageType || ''}
+                                        onValueChange={(v) =>
+                                            setFormData(p => ({
+                                                ...p,
+                                                weaponDamageType: (v || undefined) as any,
+                                                weaponElement: v === 'Магический' ? (p.weaponElement || '') : '',
+                                            }))
+                                        }
+                                        placeholder="Выберите тип урона..."
+                                    />
+                                </div>
+                                {formData.weaponDamageType === 'Магический' && (
+                                    <div>
+                                        <Label>Стихия</Label>
+                                        <SearchableSelect
+                                            options={ELEMENTAL_MAGIC_OPTIONS}
+                                            value={formData.weaponElement || ''}
+                                            onValueChange={(v) => setFormData(p => ({ ...p, weaponElement: v }))}
+                                            placeholder="Выберите стихию..."
+                                        />
+                                    </div>
+                                )}
+                            </>
+                        )}
+
+                        {formData.inventoryTag === 'зелья' && (
+                            <>
+                                <div>
+                                    <Label>Лечение</Label>
+                                    <SearchableSelect
+                                        options={POTION_HEALING_OPTIONS}
+                                        value={formData.potionHealing !== undefined ? String(formData.potionHealing) : ''}
+                                        onValueChange={(v) => setFormData(p => ({ ...p, potionHealing: v ? Number(v) : undefined }))}
+                                        placeholder="Выберите уровень лечения..."
+                                    />
+                                </div>
+                                <div>
+                                    <Label>Восстановление маны</Label>
+                                    <SearchableSelect
+                                        options={POTION_MANA_RESTORE_OPTIONS}
+                                        value={formData.potionManaRestore !== undefined ? String(formData.potionManaRestore) : ''}
+                                        onValueChange={(v) => setFormData(p => ({ ...p, potionManaRestore: v ? Number(v) : undefined }))}
+                                        placeholder="Выберите восстановление маны..."
+                                    />
+                                </div>
+                            </>
+                        )}
+
+                        {formData.inventoryTag === 'артефакты' && (
+                            <>
+                                <div>
+                                    <Label>Ранг артефакта</Label>
+                                    <SearchableSelect
+                                        options={ARTIFACT_RANK_OPTIONS}
+                                        value={formData.artifactRank || ''}
+                                        onValueChange={(v) => {
+                                            const rank = v || undefined;
+                                            if (!rank) {
+                                                setFormData(p => ({
+                                                    ...p,
+                                                    artifactRank: undefined,
+                                                    artifactDamage: undefined,
+                                                    artifactDefense: undefined,
+                                                    artifactHealing: undefined,
+                                                    artifactMana: undefined,
+                                                }));
+                                                return;
+                                            }
+                                            const values = ARTIFACT_RANK_VALUES[rank as keyof typeof ARTIFACT_RANK_VALUES];
+                                            setFormData(p => ({
+                                                ...p,
+                                                artifactRank: rank as any,
+                                                artifactDamage: values.damage,
+                                                artifactDefense: values.defense,
+                                                artifactHealing: values.heal,
+                                                artifactMana: values.mana,
+                                            }));
+                                        }}
+                                        placeholder="Выберите ранг..."
+                                    />
+                                </div>
+                                {formData.artifactRank && (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                                        <div>
+                                            <Label className="text-xs text-muted-foreground">Урон</Label>
+                                            <p className="font-medium">+{formData.artifactDamage ?? 0}</p>
+                                        </div>
+                                        <div>
+                                            <Label className="text-xs text-muted-foreground">Защита</Label>
+                                            <p className="font-medium">+{formData.artifactDefense ?? 0}</p>
+                                        </div>
+                                        <div>
+                                            <Label className="text-xs text-muted-foreground">Лечение (ОЗ)</Label>
+                                            <p className="font-medium">+{formData.artifactHealing ?? 0} ОЗ</p>
+                                        </div>
+                                        <div>
+                                            <Label className="text-xs text-muted-foreground">Восстановление маны (ОМ)</Label>
+                                            <p className="font-medium">+{formData.artifactMana ?? 0} ОМ</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </div>
+                )}
 
                 <div>
                     <Label>Цена за 1 шт.</Label>
