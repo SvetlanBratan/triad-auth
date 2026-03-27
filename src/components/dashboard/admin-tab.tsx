@@ -2160,7 +2160,7 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
             </CardContent>
         </Card>
         <Dialog open={!!editingHuntLocation} onOpenChange={(isOpen) => !isOpen && setEditingHuntLocation(null)}>
-            <DialogContent className="max-w-3xl">
+            <DialogContent className="max-w-3xl" aria-describedby={undefined}>
                 {editingHuntLocation && (
                     <>
                         <DialogHeader>
