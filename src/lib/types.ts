@@ -168,6 +168,9 @@ export interface InventoryItem {
   potionManaRestore?: number;
   artifactRank?: ArtifactRank;
   artifactDamageType?: DamageType;
+  artifactHasDamage?: boolean;
+  artifactHasHealing?: boolean;
+  artifactHasMana?: boolean;
   artifactDamage?: number;
   artifactDefense?: number;
   artifactHealing?: number;
@@ -484,6 +487,9 @@ export interface ShopItem {
   potionManaRestore?: number;
   artifactRank?: ArtifactRank;
   artifactDamageType?: DamageType;
+  artifactHasDamage?: boolean;
+  artifactHasHealing?: boolean;
+  artifactHasMana?: boolean;
   artifactDamage?: number;
   artifactDefense?: number;
   artifactHealing?: number;
@@ -521,6 +527,9 @@ export type AdminGiveItemForm = {
   potionManaRestore?: number;
   artifactRank?: ArtifactRank;
   artifactDamageType?: DamageType;
+  artifactHasDamage?: boolean;
+  artifactHasHealing?: boolean;
+  artifactHasMana?: boolean;
   artifactDamage?: number;
   artifactDefense?: number;
   artifactHealing?: number;

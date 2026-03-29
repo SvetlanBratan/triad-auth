@@ -257,6 +257,9 @@ export default function AdminTab() {
     potionManaRestore: undefined,
     artifactRank: undefined,
     artifactDamageType: undefined,
+    artifactHasDamage: true,
+    artifactHasHealing: true,
+    artifactHasMana: true,
     artifactDamage: undefined,
     artifactDefense: undefined,
     artifactHealing: undefined,
@@ -2864,6 +2867,9 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
                                                         potionManaRestore: undefined,
                                                         artifactRank: undefined,
                                                         artifactDamageType: undefined,
+                                                        artifactHasDamage: true,
+                                                        artifactHasHealing: true,
+                                                        artifactHasMana: true,
                                                         artifactDamage: undefined,
                                                         artifactDefense: undefined,
                                                         artifactHealing: undefined,
@@ -2977,8 +2983,11 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
                                                                     if (!rank) {
                                                                         setNewItemData(p => ({
                                                                             ...p,
-                                                                            artifactRank: undefined,
+                                                                                    artifactRank: undefined,
                                                                             artifactDamageType: undefined,
+                                                                            artifactHasDamage: true,
+                                                                            artifactHasHealing: true,
+                                                                            artifactHasMana: true,
                                                                             artifactDamage: undefined,
                                                                             artifactDefense: undefined,
                                                                             artifactHealing: undefined,
@@ -2991,10 +3000,13 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
                                                                         ...p,
                                                                         artifactRank: rank as any,
                                                                         artifactDamageType: p.artifactDamageType || 'Физический',
-                                                                        artifactDamage: values.damage,
+                                                                        artifactHasDamage: p.artifactHasDamage ?? true,
+                                                                        artifactHasHealing: p.artifactHasHealing ?? true,
+                                                                        artifactHasMana: p.artifactHasMana ?? true,
+                                                                        artifactDamage: (p.artifactHasDamage ?? true) ? values.damage : 0,
                                                                         artifactDefense: values.defense,
-                                                                        artifactHealing: values.heal,
-                                                                        artifactMana: values.mana,
+                                                                        artifactHealing: (p.artifactHasHealing ?? true) ? values.heal : 0,
+                                                                        artifactMana: (p.artifactHasMana ?? true) ? values.mana : 0,
                                                                     }));
                                                                 }}
                                                                 placeholder="Выберите ранг..."
@@ -3008,6 +3020,44 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
                                                                 onValueChange={(val) => setNewItemData(p => ({ ...p, artifactDamageType: (val || undefined) as any }))}
                                                                 placeholder="Выберите тип урона..."
                                                             />
+                                                        </div>
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                            <div className="flex items-center gap-2">
+                                                                <Switch
+                                                                    id="admin-artifact-has-damage"
+                                                                    checked={!!newItemData.artifactHasDamage}
+                                                                    onCheckedChange={(checked) => setNewItemData(p => ({
+                                                                        ...p,
+                                                                        artifactHasDamage: checked,
+                                                                        artifactDamage: checked ? (p.artifactRank ? ARTIFACT_RANK_VALUES[p.artifactRank as keyof typeof ARTIFACT_RANK_VALUES].damage : p.artifactDamage) : 0,
+                                                                    }))}
+                                                                />
+                                                                <Label htmlFor="admin-artifact-has-damage">Урон</Label>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <Switch
+                                                                    id="admin-artifact-has-healing"
+                                                                    checked={!!newItemData.artifactHasHealing}
+                                                                    onCheckedChange={(checked) => setNewItemData(p => ({
+                                                                        ...p,
+                                                                        artifactHasHealing: checked,
+                                                                        artifactHealing: checked ? (p.artifactRank ? ARTIFACT_RANK_VALUES[p.artifactRank as keyof typeof ARTIFACT_RANK_VALUES].heal : p.artifactHealing) : 0,
+                                                                    }))}
+                                                                />
+                                                                <Label htmlFor="admin-artifact-has-healing">Лечение</Label>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <Switch
+                                                                    id="admin-artifact-has-mana"
+                                                                    checked={!!newItemData.artifactHasMana}
+                                                                    onCheckedChange={(checked) => setNewItemData(p => ({
+                                                                        ...p,
+                                                                        artifactHasMana: checked,
+                                                                        artifactMana: checked ? (p.artifactRank ? ARTIFACT_RANK_VALUES[p.artifactRank as keyof typeof ARTIFACT_RANK_VALUES].mana : p.artifactMana) : 0,
+                                                                    }))}
+                                                                />
+                                                                <Label htmlFor="admin-artifact-has-mana">Восстановление маны</Label>
+                                                            </div>
                                                         </div>
                                                         {newItemData.artifactRank && (
                                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
@@ -3192,6 +3242,9 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
                                                           ...p,
                                                           artifactRank: undefined,
                                                           artifactDamageType: undefined,
+                                                          artifactHasDamage: true,
+                                                          artifactHasHealing: true,
+                                                          artifactHasMana: true,
                                                           artifactDamage: undefined,
                                                           artifactDefense: undefined,
                                                           artifactHealing: undefined,
@@ -3204,10 +3257,13 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
                                                         ...p,
                                                         artifactRank: rank as any,
                                                         artifactDamageType: p.artifactDamageType || 'Физический',
-                                                        artifactDamage: values.damage,
+                                                        artifactHasDamage: p.artifactHasDamage ?? true,
+                                                        artifactHasHealing: p.artifactHasHealing ?? true,
+                                                        artifactHasMana: p.artifactHasMana ?? true,
+                                                        artifactDamage: (p.artifactHasDamage ?? true) ? values.damage : 0,
                                                         artifactDefense: values.defense,
-                                                        artifactHealing: values.heal,
-                                                        artifactMana: values.mana,
+                                                        artifactHealing: (p.artifactHasHealing ?? true) ? values.heal : 0,
+                                                        artifactMana: (p.artifactHasMana ?? true) ? values.mana : 0,
                                                       }) : null);
                                                     }}
                                                     placeholder="Выберите ранг..."
@@ -3221,6 +3277,44 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
                                                     onValueChange={(val) => setEditItemData(p => p ? ({ ...p, artifactDamageType: (val || undefined) as any }) : null)}
                                                     placeholder="Выберите тип урона..."
                                                   />
+                                                </div>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <Switch
+                                                            id="admin-edit-artifact-has-damage"
+                                                            checked={!!editItemData.artifactHasDamage}
+                                                            onCheckedChange={(checked) => setEditItemData(p => p ? ({
+                                                                ...p,
+                                                                artifactHasDamage: checked,
+                                                                artifactDamage: checked ? (p.artifactRank ? ARTIFACT_RANK_VALUES[p.artifactRank as keyof typeof ARTIFACT_RANK_VALUES].damage : p.artifactDamage) : 0,
+                                                            }) : null)}
+                                                        />
+                                                        <Label htmlFor="admin-edit-artifact-has-damage">Урон</Label>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <Switch
+                                                            id="admin-edit-artifact-has-healing"
+                                                            checked={!!editItemData.artifactHasHealing}
+                                                            onCheckedChange={(checked) => setEditItemData(p => p ? ({
+                                                                ...p,
+                                                                artifactHasHealing: checked,
+                                                                artifactHealing: checked ? (p.artifactRank ? ARTIFACT_RANK_VALUES[p.artifactRank as keyof typeof ARTIFACT_RANK_VALUES].heal : p.artifactHealing) : 0,
+                                                            }) : null)}
+                                                        />
+                                                        <Label htmlFor="admin-edit-artifact-has-healing">Лечение</Label>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <Switch
+                                                            id="admin-edit-artifact-has-mana"
+                                                            checked={!!editItemData.artifactHasMana}
+                                                            onCheckedChange={(checked) => setEditItemData(p => p ? ({
+                                                                ...p,
+                                                                artifactHasMana: checked,
+                                                                artifactMana: checked ? (p.artifactRank ? ARTIFACT_RANK_VALUES[p.artifactRank as keyof typeof ARTIFACT_RANK_VALUES].mana : p.artifactMana) : 0,
+                                                            }) : null)}
+                                                        />
+                                                        <Label htmlFor="admin-edit-artifact-has-mana">Восстановление маны</Label>
+                                                    </div>
                                                 </div>
                                                 {editItemData.artifactRank && (
                                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">

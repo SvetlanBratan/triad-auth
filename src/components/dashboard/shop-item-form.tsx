@@ -62,6 +62,9 @@ const initialFormData: Omit<ShopItem, 'id'> = {
     potionManaRestore: undefined,
     artifactRank: undefined,
     artifactDamageType: undefined,
+    artifactHasDamage: true,
+    artifactHasHealing: true,
+    artifactHasMana: true,
     artifactDamage: undefined,
     artifactDefense: undefined,
     artifactHealing: undefined,
@@ -157,6 +160,9 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
                 potionManaRestore: item.potionManaRestore,
                 artifactRank: item.artifactRank,
                 artifactDamageType: item.artifactDamageType,
+                artifactHasDamage: item.artifactHasDamage ?? true,
+                artifactHasHealing: item.artifactHasHealing ?? true,
+                artifactHasMana: item.artifactHasMana ?? true,
                 artifactDamage: item.artifactDamage,
                 artifactDefense: item.artifactDefense,
                 artifactHealing: item.artifactHealing,
@@ -360,6 +366,9 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
                             potionManaRestore: undefined,
                             artifactRank: undefined,
                             artifactDamageType: undefined,
+                            artifactHasDamage: true,
+                            artifactHasHealing: true,
+                            artifactHasMana: true,
                             artifactDamage: undefined,
                             artifactDefense: undefined,
                             artifactHealing: undefined,
@@ -476,6 +485,9 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
                                                     ...p,
                                                     artifactRank: undefined,
                                                     artifactDamageType: undefined,
+                                                    artifactHasDamage: true,
+                                                    artifactHasHealing: true,
+                                                    artifactHasMana: true,
                                                     artifactDamage: undefined,
                                                     artifactDefense: undefined,
                                                     artifactHealing: undefined,
@@ -488,10 +500,13 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
                                                 ...p,
                                                 artifactRank: rank as any,
                                                 artifactDamageType: p.artifactDamageType || 'Физический',
-                                                artifactDamage: values.damage,
+                                                artifactHasDamage: p.artifactHasDamage ?? true,
+                                                artifactHasHealing: p.artifactHasHealing ?? true,
+                                                artifactHasMana: p.artifactHasMana ?? true,
+                                                artifactDamage: (p.artifactHasDamage ?? true) ? values.damage : 0,
                                                 artifactDefense: values.defense,
-                                                artifactHealing: values.heal,
-                                                artifactMana: values.mana,
+                                                artifactHealing: (p.artifactHasHealing ?? true) ? values.heal : 0,
+                                                artifactMana: (p.artifactHasMana ?? true) ? values.mana : 0,
                                             }));
                                         }}
                                         placeholder="Выберите ранг..."
@@ -505,6 +520,44 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
                                         onValueChange={(v) => setFormData(p => ({ ...p, artifactDamageType: (v || undefined) as any }))}
                                         placeholder="Выберите тип урона..."
                                     />
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <div className="flex items-center gap-2">
+                                        <Switch
+                                          id="artifact-has-damage"
+                                          checked={!!formData.artifactHasDamage}
+                                          onCheckedChange={(checked) => setFormData(p => ({
+                                            ...p,
+                                            artifactHasDamage: checked,
+                                            artifactDamage: checked ? (p.artifactRank ? ARTIFACT_RANK_VALUES[p.artifactRank as keyof typeof ARTIFACT_RANK_VALUES].damage : p.artifactDamage) : 0,
+                                          }))}
+                                        />
+                                        <Label htmlFor="artifact-has-damage">Урон</Label>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Switch
+                                          id="artifact-has-healing"
+                                          checked={!!formData.artifactHasHealing}
+                                          onCheckedChange={(checked) => setFormData(p => ({
+                                            ...p,
+                                            artifactHasHealing: checked,
+                                            artifactHealing: checked ? (p.artifactRank ? ARTIFACT_RANK_VALUES[p.artifactRank as keyof typeof ARTIFACT_RANK_VALUES].heal : p.artifactHealing) : 0,
+                                          }))}
+                                        />
+                                        <Label htmlFor="artifact-has-healing">Лечение</Label>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Switch
+                                          id="artifact-has-mana"
+                                          checked={!!formData.artifactHasMana}
+                                          onCheckedChange={(checked) => setFormData(p => ({
+                                            ...p,
+                                            artifactHasMana: checked,
+                                            artifactMana: checked ? (p.artifactRank ? ARTIFACT_RANK_VALUES[p.artifactRank as keyof typeof ARTIFACT_RANK_VALUES].mana : p.artifactMana) : 0,
+                                          }))}
+                                        />
+                                        <Label htmlFor="artifact-has-mana">Восстановление маны</Label>
+                                    </div>
                                 </div>
                                 {formData.artifactRank && (
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
