@@ -2094,7 +2094,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const shopTx: BankTransaction = { id: `txn-sell-${Date.now()}`, date: new Date().toISOString(), reason: `Продажа: ${item.name} x${quantity}`, amount: totalPrice };
             shopBankAccount.history = [shopTx, ...(shopBankAccount.history || [])];
 
-            transaction.update(buyerUserRef, { characters: buyerUserData.characters });
+            transaction.update(buyerUserRef, sanitizeObjectForFirestore({ characters: buyerUserData.characters }));
 
             const updatedShopData: Partial<Shop> = { bankAccount: shopBankAccount };
             const updatedItems = [...items];
@@ -2105,7 +2105,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             updatedShopData.items = updatedItems;
             updatedShopData.purchaseCount = increment(quantity) as unknown as number;
 
-            transaction.set(shopRef, updatedShopData, { merge: true });
+            transaction.set(shopRef, sanitizeObjectForFirestore(updatedShopData), { merge: true });
         });
         
          if (currentUser?.id === buyerUserId) {

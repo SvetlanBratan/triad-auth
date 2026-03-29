@@ -24,6 +24,7 @@ import {
     ARMOR_DEFENSE_TYPE_OPTIONS,
     WEAPON_DAMAGE_OPTIONS,
     WEAPON_DAMAGE_TYPE_OPTIONS,
+    ARTIFACT_DAMAGE_TYPE_OPTIONS,
     POTION_HEALING_OPTIONS,
     POTION_MANA_RESTORE_OPTIONS,
     ARTIFACT_RANK_OPTIONS,
@@ -60,6 +61,7 @@ const initialFormData: Omit<ShopItem, 'id'> = {
     potionHealing: undefined,
     potionManaRestore: undefined,
     artifactRank: undefined,
+    artifactDamageType: undefined,
     artifactDamage: undefined,
     artifactDefense: undefined,
     artifactHealing: undefined,
@@ -154,6 +156,7 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
                 potionHealing: item.potionHealing,
                 potionManaRestore: item.potionManaRestore,
                 artifactRank: item.artifactRank,
+                artifactDamageType: item.artifactDamageType,
                 artifactDamage: item.artifactDamage,
                 artifactDefense: item.artifactDefense,
                 artifactHealing: item.artifactHealing,
@@ -356,6 +359,7 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
                             potionHealing: undefined,
                             potionManaRestore: undefined,
                             artifactRank: undefined,
+                            artifactDamageType: undefined,
                             artifactDamage: undefined,
                             artifactDefense: undefined,
                             artifactHealing: undefined,
@@ -471,6 +475,7 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
                                                 setFormData(p => ({
                                                     ...p,
                                                     artifactRank: undefined,
+                                                    artifactDamageType: undefined,
                                                     artifactDamage: undefined,
                                                     artifactDefense: undefined,
                                                     artifactHealing: undefined,
@@ -482,6 +487,7 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
                                             setFormData(p => ({
                                                 ...p,
                                                 artifactRank: rank as any,
+                                                artifactDamageType: p.artifactDamageType || 'Физический',
                                                 artifactDamage: values.damage,
                                                 artifactDefense: values.defense,
                                                 artifactHealing: values.heal,
@@ -491,11 +497,24 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
                                         placeholder="Выберите ранг..."
                                     />
                                 </div>
+                                <div>
+                                    <Label>Тип урона</Label>
+                                    <SearchableSelect
+                                        options={ARTIFACT_DAMAGE_TYPE_OPTIONS}
+                                        value={formData.artifactDamageType || ''}
+                                        onValueChange={(v) => setFormData(p => ({ ...p, artifactDamageType: (v || undefined) as any }))}
+                                        placeholder="Выберите тип урона..."
+                                    />
+                                </div>
                                 {formData.artifactRank && (
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                                         <div>
                                             <Label className="text-xs text-muted-foreground">Урон</Label>
                                             <p className="font-medium">+{formData.artifactDamage ?? 0}</p>
+                                        </div>
+                                        <div>
+                                            <Label className="text-xs text-muted-foreground">Тип урона</Label>
+                                            <p className="font-medium">{formData.artifactDamageType || '—'}</p>
                                         </div>
                                         <div>
                                             <Label className="text-xs text-muted-foreground">Защита</Label>

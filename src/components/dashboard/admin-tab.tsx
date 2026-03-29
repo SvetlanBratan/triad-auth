@@ -18,6 +18,7 @@ import {
   ARMOR_DEFENSE_TYPE_OPTIONS,
   WEAPON_DAMAGE_OPTIONS,
   WEAPON_DAMAGE_TYPE_OPTIONS,
+  ARTIFACT_DAMAGE_TYPE_OPTIONS,
   POTION_HEALING_OPTIONS,
   POTION_MANA_RESTORE_OPTIONS,
   ARTIFACT_RANK_OPTIONS,
@@ -255,6 +256,7 @@ export default function AdminTab() {
     potionHealing: undefined,
     potionManaRestore: undefined,
     artifactRank: undefined,
+    artifactDamageType: undefined,
     artifactDamage: undefined,
     artifactDefense: undefined,
     artifactHealing: undefined,
@@ -403,6 +405,12 @@ export default function AdminTab() {
                         weaponElement: item.weaponElement || '',
                         potionHealing: item.potionHealing,
                         potionManaRestore: item.potionManaRestore,
+                        artifactRank: item.artifactRank,
+                        artifactDamageType: item.artifactDamageType,
+                        artifactDamage: item.artifactDamage,
+                        artifactDefense: item.artifactDefense,
+                        artifactHealing: item.artifactHealing,
+                        artifactMana: item.artifactMana,
                     })
                 };
             })
@@ -2855,6 +2863,7 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
                                                         potionHealing: undefined,
                                                         potionManaRestore: undefined,
                                                         artifactRank: undefined,
+                                                        artifactDamageType: undefined,
                                                         artifactDamage: undefined,
                                                         artifactDefense: undefined,
                                                         artifactHealing: undefined,
@@ -2969,6 +2978,7 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
                                                                         setNewItemData(p => ({
                                                                             ...p,
                                                                             artifactRank: undefined,
+                                                                            artifactDamageType: undefined,
                                                                             artifactDamage: undefined,
                                                                             artifactDefense: undefined,
                                                                             artifactHealing: undefined,
@@ -2980,6 +2990,7 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
                                                                     setNewItemData(p => ({
                                                                         ...p,
                                                                         artifactRank: rank as any,
+                                                                        artifactDamageType: p.artifactDamageType || 'Физический',
                                                                         artifactDamage: values.damage,
                                                                         artifactDefense: values.defense,
                                                                         artifactHealing: values.heal,
@@ -2989,11 +3000,24 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
                                                                 placeholder="Выберите ранг..."
                                                             />
                                                         </div>
+                                                        <div>
+                                                            <Label>Тип урона</Label>
+                                                            <SearchableSelect
+                                                                options={ARTIFACT_DAMAGE_TYPE_OPTIONS}
+                                                                value={newItemData.artifactDamageType || ''}
+                                                                onValueChange={(val) => setNewItemData(p => ({ ...p, artifactDamageType: (val || undefined) as any }))}
+                                                                placeholder="Выберите тип урона..."
+                                                            />
+                                                        </div>
                                                         {newItemData.artifactRank && (
                                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                                                                 <div>
                                                                     <Label className="text-xs text-muted-foreground">Урон</Label>
                                                                     <p className="font-medium">+{newItemData.artifactDamage ?? 0}</p>
+                                                                </div>
+                                                                <div>
+                                                                    <Label className="text-xs text-muted-foreground">Тип урона</Label>
+                                                                    <p className="font-medium">{newItemData.artifactDamageType || '—'}</p>
                                                                 </div>
                                                                 <div>
                                                                     <Label className="text-xs text-muted-foreground">Защита</Label>
@@ -3086,7 +3110,7 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
                                             <p className="text-sm text-muted-foreground">Категорию предмета изменить нельзя.</p>
                                         </div>
 
-                                        {(selectedInventoryItem.category === 'доспехи' || selectedInventoryItem.category === 'оружие' || selectedInventoryItem.category === 'зелья') && (
+                                        {(selectedInventoryItem.category === 'доспехи' || selectedInventoryItem.category === 'оружие' || selectedInventoryItem.category === 'зелья' || selectedInventoryItem.category === 'артефакты') && (
                                           <div className="space-y-4 pt-2">
                                             <Separator />
                                             <h4 className="font-semibold text-muted-foreground">Характеристики</h4>
@@ -3154,6 +3178,76 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
                                               </>
                                             )}
 
+                                            {selectedInventoryItem.category === 'артефакты' && (
+                                              <>
+                                                <div>
+                                                  <Label>Ранг артефакта</Label>
+                                                  <SearchableSelect
+                                                    options={ARTIFACT_RANK_OPTIONS}
+                                                    value={editItemData.artifactRank || ''}
+                                                    onValueChange={(val) => {
+                                                      const rank = val || undefined;
+                                                      if (!rank) {
+                                                        setEditItemData(p => p ? ({
+                                                          ...p,
+                                                          artifactRank: undefined,
+                                                          artifactDamageType: undefined,
+                                                          artifactDamage: undefined,
+                                                          artifactDefense: undefined,
+                                                          artifactHealing: undefined,
+                                                          artifactMana: undefined,
+                                                        }) : null);
+                                                        return;
+                                                      }
+                                                      const values = ARTIFACT_RANK_VALUES[rank as keyof typeof ARTIFACT_RANK_VALUES];
+                                                      setEditItemData(p => p ? ({
+                                                        ...p,
+                                                        artifactRank: rank as any,
+                                                        artifactDamageType: p.artifactDamageType || 'Физический',
+                                                        artifactDamage: values.damage,
+                                                        artifactDefense: values.defense,
+                                                        artifactHealing: values.heal,
+                                                        artifactMana: values.mana,
+                                                      }) : null);
+                                                    }}
+                                                    placeholder="Выберите ранг..."
+                                                  />
+                                                </div>
+                                                <div>
+                                                  <Label>Тип урона</Label>
+                                                  <SearchableSelect
+                                                    options={ARTIFACT_DAMAGE_TYPE_OPTIONS}
+                                                    value={editItemData.artifactDamageType || ''}
+                                                    onValueChange={(val) => setEditItemData(p => p ? ({ ...p, artifactDamageType: (val || undefined) as any }) : null)}
+                                                    placeholder="Выберите тип урона..."
+                                                  />
+                                                </div>
+                                                {editItemData.artifactRank && (
+                                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                                                    <div>
+                                                      <Label className="text-xs text-muted-foreground">Урон</Label>
+                                                      <p className="font-medium">+{editItemData.artifactDamage ?? 0}</p>
+                                                    </div>
+                                                    <div>
+                                                      <Label className="text-xs text-muted-foreground">Тип урона</Label>
+                                                      <p className="font-medium">{editItemData.artifactDamageType || '—'}</p>
+                                                    </div>
+                                                    <div>
+                                                      <Label className="text-xs text-muted-foreground">Защита</Label>
+                                                      <p className="font-medium">+{editItemData.artifactDefense ?? 0}</p>
+                                                    </div>
+                                                    <div>
+                                                      <Label className="text-xs text-muted-foreground">Лечение (ОЗ)</Label>
+                                                      <p className="font-medium">+{editItemData.artifactHealing ?? 0} ОЗ</p>
+                                                    </div>
+                                                    <div>
+                                                      <Label className="text-xs text-muted-foreground">Восстановление маны (ОМ)</Label>
+                                                      <p className="font-medium">+{editItemData.artifactMana ?? 0} ОМ</p>
+                                                    </div>
+                                                  </div>
+                                                )}
+                                              </>
+                                            )}
                                             {selectedInventoryItem.category === 'зелья' && (
                                               <>
                                                 <div>

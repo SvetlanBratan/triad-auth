@@ -1,4 +1,4 @@
-import type { ArmorDefenseType, WeaponDamageType } from "./types";
+import type { ArmorDefenseType, WeaponDamageType, DamageType } from "./types";
 
 export type OptionType<T extends string = string> = { value: T; label: string };
 
@@ -27,6 +27,12 @@ export const WEAPON_DAMAGE_OPTIONS: OptionType<string>[] = [
 export const WEAPON_DAMAGE_TYPE_OPTIONS: OptionType<WeaponDamageType>[] = [
   { value: "Физический", label: "Физический" },
   { value: "Магический", label: "Магический" },
+];
+
+export const ARTIFACT_DAMAGE_TYPE_OPTIONS: OptionType<DamageType>[] = [
+  { value: "Физический", label: "Физический" },
+  { value: "Магический", label: "Магический" },
+  { value: "Психический", label: "Психический" },
 ];
 
 export const POTION_HEALING_OPTIONS: OptionType<string>[] = [

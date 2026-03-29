@@ -2282,6 +2282,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             potionHealing: item.potionHealing,
             potionManaRestore: item.potionManaRestore,
             artifactRank: item.artifactRank,
+            artifactDamageType: item.artifactDamageType,
             artifactDamage: item.artifactDamage,
             artifactDefense: item.artifactDefense,
             artifactHealing: item.artifactHealing,
@@ -2356,11 +2357,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 buyerUserData.mail = [...(buyerUserData.mail || []), buyerMail];
             }
 
-            transaction.update(buyerUserRef, { 
+            transaction.update(buyerUserRef, sanitizeObjectForFirestore({ 
                 characters: buyerUserData.characters, 
                 achievementIds: buyerUserData.achievementIds,
                 mail: buyerUserData.mail 
-            });
+            }));
 
             const updatedShopData: Partial<Shop> = { bankAccount: shopBankAccount };
             const updatedItems = [...items];
@@ -2371,7 +2372,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             updatedShopData.items = updatedItems;
             updatedShopData.purchaseCount = increment(quantity) as unknown as number;
 
-            transaction.set(shopRef, updatedShopData, { merge: true });
+            transaction.set(shopRef, sanitizeObjectForFirestore(updatedShopData), { merge: true });
         });
         
          if (currentUser?.id === buyerUserId) {
@@ -2404,6 +2405,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             potionHealing: itemData.potionHealing,
             potionManaRestore: itemData.potionManaRestore,
             artifactRank: itemData.artifactRank,
+            artifactDamageType: itemData.artifactDamageType,
             artifactDamage: itemData.artifactDamage,
             artifactDefense: itemData.artifactDefense,
             artifactHealing: itemData.artifactHealing,

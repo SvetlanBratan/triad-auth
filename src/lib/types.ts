@@ -41,7 +41,8 @@ export type InventoryCategory =
   | "ключи";
 
 export type ArmorDefenseType = "Физическая" | "Магическая" | "Смешанная";
-export type WeaponDamageType = "Физический" | "Магический";
+export type DamageType = "Физический" | "Магический" | "Психический";
+export type WeaponDamageType = DamageType;
 export type ArtifactRank =
   | "Очень слабый артефакт"
   | "Слабый артефакт"
@@ -166,6 +167,7 @@ export interface InventoryItem {
   potionHealing?: number;
   potionManaRestore?: number;
   artifactRank?: ArtifactRank;
+  artifactDamageType?: DamageType;
   artifactDamage?: number;
   artifactDefense?: number;
   artifactHealing?: number;
@@ -481,6 +483,7 @@ export interface ShopItem {
   potionHealing?: number;
   potionManaRestore?: number;
   artifactRank?: ArtifactRank;
+  artifactDamageType?: DamageType;
   artifactDamage?: number;
   artifactDefense?: number;
   artifactHealing?: number;
@@ -517,6 +520,7 @@ export type AdminGiveItemForm = {
   potionHealing?: number;
   potionManaRestore?: number;
   artifactRank?: ArtifactRank;
+  artifactDamageType?: DamageType;
   artifactDamage?: number;
   artifactDefense?: number;
   artifactHealing?: number;
