@@ -114,7 +114,7 @@ export default function RewardsTab() {
   const handleConfirmRequest = async () => {
     if (!currentUser || !selectedReward) return;
 
-    if (selectedReward.id !== 'r-custom-status' && !selectedCharacterId) {
+    if (selectedReward.id !== 'r-custom-status' && selectedReward.id !== 'r-closed-race' && !selectedCharacterId) {
         toast({ variant: "destructive", title: "Ошибка", description: "Пожалуйста, выберите персонажа." });
         return;
     }
@@ -157,8 +157,8 @@ export default function RewardsTab() {
             rewardId: selectedReward.id,
             rewardTitle,
             rewardCost,
-            characterId: character?.id || '',
-            characterName: character?.name || '',
+            characterId: selectedReward.id === 'r-closed-race' ? '' : character?.id || '',
+            characterName: selectedReward.id === 'r-closed-race' ? '' : character?.name || '',
             closedRaceName,
         };
 
@@ -348,14 +348,18 @@ export default function RewardsTab() {
                                   </div>
                                 )}
 
-                                <Label>Выберите персонажа:</Label>
-                                <SearchableSelect
-                                    options={characterOptions}
-                                    value={selectedCharacterId}
-                                    onValueChange={setSelectedCharacterId}
-                                    placeholder="Выберите персонажа..."
-                                    disabled={recipientType === 'gift' && !targetUserId}
-                                />
+                                {selectedReward.id !== 'r-closed-race' && (
+                                    <>
+                                        <Label>Выберите персонажа:</Label>
+                                        <SearchableSelect
+                                            options={characterOptions}
+                                            value={selectedCharacterId}
+                                            onValueChange={setSelectedCharacterId}
+                                            placeholder="Выберите персонажа..."
+                                            disabled={recipientType === 'gift' && !targetUserId}
+                                        />
+                                    </>
+                                )}
                             </div>
                         )}
                     </div>
@@ -364,7 +368,7 @@ export default function RewardsTab() {
                         onClick={handleConfirmRequest} 
                         disabled={
                             isLoading || 
-                            (selectedReward.id !== 'r-custom-status' && !selectedCharacterId) || 
+                            (selectedReward.id !== 'r-custom-status' && selectedReward.id !== 'r-closed-race' && !selectedCharacterId) || 
                             (selectedReward.id === 'r-custom-status' && !statusEmoji.trim()) ||
                             (recipientType === 'gift' && !targetUserId)
                         }

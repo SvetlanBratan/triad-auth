@@ -979,6 +979,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                         updatesForRecipient.extraCharacterSlots = (recipientUser.extraCharacterSlots || 0) + 1;
                     }
                     
+                    if(request.rewardId === 'r-closed-race' && request.closedRaceName) {
+                        const currentPurchased = recipientUser.purchasedClosedRaces || [];
+                        if (!currentPurchased.includes(request.closedRaceName)) {
+                            updatesForRecipient.purchasedClosedRaces = [...currentPurchased, request.closedRaceName];
+                        }
+                    }
+                    
                     if (characterToUpdateIndex !== -1) {
                         const updatedCharacters = [...recipientUser.characters];
                         let characterToUpdate = { ...updatedCharacters[characterToUpdateIndex] };

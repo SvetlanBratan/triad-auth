@@ -433,6 +433,7 @@ export interface User {
   lastLogin?: string; // ISO string
   statusEmoji?: string;
   statusText?: string;
+  purchasedClosedRaces?: string[];
 }
 
 export interface Reward {

@@ -201,26 +201,13 @@ const FormattingHelp = () => (
 );
 
 const CharacterForm = ({ character, allUsers, ownerId, onSuccess, closeDialog, editingState }: CharacterFormProps) => {
-    const { currentUser, fetchRewardRequestsForUser, gameDate, teachings, updateCharacterInUser } = useUser();
-    const { data: approvedRewards = [] } = useQuery({
-        queryKey: ['approvedRewards', currentUser?.id],
-        queryFn: async () => {
-            if (!currentUser?.id) return [];
-            const requests = await fetchRewardRequestsForUser(currentUser.id);
-            return requests.filter(r => r.status === 'одобрено' && r.rewardId === 'r-closed-race');
-        },
-        enabled: !!currentUser?.id,
-    });
+    const { currentUser, gameDate, teachings, updateCharacterInUser } = useUser();
     const isCreating = editingState?.type === 'createCharacter';
     const isAdmin = currentUser?.role === 'admin';
 
     const purchasedClosedRaces = React.useMemo(() => {
-        const set = new Set<string>();
-        approvedRewards.forEach((r: any) => {
-            if (r.closedRaceName) set.add(r.closedRaceName);
-        });
-        return set;
-    }, [approvedRewards]);
+        return new Set(currentUser?.purchasedClosedRaces || []);
+    }, [currentUser?.purchasedClosedRaces]);
 
     const [formData, setFormData] = React.useState<Character>({ ...initialFormData, id: `c-${Date.now()}`});
     const [npcSpouseInput, setNpcSpouseInput] = React.useState('');
