@@ -754,6 +754,31 @@ export default function CharacterPage() {
                                 )}
 
 
+                                {(character.physicalTraining || (canEdit && areAbilitiesVisible)) && (
+                                    <div>
+                                        <h4 className="font-semibold text-muted-foreground mb-2">Физическая подготовка</h4>
+                                        {character.physicalTraining ? (
+                                            <div className="pl-2">
+                                                <p>{character.physicalTraining}</p>
+                                                {character.physicalTraining === 'Низкий (начальный)' && (
+                                                    <p className="text-sm text-muted-foreground mt-1">Малоподвижный образ жизни, низкая выносливость, слабая адаптация к нагрузкам, низкая эффективность в ближнем бою, быстрая утомляемость, ограниченное использование тяжёлого оружия</p>
+                                                )}
+                                                {character.physicalTraining === 'Средний (общефизическая подготовленность)' && (
+                                                    <p className="text-sm text-muted-foreground mt-1">Нормальная физическая форма, регулярная активность, стабильные показатели, универсальный уровень.</p>
+                                                )}
+                                                {character.physicalTraining === 'Высокий (специальная подготовленность)' && (
+                                                    <p className="text-sm text-muted-foreground mt-1">Развитые физические качества, тренированное тело, способность к интенсивным нагрузкам, высокий урон в ближнем бою, эффективное использование тяжёлого оружия, устойчивость к нагрузкам</p>
+                                                )}
+                                                {character.physicalTraining === 'Высший (спортивное долголетие)' && (
+                                                    <p className="text-sm text-muted-foreground mt-1">Пик физического развития, отточенные навыки, максимальная эффективность движений, максимальная эффективность физического боя, высокая стабильность урона, минимальные потери энергии при действиях</p>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            canEdit && <p className="pl-2">Описание отсутствует.</p>
+                                        )}
+                                    </div>
+                                )}
+
                                 {(character.abilities || (canEdit && areAbilitiesVisible)) && (
                                     <div>
                                         <h4 className="font-semibold text-muted-foreground mb-2">Немагические навыки</h4>

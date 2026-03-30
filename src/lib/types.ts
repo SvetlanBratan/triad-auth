@@ -366,6 +366,7 @@ export interface Character {
   diary?: string;
   abilities?: string;
   abilitiesAreHidden?: boolean;
+  physicalTraining?: string;
   magic?: Magic;
   weaknesses?: string;
   weaknessesAreHidden?: boolean;

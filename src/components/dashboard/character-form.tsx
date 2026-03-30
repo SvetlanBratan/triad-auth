@@ -3,7 +3,7 @@
 
 import React from 'react';
 import type { Character, User, Accomplishment, Relationship, RelationshipType, CrimeLevel, CitizenshipStatus, Inventory, GalleryImage, Magic, MagicAbility, TrainingRecord } from '@/lib/types';
-import { SKILL_LEVELS, FAME_LEVELS, TRAINING_OPTIONS, CRIME_LEVELS, COUNTRIES, MAGIC_PERCEPTION_OPTIONS, ADMIN_ELEMENTAL_MAGIC_OPTIONS, ELEMENTAL_MAGIC_OPTIONS, ADMIN_RESERVE_LEVEL_OPTIONS, RESERVE_LEVEL_OPTIONS, FAITH_LEVEL_OPTIONS, KNOWLEDGE_LEVELS, ADMIN_KNOWLEDGE_LEVELS, CLOSED_RACE_OPTIONS, RELATIONSHIP_TYPE_OPTIONS } from '@/lib/data';
+import { SKILL_LEVELS, FAME_LEVELS, TRAINING_OPTIONS, CRIME_LEVELS, COUNTRIES, MAGIC_PERCEPTION_OPTIONS, ADMIN_ELEMENTAL_MAGIC_OPTIONS, ELEMENTAL_MAGIC_OPTIONS, ADMIN_RESERVE_LEVEL_OPTIONS, RESERVE_LEVEL_OPTIONS, FAITH_LEVEL_OPTIONS, KNOWLEDGE_LEVELS, ADMIN_KNOWLEDGE_LEVELS, CLOSED_RACE_OPTIONS, RELATIONSHIP_TYPE_OPTIONS, PHYSICAL_TRAINING_OPTIONS } from '@/lib/data';
 import { db, database } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import { ref, get } from 'firebase/database';
@@ -103,6 +103,7 @@ const initialFormData: Omit<Character, 'id'> = {
     marriedToNpc: [],
     abilities: '',
     abilitiesAreHidden: false,
+    physicalTraining: '',
     weaknesses: '',
     weaknessesAreHidden: false,
     lifeGoal: '',
@@ -903,6 +904,27 @@ const CharacterForm = ({ character, allUsers, ownerId, onSuccess, closeDialog, e
                         const maxTeachings = formData.magic?.maxTeachings ?? 3;
                         return (
                             <div className="space-y-6">
+                                <div className="space-y-2">
+                                    <Label htmlFor="physicalTraining">Физическая подготовка</Label>
+                                    <SearchableSelect
+                                        options={PHYSICAL_TRAINING_OPTIONS}
+                                        value={formData.physicalTraining || ''}
+                                        onValueChange={(v) => handleFieldChange('physicalTraining', v)}
+                                        placeholder="Выберите уровень физической подготовки..."
+                                    />
+                                    {formData.physicalTraining === 'Низкий (начальный)' && (
+                                        <p className="text-sm text-muted-foreground">Малоподвижный образ жизни, низкая выносливость, слабая адаптация к нагрузкам, низкая эффективность в ближнем бою, быстрая утомляемость, ограниченное использование тяжёлого оружия</p>
+                                    )}
+                                    {formData.physicalTraining === 'Средний (общефизическая подготовленность)' && (
+                                        <p className="text-sm text-muted-foreground">Нормальная физическая форма, регулярная активность, стабильные показатели, универсальный уровень.</p>
+                                    )}
+                                    {formData.physicalTraining === 'Высокий (специальная подготовленность)' && (
+                                        <p className="text-sm text-muted-foreground">Развитые физические качества, тренированное тело, способность к интенсивным нагрузкам, высокий урон в ближнем бою, эффективное использование тяжёлого оружия, устойчивость к нагрузкам</p>
+                                    )}
+                                    {formData.physicalTraining === 'Высший (спортивное долголетие)' && (
+                                        <p className="text-sm text-muted-foreground">Пик физического развития, отточенные навыки, максимальная эффективность движений, максимальная эффективность физического боя, высокая стабильность урона, минимальные потери энергии при действиях</p>
+                                    )}
+                                </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="abilities">Немагические навыки</Label>
                                     <Textarea id="abilities" value={formData.abilities ?? ''} onChange={(e) => handleFieldChange('abilities', e.target.value)} rows={8} placeholder="Опишите уникальные немагические способности или навыки..."/>
