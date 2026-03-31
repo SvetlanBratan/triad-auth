@@ -16,6 +16,26 @@ export type FamiliarRank =
   | "легендарный"
   | "мифический"
   | "ивентовый";
+export type FamiliarReserve =
+  | "Н1"
+  | "А2"
+  | "С3"
+  | "М4"
+  | "М5"
+  | "А6"
+  | "А7"
+  | "Б8";
+export type FamiliarSummonCost =
+  | "Слабый ритуал"
+  | "Средний ритуал"
+  | "Сильный ритуал";
+export type FamiliarGroup =
+  | "Огнеславия"
+  | "Белоснежье"
+  | "Заприливье"
+  | "Сан-Ликорис"
+  | "Артерианск"
+  | "Ивентовый";
 export type InventoryCategory =
   | "оружие"
   | "гардероб"
@@ -145,6 +165,10 @@ export interface FamiliarCard {
   name: string;
   rank: FamiliarRank;
   imageUrl: string;
+  reserve?: FamiliarReserve;
+  summonCost?: FamiliarSummonCost;
+  threat?: number;
+  group?: FamiliarGroup;
   "data-ai-hint"?: string;
 }
 

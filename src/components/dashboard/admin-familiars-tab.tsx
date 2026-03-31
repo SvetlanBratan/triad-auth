@@ -15,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, Trash2, CheckCircle2, Pencil, X, Search } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { FamiliarCard, FamiliarRank } from '@/lib/types';
+import { FamiliarCard, FamiliarRank, FamiliarReserve, FamiliarSummonCost, FamiliarGroup } from '@/lib/types';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { SearchableSelect } from '../ui/searchable-select';
 import Image from 'next/image';
@@ -31,12 +31,45 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 
+type FamiliarFormData = Omit<FamiliarCard, 'id' | 'data-ai-hint'> & {
+  reserve: FamiliarReserve;
+  summonCost: FamiliarSummonCost;
+  threat: number;
+  group: FamiliarGroup;
+};
+
 const rankOptions: { value: FamiliarRank, label: string }[] = [
     { value: 'обычный', label: 'Обычный' },
     { value: 'редкий', label: 'Редкий' },
     { value: 'легендарный', label: 'Легендарный' },
     { value: 'мифический', label: 'Мифический' },
     { value: 'ивентовый', label: 'Ивентовый' },
+];
+
+const reserveOptions: { value: FamiliarReserve, label: string }[] = [
+    { value: 'Н1', label: 'Н1 - неофит' },
+    { value: 'А2', label: 'А2 - адепт' },
+    { value: 'С3', label: 'С3 - специалист' },
+    { value: 'М4', label: 'М4 - мастер' },
+    { value: 'М5', label: 'М5 - магистр' },
+    { value: 'А6', label: 'А6 - архимаг' },
+    { value: 'А7', label: 'А7 - архимагистр' },
+    { value: 'Б8', label: 'Б8 - божественный' },
+];
+
+const summonCostOptions: { value: FamiliarSummonCost, label: string }[] = [
+    { value: 'Слабый ритуал', label: 'Слабый ритуал' },
+    { value: 'Средний ритуал', label: 'Средний ритуал' },
+    { value: 'Сильный ритуал', label: 'Сильный ритуал' },
+];
+
+const groupOptions: { value: FamiliarGroup, label: string }[] = [
+    { value: 'Огнеславия', label: 'Огнеславия' },
+    { value: 'Белоснежье', label: 'Белоснежье' },
+    { value: 'Заприливье', label: 'Заприливье' },
+    { value: 'Сан-Ликорис', label: 'Сан-Ликорис' },
+    { value: 'Артерианск', label: 'Артерианск' },
+    { value: 'Ивентовый', label: 'Ивентовый' },
 ];
 
 export default function AdminFamiliarsTab() {
@@ -49,10 +82,14 @@ export default function AdminFamiliarsTab() {
     queryFn: fetchDbFamiliars,
   });
 
-  const [newFamiliar, setNewFamiliar] = useState<Omit<FamiliarCard, 'id'>>({
+  const [newFamiliar, setNewFamiliar] = useState<FamiliarFormData>({
     name: '',
     rank: 'обычный',
     imageUrl: '',
+    reserve: 'Н1',
+    summonCost: 'Слабый ритуал',
+    threat: 0,
+    group: 'Огнеславия',
   });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -66,7 +103,7 @@ export default function AdminFamiliarsTab() {
 
   const handleAddFamiliar = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newFamiliar.name || !newFamiliar.rank || !newFamiliar.imageUrl) {
+    if (!newFamiliar.name || !newFamiliar.rank || !newFamiliar.imageUrl || !newFamiliar.reserve || !newFamiliar.summonCost || newFamiliar.threat === undefined || !newFamiliar.group) {
       toast({ variant: 'destructive', title: 'Ошибка', description: 'Пожалуйста, заполните все поля.' });
       return;
     }
@@ -79,7 +116,7 @@ export default function AdminFamiliarsTab() {
         await addFamiliarToDb(newFamiliar);
         toast({ title: 'Фамильяр добавлен!', description: `"${newFamiliar.name}" добавлен в базу данных.` });
       }
-      setNewFamiliar({ name: '', rank: 'обычный', imageUrl: '' });
+      setNewFamiliar({ name: '', rank: 'обычный', imageUrl: '', reserve: 'Н1', summonCost: 'Слабый ритуал', threat: 0, group: 'Огнеславия' });
       setEditingId(null);
       await refetch();
       await queryClient.invalidateQueries({ queryKey: ['allFamiliars'] });
@@ -93,13 +130,21 @@ export default function AdminFamiliarsTab() {
   };
 
   const handleEditClick = (fam: FamiliarCard) => {
-    setNewFamiliar({ name: fam.name, rank: fam.rank, imageUrl: fam.imageUrl });
+    setNewFamiliar({ 
+      name: fam.name, 
+      rank: fam.rank, 
+      imageUrl: fam.imageUrl, 
+      reserve: fam.reserve || 'Н1', 
+      summonCost: fam.summonCost || 'Слабый ритуал', 
+      threat: fam.threat || 0, 
+      group: fam.group || 'Огнеславия' 
+    });
     setEditingId(fam.id);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleCancelEdit = () => {
-    setNewFamiliar({ name: '', rank: 'обычный', imageUrl: '' });
+    setNewFamiliar({ name: '', rank: 'обычный', imageUrl: '', reserve: 'Н1', summonCost: 'Слабый ритуал', threat: 0, group: 'Огнеславия' });
     setEditingId(null);
   };
 
@@ -146,6 +191,37 @@ export default function AdminFamiliarsTab() {
             <div>
               <Label htmlFor="fam-image">URL изображения</Label>
               <Input id="fam-image" value={newFamiliar.imageUrl} onChange={e => setNewFamiliar(p => ({ ...p, imageUrl: e.target.value }))} placeholder="https://..." />
+            </div>
+            <div>
+              <Label htmlFor="fam-reserve">Резерв</Label>
+              <SearchableSelect
+                options={reserveOptions}
+                value={newFamiliar.reserve}
+                onValueChange={v => setNewFamiliar(p => ({ ...p, reserve: v as FamiliarReserve }))}
+                placeholder="Выберите резерв"
+              />
+            </div>
+            <div>
+              <Label htmlFor="fam-summon-cost">Затрата на призыв</Label>
+              <SearchableSelect
+                options={summonCostOptions}
+                value={newFamiliar.summonCost}
+                onValueChange={v => setNewFamiliar(p => ({ ...p, summonCost: v as FamiliarSummonCost }))}
+                placeholder="Выберите затрату"
+              />
+            </div>
+            <div>
+              <Label htmlFor="fam-threat">Угроза (%)</Label>
+              <Input id="fam-threat" type="number" value={newFamiliar.threat} onChange={e => setNewFamiliar(p => ({ ...p, threat: parseInt(e.target.value) || 0 }))} placeholder="0" />
+            </div>
+            <div>
+              <Label htmlFor="fam-group">Группа</Label>
+              <SearchableSelect
+                options={groupOptions}
+                value={newFamiliar.group}
+                onValueChange={v => setNewFamiliar(p => ({ ...p, group: v as FamiliarGroup }))}
+                placeholder="Выберите группу"
+              />
             </div>
             <div className="flex gap-2">
               <Button type="submit" disabled={isAdding}>
