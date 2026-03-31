@@ -15,7 +15,8 @@ import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, Trash2, CheckCircle2, Pencil, X, Search } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { FamiliarCard, FamiliarRank, FamiliarReserve, FamiliarSummonCost, FamiliarGroup } from '@/lib/types';
+import { Switch } from '../ui/switch';
+import { FamiliarCard, FamiliarRank, FamiliarReserve, FamiliarSummonCost, FamiliarGroup, DamageType } from '@/lib/types';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { SearchableSelect } from '../ui/searchable-select';
 import Image from 'next/image';
@@ -36,6 +37,15 @@ type FamiliarFormData = Omit<FamiliarCard, 'id' | 'data-ai-hint'> & {
   summonCost: FamiliarSummonCost;
   threat: number;
   group: FamiliarGroup;
+  familiarHasDamage: boolean;
+  familiarDamageType: DamageType;
+  familiarDamage: number;
+  familiarHasMana: boolean;
+  familiarMana: number;
+  familiarHasHP: boolean;
+  familiarHP: number;
+  familiarHasDefense: boolean;
+  familiarDefense: number;
 };
 
 const rankOptions: { value: FamiliarRank, label: string }[] = [
@@ -90,6 +100,15 @@ export default function AdminFamiliarsTab() {
     summonCost: 'Слабый ритуал',
     threat: 0,
     group: 'Огнеславия',
+    familiarHasDamage: true,
+    familiarDamageType: 'Физический',
+    familiarDamage: 0,
+    familiarHasMana: true,
+    familiarMana: 0,
+    familiarHasHP: true,
+    familiarHP: 0,
+    familiarHasDefense: true,
+    familiarDefense: 0,
   });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -116,7 +135,24 @@ export default function AdminFamiliarsTab() {
         await addFamiliarToDb(newFamiliar);
         toast({ title: 'Фамильяр добавлен!', description: `"${newFamiliar.name}" добавлен в базу данных.` });
       }
-      setNewFamiliar({ name: '', rank: 'обычный', imageUrl: '', reserve: 'Н1', summonCost: 'Слабый ритуал', threat: 0, group: 'Огнеславия' });
+      setNewFamiliar({
+        name: '',
+        rank: 'обычный',
+        imageUrl: '',
+        reserve: 'Н1',
+        summonCost: 'Слабый ритуал',
+        threat: 0,
+        group: 'Огнеславия',
+        familiarHasDamage: true,
+        familiarDamageType: 'Физический',
+        familiarDamage: 0,
+        familiarHasMana: true,
+        familiarMana: 0,
+        familiarHasHP: true,
+        familiarHP: 0,
+        familiarHasDefense: true,
+        familiarDefense: 0,
+      });
       setEditingId(null);
       await refetch();
       await queryClient.invalidateQueries({ queryKey: ['allFamiliars'] });
@@ -130,21 +166,47 @@ export default function AdminFamiliarsTab() {
   };
 
   const handleEditClick = (fam: FamiliarCard) => {
-    setNewFamiliar({ 
-      name: fam.name, 
-      rank: fam.rank, 
-      imageUrl: fam.imageUrl, 
-      reserve: fam.reserve || 'Н1', 
-      summonCost: fam.summonCost || 'Слабый ритуал', 
-      threat: fam.threat || 0, 
-      group: fam.group || 'Огнеславия' 
+    setNewFamiliar({
+      name: fam.name,
+      rank: fam.rank,
+      imageUrl: fam.imageUrl,
+      reserve: fam.reserve || 'Н1',
+      summonCost: fam.summonCost || 'Слабый ритуал',
+      threat: fam.threat || 0,
+      group: fam.group || 'Огнеславия',
+      familiarHasDamage: fam.familiarHasDamage ?? true,
+      familiarDamageType: fam.familiarDamageType || 'Физический',
+      familiarDamage: fam.familiarDamage ?? 0,
+      familiarHasMana: fam.familiarHasMana ?? true,
+      familiarMana: fam.familiarMana ?? 0,
+      familiarHasHP: fam.familiarHasHP ?? true,
+      familiarHP: fam.familiarHP ?? 0,
+      familiarHasDefense: fam.familiarHasDefense ?? true,
+      familiarDefense: fam.familiarDefense ?? 0,
     });
     setEditingId(fam.id);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleCancelEdit = () => {
-    setNewFamiliar({ name: '', rank: 'обычный', imageUrl: '', reserve: 'Н1', summonCost: 'Слабый ритуал', threat: 0, group: 'Огнеславия' });
+    setNewFamiliar({
+      name: '',
+      rank: 'обычный',
+      imageUrl: '',
+      reserve: 'Н1',
+      summonCost: 'Слабый ритуал',
+      threat: 0,
+      group: 'Огнеславия',
+      familiarHasDamage: true,
+      familiarDamageType: 'Физический',
+      familiarDamage: 0,
+      familiarHasMana: true,
+      familiarMana: 0,
+      familiarHasHP: true,
+      familiarHP: 0,
+      familiarHasDefense: true,
+      familiarDefense: 0,
+    });
     setEditingId(null);
   };
 
@@ -191,6 +253,85 @@ export default function AdminFamiliarsTab() {
             <div>
               <Label htmlFor="fam-image">URL изображения</Label>
               <Input id="fam-image" value={newFamiliar.imageUrl} onChange={e => setNewFamiliar(p => ({ ...p, imageUrl: e.target.value }))} placeholder="https://..." />
+            </div>
+            <div>
+              <Label>Тип урона</Label>
+              <SearchableSelect
+                options={[
+                  { value: 'Физический', label: 'Физический' },
+                  { value: 'Магический', label: 'Магический' },
+                  { value: 'Психический', label: 'Психический' },
+                ]}
+                value={newFamiliar.familiarDamageType}
+                onValueChange={(v) => setNewFamiliar(p => ({ ...p, familiarDamageType: v as DamageType }))}
+                placeholder="Выберите тип урона"
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="fam-has-damage"
+                  checked={newFamiliar.familiarHasDamage}
+                  onCheckedChange={(checked) => setNewFamiliar(p => ({
+                    ...p,
+                    familiarHasDamage: checked,
+                    familiarDamage: checked ? p.familiarDamage : 0,
+                  }))}
+                />
+                <Label htmlFor="fam-has-damage">Урон</Label>
+              </div>
+              <div>
+                <Label htmlFor="fam-damage">Значение урона</Label>
+                <Input id="fam-damage" type="number" value={newFamiliar.familiarDamage} onChange={e => setNewFamiliar(p => ({ ...p, familiarDamage: Number(e.target.value) }))} />
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="fam-has-mana"
+                  checked={newFamiliar.familiarHasMana}
+                  onCheckedChange={(checked) => setNewFamiliar(p => ({
+                    ...p,
+                    familiarHasMana: checked,
+                    familiarMana: checked ? p.familiarMana : 0,
+                  }))}
+                />
+                <Label htmlFor="fam-has-mana">Мана</Label>
+              </div>
+              <div>
+                <Label htmlFor="fam-mana">Значение маны</Label>
+                <Input id="fam-mana" type="number" value={newFamiliar.familiarMana} onChange={e => setNewFamiliar(p => ({ ...p, familiarMana: Number(e.target.value) }))} />
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="fam-has-hp"
+                  checked={newFamiliar.familiarHasHP}
+                  onCheckedChange={(checked) => setNewFamiliar(p => ({
+                    ...p,
+                    familiarHasHP: checked,
+                    familiarHP: checked ? p.familiarHP : 0,
+                  }))}
+                />
+                <Label htmlFor="fam-has-hp">ОЗ</Label>
+              </div>
+              <div>
+                <Label htmlFor="fam-hp">Значение ОЗ</Label>
+                <Input id="fam-hp" type="number" value={newFamiliar.familiarHP} onChange={e => setNewFamiliar(p => ({ ...p, familiarHP: Number(e.target.value) }))} />
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="fam-has-defense"
+                  checked={newFamiliar.familiarHasDefense}
+                  onCheckedChange={(checked) => setNewFamiliar(p => ({
+                    ...p,
+                    familiarHasDefense: checked,
+                    familiarDefense: checked ? p.familiarDefense : 0,
+                  }))}
+                />
+                <Label htmlFor="fam-has-defense">Защита</Label>
+              </div>
+              <div>
+                <Label htmlFor="fam-defense">Значение защиты</Label>
+                <Input id="fam-defense" type="number" value={newFamiliar.familiarDefense} onChange={e => setNewFamiliar(p => ({ ...p, familiarDefense: Number(e.target.value) }))} />
+              </div>
             </div>
             <div>
               <Label htmlFor="fam-reserve">Резерв</Label>

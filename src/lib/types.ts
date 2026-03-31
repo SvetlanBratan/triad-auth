@@ -169,6 +169,15 @@ export interface FamiliarCard {
   summonCost?: FamiliarSummonCost;
   threat?: number;
   group?: FamiliarGroup;
+  familiarHasDamage?: boolean;
+  familiarDamageType?: DamageType;
+  familiarDamage?: number;
+  familiarHasMana?: boolean;
+  familiarMana?: number;
+  familiarHasHP?: boolean;
+  familiarHP?: number;
+  familiarHasDefense?: boolean;
+  familiarDefense?: number;
   "data-ai-hint"?: string;
 }
 
@@ -195,6 +204,7 @@ export interface InventoryItem {
   artifactHasDamage?: boolean;
   artifactHasHealing?: boolean;
   artifactHasMana?: boolean;
+  artifactHasDefense?: boolean;
   artifactDamage?: number;
   artifactDefense?: number;
   artifactHealing?: number;
@@ -516,6 +526,7 @@ export interface ShopItem {
   artifactHasDamage?: boolean;
   artifactHasHealing?: boolean;
   artifactHasMana?: boolean;
+  artifactHasDefense?: boolean;
   artifactDamage?: number;
   artifactDefense?: number;
   artifactHealing?: number;

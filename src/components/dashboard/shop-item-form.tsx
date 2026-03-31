@@ -369,6 +369,7 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
                             artifactHasDamage: true,
                             artifactHasHealing: true,
                             artifactHasMana: true,
+                            artifactHasDefense: true,
                             artifactDamage: undefined,
                             artifactDefense: undefined,
                             artifactHealing: undefined,
@@ -499,15 +500,16 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
                                             setFormData(p => ({
                                                 ...p,
                                                 artifactRank: rank as any,
-                                                artifactDamageType: p.artifactDamageType || 'Физический',
-                                                artifactHasDamage: p.artifactHasDamage ?? true,
-                                                artifactHasHealing: p.artifactHasHealing ?? true,
-                                                artifactHasMana: p.artifactHasMana ?? true,
-                                                artifactDamage: (p.artifactHasDamage ?? true) ? values.damage : 0,
-                                                artifactDefense: values.defense,
-                                                artifactHealing: (p.artifactHasHealing ?? true) ? values.heal : 0,
-                                                artifactMana: (p.artifactHasMana ?? true) ? values.mana : 0,
-                                            }));
+                                            artifactDamageType: p.artifactDamageType || 'Физический',
+                                            artifactHasDamage: p.artifactHasDamage ?? true,
+                                            artifactHasHealing: p.artifactHasHealing ?? true,
+                                            artifactHasMana: p.artifactHasMana ?? true,
+                                            artifactHasDefense: p.artifactHasDefense ?? true,
+                                            artifactDamage: (p.artifactHasDamage ?? true) ? values.damage : 0,
+                                            artifactDefense: (p.artifactHasDefense ?? true) ? values.defense : 0,
+                                            artifactHealing: (p.artifactHasHealing ?? true) ? values.heal : 0,
+                                            artifactMana: (p.artifactHasMana ?? true) ? values.mana : 0,
+                                        }));
                                         }}
                                         placeholder="Выберите ранг..."
                                     />
@@ -557,6 +559,18 @@ export default function ShopItemForm({ shopId, item, closeDialog, defaultCategor
                                           }))}
                                         />
                                         <Label htmlFor="artifact-has-mana">Восстановление маны</Label>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Switch
+                                          id="artifact-has-defense"
+                                          checked={!!formData.artifactHasDefense}
+                                          onCheckedChange={(checked) => setFormData(p => ({
+                                            ...p,
+                                            artifactHasDefense: checked,
+                                            artifactDefense: checked ? (p.artifactRank ? ARTIFACT_RANK_VALUES[p.artifactRank as keyof typeof ARTIFACT_RANK_VALUES].defense : p.artifactDefense) : 0,
+                                          }))}
+                                        />
+                                        <Label htmlFor="artifact-has-defense">Защита</Label>
                                     </div>
                                 </div>
                                 {formData.artifactRank && (
