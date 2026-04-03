@@ -531,12 +531,12 @@ export default function ProfileTab() {
                 <TableBody>
                     {displayedPointHistory.length > 0 ? displayedPointHistory.map((log: PointLog) => (
                     <TableRow key={log.id}>
-                        <TableCell className="text-muted-foreground">{formatDate(log.date)}</TableCell>
+                        <TableCell className="text-muted-foreground text-xs sm:text-sm">{formatDate(log.date)}</TableCell>
                         <TableCell>
-                        <p>{log.reason}</p>
+                        <p className="text-xs sm:text-sm">{log.reason}</p>
                         {log.characterId && <p className="text-xs text-muted-foreground">Персонаж: {characterMap.get(log.characterId) || 'Неизвестно'}</p>}
                         </TableCell>
-                        <TableCell className={`text-right font-semibold ${log.amount > 0 ? 'text-green-600' : 'text-destructive'}`}>
+                        <TableCell className={`text-right font-semibold text-xs sm:text-sm ${log.amount > 0 ? 'text-green-600' : 'text-destructive'}`}>
                         {log.amount > 0 ? '+' : ''}{log.amount.toLocaleString()}
                         </TableCell>
                     </TableRow>
