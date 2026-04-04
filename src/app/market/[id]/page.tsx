@@ -348,10 +348,12 @@ export default function ShopPage() {
                                         )}
                                         <CardHeader className="p-2 sm:p-6">
                                             <div className="flex justify-between items-start gap-1">
-                                                <CardTitle className="text-sm sm:text-lg flex items-start gap-1 sm:gap-2">
-                                                  <span className="break-words">{item.name}</span>
-                                                  {item.isHidden && <Eye className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground mt-1 shrink-0" />}
-                                                </CardTitle>
+                                                <div className="flex-1 min-w-0">
+                                                    <CardTitle className="text-sm sm:text-lg break-words">
+                                                      <span className="break-words">{item.name}</span>
+                                                      {item.isHidden && <Eye className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground mt-1 shrink-0" />}
+                                                    </CardTitle>
+                                                </div>
                                                 {isOwnerOrAdmin && (
                                                     <div className="flex gap-1 sm:gap-2">
                                                         <Button size="icon" variant="secondary" className="h-7 w-7 sm:h-8 sm:w-8" onClick={() => { setEditingItem(item); setIsFormOpen(true); }}><Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4"/></Button>
