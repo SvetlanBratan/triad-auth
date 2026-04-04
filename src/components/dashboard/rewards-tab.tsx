@@ -239,7 +239,7 @@ export default function RewardsTab() {
                 <DynamicIcon name={reward.iconName} className="w-4 h-4 sm:w-6 sm:h-6 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
-                <CardTitle className="text-[13px] sm:text-lg font-headline leading-tight whitespace-normal">{reward.title}</CardTitle>
+                <CardTitle className="text-xs sm:text-lg font-headline leading-tight whitespace-normal">{reward.title}</CardTitle>
                 <ScrollArea className="h-14 sm:h-20 mt-1">
                     <div className="text-[10px] sm:text-xs text-muted-foreground pr-3 whitespace-normal">
                         {reward.description}
@@ -251,7 +251,7 @@ export default function RewardsTab() {
               {reward.type === 'temporary' && <p className="text-[10px] sm:text-xs text-accent font-semibold uppercase tracking-wider">Временная</p>}
             </CardContent>
             <CardFooter className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center bg-muted/50 p-2 sm:p-4 mt-auto gap-2">
-              <div className="font-bold text-sm sm:text-lg text-primary flex items-center gap-1 sm:gap-1.5 justify-center sm:justify-start">
+              <div className="font-bold text-xs sm:text-lg text-primary flex items-center gap-1 sm:gap-1.5 justify-center sm:justify-start">
                 <CustomIcon src="/icons/points.svg" className="w-4 h-4 sm:w-5 sm:h-5 icon-primary" />
                 {reward.id === 'r-closed-race' ? CLOSED_RACE_PRICE.toLocaleString() : reward.cost.toLocaleString()}
               </div>
