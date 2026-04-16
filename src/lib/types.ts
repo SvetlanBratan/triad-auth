@@ -58,7 +58,8 @@ export type InventoryCategory =
   | "услуги"
   | "документы"
   | "ингредиенты"
-  | "ключи";
+  | "ключи"
+  | "shards";
 
 export type ArmorDefenseType = "Физическая" | "Магическая" | "Смешанная";
 export type DamageType = "Физический" | "Магический" | "Психический";
@@ -190,6 +191,7 @@ export interface InventoryItem {
   name: string;
   description?: string;
   quantity: number;
+  charges?: number;
   image?: string;
   inventoryTag?: InventoryCategory;
   armorDefenseBonus?: number;
@@ -234,6 +236,11 @@ export interface Inventory {
   документы: InventoryItem[];
   ингредиенты: InventoryItem[];
   ключи: InventoryItem[];
+  shards: InventoryItem[];
+}
+
+export interface DrawHistory {
+  shard_lottery?: boolean;
 }
 
 export interface RelationshipAction {
@@ -428,6 +435,7 @@ export interface Character {
   marriedTo?: string[];
   marriedToNpc?: string[];
   relationships: Relationship[];
+  drawHistory?: DrawHistory;
 }
 
 export interface PointLog {

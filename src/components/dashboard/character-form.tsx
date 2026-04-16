@@ -133,6 +133,7 @@ const initialFormData: Omit<Character, 'id'> = {
         документы: [],
         ингредиенты: [],
         ключи: [],
+        shards: [],
     },
     bankAccount: { platinum: 0, gold: 0, silver: 0, copper: 0, history: [] },
     wealthLevel: 'Бедный',

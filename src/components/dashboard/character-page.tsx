@@ -149,6 +149,7 @@ const inventoryLayout: {
             { key: 'книгиИСвитки', label: 'Книги и свитки', icon: BookOpen },
             { key: 'документы', label: 'Документы', icon: FileText },
             { key: 'ключи', label: 'Ключи', icon: KeyRound },
+            { key: 'shards', label: 'Осколки', icon: Zap },
             { key: 'ингредиенты', label: 'Ингредиенты', icon: BrainCircuit },
             { key: 'еда', label: 'Еда', icon: Star },
             { key: 'инструменты', label: 'Инструменты', icon: Gavel },
@@ -467,7 +468,7 @@ export default function CharacterPage() {
       оружие: [], доспехи: [], артефакты: [], зелья: [], гардероб: [],
       драгоценности: [], подарки: [], книгиИСвитки: [], еда: [], инструменты: [],
       питомцы: [], прочее: [], недвижимость: [], души: [], мебель: [],
-      транспорт: [], предприятия: [], услуги: [], документы: [], ингредиенты: [], ключи: [],
+            транспорт: [], предприятия: [], услуги: [], документы: [], ингредиенты: [], ключи: [], shards: [],
       ...(character.inventory ?? {})
     } as Character['inventory'];
     
@@ -1074,19 +1075,33 @@ export default function CharacterPage() {
                                                 </AccordionTrigger>
                                                 <AccordionContent>
                                                     <ul className="sm:columns-2 gap-x-6 text-[13px] pt-2">
-                                                        {(items as InventoryItem[]).map(item => (
-                                                            <li key={item.id} className="break-inside-avoid-column pb-1">
-                                                                <button 
-                                                                    className="w-full text-left p-1.5 rounded-md hover:bg-muted/50 transition-colors"
-                                                                    onClick={() => setSelectedItem({ ...item, category: cat.key as InventoryCategory })}
-                                                                >
-                                                                    <span className="break-words">
-                                                                        {item.name}
-                                                                        {item.quantity > 1 && <span className="whitespace-nowrap">{` (${item.quantity})`}</span>}
-                                                                    </span>
-                                                                </button>
-                                                            </li>
-                                                        ))}
+                                                        {(items as InventoryItem[]).map(item => {
+                                                            const isShard = cat.key === 'shards' || item.inventoryTag === 'shards';
+                                                            const hasCharges = typeof item.charges === 'number';
+                                                            const isShardExhausted = isShard && hasCharges && item.charges <= 0;
+
+                                                            return (
+                                                                <li key={item.id} className="break-inside-avoid-column pb-1">
+                                                                    <button 
+                                                                        className={cn(
+                                                                            "w-full text-left p-1.5 rounded-md transition-colors",
+                                                                            isShardExhausted ? "bg-muted/30 text-muted-foreground" : "hover:bg-muted/50"
+                                                                        )}
+                                                                        onClick={() => setSelectedItem({ ...item, category: cat.key as InventoryCategory })}
+                                                                    >
+                                                                        <span className={cn("break-words", isShardExhausted && "line-through") }>
+                                                                            {item.name}
+                                                                            {item.quantity > 1 && <span className="whitespace-nowrap">{` (${item.quantity})`}</span>}
+                                                                        </span>
+                                                                        {isShard && (
+                                                                            <span className="ml-2 text-xs whitespace-nowrap">
+                                                                                {isShardExhausted ? 'исчерпанный' : `Заряды: ${item.charges ?? 0}`}
+                                                                            </span>
+                                                                        )}
+                                                                    </button>
+                                                                </li>
+                                                            );
+                                                        })}
                                                     </ul>
                                                 </AccordionContent>
                                             </AccordionItem>
@@ -1529,6 +1544,15 @@ export default function CharacterPage() {
                             <div className={cn("flex flex-col h-full p-6", !selectedItem.image && "sm:col-span-2")}>
                                 <DialogHeader className="flex-grow">
                                     <DialogTitle>{selectedItem.name}</DialogTitle>
+                                    {(selectedItem.category === 'shards' || selectedItem.inventoryTag === 'shards') && (
+                                        <div className="mt-2">
+                                            {typeof selectedItem.charges === 'number' && selectedItem.charges <= 0 ? (
+                                                <Badge variant="outline">Исчерпанный</Badge>
+                                            ) : (
+                                                <Badge variant="secondary">Заряды: {selectedItem.charges ?? 0}</Badge>
+                                            )}
+                                        </div>
+                                    )}
                                     <ScrollArea className="max-h-64 pr-4 mt-2">
                                         <div className="text-sm text-muted-foreground">
                                            <FormattedTextRenderer text={selectedItem.description || 'Описание отсутствует.'} />

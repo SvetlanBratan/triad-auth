@@ -321,6 +321,7 @@ export const INVENTORY_CATEGORIES: { value: InventoryCategory, label: string }[]
     { value: 'услуги', label: 'Услуги' },
     { value: 'документы', label: 'Документы' },
     { value: 'ключи', label: 'Ключи' },
+    { value: 'shards', label: 'Осколки' },
     { value: 'ингредиенты', label: 'Ингредиенты' },
     { value: 'прочее', label: 'Прочее' },
     { value: 'подарки', label: 'Подарки' },
