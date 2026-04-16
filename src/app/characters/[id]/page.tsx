@@ -1077,8 +1077,8 @@ export default function CharacterPage() {
                                                     <ul className="sm:columns-2 gap-x-6 text-[13px] pt-2">
                                                         {(items as InventoryItem[]).map(item => {
                                                             const isShard = cat.key === 'shards' || item.inventoryTag === 'shards';
-                                                            const hasCharges = typeof item.charges === 'number';
-                                                            const isShardExhausted = isShard && hasCharges && item.charges <= 0;
+                                                            const charges = typeof item.charges === 'number' ? item.charges : 0;
+                                                            const isShardExhausted = isShard && charges <= 0;
 
                                                             return (
                                                                 <li key={item.id} className="break-inside-avoid-column pb-1">
@@ -1095,7 +1095,7 @@ export default function CharacterPage() {
                                                                         </span>
                                                                         {isShard && (
                                                                             <span className="ml-2 text-xs whitespace-nowrap">
-                                                                                {isShardExhausted ? 'исчерпанный' : `Заряды: ${item.charges ?? 0}`}
+                                                                                {isShardExhausted ? 'исчерпанный' : `Заряды: ${charges}`}
                                                                             </span>
                                                                         )}
                                                                     </button>
