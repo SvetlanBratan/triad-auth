@@ -50,6 +50,7 @@ export const SearchableSelect = ({
   className,
 }: SearchableSelectProps) => {
   const [open, setOpen] = React.useState(false)
+  const [searchQuery, setSearchQuery] = React.useState("")
 
   const allOptions = React.useMemo(() => {
     const flatOptions: SelectOption[] = []
@@ -63,10 +64,48 @@ export const SearchableSelect = ({
     return flatOptions
   }, [options])
 
+  const normalizedSearchQuery = searchQuery.trim().toLocaleLowerCase()
+
+  const filteredOptions = React.useMemo(() => {
+    if (!normalizedSearchQuery) {
+      return options
+    }
+
+    return options
+      .map((opt) => {
+        if (isOptionGroup(opt)) {
+          const filteredGroupOptions = opt.options.filter((item) =>
+            item.label.toLocaleLowerCase().includes(normalizedSearchQuery)
+          )
+
+          if (filteredGroupOptions.length === 0) {
+            return null
+          }
+
+          return {
+            ...opt,
+            options: filteredGroupOptions,
+          }
+        }
+
+        return opt.label.toLocaleLowerCase().includes(normalizedSearchQuery)
+          ? opt
+          : null
+      })
+      .filter((opt): opt is SelectOption | SelectOptionGroup => opt !== null)
+  }, [normalizedSearchQuery, options])
+
   const selectedOption = allOptions.find((opt) => opt.value === value)
 
+  const handleOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen)
+    if (!nextOpen) {
+      setSearchQuery("")
+    }
+  }
+
   return (
-    <Popover open={open} onOpenChange={setOpen} modal>
+    <Popover open={open} onOpenChange={handleOpenChange} modal>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -88,11 +127,15 @@ export const SearchableSelect = ({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
-        <Command>
-          <CommandInput placeholder="Поиск..." />
+        <Command shouldFilter={false}>
+          <CommandInput
+            placeholder="Поиск..."
+            value={searchQuery}
+            onValueChange={setSearchQuery}
+          />
           <CommandList className="max-h-72 overflow-y-auto overflow-x-hidden">
             <CommandEmpty>Ничего не найдено.</CommandEmpty>
-            {options.map((option, index) => {
+            {filteredOptions.map((option, index) => {
               if (isOptionGroup(option)) {
                 return (
                   <CommandGroup
@@ -105,7 +148,7 @@ export const SearchableSelect = ({
                         value={item.label}
                         onSelect={() => {
                           onValueChange(item.value === value ? "" : item.value)
-                          setOpen(false)
+                          handleOpenChange(false)
                         }}
                       >
                         <Check
@@ -127,7 +170,7 @@ export const SearchableSelect = ({
                     value={option.label}
                     onSelect={() => {
                       onValueChange(option.value === value ? "" : option.value)
-                      setOpen(false)
+                      handleOpenChange(false)
                     }}
                   >
                     <Check

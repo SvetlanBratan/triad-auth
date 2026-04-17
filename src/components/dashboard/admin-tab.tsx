@@ -1480,11 +1480,13 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
     const items = new Map<string, { value: string; label: string }>();
     allShops.forEach(shop => {
         (shop.items || []).forEach(item => {
-            items.set(item.id, { value: item.id, label: `${item.name} (${shop.title})` });
+            if (item.inventoryTag === 'ингредиенты' || item.inventoryTag === 'драгоценности') {
+                items.set(item.id, { value: item.id, label: `${item.name} (${shop.title})` });
+            }
         });
     });
     ALL_ITEMS_FOR_ALCHEMY.forEach(item => {
-        if (!items.has(item.id)) {
+        if (item.inventoryTag === 'ингредиенты' && !items.has(item.id)) {
             items.set(item.id, { value: item.id, label: item.name });
         }
     });
