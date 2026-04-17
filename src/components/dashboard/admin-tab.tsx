@@ -1468,7 +1468,7 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
     const ingredients = new Map<string, { value: string; label: string }>();
     allShops.forEach(shop => {
         (shop.items || []).forEach(item => {
-            if (item.inventoryTag === 'ингредиенты') {
+            if (item.inventoryTag === 'ингредиенты' || item.inventoryTag === 'драгоценности') {
                 ingredients.set(item.id, { value: item.id, label: item.name });
             }
         });
