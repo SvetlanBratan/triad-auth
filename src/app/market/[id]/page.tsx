@@ -333,16 +333,32 @@ export default function ShopPage() {
                                         if (val >= 0) return true;
                                         return (shopBalance[currency as keyof BankAccount] as number || 0) >= Math.abs(val);
                                     });
+                                    const isOutOfStock = item.quantity !== undefined && item.quantity >= 0 && item.quantity === 0;
+                                    const hasNegativePrice = Object.values(item.price).some(v => v < 0);
+                                    const hasInsufficientShopFunds = hasNegativePrice && !isAffordableByShop;
 
                                     return (
-                                    <Card key={item.id} className={cn("flex flex-col group overflow-hidden w-full h-full", (item.isHidden || (!isAffordableByShop && Object.values(item.price).some(v => v < 0))) && "opacity-60")}>
+                                    <Card
+                                        key={item.id}
+                                        className={cn(
+                                            "flex flex-col group overflow-hidden w-full h-full",
+                                            (item.isHidden || hasInsufficientShopFunds) && "opacity-60",
+                                            isOutOfStock && "border-destructive/70 bg-destructive/5"
+                                        )}
+                                    >
                                         {item.image && (
                                             <div className="relative w-full aspect-square bg-muted">
+                                                {isOutOfStock && (
+                                                    <span className="absolute left-2 top-2 z-10 rounded-full border border-destructive/70 bg-destructive px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-destructive-foreground">
+                                                        Распродано
+                                                    </span>
+                                                )}
                                                  <Image
                                                     src={item.image}
                                                     alt={item.name}
                                                     fill
                                                     style={{objectFit:"contain"}}
+                                                    className={cn(isOutOfStock && "grayscale-[35%] brightness-75")}
                                                 />
                                             </div>
                                         )}
@@ -389,21 +405,24 @@ export default function ShopPage() {
                                         </CardContent>
                                         <CardFooter className="flex-col items-start gap-2 sm:gap-4 p-2 sm:p-6 pt-0 sm:pt-4">
                                              {item.quantity !== undefined && item.quantity >= 0 && (
-                                                <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-sm text-muted-foreground">
+                                                <div className={cn(
+                                                    "flex items-center gap-1 sm:gap-2 text-[10px] sm:text-sm",
+                                                    isOutOfStock ? "text-destructive font-semibold" : "text-muted-foreground"
+                                                )}>
                                                     <Package className="h-3 w-3 sm:h-4 sm:w-4" />
-                                                    <span>Осталось: {item.quantity} шт.</span>
+                                                    <span>{isOutOfStock ? "Распродано" : `Осталось: ${item.quantity} шт.`}</span>
                                                 </div>
                                             )}
-                                            <div className={cn("font-bold text-xs sm:text-base", Object.values(item.price).some(v => v < 0) ? "text-green-600" : "text-primary")}>
+                                            <div className={cn("font-bold text-xs sm:text-base", hasNegativePrice ? "text-green-600" : "text-primary")}>
                                                 {formatCurrency(item.price)}
                                             </div>
                                             <Button 
                                                 className="w-full h-8 sm:h-10 text-xs sm:text-sm" 
                                                 onClick={() => handlePurchaseClick(item)}
-                                                disabled={Object.values(item.price).some(v => v < 0) && !isAffordableByShop}
+                                                disabled={isOutOfStock || hasInsufficientShopFunds}
                                             >
                                                 <ShoppingCart className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" /> 
-                                                {Object.values(item.price).some(v => v < 0) && !isAffordableByShop ? "Нет средств в кассе" : "Купить"}
+                                                {isOutOfStock ? "Распродано" : hasInsufficientShopFunds ? "Нет средств в кассе" : "Купить"}
                                             </Button>
                                         </CardFooter>
                                     </Card>

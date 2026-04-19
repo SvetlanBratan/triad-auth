@@ -326,15 +326,30 @@ export default function ShopPage() {
                         {filteredItems.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                 {filteredItems.map(item => {
+                                    const isOutOfStock = item.quantity !== undefined && item.quantity >= 0 && item.quantity === 0;
+
                                     return (
-                                    <Card key={item.id} className={cn("flex flex-col group overflow-hidden w-full h-full", item.isHidden && "opacity-60")}>
+                                    <Card
+                                        key={item.id}
+                                        className={cn(
+                                            "flex flex-col group overflow-hidden w-full h-full",
+                                            item.isHidden && "opacity-60",
+                                            isOutOfStock && "border-destructive/70 bg-destructive/5"
+                                        )}
+                                    >
                                         {item.image && (
                                             <div className="relative w-full aspect-square bg-muted">
+                                                {isOutOfStock && (
+                                                    <span className="absolute left-2 top-2 z-10 rounded-full border border-destructive/70 bg-destructive px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-destructive-foreground">
+                                                        Распродано
+                                                    </span>
+                                                )}
                                                  <Image
                                                     src={item.image}
                                                     alt={item.name}
                                                     fill
                                                     style={{objectFit:"contain"}}
+                                                    className={cn(isOutOfStock && "grayscale-[35%] brightness-75")}
                                                 />
                                             </div>
                                         )}
@@ -379,17 +394,20 @@ export default function ShopPage() {
                                         </CardContent>
                                         <CardFooter className="flex-col items-start gap-4 pt-4">
                                              {item.quantity !== undefined && item.quantity >= 0 && (
-                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                <div className={cn(
+                                                    "flex items-center gap-2 text-sm",
+                                                    isOutOfStock ? "text-destructive font-semibold" : "text-muted-foreground"
+                                                )}>
                                                     <Package className="h-4 w-4" />
-                                                    <span>Осталось: {item.quantity} шт.</span>
+                                                    <span>{isOutOfStock ? "Распродано" : `Осталось: ${item.quantity} шт.`}</span>
                                                 </div>
                                             )}
                                             <div className="text-primary font-bold">
                                                 {formatCurrency(item.price)}
                                             </div>
-                                            <Button className="w-full" onClick={() => handlePurchaseClick(item)}>
+                                            <Button className="w-full" onClick={() => handlePurchaseClick(item)} disabled={isOutOfStock}>
                                                 <ShoppingCart className="mr-2 h-4 w-4" /> 
-                                                Купить
+                                                {isOutOfStock ? "Распродано" : "Купить"}
                                             </Button>
                                         </CardFooter>
                                     </Card>
