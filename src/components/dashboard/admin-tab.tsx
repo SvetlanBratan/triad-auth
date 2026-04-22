@@ -1785,7 +1785,11 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
                     <div>
                         <Label htmlFor="role-select">Новая роль</Label>
                         <SearchableSelect
-                            options={[{value: 'admin', label: 'Администратор'}, {value: 'user', label: 'Пользователь'}]}
+                            options={[
+                                { value: 'admin', label: 'Администратор' },
+                                { value: 'user', label: 'Пользователь' },
+                                { value: 'gm', label: 'Гейм-мастер (GM)' },
+                            ]}
                             value={selectedRole}
                             onValueChange={(value) => setSelectedRole(value as UserRole)}
                             placeholder="Выберите роль"

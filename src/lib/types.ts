@@ -1,4 +1,4 @@
-export type UserRole = "admin" | "user";
+export type UserRole = "admin" | "user" | "gm";
 export type UserStatus = "активный" | "неактивный" | "отпуск";
 export type PlayerStatus =
   | "Должен пост"
