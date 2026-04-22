@@ -87,9 +87,11 @@ const CustomIcon = ({ src, className }: { src: string, className?: string }) => 
 
 
 export default function AdminTab() {
+    const CHARACTER_CREATION_AWARD = 500;
+    const CHARACTER_CREATION_REASON = 'Бонус за имеющихся персонажей (500 за персонажа)';
+
   const { 
     addPointsToUser, 
-    addPointsToAllUsers,
     updateUserStatus, 
     updateUserRole, 
     grantAchievementToUser, 
@@ -171,7 +173,7 @@ export default function AdminTab() {
   const [isRecoveringAll, setIsRecoveringAll] = useState(false);
 
   // Points state
-  const [awardSelectedUserId, setAwardSelectedUserId] = useState<string>('');
+    const [awardSelectedUserIds, setAwardSelectedUserIds] = useState<string[]>([]);
   const [statusSelectedUserId, setStatusSelectedUserId] = useState<string>('');
   const [roleSelectedUserId, setRoleSelectedUserId] = useState<string>('');
   const [clearHistoryUserId, setClearHistoryUserId] = useState<string>('');
@@ -465,35 +467,75 @@ export default function AdminTab() {
     e.preventDefault();
     const pointsToAward = parseInt(points, 10);
 
-    if (!awardSelectedUserId || !pointsToAward || !reason) {
+        if (awardSelectedUserIds.length === 0 || !pointsToAward || !reason.trim()) {
       toast({
         variant: "destructive",
         title: "Отсутствует информация",
-        description: "Пожалуйста, выберите пользователя, введите баллы и причину.",
+                description: "Пожалуйста, выберите хотя бы одного пользователя, введите баллы и причину.",
       });
       return;
     }
-    
-    if (awardSelectedUserId === 'all') {
-        await addPointsToAllUsers(pointsToAward, reason);
+
+        await Promise.all(awardSelectedUserIds.map((userId) => addPointsToUser(userId, pointsToAward, reason.trim())));
         toast({
-            title: "Баллы начислены всем!",
-            description: `Начислено по ${pointsToAward} баллов каждому игроку.`,
+                title: "Баллы начислены!",
+                description: `Начислено ${pointsToAward} баллов для ${awardSelectedUserIds.length} игрок(ов).`,
         });
-    } else {
-        await addPointsToUser(awardSelectedUserId, pointsToAward, reason);
-        toast({
-            title: "Баллы начислены!",
-            description: `Начислено ${pointsToAward} баллов.`,
-        });
-    }
     
     await refetchUsers();
 
-    setAwardSelectedUserId('');
+        setAwardSelectedUserIds([]);
     setPoints('');
     setReason('');
   };
+
+    const handleAwardByCharacterCount = async () => {
+        if (awardSelectedUserIds.length === 0) {
+            toast({
+                variant: 'destructive',
+                title: 'Не выбраны игроки',
+                description: 'Выберите хотя бы одного пользователя для начисления.',
+            });
+            return;
+        }
+
+        const selectedUsers = users.filter(user => awardSelectedUserIds.includes(user.id));
+        if (selectedUsers.length === 0) {
+            toast({
+                variant: 'destructive',
+                title: 'Ошибка',
+                description: 'Не удалось найти выбранных пользователей.',
+            });
+            return;
+        }
+
+        const awards = selectedUsers.map(user => ({
+            userId: user.id,
+            amount: (user.characters?.length || 0) * CHARACTER_CREATION_AWARD,
+        }));
+
+        const payableAwards = awards.filter(award => award.amount > 0);
+        if (payableAwards.length === 0) {
+            toast({
+                variant: 'destructive',
+                title: 'Начисление невозможно',
+                description: 'У выбранных пользователей нет персонажей.',
+            });
+            return;
+        }
+
+        await Promise.all(
+            payableAwards.map(award => addPointsToUser(award.userId, award.amount, CHARACTER_CREATION_REASON))
+        );
+
+        const totalAwarded = payableAwards.reduce((sum, award) => sum + award.amount, 0);
+        toast({
+            title: 'Баллы начислены по персонажам!',
+            description: `Начислено суммарно ${totalAwarded} баллов (${CHARACTER_CREATION_AWARD} за каждого персонажа).`,
+        });
+
+        await refetchUsers();
+    };
 
    const handleDeductPoints = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1253,13 +1295,7 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
 
 
   // --- Memos ---
-   const userOptions = useMemo(() => {
-    const options = users.map(user => ({ value: user.id, label: user.name }));
-    if(options.length > 0) {
-        options.unshift({ value: 'all', label: '*** Всем пользователям ***' });
-    }
-    return options;
-  }, [users]);
+     const userOptions = useMemo(() => users.map(user => ({ value: user.id, label: user.name })), [users]);
   
   const userOnlyOptions = useMemo(() => users.map(user => ({ value: user.id, label: user.name })), [users]);
   
@@ -1518,17 +1554,17 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><DollarSign /> Начислить баллы</CardTitle>
-                    <CardDescription>Вручную начислите баллы пользователю за определенные действия.</CardDescription>
+                    <CardDescription>Вручную начислите баллы одному или нескольким пользователям за определенные действия.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleAwardPoints} className="space-y-4">
                     <div>
-                        <Label htmlFor="user-select-award">Пользователь</Label>
-                        <SearchableSelect
+                        <Label htmlFor="user-select-award">Пользователи</Label>
+                        <SearchableMultiSelect
                             options={userOptions}
-                            value={awardSelectedUserId}
-                            onValueChange={setAwardSelectedUserId}
-                            placeholder="Выберите пользователя"
+                            selected={awardSelectedUserIds}
+                            onChange={setAwardSelectedUserIds}
+                            placeholder="Выберите пользователей"
                         />
                     </div>
                     <div>
@@ -1550,7 +1586,12 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
                         onChange={e => setReason(e.target.value)}
                         />
                     </div>
-                    <Button type="submit">Начислить баллы</Button>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                        <Button type="submit">Начислить баллы</Button>
+                        <Button type="button" variant="secondary" onClick={handleAwardByCharacterCount}>
+                            Начислить по персонажам (500 за каждого)
+                        </Button>
+                    </div>
                     </form>
                 </CardContent>
             </Card>
