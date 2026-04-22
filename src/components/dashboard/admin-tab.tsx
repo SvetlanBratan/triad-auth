@@ -92,6 +92,7 @@ export default function AdminTab() {
 
   const { 
     addPointsToUser, 
+        addPointsToAllUsers,
     updateUserStatus, 
     updateUserRole, 
     grantAchievementToUser, 
@@ -488,6 +489,30 @@ export default function AdminTab() {
     setPoints('');
     setReason('');
   };
+
+    const handleAwardAllPoints = async () => {
+        const pointsToAward = parseInt(points, 10);
+
+        if (!pointsToAward || !reason.trim()) {
+            toast({
+                variant: 'destructive',
+                title: 'Отсутствует информация',
+                description: 'Введите баллы и причину для начисления всем пользователям.',
+            });
+            return;
+        }
+
+        await addPointsToAllUsers(pointsToAward, reason.trim());
+        toast({
+            title: 'Баллы начислены всем!',
+            description: `Начислено по ${pointsToAward} баллов каждому игроку.`,
+        });
+
+        await refetchUsers();
+        setAwardSelectedUserIds([]);
+        setPoints('');
+        setReason('');
+    };
 
     const handleAwardByCharacterCount = async () => {
         if (awardSelectedUserIds.length === 0) {
@@ -1588,6 +1613,9 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
                     </div>
                     <div className="flex flex-col gap-2 sm:flex-row">
                         <Button type="submit">Начислить баллы</Button>
+                        <Button type="button" variant="outline" onClick={handleAwardAllPoints}>
+                            Начислить всем
+                        </Button>
                         <Button type="button" variant="secondary" onClick={handleAwardByCharacterCount}>
                             Начислить по персонажам (500 за каждого)
                         </Button>
