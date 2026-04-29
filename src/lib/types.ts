@@ -656,4 +656,20 @@ export interface HuntingLocation {
     limit?: number;
 }
 
+// --- GUILD TYPES ---
+export interface Guild {
+    id: string;
+    name: string;
+    description?: string;
+    leader?: string;
+    members?: string[];
+    founded?: string; // ISO string
+    level?: number;
+    treasury?: BankAccount;
+    rules?: string;
+    guildHall?: string;
+    image?: string;
+    createdAt?: string; // ISO string
+}
+
 // --- END ALCHEMY & HUNTING TYPES ---

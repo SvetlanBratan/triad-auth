@@ -4,7 +4,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, notFound } from 'next/navigation';
 import { useUser } from '@/hooks/use-user';
-import { User, Character, FamiliarCard, FamiliarRank, Moodlet, Relationship, RelationshipType, WealthLevel, BankAccount, Accomplishment, BankTransaction, OwnedFamiliarCard, InventoryCategory, InventoryItem, CitizenshipStatus, TaxpayerStatus, PopularityLog, GalleryImage, Shop, MagicAbility } from '@/lib/types';
+import { User, Character, FamiliarCard, FamiliarRank, Moodlet, Relationship, RelationshipType, WealthLevel, BankAccount, Accomplishment, BankTransaction, OwnedFamiliarCard, InventoryCategory, InventoryItem, CitizenshipStatus, TaxpayerStatus, PopularityLog, GalleryImage, Shop, MagicAbility, Guild } from '@/lib/types';
+import { fetchCharacterGuild } from '@/lib/firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -272,6 +273,13 @@ export default function CharacterPage() {
     
     const character = characterData?.character;
     const owner = characterData?.owner;
+
+    // Загружаем данные о гильдии, если она указана в персонаже
+    const { data: guild } = useQuery<Guild | null>({
+        queryKey: ['guild', character?.factions],
+        queryFn: () => character?.factions ? fetchCharacterGuild(character.factions) : Promise.resolve(null),
+        enabled: !!character?.factions,
+    });
 
     const mutation = useMutation({
         mutationFn: (characterData: Character) => {
@@ -647,7 +655,32 @@ export default function CharacterPage() {
                     </div>
                 </div>
                 <InfoRow label="Место работы" value={character.workLocation} field="workLocation" section="mainInfo" isVisible={!!character.workLocation}/>
-                <InfoRow label="Фракции/гильдии" value={character.factions} field="factions" section="mainInfo" isVisible={!!character.factions || canEdit} icon={<Group className="w-4 h-4" />} />
+                {character.factions && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-1 gap-x-4 items-start">
+                        <span className="text-muted-foreground col-span-1 flex items-center gap-1.5"><Group className="w-4 h-4" />Гильдия:</span>
+                        <div className="col-span-1 sm:col-span-2 text-left">
+                            {guild ? (
+                                <div className="space-y-1">
+                                    <div className="font-semibold">{guild.name}</div>
+                                    {guild.description && (
+                                        <div className="text-sm text-muted-foreground">{guild.description}</div>
+                                    )}
+                                    {guild.level && (
+                                        <div className="text-sm text-muted-foreground">Уровень: {guild.level}</div>
+                                    )}
+                                    {guild.leader && (
+                                        <div className="text-sm text-muted-foreground">Лидер: {guild.leader}</div>
+                                    )}
+                                </div>
+                            ) : (
+                                <span className="font-semibold">{character.factions}</span>
+                            )}
+                        </div>
+                    </div>
+                )}
+                {!character.factions && canEdit && (
+                    <InfoRow label="Фракции/гильдии" value="" field="factions" section="mainInfo" isVisible={true} icon={<Group className="w-4 h-4" />} />
+                )}
             </CardContent>
         </Card>
     );
