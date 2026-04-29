@@ -236,6 +236,8 @@ export default function ProfileTab() {
   if (!currentUser) return null;
   
   const isAdmin = currentUser.role === 'admin';
+    const totalCharacterSlots = 6 + (currentUser.extraCharacterSlots || 0);
+    const usedCharacterSlots = currentUser.characters.length;
 
   const handleAddClick = () => {
     setEditingState({ type: 'createCharacter' });
@@ -487,6 +489,7 @@ export default function ProfileTab() {
                     <CardTitle>Персонажи</CardTitle>
                     <CardDescription>
                         Список ваших персонажей. Нажмите на имя, чтобы открыть анкету.
+                        {' '}Занято слотов: {usedCharacterSlots}/{totalCharacterSlots}.
                     </CardDescription>
                 </div>
                  {isAdmin && (

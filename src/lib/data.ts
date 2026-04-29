@@ -424,7 +424,7 @@ export const rewards: Reward[] = [
     { id: 'r-closed-race', title: 'Закрытая раса', description: 'Выберите закрытую расу из списка и получите доступ к уникальной расе.', cost: 100000, type: 'permanent', iconName: 'Lock' },
     { id: 'r-blessing', title: 'Благословение Богов', description: 'Ваш персонаж временно благословляется одним из Богов*', cost: 800, type: 'temporary', iconName: 'ShieldCheck' },
     { id: 'r-newspaper', title: 'Попасть в газету', description: 'Ваш персонаж попадает в газету и повышает уровень известности', cost: 800, type: 'permanent', iconName: 'ScrollText' },
-    { id: 'r-extra-char', title: 'Дополнительный персонаж', description: 'Создание еще одного персонажа, если количество персонажей превысило 6', cost: 1000, type: 'permanent', iconName: 'UserRoundPlus' },
+    { id: 'r-extra-char', title: 'Дополнительный персонаж', description: 'Бесплатно доступно 6 слотов персонажей. Для 7-го и следующих нужно купить эту награду.', cost: 1000, type: 'permanent', iconName: 'UserRoundPlus' },
     { id: 'r-body-parts', title: 'Изменение тела', description: 'Приобретение иных конечностей (хвосты, крылья, клыки и пр.), независимо от расы персонажа', cost: 2000, type: 'permanent', iconName: 'GitBranchPlus' },
     { id: 'r-wild-pet', title: 'Неприручаемый питомец', description: 'Неприручаемое животное в качестве питомца', cost: 3000, type: 'permanent', iconName: 'Cat' },
     { id: 'r-crime-connections', title: 'Связи в преступном мире', description: '«Связи» в преступном мире', cost: 6000, type: 'permanent', iconName: 'KeyRound' },

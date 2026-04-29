@@ -169,6 +169,7 @@ const FAVORITE_PLAYER_ACHIEVEMENT_ID = 'ach-favorites';
 const CHARACTER_CREATION_BONUS = 500;
 const WEEKLY_ACTIVE_BONUS = 800;
 const WEEKLY_GM_BONUS = 1000;
+const FREE_CHARACTER_SLOTS = 6;
 
 const DEFAULT_POINTS_INFO = `**Мотивационная система награждений** строится так, что чем больше участвует ролевик в жизни ролевой, тем больше шансов у него получить ценные плюшки. Дабы администрация использовала не только кнут, но и пряник, была создана система баллов, накопив которые, можно обменять их на одну из предложенных наград, среди которых есть прекрасная возможность обойти некоторые запреты и ограничения ролевого мира, а также открыть желаемую для себя закрытую расу. Накопленные баллы гарантируют администрации проекта, что игрок довольно долго и активно играет в ролевой, а значит уже более подробно знает мир и вникает в происходящее в мире Триады, а значит может взять на себя ответственность за адекватный отыгрыш сложной расы или имбы.\n\nЗа участие в мини-ивентах на стене начисляется от **500 до 1000 баллов** в зависимости от сложности ивента.\nЗа участие в сюжетных квестах и ивентах от **1000 до 5000**.\nЕсли за неделю не было написано ни одного поста, администрация в праве снять баллы со счета игрока **(-1000)**.\n\n**Активность:** 800 баллов начисляется каждую неделю всем активным игрокам.\n* Написание анкеты - **500 баллов**\n* Привести в ролевую друга – **100 000 баллов**\n* За проведение квестов - **1000 баллов за каждый пост гейм-мастера (прибавляется поверх еженедельного подсчета).\n* Помощь администрации – баллы выдаются администратором индивидуально, в зависимости от вида помощи (за добавление фауны или флоры обычно **800 баллов**)`;
 
@@ -826,10 +827,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             const updatedCharacters = [...sourceUserData.characters];
             const characterIndex = updatedCharacters.findIndex(char => char.id === sanitizedCharacterToUpdate.id);
             const isNewCharacter = characterIndex === -1;
+            const totalCharacterSlots = FREE_CHARACTER_SLOTS + (sourceUserData.extraCharacterSlots || 0);
 
             const updatesToApply: Partial<User> = {};
 
             if (isNewCharacter) {
+                if (updatedCharacters.length >= totalCharacterSlots) {
+                    throw new Error(`Достигнут лимит персонажей: ${updatedCharacters.length}/${totalCharacterSlots}. Чтобы открыть слот 7+, купите награду «Дополнительный персонаж».`);
+                }
                 updatedCharacters.push(sanitizedCharacterToUpdate);
                 const newPointLog: PointLog = {
                     id: `h-${Date.now()}-new-char`,
