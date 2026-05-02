@@ -7,6 +7,10 @@ const nextConfig = {
     return config;
   },
   images: {
+    // Кастомный Cloudinary loader для оптимизации на CDN
+    loader: 'custom',
+    loaderFile: './cloudinary-loader.js',
+    
     dangerouslyAllowSVG: true,
     remotePatterns: [
       {
