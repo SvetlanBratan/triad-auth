@@ -120,6 +120,7 @@ export const rewards: Reward[] = [
     { id: 'r-forbidden-magic', title: 'Запретная магия', description: 'Персонаж может владеть видом магии, недоступным для его расы', cost: 8000, type: 'permanent', iconName: 'Sparkles' },
     { id: 'r-extra-doctrine', title: 'Дополнительное учение', description: 'Дополнительное учение', cost: 15000, type: 'permanent', iconName: 'BookPlus' },
     { id: 'r-extra-element', title: 'Дополнительная стихия', description: 'Дополнительная стихия', cost: 50000, type: 'permanent', iconName: 'Waves' },
+    { id: 'r-element-change', title: 'Поменять стихию', description: 'Переменить стихию вашего персонажа на другую. Можно купить 1 раз на персонажа.', cost: 10000, type: 'permanent', iconName: 'Sparkles' },
     { id: 'r-ai-art', title: 'Арт от ИИ', description: 'Арты в нейросети для вашего персонажа', cost: 10000, type: 'permanent', iconName: 'BrainCircuit' },
     { id: 'r-guild', title: 'Собственная гильдия', description: 'Создать собственную преступную группировку/гильдию', cost: 50000, type: 'permanent', iconName: 'Building2' },
     { id: 'r-swap-element', title: 'Обмен стихии на учения', description: 'Поменять 1 стихию на 2 учения', cost: 100, type: 'permanent', iconName: 'Replace' },
