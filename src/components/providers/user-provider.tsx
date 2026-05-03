@@ -7,7 +7,7 @@ import { auth, db, database } from '@/lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser, signOut, reauthenticateWithCredential, EmailAuthProvider, updatePassword, updateEmail } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, writeBatch, collection, getDocs, query, where, orderBy, deleteDoc, runTransaction, addDoc, collectionGroup, limit, startAfter, increment, FieldValue, arrayUnion, arrayRemove, deleteField, DocumentSnapshot, DocumentData, WriteBatch } from "firebase/firestore";
 import { ref as rtdbRef, onValue, set as rtdbSet } from 'firebase/database';
-import { MOODLETS_DATA, DEFAULT_GAME_SETTINGS, WEALTH_LEVELS, ALL_SHOPS, SHOPS_BY_ID, POPULARITY_EVENTS, ALL_ACHIEVEMENTS, INVENTORY_CATEGORIES, FAMILIARS_BY_ID } from '@/lib/data';
+import { MOODLETS_DATA, DEFAULT_GAME_SETTINGS, WEALTH_LEVELS, ALL_SHOPS, SHOPS_BY_ID, POPULARITY_EVENTS, ALL_ACHIEVEMENTS, INVENTORY_CATEGORIES } from '@/lib/data';
 import { differenceInDays, differenceInMonths, isPast } from 'date-fns';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { ALL_ITEMS_FOR_ALCHEMY } from '@/lib/alchemy-data';
@@ -1981,7 +1981,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const initiatorChar = currentUser.characters.find(c => c.id === initiatorCharacterId);
         if (!initiatorChar) throw new Error("Персонаж-инициатор не найден.");
 
-        const initiatorFamiliar = FAMILIARS_BY_ID[initiatorFamiliarId];
+      const initiatorOwnsFamiliar = (initiatorChar.familiarCards || []).some(card => card.id === initiatorFamiliarId);
+      if (!initiatorOwnsFamiliar) throw new Error("Инициатор не владеет выбранным фамильяром.");
+
+      const initiatorFamiliar = familiarsById[initiatorFamiliarId];
         if (!initiatorFamiliar) throw new Error("Фамильяр инициатора не найден.");
 
         let targetUser: User | undefined;
@@ -1996,8 +1999,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             }
         }
         if (!targetUser || !targetChar) throw new Error("Целевой персонаж или его владелец не найдены.");
+
+        const targetOwnsFamiliar = (targetChar.familiarCards || []).some(card => card.id === targetFamiliarId);
+        if (!targetOwnsFamiliar) throw new Error("Целевой персонаж не владеет выбранным фамильяром.");
         
-        const targetFamiliar = FAMILIARS_BY_ID[targetFamiliarId];
+        const targetFamiliar = familiarsById[targetFamiliarId];
         if (!targetFamiliar) throw new Error("Целевой фамильяр не найден.");
 
         const ranksAreDifferent = initiatorFamiliar.rank !== targetFamiliar.rank;
@@ -2028,7 +2034,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const requestsCollection = collection(db, "familiar_trade_requests");
         await addDoc(requestsCollection, newRequest);
 
-    }, [currentUser, fetchUsersForAdmin]);
+    }, [currentUser, fetchUsersForAdmin, familiarsById]);
 
   const fetchFamiliarTradeRequestsForUser = useCallback(async (): Promise<FamiliarTradeRequest[]> => {
         if (!currentUser) return [];
@@ -2100,7 +2106,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             targetChar.familiarCards.splice(targetCardIndex, 1);
 
             initiatorChar.familiarCards.push({ id: request.targetFamiliarId });
-            targetChar.familiarCards.push({ id: request.targetFamiliarId });
+            targetChar.familiarCards.push({ id: request.initiatorFamiliarId });
 
             transaction.update(initiatorUserRef, { characters: initiatorData.characters });
             transaction.update(targetUserRef, { characters: targetData.characters });
