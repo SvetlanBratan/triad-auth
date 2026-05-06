@@ -245,6 +245,7 @@ export default function CharacterPage() {
     const { toast } = useToast();
     const isMobile = useIsMobile();
     const [editingState, setEditingState] = useState<EditingState | null>(null);
+    const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
     const [selectedItem, setSelectedItem] = useState<(InventoryItem & { category: InventoryCategory }) | null>(null);
     const [isConsuming, setIsConsuming] = useState(false);
     const [consumeQuantity, setConsumeQuantity] = useState<number | ''>(1);
@@ -566,12 +567,58 @@ export default function CharacterPage() {
         mutation.mutate({ ...character, raceIsConfirmed: true });
     }
 
+    const handleAvatarUpload = async (file: File) => {
+        if (!character) return;
+        if (file.size > 2 * 1024 * 1024) {
+            toast({ variant: 'destructive', title: 'Файл слишком большой', description: 'Выберите изображение до 2 МБ.' });
+            return;
+        }
+        setIsUploadingAvatar(true);
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('upload_preset', 'ankets');
+            const response = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, { method: 'POST', body: formData });
+            if (!response.ok) throw new Error('Ошибка загрузки');
+            const data = await response.json();
+            mutation.mutate({ ...character, appearanceImage: data.secure_url });
+        } catch {
+            toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось загрузить аватар.' });
+        } finally {
+            setIsUploadingAvatar(false);
+        }
+    };
+
     const renderMainInfo = () => (
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Info /> Основная информация</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
+                <div className="flex flex-col items-center gap-2 pb-2">
+                    <label className={cn("relative group cursor-default", canEdit && "cursor-pointer")} title={canEdit ? "Нажмите, чтобы изменить аватар" : undefined}>
+                        <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-border bg-muted flex items-center justify-center">
+                            {character.appearanceImage ? (
+                                <Image src={character.appearanceImage} alt="Аватар персонажа" width={96} height={96} className="w-full h-full object-cover" />
+                            ) : (
+                                <Camera className="w-8 h-8 text-muted-foreground" />
+                            )}
+                            {canEdit && (
+                                <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    {isUploadingAvatar ? (
+                                        <span className="text-white text-xs">Загрузка...</span>
+                                    ) : (
+                                        <Camera className="w-6 h-6 text-white" />
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                        {canEdit && (
+                            <input type="file" accept="image/*" className="hidden" disabled={isUploadingAvatar} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleAvatarUpload(f); e.target.value = ''; }} />
+                        )}
+                    </label>
+                    <span className="text-xs text-muted-foreground">Аватар персонажа</span>
+                </div>
                 <InfoRow label="Имя" value={character.name} field="name" section="mainInfo" />
                 <InfoRow label="Деятельность" value={character.activity} field="activity" section="mainInfo" />
                 <InfoRow label="Раса" field="race" section="mainInfo">
