@@ -1112,6 +1112,14 @@ export default function AdminTab() {
         });
         return;
     }
+        if (sourceMergeUserId === targetMergeUserId) {
+            toast({
+                variant: "destructive",
+                title: "Ошибка",
+                description: "Нельзя объединить аккаунт сам с собой.",
+            });
+            return;
+        }
     setIsMerging(true);
     try {
         await mergeUserData(sourceMergeUserId, targetMergeUserId);
@@ -1123,7 +1131,23 @@ export default function AdminTab() {
         setTargetMergeUserId('');
         await refetchAdminUsers();
     } catch (error) {
-        const msg = error instanceof Error ? error.message : "Произошла ошибка при объединении.";
+            const errorCode = typeof (error as { code?: unknown })?.code === 'string'
+              ? (error as { code: string }).code
+              : '';
+
+            let msg = error instanceof Error ? error.message : "Произошла ошибка при объединении.";
+            if (errorCode.includes('permission-denied')) {
+                msg = 'Недостаточно прав. Объединять аккаунты может только администратор.';
+            } else if (errorCode.includes('not-found')) {
+                msg = 'Один из выбранных аккаунтов не найден.';
+            } else if (errorCode.includes('invalid-argument')) {
+                msg = 'Переданы некорректные данные для объединения аккаунтов.';
+            } else if (errorCode.includes('unauthenticated')) {
+                msg = 'Сессия истекла. Войдите снова и повторите попытку.';
+            } else if (errorCode.includes('internal') && msg.toLowerCase() === 'internal') {
+                msg = 'Внутренняя ошибка сервера. Проверьте, что функция mergeUserData задеплоена.';
+            }
+
         toast({
             variant: "destructive",
             title: "Ошибка объединения",

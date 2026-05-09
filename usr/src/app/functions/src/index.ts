@@ -9,6 +9,20 @@ admin.initializeApp();
 const db = admin.firestore();
 db.settings({ ignoreUndefinedProperties: true });
 
+function asArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? (value as T[]) : [];
+}
+
+function uniqueStrings(values: unknown[]): string[] {
+  return Array.from(new Set(values.filter((v): v is string => typeof v === "string" && v.length > 0)));
+}
+
+function pickLatestIsoDate(a?: string, b?: string): string | undefined {
+  if (!a) return b;
+  if (!b) return a;
+  return new Date(a).getTime() >= new Date(b).getTime() ? a : b;
+}
+
 exports.brewPotion = functions.https.onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError(
@@ -175,6 +189,130 @@ exports.deleteUser = functions.https.onCall(async (data, context) => {
           return { success: true, message: 'User not found in Auth, but deletion process will continue for Firestore data.' };
       }
       throw new functions.https.HttpsError('internal', 'Could not delete user from Firebase Auth.', error);
+  }
+});
+
+exports.mergeUserData = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError(
+      "unauthenticated",
+      "The function must be called while authenticated."
+    );
+  }
+
+  const adminUserDoc = await db.collection("users").doc(context.auth.uid).get();
+  if (!adminUserDoc.exists || adminUserDoc.data()?.role !== "admin") {
+    throw new functions.https.HttpsError("permission-denied", "Only admins can merge users.");
+  }
+
+  const sourceUserId = typeof data?.sourceUserId === "string" ? data.sourceUserId.trim() : "";
+  const targetUserId = typeof data?.targetUserId === "string" ? data.targetUserId.trim() : "";
+
+  if (!sourceUserId || !targetUserId) {
+    throw new functions.https.HttpsError(
+      "invalid-argument",
+      "Both sourceUserId and targetUserId are required."
+    );
+  }
+
+  if (sourceUserId === targetUserId) {
+    throw new functions.https.HttpsError(
+      "invalid-argument",
+      "Source and target users must be different."
+    );
+  }
+
+  const sourceRef = db.collection("users").doc(sourceUserId);
+  const targetRef = db.collection("users").doc(targetUserId);
+
+  try {
+    const result = await db.runTransaction(async (transaction) => {
+      const [sourceSnap, targetSnap] = await Promise.all([
+        transaction.get(sourceRef),
+        transaction.get(targetRef),
+      ]);
+
+      if (!sourceSnap.exists) {
+        throw new functions.https.HttpsError("not-found", "Source user not found.");
+      }
+      if (!targetSnap.exists) {
+        throw new functions.https.HttpsError("not-found", "Target user not found.");
+      }
+
+      const sourceData = sourceSnap.data() as User;
+      const targetData = targetSnap.data() as User;
+
+      const targetCharacters = asArray<any>(targetData.characters);
+      const sourceCharacters = asArray<any>(sourceData.characters);
+      const existingCharacterIds = new Set(
+        targetCharacters
+          .map((c) => (typeof c?.id === "string" ? c.id : ""))
+          .filter(Boolean)
+      );
+
+      const sourceCharactersWithUniqueIds = sourceCharacters.map((character, index) => {
+        const originalId = typeof character?.id === "string" && character.id.length > 0
+          ? character.id
+          : `merged-char-${Date.now()}-${index}`;
+        let nextId = originalId;
+        let attempt = 1;
+
+        while (existingCharacterIds.has(nextId)) {
+          nextId = `${originalId}-merged-${attempt}`;
+          attempt += 1;
+        }
+
+        existingCharacterIds.add(nextId);
+        return nextId === originalId ? character : { ...character, id: nextId };
+      });
+
+      const targetPoints = Number(targetData.points || 0);
+      const sourcePoints = Number(sourceData.points || 0);
+
+      const mergedPayload: Partial<User> = {
+        points: targetPoints + sourcePoints,
+        characters: [...targetCharacters, ...sourceCharactersWithUniqueIds],
+        pointHistory: [...asArray<any>(targetData.pointHistory), ...asArray<any>(sourceData.pointHistory)],
+        achievementIds: uniqueStrings([
+          ...asArray<any>(targetData.achievementIds),
+          ...asArray<any>(sourceData.achievementIds),
+        ]),
+        extraCharacterSlots: Number(targetData.extraCharacterSlots || 0) + Number(sourceData.extraCharacterSlots || 0),
+        mail: [...asArray<any>(targetData.mail), ...asArray<any>(sourceData.mail)],
+        playerPings: [...asArray<any>(targetData.playerPings), ...asArray<any>(sourceData.playerPings)],
+        favoritePlayerIds: uniqueStrings([
+          ...asArray<any>(targetData.favoritePlayerIds),
+          ...asArray<any>(sourceData.favoritePlayerIds),
+        ]),
+        purchasedClosedRaces: uniqueStrings([
+          ...asArray<any>(targetData.purchasedClosedRaces),
+          ...asArray<any>(sourceData.purchasedClosedRaces),
+        ]),
+        lastLogin: pickLatestIsoDate(targetData.lastLogin, sourceData.lastLogin),
+      };
+
+      transaction.update(targetRef, mergedPayload);
+      transaction.update(sourceRef, {
+        mergedIntoUserId: targetUserId,
+        mergedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      return {
+        movedCharacters: sourceCharactersWithUniqueIds.length,
+        movedPoints: sourcePoints,
+      };
+    });
+
+    return {
+      success: true,
+      ...result,
+    };
+  } catch (error) {
+    console.error("Error merging users:", error);
+    if (error instanceof functions.https.HttpsError) {
+      throw error;
+    }
+    throw new functions.https.HttpsError("internal", "Failed to merge user data.");
   }
 });
 
