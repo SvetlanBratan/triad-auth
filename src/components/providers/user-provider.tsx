@@ -3788,9 +3788,29 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }, [firebaseUser, updateUser]);
 
     const mergeUserData = useCallback(async (sourceUserId: string, targetUserId: string) => {
-        const mergeData = httpsCallable(functions, 'mergeUserData');
-        await mergeData({ sourceUserId, targetUserId });
-    }, [functions]);
+        if (!firebaseUser) {
+            throw new Error('Пользователь не авторизован.');
+        }
+
+        const token = await firebaseUser.getIdToken();
+        const response = await fetch('/api/admin/merge-users', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({ sourceUserId, targetUserId }),
+        });
+
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(
+                typeof payload?.message === 'string'
+                    ? payload.message
+                    : 'Не удалось объединить аккаунты.'
+            );
+        }
+    }, [firebaseUser]);
 
     const imageGeneration = useCallback(async (prompt: string): Promise<{url: string} | {error: string}> => {
         const generateImage = httpsCallable(functions, 'generateImage');
