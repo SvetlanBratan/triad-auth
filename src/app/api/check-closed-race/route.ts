@@ -20,6 +20,10 @@ export async function GET(request: NextRequest) {
     }
 
     const userData = userDoc.data();
+    if (userData.status === 'неактивный') {
+      return NextResponse.json({ allowed: false, error: 'User is inactive' }, { status: 403 });
+    }
+
     const allowed = userData.purchasedClosedRaces?.includes(race) || false;
 
     return NextResponse.json({ allowed });

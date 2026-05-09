@@ -143,6 +143,13 @@ export default function AdminTab() {
     gcTime: 1000 * 60 * 10, // 10 minutes
   });
 
+    const { data: statusUsers = [] } = useQuery<User[]>({
+        queryKey: ['adminUsers', 'includeInactive'],
+        queryFn: () => fetchUsersForAdmin(true),
+        staleTime: 1000 * 60 * 5,
+        gcTime: 1000 * 60 * 10,
+    });
+
   const { data: allShops = [], isLoading: isShopsLoading } = useQuery<Shop[]>({
     queryKey: ['allShops'],
     queryFn: fetchAllShops,
@@ -665,7 +672,7 @@ export default function AdminTab() {
   };
 
   const handleInactivityPenalty = async () => {
-    const inactiveUsers = users.filter(u => u.status === 'неактивный');
+        const inactiveUsers = statusUsers.filter(u => u.status === 'неактивный');
     for(const user of inactiveUsers) {
         await addPointsToUser(user.id, -1000, 'Еженедельный штраф за неактивность');
     }
@@ -1347,6 +1354,7 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
      const userOptions = useMemo(() => users.map(user => ({ value: user.id, label: user.name })), [users]);
   
   const userOnlyOptions = useMemo(() => users.map(user => ({ value: user.id, label: user.name })), [users]);
+    const statusUserOptions = useMemo(() => statusUsers.map(user => ({ value: user.id, label: user.name })), [statusUsers]);
   
   const charactersForRecovery = useMemo(() => {
     if (!recoveryUserId) return [];
@@ -1904,7 +1912,7 @@ const handleChanceChange = (type: 'normal' | 'blessed', rank: 'мифическ�
                     <div>
                         <Label htmlFor="user-select-status">Пользователь</Label>
                          <SearchableSelect
-                            options={userOnlyOptions}
+                                     options={statusUserOptions}
                             value={statusSelectedUserId}
                             onValueChange={setStatusSelectedUserId}
                             placeholder="Выберите пользователя"

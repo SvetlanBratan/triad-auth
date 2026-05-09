@@ -72,7 +72,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const userData = userDoc.data() as { characters?: { id: string; galleryImages?: GalleryImage[] }[] };
+    const userData = userDoc.data() as { status?: string; characters?: { id: string; galleryImages?: GalleryImage[] }[] };
+    if (userData.status === 'неактивный') {
+      return NextResponse.json({ error: "User is inactive" }, { status: 403 });
+    }
+
     const characters = userData.characters || [];
     const charIndex = characters.findIndex(c => c.id === characterId);
 
