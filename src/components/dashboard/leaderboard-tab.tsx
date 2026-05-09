@@ -59,10 +59,15 @@ const LeaderboardTable = () => {
     }, [isError, toast]);
 
     const filteredUsers = React.useMemo(() => {
-      if (statusFilter === 'all') {
-        return allUsers;
+            if (statusFilter === 'неактивный') {
+                return allUsers.filter(user => user.status === 'неактивный');
       }
-      return allUsers.filter(user => user.status === statusFilter);
+
+            if (statusFilter === 'all') {
+                return allUsers.filter(user => user.status !== 'неактивный');
+            }
+
+            return allUsers.filter(user => user.status === statusFilter);
     }, [allUsers, statusFilter]);
 
     if (isLoading) {

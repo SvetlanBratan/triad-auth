@@ -414,8 +414,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const usersCollection = collection(db, "users");
         const q = query(usersCollection, orderBy("points", "desc"));
         const userSnapshot = await getDocs(q);
-        const users = await Promise.all(userSnapshot.docs.map(doc => processUserDoc(doc.data() as User)));
-        return users.filter(user => !isInactiveUser(user));
+        return Promise.all(userSnapshot.docs.map(doc => processUserDoc(doc.data() as User)));
     }, [processUserDoc]);
 
     const fetchCharacterById = useCallback(async (characterId: string): Promise<{ character: Character; owner: User } | null> => {
