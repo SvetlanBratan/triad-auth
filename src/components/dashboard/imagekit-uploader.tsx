@@ -7,21 +7,12 @@ import { UploadCloud, X } from 'lucide-react';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
 import { Label } from '@/components/ui/label';
-import { uploadImage } from '@/actions/upload-image';
+import { env } from '@/lib/env';
 
 interface ImageKitUploaderProps {
   currentImageUrl?: string | null;
   onUpload: (url: string) => void;
 }
-
-const fileToDataURL = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-    });
-};
 
 export default function ImageKitUploader({ currentImageUrl, onUpload }: ImageKitUploaderProps) {
   const { toast } = useToast();
@@ -56,13 +47,36 @@ export default function ImageKitUploader({ currentImageUrl, onUpload }: ImageKit
 
   const handleUpload = async () => {
     if (!file) return;
+    if (!env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || !env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET) {
+      toast({
+        variant: 'destructive',
+        title: 'Ошибка конфигурации',
+        description: 'Переменные окружения для Cloudinary не настроены.',
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const dataUrl = await fileToDataURL(file);
-      const { url } = await uploadImage(dataUrl, file.name);
-      
-      onUpload(url);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
+
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Не удалось загрузить изображение. ${errorData.error?.message ?? 'Неизвестная ошибка Cloudinary.'}`);
+      }
+
+      const data = await response.json();
+      const secureUrl = data.secure_url;
+
+      onUpload(secureUrl);
 
       toast({
         title: 'Изображение обновлено!',
