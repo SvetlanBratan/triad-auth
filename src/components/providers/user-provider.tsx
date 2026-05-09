@@ -419,7 +419,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     const fetchCharacterById = useCallback(async (characterId: string): Promise<{ character: Character; owner: User } | null> => {
       try {
-          const allUsers = await fetchUsersForAdmin();
+          const allUsers = await fetchLeaderboardUsers();
           for (const user of allUsers) {
               if (user && user.characters) {
                   const character = user.characters.find(c => c.id === characterId);
@@ -433,7 +433,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           console.error("Error fetching character by ID:", error);
           return null;
       }
-    }, [fetchUsersForAdmin]);
+    }, [fetchLeaderboardUsers]);
 
     const updateUser = useCallback(async (userId: string, updates: Partial<User>) => {
         const userRef = doc(db, "users", userId);
