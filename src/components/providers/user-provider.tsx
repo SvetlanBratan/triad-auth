@@ -40,7 +40,8 @@ export interface UserContextType {
   lastWeeklyBonusAwardedAt: string | undefined;
   fetchUserById: (userId: string) => Promise<User | null>;
   fetchCharacterById: (characterId: string) => Promise<{ character: Character; owner: User } | null>;
-    fetchUsersForAdmin: (includeInactive?: boolean) => Promise<User[]>;
+    fetchUsersForAdmin: () => Promise<User[]>;
+    fetchUsersForStatusAdmin: () => Promise<User[]>;
   fetchLeaderboardUsers: () => Promise<User[]>;
   fetchAllRewardRequests: () => Promise<RewardRequest[]>;
   fetchRewardRequestsForUser: (userId: string, fetchLimit?: number) => Promise<RewardRequest[]>;
@@ -386,17 +387,25 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return null;
     }, [processUserDoc]);
 
-    const fetchUsersForAdmin = useCallback(async (includeInactive = false): Promise<User[]> => {
+    const fetchUsersForAdmin = useCallback(async (): Promise<User[]> => {
         try {
             const usersCollection = collection(db, "users");
             const userSnapshot = await getDocs(query(usersCollection));
             const users = await Promise.all(userSnapshot.docs.map(doc => processUserDoc(doc.data() as User)));
-            if (includeInactive) {
-                return users;
-            }
             return users.filter(user => !isInactiveUser(user));
         } catch (error) {
             console.error("Error fetching users for admin.", error);
+            throw error;
+        }
+    }, [processUserDoc]);
+
+    const fetchUsersForStatusAdmin = useCallback(async (): Promise<User[]> => {
+        try {
+            const usersCollection = collection(db, "users");
+            const userSnapshot = await getDocs(query(usersCollection));
+            return Promise.all(userSnapshot.docs.map(doc => processUserDoc(doc.data() as User)));
+        } catch (error) {
+            console.error("Error fetching users for status admin.", error);
             throw error;
         }
     }, [processUserDoc]);
@@ -3879,6 +3888,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         fetchUserById,
         fetchCharacterById,
         fetchUsersForAdmin,
+        fetchUsersForStatusAdmin,
         fetchLeaderboardUsers,
         fetchAllRewardRequests,
         fetchRewardRequestsForUser,
@@ -3976,7 +3986,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         addFavoritePlayer,
         removeFavoritePlayer,
     }),
-        [currentUser, setCurrentUser, gameDate, gameDateString, gameSettings, teachings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes, fetchDbFamiliars, addFamiliarToDb, updateFamiliarInDb, deleteFamiliarFromDb, allFamiliars, familiarsById, startHunt, startMultipleHunts, claimHuntReward, claimAllHuntRewards, recallHunt, claimRewardsForOtherPlayer, changeUserPassword, changeUserEmail, mergeUserData, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, imageGeneration, deleteUserFromAuth, adminAddShop, adminClaimHuntEarly, adminStartHunt, adminStartMultipleHunts]
+        [currentUser, setCurrentUser, gameDate, gameDateString, gameSettings, teachings, fetchUserById, fetchCharacterById, fetchUsersForAdmin, fetchUsersForStatusAdmin, fetchLeaderboardUsers, fetchAllRewardRequests, fetchRewardRequestsForUser, fetchAvailableMythicCardsCount, addPointsToUser, addPointsToAllUsers, updateCharacterInUser, deleteCharacterFromUser, updateUserStatus, updateUserRole, grantAchievementToUser, createNewUser, createRewardRequest, updateRewardRequestStatus, pullGachaForCharacter, giveAnyFamiliarToCharacter, clearPointHistoryForUser, clearAllPointHistories, addMoodletToCharacter, removeMoodletFromCharacter, clearRewardRequestsHistory, removeFamiliarFromCharacter, updateUser, updateUserAvatar, updateGameSettings, processWeeklyBonus, checkExtraCharacterSlots, performRelationshipAction, recoverFamiliarsFromHistory, recoverAllFamiliars, addBankPointsToCharacter, transferCurrency, processMonthlySalary, updateCharacterWealthLevel, createExchangeRequest, fetchOpenExchangeRequests, acceptExchangeRequest, cancelExchangeRequest, createFamiliarTradeRequest, fetchFamiliarTradeRequestsForUser, acceptFamiliarTradeRequest, declineOrCancelFamiliarTradeRequest, fetchAllShops, fetchShopById, updateShopOwner, removeShopOwner, updateShopDetails, addShopItem, updateShopItem, deleteShopItem, purchaseShopItem, adminGiveItemToCharacter, adminUpdateItemInCharacter, adminDeleteItemFromCharacter, consumeInventoryItem, restockShopItem, adminUpdateCharacterStatus, adminUpdateShopLicense, processAnnualTaxes, sendMassMail, markMailAsRead, deleteMailMessage, clearAllMailboxes, updatePopularity, clearAllPopularityHistories, withdrawFromShopTill, brewPotion, addAlchemyRecipe, updateAlchemyRecipe, deleteAlchemyRecipe, fetchAlchemyRecipes, fetchDbFamiliars, addFamiliarToDb, updateFamiliarInDb, deleteFamiliarFromDb, allFamiliars, familiarsById, startHunt, startMultipleHunts, claimHuntReward, claimAllHuntRewards, recallHunt, claimRewardsForOtherPlayer, changeUserPassword, changeUserEmail, mergeUserData, sendPlayerPing, deletePlayerPing, addFavoritePlayer, removeFavoritePlayer, imageGeneration, deleteUserFromAuth, adminAddShop, adminClaimHuntEarly, adminStartHunt, adminStartMultipleHunts]
     );
     
     return (

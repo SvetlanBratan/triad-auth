@@ -97,6 +97,7 @@ export default function AdminTab() {
     updateUserRole, 
     grantAchievementToUser, 
     fetchUsersForAdmin, 
+    fetchUsersForStatusAdmin,
     clearPointHistoryForUser,
     clearAllPointHistories,
     addMoodletToCharacter, 
@@ -145,7 +146,7 @@ export default function AdminTab() {
 
     const { data: statusUsers = [] } = useQuery<User[]>({
         queryKey: ['adminUsers', 'includeInactive'],
-        queryFn: () => fetchUsersForAdmin(true),
+        queryFn: fetchUsersForStatusAdmin,
         staleTime: 1000 * 60 * 5,
         gcTime: 1000 * 60 * 10,
     });
