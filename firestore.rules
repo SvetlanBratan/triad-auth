@@ -5,6 +5,7 @@ service cloud.firestore {
 
     function isAdmin() {
       return request.auth != null &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
         (
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner'
@@ -115,10 +116,7 @@ service cloud.firestore {
     }
 
     match /reward_requests/{docId} {
-      allow read: if request.auth != null && (
-        resource.data.userId == request.auth.uid ||
-        isAdmin()
-      );
+      allow read: if isAdmin();
       allow create: if request.auth != null;
       allow update, delete: if isAdmin();
     }

@@ -1086,17 +1086,29 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const fetchAllRewardRequests = useCallback(async (): Promise<RewardRequest[]> => {
         const requests: RewardRequest[] = [];
         try {
-          const q = query(collectionGroup(db, 'reward_requests'));
-          const querySnapshot = await getDocs(q);
-          querySnapshot.forEach((doc) => {
-            requests.push(doc.data() as RewardRequest);
-          });
+          // Get all users first
+          const allUsers = await fetchUsersForAdmin();
+          
+          // Fetch reward requests for each user
+          for (const user of allUsers) {
+            try {
+              const requestsRef = collection(db, 'users', user.id, 'reward_requests');
+              const q = query(requestsRef, orderBy('createdAt', 'desc'));
+              const querySnapshot = await getDocs(q);
+              querySnapshot.forEach((doc) => {
+                requests.push(doc.data() as RewardRequest);
+              });
+            } catch (userError) {
+              console.warn(`Error fetching requests for user ${user.id}:`, userError);
+            }
+          }
+          
           return requests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         } catch (error) {
           console.error("Error fetching all reward requests:", error);
           throw error;
         }
-    }, []);
+    }, [fetchUsersForAdmin]);
 
     const fetchRewardRequestsForUser = useCallback(async (userId: string, fetchLimit?: number): Promise<RewardRequest[]> => {
         const requests: RewardRequest[] = [];
