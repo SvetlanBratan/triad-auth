@@ -1152,7 +1152,7 @@ export default function AdminTab() {
                 msg = 'Переданы некорректные данные для объединения аккаунтов.';
             } else if (errorCode.includes('unauthenticated')) {
                 msg = 'Сессия истекла. Войдите снова и повторите попытку.';
-            } else if (errorCode.includes('internal') && msg.toLowerCase() === 'internal') {
+            } else if (errorCode.includes('internal') && msg && msg.toLowerCase() === 'internal') {
                 msg = 'Внутренняя ошибка сервера. Проверьте, что функция mergeUserData задеплоена.';
             }
 

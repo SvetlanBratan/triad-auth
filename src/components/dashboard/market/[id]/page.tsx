@@ -141,7 +141,7 @@ export default function ShopPage() {
         if (!searchQuery) return sortedItems;
 
         return sortedItems.filter(item =>
-            item.name.toLowerCase().includes(searchQuery.toLowerCase())
+            item.name && item.name.toLowerCase().includes(searchQuery.toLowerCase())
         );
     }, [shop?.items, searchQuery, isOwnerOrAdmin]);
 

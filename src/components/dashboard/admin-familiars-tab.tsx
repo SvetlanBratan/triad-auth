@@ -116,7 +116,7 @@ export default function AdminFamiliarsTab() {
 
   const filteredFamiliars = useMemo(() => {
     return dbFamiliars.filter(fam => 
-      fam.name.toLowerCase().includes(searchQuery.toLowerCase())
+      fam.name && fam.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [dbFamiliars, searchQuery]);
 

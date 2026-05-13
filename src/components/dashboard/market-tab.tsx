@@ -32,8 +32,8 @@ export default function MarketTab() {
 
     return sortedShops.filter(shop => 
         (shop.items || []).some(item => 
-            item.name.toLowerCase().includes(searchQuery.toLowerCase())
-        ) || shop.title.toLowerCase().includes(searchQuery.toLowerCase())
+            item.name && item.name.toLowerCase().includes(searchQuery.toLowerCase())
+        ) || (shop.title && shop.title.toLowerCase().includes(searchQuery.toLowerCase()))
     );
   }, [shops, searchQuery]);
   

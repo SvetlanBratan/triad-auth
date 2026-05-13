@@ -1105,7 +1105,7 @@ export default function CharacterPage() {
                                 return { cat, items: [], hasContent: false };
                             }
                             if (cat.key === 'предприятия') {
-                                const filteredShops = ownedShops.filter(shop => shop.title.toLowerCase().includes(lowercasedSearch));
+                                const filteredShops = ownedShops.filter(shop => shop.title && shop.title.toLowerCase().includes(lowercasedSearch));
                                 return { cat, items: filteredShops, hasContent: filteredShops.length > 0 };
                             }
     
@@ -1117,7 +1117,7 @@ export default function CharacterPage() {
                             let visibleItems = cat.key === 'питомцы' ? items.filter(i => !FAMILIARS_BY_ID[i.id as keyof typeof FAMILIARS_BY_ID]) : items;
     
                             if (lowercasedSearch) {
-                                visibleItems = visibleItems.filter(item => item.name.toLowerCase().includes(lowercasedSearch));
+                                visibleItems = visibleItems.filter(item => item.name && item.name.toLowerCase().includes(lowercasedSearch));
                             }
     
                             return { cat, items: visibleItems, hasContent: visibleItems.length > 0 };

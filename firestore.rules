@@ -1,20 +1,38 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions
     function isAdmin() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      return request.auth != null &&
+        (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner'
+        );
     }
 
     function isOwner(userId) {
-      return request.auth.uid == userId;
+      return request.auth != null && request.auth.uid == userId;
     }
-    
-    // --- Specific Rules ---
 
+    // --- Public Lore Access ---
+    match /world_status/{docId} { allow read: if true; allow write: if isAdmin(); }
+    match /races/{docId} { allow read: if true; allow write: if isAdmin(); }
+    match /race_details/{docId} { allow read: if true; allow write: if isAdmin(); }
+    match /laws/{docId} { allow read: if true; allow write: if isAdmin(); }
+    match /library/{docId} { allow read: if true; allow write: if isAdmin(); }
+    match /spiritWorld/{docId} { allow read: if true; allow write: if isAdmin(); }
+
+    match /config/news_links { allow read: if true; allow write: if isAdmin(); }
+    match /config/history { allow read: if true; allow write: if isAdmin(); }
+    match /config/religion { allow read: if true; allow write: if isAdmin(); }
+    match /config/social_links { allow read: if true; allow write: if isAdmin(); }
+    match /config/faq { allow read: if true; allow write: if isAdmin(); }
+    match /config/rules { allow read: if true; allow write: if isAdmin(); }
+    match /config/advertising { allow read: if isAdmin(); allow write: if isAdmin(); }
+    match /config/magic_shards { allow read: if true; allow write: if isAdmin(); }
+
+    // --- Users ---
     match /users/{userId} {
       allow read: if request.auth != null;
       allow create: if isOwner(userId);
@@ -22,47 +40,54 @@ service cloud.firestore {
       allow delete: if isAdmin();
 
       match /reward_requests/{requestId} {
-        allow read, create: if isOwner(userId);
+        allow read, create: if isOwner(userId) || isAdmin();
         allow update, delete: if isAdmin();
       }
     }
-    
-    match /{path=**}/reward_requests/{requestId} {
+
+    // --- Specific Rules ---
+    match /celebrities/{docId} {
+      allow read: if true;
+      allow create: if isAdmin() || (
+        request.auth != null &&
+        request.resource.data.linkedUserId == request.auth.uid
+      );
+      allow update, delete: if isAdmin() || (
+        request.auth != null &&
+        resource.data.linkedUserId == request.auth.uid
+      );
+    }
+
+    match /news_submissions/{docId} {
       allow read: if isAdmin();
+      allow create: if request.auth != null;
+      allow delete: if isAdmin();
     }
 
-    match /exchange_requests/{requestId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth.uid == request.resource.data.creatorUserId;
-      allow update: if request.auth != null && (isAdmin() || resource.data.creatorUserId == request.auth.uid || request.resource.data.status == 'closed');
-      allow delete: if request.auth != null && (isAdmin() || resource.data.creatorUserId == request.auth.uid);
+    match /prayers/{docId} {
+      allow read: if isAdmin();
+      allow create: if request.auth != null;
+      allow delete: if isAdmin();
     }
 
-    match /familiar_trade_requests/{requestId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth.uid == request.resource.data.initiatorUserId;
-      allow update: if request.auth != null && (
-                      isAdmin() ||
-                      (request.auth.uid == resource.data.initiatorUserId && request.resource.data.status == 'отменено') ||
-                      (request.auth.uid == resource.data.targetUserId && (request.resource.data.status == 'принято' || request.resource.data.status == 'отклонено'))
-                    );
-    }
-    
     match /shops/{shopId} {
-        allow read: if true;
-        allow create: if isAdmin();
-        allow delete: if isAdmin() || (resource.data != null && resource.data.ownerUserId == request.auth.uid);
-        allow update: if request.auth != null;
+      allow read: if true;
+      allow create: if isAdmin();
+      allow delete: if isAdmin() || (
+        request.auth != null &&
+        resource.data.ownerUserId == request.auth.uid
+      );
+      allow update: if request.auth != null;
     }
 
     match /alchemy_recipes/{recipeId} {
-        allow read: if request.auth != null;
-        allow write: if isAdmin();
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
     }
 
     match /familiars/{familiarId} {
-        allow read: if request.auth != null;
-        allow write: if isAdmin();
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
     }
 
     match /game_settings/{settingId} {
@@ -70,34 +95,52 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // --- Generic Rules for other collections to prevent breakage ---
-    // These rules allow any logged-in user to perform actions.
-    
+    // --- Trading & Rewards ---
+    match /exchange_requests/{docId} {
+      allow read, create: if request.auth != null;
+      allow update, delete: if request.auth != null && (
+        resource.data.fromUserId == request.auth.uid ||
+        resource.data.toUserId == request.auth.uid ||
+        isAdmin()
+      );
+    }
+
+    match /market_listings/{docId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && (
+        resource.data.sellerId == request.auth.uid ||
+        isAdmin()
+      );
+    }
+
+    match /reward_requests/{docId} {
+      allow read: if request.auth != null && (
+        resource.data.userId == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if request.auth != null;
+      allow update, delete: if isAdmin();
+    }
+
+    // --- Generic Rules ---
     match /applications/{docId} { allow read, write: if request.auth != null; }
     match /posts/{docId} { allow read, write: if request.auth != null; }
-    match /races/{docId} { allow read, write: if request.auth != null; }
-    match /library/{docId} { allow read, write: if request.auth != null; }
-    match /history/{docId} { allow read, write: if request.auth != null; }
-    match /aristocracy_titles/{docId} { allow read, write: if request.auth != null; }
-    match /feudal_territories/{docId} { allow read, write: if request.auth != null; }
-    match /celebrities/{docId} { allow read, write: if request.auth != null; }
-    match /flora_fauna/{docId} { allow read, write: if request.auth != null; }
-    match /newspapers/{docId} { allow read, write: if request.auth != null; }
-    match /world_status/{docId} { allow read, write: if request.auth != null; }
-    match /professions/{docId} { allow read, write: if request.auth != null; }
-    match /guilds/{docId} { allow read, write: if request.auth != null; }
+
+    match /history/{docId} { allow read: if true; allow write: if isAdmin(); }
+    match /aristocracy_titles/{docId} { allow read: if true; allow write: if isAdmin(); }
+    match /feudal_territories/{docId} { allow read: if true; allow write: if isAdmin(); }
+    match /flora_fauna/{docId} { allow read: if true; allow write: if isAdmin(); }
+    match /professions/{docId} { allow read: if true; allow write: if isAdmin(); }
+    match /guilds/{docId} { allow read: if true; allow write: if isAdmin(); }
     match /calendar/{docId} { allow read, write: if request.auth != null; }
-    match /economy/{docId} { allow read, write: if request.auth != null; }
-    match /faq/{docId} { allow read, write: if request.auth != null; }
-    match /social_links/{docId} { allow read, write: if request.auth != null; }
-    match /locations/{docId} { allow read, write: if request.auth != null; }
-    match /news_links/{docId} { allow read, write: if request.auth != null; }
-    match /laws/{docId} { allow read, write: if request.auth != null; }
-    match /advertising/{docId} { allow read, write: if request.auth != null; }
-    match /stories/{docId} { allow read, write: if request.auth != null; }
+    match /economy/{docId} { allow read: if true; allow write: if isAdmin(); }
+    match /faq/{docId} { allow read: if true; allow write: if isAdmin(); }
+    match /advertising/{docId} { allow read, write: if isAdmin(); }
+    match /stories/{docId} { allow read: if true; allow write: if isAdmin(); }
+
     match /storyApplications/{docId} { allow read, write: if request.auth != null; }
     match /story_suggestions/{docId} { allow read, write: if request.auth != null; }
     match /bulletin_board/{docId} { allow read, write: if request.auth != null; }
   }
 }
-
